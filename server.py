@@ -234,155 +234,155 @@ def get_game_visits(level: str, move_count: int = -1,
 ROGUE_CARDS = {
     "tengen": {
         "name": "天元",
-        "desc": "AI 前 2 手优先下天元或星位",
+        "desc": "开局 2 手，AI 被天元与星位吸引",
         "icon": "◎",
     },
     "dice": {
-        "name": "投骰子",
-        "desc": "AI 有 14% 概率直接虚手",
+        "name": "掷骰",
+        "desc": "AI 每手有 14% 概率直接跳过",
         "icon": "🎲",
     },
     "erosion": {
         "name": "蚕食",
-        "desc": "每提掉 1 颗敌子，贴目额外波动 2 目",
+        "desc": "每提 1 子，贴目向有利方向偏移 2 目",
         "icon": "🪲",
     },
     "puppet": {
         "name": "傀儡术",
-        "desc": "主动使用 1 次，让 AI 按你指定的位置落子",
+        "desc": "选定一点，强制 AI 在此落子（限 1 次）",
         "icon": "🎭",
         "uses": 1,
     },
     "seal": {
         "name": "封印术",
-        "desc": "选择 3 个点位，本局 AI 不可落子",
+        "desc": "指定 3 个禁区，AI 全局无法落子",
         "icon": "🔒",
     },
     "twin": {
         "name": "连击",
-        "desc": "主动使用 1 次，本回合你可连续落两手",
+        "desc": "一回合连落两手（限 1 次）",
         "icon": "⚡",
         "uses": 1,
     },
     "nerf": {
         "name": "弱化",
-        "desc": "AI 搜索量降低 60%",
+        "desc": "AI 搜索算力直降 60%",
         "icon": "📉",
     },
     "komi_relief": {
-        "name": "贴目减负",
-        "desc": "贴目从 7.5 降到 2.5",
+        "name": "贴目减半",
+        "desc": "贴目从 7.5 直降至 2.5",
         "icon": "⚖️",
     },
     "time_press": {
-        "name": "时间压制",
-        "desc": "AI 每手思考最多 0.7 秒",
+        "name": "限时压制",
+        "desc": "AI 每手最多思考 0.7 秒",
         "icon": "⏱️",
     },
     "lowline": {
         "name": "低空飞行",
-        "desc": "AI 前 6 手更偏向二三路线",
+        "desc": "AI 前 6 手偏向二三路低位",
         "icon": "🪁",
     },
     "suboptimal": {
         "name": "次优之选",
-        "desc": "AI 前 10 手从第 3 到第 5 优点位中落子",
+        "desc": "AI 前 10 手只能选第 3~5 优的点",
         "icon": "🥈",
     },
     "mirror": {
         "name": "镜像",
-        "desc": "AI 有 30% 概率镜像你的上一手",
+        "desc": "AI 有 30% 概率模仿你的上一手",
         "icon": "🪞",
     },
     "slip": {
         "name": "手滑了",
-        "desc": "AI 有 38% 概率滑到目标相邻点",
+        "desc": "AI 有 38% 概率偏到目标旁边",
         "icon": "🤏",
     },
     "blackhole": {
         "name": "黑洞",
-        "desc": "棋盘中央 13 路区域禁止 AI 落子",
+        "desc": "棋盘中心 13 路区域对 AI 完全禁入",
         "icon": "🕳️",
     },
     "exchange": {
         "name": "乾坤挪移",
-        "desc": "主动使用 1 次，本回合让 AI 虚手并由你继续落子",
+        "desc": "强制 AI 虚手，你继续行棋（限 1 次）",
         "icon": "🔄",
         "uses": 1,
     },
     "fog": {
-        "name": "迷雾",
-        "desc": "每次 AI 落子前刷新 1 个 3x3 遮罩，AI 不可落入",
+        "name": "战争迷雾",
+        "desc": "AI 每手前刷新一个 3×3 禁区遮罩",
         "icon": "🌫️",
     },
     "gravity": {
-        "name": "引力",
-        "desc": "AI 前 5 手更偏向星位",
+        "name": "星位引力",
+        "desc": "AI 前 5 手被星位磁场牵引",
         "icon": "🧲",
     },
     "golden_corner": {
         "name": "黄金角",
-        "desc": "随机封锁一个角部 4x4 区域，AI 不可落子",
+        "desc": "随机封锁一角 4×4 区域，AI 禁入",
         "icon": "🏆",
     },
     "sansan": {
         "name": "三三开局",
-        "desc": "AI 前 4 手优先下三三，之后 4 手避开角部 5x5",
+        "desc": "AI 先冲三三，之后回避角部 5×5",
         "icon": "◣",
     },
     "shadow": {
         "name": "影子",
-        "desc": "AI 前 3 手倾向贴着自己的上一手下",
+        "desc": "AI 前 3 手紧跟上一手的位置",
         "icon": "👤",
     },
     "sprout": {
         "name": "萌芽",
-        "desc": "每成功提掉 1 子，随机长出 1 颗己方棋子",
+        "desc": "每提 1 子，旁边自动长出 1 颗己棋",
         "icon": "🌱",
     },
     "joseki_ocd": {
         "name": "定式强迫症",
-        "desc": "点亮 7 个随机点位，命中 3 个后自动补满剩余 4 点",
+        "desc": "点亮 7 点，命中 3 个自动补全其余",
         "icon": "📐",
     },
     "handicap_quest": {
         "name": "让子任务",
-        "desc": "主动虚手 1 次；每 4 手额外奖励 1 次 AI 虚手",
+        "desc": "先虚手 1 次，之后每 4 手奖励 AI 虚手",
         "icon": "🎁",
     },
     "god_hand": {
         "name": "神之一手",
-        "desc": "踩中隐藏 3x3 菱形区后，在 5x5 范围爆发 5 颗同色棋",
+        "desc": "踩中隐藏菱形区，5×5 内爆出 5 颗己棋",
         "icon": "✨",
     },
     "sansan_trap": {
-        "name": "三三是陷阱",
-        "desc": "若 AI 开局下在任意角三三，则旁边生成 3 颗己方棋子",
+        "name": "三三陷阱",
+        "desc": "AI 开在三三？旁边立刻长出 3 颗反击棋",
         "icon": "🪤",
     },
     "corner_helper": {
-        "name": "守角辅助器",
-        "desc": "角部 5x5 已有 2 颗己子时，再补出 2 颗角部支援棋",
+        "name": "守角辅助",
+        "desc": "角部 5×5 有 2 子时，自动补 2 颗援军",
         "icon": "🏯",
     },
     "sanrensei": {
         "name": "三连星",
-        "desc": "前三手都下在星位时，额外生成 3 颗己方棋子",
+        "desc": "前 3 手全落星位，额外生成 3 颗己棋",
         "icon": "⭐",
     },
     "no_regret": {
-        "name": "我不悔棋",
-        "desc": "禁用悔棋；每手有 14% 概率补 1 颗次优点同色棋",
+        "name": "永不悔棋",
+        "desc": "禁用悔棋，但每手 14% 概率白送一子",
         "icon": "🚫",
     },
     "quickthink": {
         "name": "快速思考",
-        "desc": "落子限时 3 秒，成功落子后可在 2 秒内再下一手",
+        "desc": "3 秒内落子可追加 2 秒连击窗口",
         "icon": "⚡",
     },
     "foolish_wisdom": {
         "name": "大智若愚",
-        "desc": "摆出孤立 L 形愚形时，在 5x5 范围随机长出 1 颗己子",
+        "desc": "摆出孤立愚形，5×5 内随机长出 1 颗己棋",
         "icon": "🧩",
     },
 }
@@ -422,112 +422,112 @@ def pick_ai_rogue_card(exclude: Optional[list[str]] = None) -> str:
 ULTIMATE_CARDS = {
     "chain": {
         "name": "连珠棋",
-        "desc": "玩家每手有 65% 概率再下一手",
+        "desc": "每手 65% 概率触发追加行动",
         "icon": "🔥",
     },
     "proliferate": {
         "name": "无限增殖",
-        "desc": "落子后在 5x5 范围额外生成 5 颗同色棋",
+        "desc": "落子后 5×5 范围内爆出 5 颗同色棋",
         "icon": "🌸",
     },
     "double": {
         "name": "双刀流",
-        "desc": "你的回合固定连续下 2 手",
+        "desc": "每回合固定连下 2 手",
         "icon": "⚔️",
     },
     "wildgrow": {
         "name": "狂野生长",
-        "desc": "随机 4 颗己子继续向周围蔓延生长",
+        "desc": "4 颗己子向四周蔓延扩张",
         "icon": "🌿",
     },
     "rejection": {
         "name": "排异反应",
-        "desc": "落点 3x3 内的敌子会被推开或摧毁",
+        "desc": "落点 3×3 内敌子被推开或摧毁",
         "icon": "💥",
     },
     "territory": {
         "name": "绝对领地",
-        "desc": "落点周围 4 格范围形成禁入领地",
+        "desc": "落点周围 4 格形成禁入结界",
         "icon": "🛡️",
     },
     "shadow_clone": {
         "name": "影分身",
-        "desc": "在对称位置额外生成一颗分身棋子",
+        "desc": "对称位自动出现一颗分身棋",
         "icon": "👥",
     },
     "plague": {
         "name": "瘟疫",
-        "desc": "落点 3x3 范围内敌子全部转化成己子",
+        "desc": "3×3 内所有敌子转化为己方",
         "icon": "☣️",
     },
     "meteor": {
-        "name": "陨石",
-        "desc": "随机摧毁 5 颗对方棋子",
+        "name": "陨石雨",
+        "desc": "随机轰掉 5 颗对方棋子",
         "icon": "☄️",
     },
     "quantum": {
         "name": "量子纠缠",
-        "desc": "随机在全盘生成 5 颗同色棋子",
+        "desc": "全盘随机位置生成 5 颗同色棋",
         "icon": "🌀",
     },
     "devour": {
         "name": "吞噬",
-        "desc": "清空落点 5x5 范围内的全部敌子",
+        "desc": "5×5 范围内敌子全部清空",
         "icon": "🦷",
     },
     "timewarp": {
         "name": "时空裂缝",
-        "desc": "有 85% 概率抹去对手最近 2 手",
+        "desc": "85% 概率抹去对手最近 2 手",
         "icon": "🕰️",
     },
     "blackout": {
         "name": "天崩地裂",
-        "desc": "清除落点十字范围内的所有敌子",
+        "desc": "十字方向清除所有敌子",
         "icon": "🌋",
     },
     "magnet": {
         "name": "磁力吸附",
-        "desc": "己方棋子朝落点聚拢并碾碎路径上的敌子",
+        "desc": "己方棋子飞速聚拢，碾碎路径上的敌子",
         "icon": "🧲",
     },
     "necro": {
         "name": "亡灵召唤",
-        "desc": "生成 3 颗己棋，并转化 2 颗敌棋",
+        "desc": "召唤 3 颗己棋 + 策反 2 颗敌棋",
         "icon": "💀",
     },
     "wall": {
-        "name": "城墙",
-        "desc": "在整行或整列筑起一面棋墙",
+        "name": "万里长城",
+        "desc": "整行或整列筑起一面不可逾越的棋墙",
         "icon": "🧱",
     },
     "joseki_burst": {
         "name": "定式爆发",
-        "desc": "命中定式点后补满剩余点，并额外爆发 12 颗同色棋",
+        "desc": "命中定式后补满目标 + 额外爆出 12 子",
         "icon": "📐",
     },
     "god_hand": {
         "name": "神之一手",
-        "desc": "踩中隐藏 5x5 菱形区后，清空敌棋并填充 50 颗己棋",
+        "desc": "踩中 5×5 隐藏菱形，清空敌子并铺满 50 颗己棋",
         "icon": "✨",
     },
     "corner_helper": {
-        "name": "守角辅助器",
-        "desc": "满足角部条件后，8x8 边界铺满己棋并清空范围敌子",
+        "name": "守角要塞",
+        "desc": "满足条件后 8×8 角部封城，敌子全灭",
         "icon": "🏯",
     },
     "sanrensei": {
-        "name": "三连星",
-        "desc": "前三手全是星位时，引爆全盘星位势力",
+        "name": "三连星爆发",
+        "desc": "前 3 手全落星位，引爆全盘星位势力",
         "icon": "⭐",
     },
     "quickthink": {
-        "name": "快速思考",
-        "desc": "5 秒内可任意连续落子，结束后 AI 再读盘",
+        "name": "极速风暴",
+        "desc": "5 秒内不限次数连续落子，结束后 AI 再读盘",
         "icon": "⚡",
     },
     "foolish_wisdom": {
-        "name": "大智若愚",
-        "desc": "检测到愚形后，全盘连锁生成 20 颗己棋直到不再触发",
+        "name": "愚形连锁",
+        "desc": "检测到愚形就连锁生成，最多铺满 20 颗己棋",
         "icon": "🧩",
     },
 }
@@ -3200,7 +3200,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
             if engine.ready:
                 await _sync_board_to_katago(game)
             await send_fn({"type": "rogue_event",
-                           "msg": f"△ 三三是陷阱发动，在 {coord_to_gtp(x, y, game.size)} 周围反打 {len(changed)} 子"})
+                           "msg": f"△ 三三陷阱发动，在 {coord_to_gtp(x, y, game.size)} 周围反打 {len(changed)} 子"})
 
     if game.rogue_card == "corner_helper" and not game.rogue_corner_helper_done:
         corner = _find_corner_with_min_stones(game, color, 5, 2)
@@ -3217,7 +3217,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                 if engine.ready:
                     await _sync_board_to_katago(game)
                 await send_fn({"type": "rogue_event",
-                               "msg": f"🏯 守角辅助器补强了 {len(changed)} 颗角部援军"})
+                               "msg": f"🏯 守角辅助补强了 {len(changed)} 颗角部援军"})
 
     if game.rogue_card == "sanrensei" and not game.rogue_sanrensei_done:
         player_moves = _player_non_pass_coords(game, color, limit=3)
@@ -3240,7 +3240,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                 if engine.ready:
                     await _sync_board_to_katago(game)
                 await send_fn({"type": "rogue_event",
-                               "msg": f"🚫 我不悔棋发动，在 {coord_to_gtp(bonus[0], bonus[1], game.size)} 补了一手"})
+                               "msg": f"🚫 永不悔棋发动，在 {coord_to_gtp(bonus[0], bonus[1], game.size)} 补了一手"})
 
     if game.rogue_card == "foolish_wisdom":
         new_shapes = _find_new_fool_shapes(game, color, game.rogue_fool_shapes)
@@ -3297,7 +3297,7 @@ async def _apply_ai_rogue_response_effects(game: GoGame, send_fn,
                     await _sync_board_to_katago(game)
                 await send_fn({
                     "type": "rogue_event",
-                    "msg": f"三三是陷阱发动，在 {coord_to_gtp(coord[0], coord[1], game.size)} 周围反打 {len(changed)} 子"
+                    "msg": f"三三陷阱发动，在 {coord_to_gtp(coord[0], coord[1], game.size)} 周围反打 {len(changed)} 子"
                 })
 
 
@@ -3675,7 +3675,7 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
                 if cleared or placed:
                     game.ultimate_corner_helper_done = True
                     await send_fn({"type": "rogue_event",
-                                   "msg": f"🏯 守角辅助器封锁角部，清空 {cleared} 子并筑边 {len(placed)} 子"})
+                                   "msg": f"🏯 守角要塞封锁角部，清空 {cleared} 子并筑边 {len(placed)} 子"})
 
     elif card == "sanrensei":
         if not game.ultimate_sanrensei_done:
@@ -3968,7 +3968,7 @@ async def _ai_move(game: GoGame, send_fn):
         await send_fn({"type": "ai_move", "gtp": "pass", "color": color,
                         "x": None, "y": None})
         await send_fn({"type": "rogue_event",
-                        "msg": "投骰子触发，AI 这手选择虚手"})
+                        "msg": "掷骰触发，AI 这手选择虚手"})
         return
 
     if card == "mirror" and random.random() < ROGUE_MIRROR_CHANCE and move_count > 0:
@@ -4030,7 +4030,7 @@ async def _ai_move(game: GoGame, send_fn):
         game.rogue_seal_points = _pick_fog_mask(game.size, rng)
         await send_fn({"type": "game_state", **game.to_state()})
         await send_fn({"type": "rogue_event",
-                       "msg": "🌫 迷雾刷新：高亮 3x3 区域本回合对 AI 禁止落子"})
+                       "msg": "🌫 战争迷雾刷新：高亮 3x3 区域本回合对 AI 禁止落子"})
 
     if card == "tengen" and ai_move_count < 2:
         if ai_move_count == 0:
@@ -4224,7 +4224,7 @@ async def _ai_move(game: GoGame, send_fn):
             game.rogue_sansan_trap_done = True
             extra_board_change = True
             await send_fn({"type": "rogue_event",
-                           "msg": f"△ 三三是陷阱发动，在 {coord_to_gtp(coord[0], coord[1], game.size)} 周围反打 {len(changed)} 子"})
+                           "msg": f"△ 三三陷阱发动，在 {coord_to_gtp(coord[0], coord[1], game.size)} 周围反打 {len(changed)} 子"})
 
     if needs_sync or extra_board_change:
         await _sync_board_to_katago(game)
