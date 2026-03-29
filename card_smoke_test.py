@@ -595,6 +595,21 @@ async def smoke_foolish_wisdom_rogue():
     assert sum(1 for row in game.board for cell in row if cell == 1) >= 4
 
 
+async def smoke_bonus_spawn_safety():
+    game = make_game(size=5)
+    game.board = [
+        [0, 2, 2, 0, 0],
+        [2, 0, 2, 0, 0],
+        [2, 2, 2, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+    ]
+    changed = s._spawn_bonus_points(game, [(1, 1), (3, 3)], "B")
+    assert changed == [(3, 3)]
+    assert game.board[1][1] == 0
+    assert game.board[3][3] == 1
+
+
 async def smoke_foolish_wisdom_ultimate():
     game = make_game()
     game.ultimate = True
@@ -660,8 +675,8 @@ async def smoke_two_player_rogue_shared_cards():
         sent.append(copy.deepcopy(payload))
 
     await s._apply_player_rogue_move_effects(game, send_white, 2, 2, "W", 0)
-    white_stones = sum(1 for row in game.board for cell in row if cell == 2)
-    assert white_stones >= 4
+    black_support = sum(1 for x, y in s._adjacent8_points(2, 2, game.size) if game.board[y][x] == 1)
+    assert black_support >= 3
     assert any(msg.get("type") == "rogue_event" for msg in sent)
 
     choices = s.pick_rogue_choices(3, pool=s.TWO_PLAYER_ROGUE_POOL)
@@ -850,6 +865,7 @@ async def main():
         await smoke_suboptimal_extended()
         await smoke_fog_mask_refresh()
         await smoke_foolish_wisdom_rogue()
+        await smoke_bonus_spawn_safety()
         await smoke_foolish_wisdom_ultimate()
         await smoke_two_player_rogue_shared_cards()
         await smoke_ai_rogue_support()

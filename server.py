@@ -2787,6 +2787,41 @@ def _set_points_to_color(game: GoGame, points: list[tuple[int, int]], color: str
     return changed
 
 
+def _try_spawn_bonus_stone(game: GoGame, x: int, y: int, color: str) -> bool:
+    """Place a bonus stone conservatively so later turns don't "eat" invalid spawns."""
+    if not (0 <= x < game.size and 0 <= y < game.size):
+        return False
+    if game.board[y][x] != 0:
+        return False
+
+    cv = 1 if color == "B" else 2
+    ov = 3 - cv
+    game.board[y][x] = cv
+
+    for nx, ny in game.neighbors(x, y):
+        if game.board[ny][nx] != ov:
+            continue
+        grp = game.get_group(nx, ny)
+        if not game.has_liberty(grp):
+            for gx, gy in grp:
+                game.board[gy][gx] = 0
+
+    own_group = game.get_group(x, y)
+    if not own_group or not game.has_liberty(own_group):
+        game.board[y][x] = 0
+        return False
+    return True
+
+
+def _spawn_bonus_points(game: GoGame, points: list[tuple[int, int]], color: str) -> list[tuple[int, int]]:
+    """Spawn bonus stones on empty legal points without overwriting existing stones."""
+    changed = []
+    for x, y in points:
+        if _try_spawn_bonus_stone(game, x, y, color):
+            changed.append((x, y))
+    return changed
+
+
 def _collect_joseki_burst_points(
     game: GoGame,
     anchors: list[tuple[int, int]],
@@ -3285,9 +3320,14 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
             and game.rogue_card == "sansan_trap"
             and not game.rogue_sansan_trap_done
             and (x, y) in _get_sansan_points(game.size)):
-        nearby = [(nx, ny) for nx, ny in _adjacent8_points(x, y, game.size) if game.board[ny][nx] == 0]
+        mover_opening = len(_player_non_pass_coords(game, color, limit=2)) == 1
+        if not mover_opening:
+            nearby = []
+        else:
+            trigger_color = "W" if color == "B" else "B"
+            nearby = [(nx, ny) for nx, ny in _adjacent8_points(x, y, game.size) if game.board[ny][nx] == 0]
         random.shuffle(nearby)
-        changed = _set_points_to_color(game, nearby[:3], color)
+        changed = _spawn_bonus_points(game, nearby[:3], trigger_color) if nearby else []
         if changed:
             game.rogue_sansan_trap_done = True
             if engine.ready:
@@ -3304,7 +3344,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                 if game.board[py][px] == 0
             ]
             random.shuffle(candidates)
-            changed = _set_points_to_color(game, candidates[:2], color)
+            changed = _spawn_bonus_points(game, candidates[:2], color)
             if changed:
                 game.rogue_corner_helper_done = True
                 if engine.ready:
@@ -3318,7 +3358,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
         if len(player_moves) >= 3 and all(pt in star_set for pt in player_moves[:3]):
             choices = [pt for pt in star_set if game.board[pt[1]][pt[0]] == 0]
             random.shuffle(choices)
-            changed = _set_points_to_color(game, choices[:3], color)
+            changed = _spawn_bonus_points(game, choices[:3], color)
             game.rogue_sanrensei_done = True
             if changed and engine.ready:
                 await _sync_board_to_katago(game)
@@ -3328,7 +3368,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
     if game.rogue_card == "no_regret" and random.random() < ROGUE_NO_REGRET_CHANCE:
         bonus = await _pick_second_best_point(game, color)
         if bonus:
-            changed = _set_points_to_color(game, [bonus], color)
+            changed = _spawn_bonus_points(game, [bonus], color)
             if changed:
                 if engine.ready:
                     await _sync_board_to_katago(game)
@@ -3347,7 +3387,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                 if game.board[py][px] == 0
             ]
             random.shuffle(area)
-            changed.extend(_set_points_to_color(game, area[:ROGUE_FOOLISH_FILL_COUNT], color))
+            changed.extend(_spawn_bonus_points(game, area[:ROGUE_FOOLISH_FILL_COUNT], color))
         if changed and engine.ready:
             await _sync_board_to_katago(game)
         if new_shapes:
@@ -3383,7 +3423,7 @@ async def _apply_ai_rogue_response_effects(game: GoGame, send_fn,
                 if game.board[ny][nx] == 0
             ]
             random.shuffle(nearby)
-            changed = _set_points_to_color(game, nearby[:3], game.ai_color)
+            changed = _spawn_bonus_points(game, nearby[:3], game.ai_color)
             if changed:
                 game.ai_rogue_sansan_trap_done = True
                 if engine.ready:
@@ -3723,7 +3763,7 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
                 ULTIMATE_JOSEKI_BONUS_STONES,
                 rng,
             )
-            changed.extend(_set_points_to_color(game, burst_points, color))
+            changed.extend(_spawn_bonus_points(game, burst_points, color))
             if changed:
                 modified = True
                 await send_fn({"type": "rogue_event",
@@ -3778,7 +3818,7 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
                     cleared += 1
                     modified = True
             boundary = _get_corner_boundary_points(size, corner, 8)
-            placed = _set_points_to_color(game, boundary, color)
+            placed = _spawn_bonus_points(game, boundary, color)
             if placed:
                 modified = True
             if cleared or placed:
@@ -3803,7 +3843,7 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
                             game.board[py][px] = 0
                             cleared += 1
                             modified = True
-                    changed.extend(_set_points_to_color(
+                    changed.extend(_spawn_bonus_points(
                         game,
                         _diamond_points(sx, sy, 2, size, boundary_only=True) + [(sx, sy)],
                         color,
@@ -4375,7 +4415,7 @@ async def _ai_move(game: GoGame, send_fn):
         player_color = game.player_color
         nearby = [(nx, ny) for nx, ny in _adjacent8_points(coord[0], coord[1], game.size) if game.board[ny][nx] == 0]
         random.shuffle(nearby)
-        changed = _set_points_to_color(game, nearby[:3], player_color)
+        changed = _spawn_bonus_points(game, nearby[:3], player_color)
         if changed:
             game.rogue_sansan_trap_done = True
             extra_board_change = True
