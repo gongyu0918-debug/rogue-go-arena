@@ -1104,6 +1104,76 @@ function getUltimateCardName(cardId) {
     }[cardId] || cardId);
 }
 
+function translateServerEventMessage(message) {
+  if (currentLang !== "en" || !message) return message || "";
+  const translateCorner = (corner) => ({
+    "左上角": "top-left corner",
+    "右上角": "top-right corner",
+    "左下角": "bottom-left corner",
+    "右下角": "bottom-right corner",
+  }[corner] || corner);
+  const patterns = [
+    [/^连珠棋触发成功，你可以继续落子$/, () => "Combo Chain triggered. You may play again."],
+    [/^双刀流触发成功，你可以继续落子$/, () => "Dual Blades triggered. You may play again."],
+    [/^⚡ 快速思考：2 秒追加手已开启$/, () => "⚡ Quick Thinking: the 2-second bonus move is now active"],
+    [/^🏋️ 让子棋任务完成！现在每 (\d+) 手可多下一手$/, (n) => `🏋️ Handicap Quest complete. You now gain 1 extra move every ${n} moves.`],
+    [/^🏋️ 虚手 (\d+)\/(\d+)$/, (a, b) => `🏋️ Passes: ${a}/${b}`],
+    [/^🎭 傀儡术！你替 AI 落子于 (.+)$/, (gtp) => `🎭 Puppet Move: you played ${gtp} for the AI.`],
+    [/^⚡ 双子星辰激活！下一手后可连续落子（剩余 (\d+) 次）$/, (n) => `⚡ Combo activated. After your next move, you may play again. (${n} left)`],
+    [/^🔄 乾坤挪移激活！AI 下次将被迫虚手$/, () => "🔄 Swap Turn activated. The AI will be forced to pass next turn."],
+    [/^黄金角已封锁 (.+) 的 4x4 区域$/, (corner) => `Golden Corner sealed the 4x4 area in the ${translateCorner(corner)}.`],
+    [/^定式强迫症已点亮 (\d+) 个目标点：(.*)。命中其中 (\d+) 个后会自动补满剩余点位$/, (count, pts, hits) => `Joseki OCD highlighted ${count} target points: ${pts}. Hit ${hits} of them to auto-fill the rest.`],
+    [/^让子任务开始：你需要先虚手 (\d+) 次，之后每下满 (\d+) 手可再让 AI 虚手一次$/, (passes, interval) => `Handicap Quest started. Pass ${passes} times first, then every ${interval} moves grants another AI pass.`],
+    [/^蚕食触发：提掉 (\d+) 子，当前贴目变为 (.+)$/, (captured, komi) => `Erosion triggered: captured ${captured} stones, komi is now ${komi}.`],
+    [/^萌芽触发：在 (.+) 额外长出一颗己方棋子$/, (gtp) => `Sprout triggered: an extra friendly stone grew at ${gtp}.`],
+    [/^定式命中 \((\d+)\/(\d+)\)$/, (a, b) => `Joseki hit (${a}/${b})`],
+    [/^定式强迫症完成，自动补上 (\d+) 颗同色棋$/, (n) => `Joseki OCD complete: auto-filled ${n} same-color stones.`],
+    [/^✨ 神之一手发动，在暗点周围爆发 (\d+) 颗同色棋$/, (n) => `✨ Hand of God triggered: ${n} same-color stones burst around the hidden point.`],
+    [/^🏯 守角辅助器补强了 (\d+) 颗角部援军$/, (n) => `🏯 Corner Assistant reinforced the corner with ${n} support stones.`],
+    [/^✦ 三连星发动，额外点亮 (\d+) 个星位$/, (n) => `✦ Three-Star Formation triggered: ${n} extra star points were lit up.`],
+    [/^🚫 我不悔棋发动，在 (.+) 补了一手$/, (gtp) => `🚫 No Regrets triggered: a bonus stone was added at ${gtp}.`],
+    [/^🪤 大智若愚发动，识别到 (\d+) 个愚形，额外长出 (\d+) 颗己方棋子$/, (shapes, stones) => `🪤 Wise Fool triggered: found ${shapes} awkward shapes and spawned ${stones} extra friendly stones.`],
+    [/^让子任务奖励触发：每满 (\d+) 手获得一次奖励，本回合 AI 虚手$/, (n) => `Handicap Quest bonus triggered: every ${n} moves grants a reward, and the AI passes this turn.`],
+    [/^🦠 无限增生！生成 (\d+) 颗棋子$/, (n) => `🦠 Infinite Bloom generated ${n} stones.`],
+    [/^🌿 狂野生长！(\d+) 颗棋子生长出新子$/, (n) => `🌿 Wild Growth spread from ${n} stones.`],
+    [/^👥 影分身！在 (.+) 出现分身$/, (gtp) => `👥 Shadow Clone created a copy at ${gtp}.`],
+    [/^☠️ 瘟疫蔓延！感染 (\d+) 颗敌子$/, (n) => `☠️ Plague spread and infected ${n} enemy stones.`],
+    [/^☄️ 陨石雨！摧毁 (\d+) 颗对方棋子$/, (n) => `☄️ Meteor Shower destroyed ${n} enemy stones.`],
+    [/^⚛️ 量子纠缠！在 (\d+) 个位置出现棋子$/, (n) => `⚛️ Quantum Entanglement created stones at ${n} positions.`],
+    [/^👹 吞噬之口！吃掉 (\d+) 颗对方棋子$/, (n) => `👹 Devour consumed ${n} enemy stones.`],
+    [/^⏳ 时空裂缝！抹去对方 (\d+) 手棋$/, (n) => `⏳ Time Rift erased ${n} enemy moves.`],
+    [/^🌋 天崩地裂！十字清除 (\d+) 颗敌子$/, (n) => `🌋 Cataclysm cleared ${n} enemy stones on the cross.`],
+    [/^🧲 磁力吸附！(\d+) 子飞奔，碾碎 (\d+) 颗敌子$/, (moved, crushed) => `🧲 Magnetic Pull moved ${moved} stones and crushed ${crushed} enemies.`],
+    [/^🧲 磁力吸附！(\d+) 子飞奔$/, (moved) => `🧲 Magnetic Pull moved ${moved} stones.`],
+    [/^💀 亡灵召唤！召唤 (\d+) 子，转化 (\d+) 子$/, (spawned, converted) => `💀 Necromancy summoned ${spawned} stones and converted ${converted}.`],
+    [/^定式爆发已点亮目标点：(.*)。命中其中 3 个后会触发爆发$/, (pts) => `Joseki Burst highlighted target points: ${pts}. Hit 3 of them to trigger the burst.`],
+    [/^定式爆发命中 \((\d+)\/(\d+)\)$/, (a, b) => `Joseki Burst hit (${a}/${b})`],
+    [/^定式爆发完成：补满 (\d+) 个目标点，并额外爆发 (\d+) 颗棋子$/, (targets, extra) => `Joseki Burst complete: filled ${targets} target points and exploded ${extra} extra stones.`],
+    [/^✨ 神之一手发动，清空 (\d+) 颗敌子并洒下 (\d+) 颗同色棋$/, (cleared, filled) => `✨ Hand of God triggered: cleared ${cleared} enemies and scattered ${filled} same-color stones.`],
+    [/^🏯 守角辅助器封锁角部，清空 (\d+) 子并筑边 (\d+) 子$/, (cleared, placed) => `🏯 Corner Assistant sealed the corner, cleared ${cleared} stones, and built ${placed} boundary stones.`],
+    [/^✦ 三连星爆发，清空 (\d+) 子并扩张 (\d+) 颗星位势力$/, (cleared, changed) => `✦ Three-Star Formation burst: cleared ${cleared} stones and expanded ${changed} star-point influence stones.`],
+    [/^🪤 大智若愚第 (\d+) 波发动，识别到 (\d+) 个愚形，生成 (\d+) 颗己方棋子$/, (wave, shapes, batch) => `🪤 Wise Fool wave ${wave}: found ${shapes} awkward shapes and generated ${batch} friendly stones.`],
+    [/^🪤 大智若愚连锁结束，本次共生成 (\d+) 颗己方棋子$/, (n) => `🪤 Wise Fool chain ended. Total stones generated this time: ${n}.`],
+    [/^🧱 万里长城！第 (\d+) 行筑起 (\d+) 子$/, (row, placed) => `🧱 Great Wall built ${placed} stones on row ${row}.`],
+    [/^🧱 万里长城！([A-Z]) 列筑起 (\d+) 子$/, (col, placed) => `🧱 Great Wall built ${placed} stones on column ${col}.`],
+    [/^AI 的连珠棋触发，AI 将继续落子$/, () => "The AI's Combo Chain triggered. The AI will play again."],
+    [/^AI 的双刀流触发，AI 将继续落子$/, () => "The AI's Dual Blades triggered. The AI will play again."],
+    [/^投骰子触发，AI 这手选择虚手$/, () => "Dice Roll triggered. The AI chose to pass this turn."],
+    [/^镜像触发，AI 在对称点 (.+) 落子$/, (gtp) => `Mirror triggered. The AI played at the mirrored point ${gtp}.`],
+    [/^乾坤挪移生效，AI 本回合虚手并把回合交还给你$/, () => "Swap Turn took effect. The AI passed and handed the turn back to you."],
+    [/^🌫 迷雾刷新：高亮 3x3 区域本回合对 AI 禁止落子$/, () => "🌫 Fog refreshed: the highlighted 3x3 zone is forbidden to the AI this turn."],
+    [/^手滑了触发，AI 原本想下 (.+)，结果滑到 (.+)$/, (from, to) => `Butter Fingers triggered. The AI wanted ${from}, but slipped to ${to}.`],
+    [/^△ 三三是陷阱发动，在 (.+) 周围反打 (\d+) 子$/, (gtp, n) => `△ 3-3 Is a Trap triggered near ${gtp}, spawning ${n} counter stones.`],
+    [/^蚕食反制：AI 提掉了 (\d+) 子，当前贴目变为 (.+)$/, (captured, komi) => `Erosion countered: the AI captured ${captured} stones, komi is now ${komi}.`],
+    [/^🐛 蚕食！AI 提 (\d+) 子，贴目变为 (.+)$/, (captured, komi) => `🐛 Erosion! The AI captured ${captured} stones, komi is now ${komi}.`],
+  ];
+  for (const [pattern, formatter] of patterns) {
+    const m = message.match(pattern);
+    if (m) return formatter(...m.slice(1));
+  }
+  return message;
+}
+
 function setText(selector, text) {
   const el = document.querySelector(selector);
   if (el) el.textContent = text;
@@ -1725,9 +1795,9 @@ function syncCardTurnTimer() {
     const seconds = gameState.rogue_quickthink_seconds || (gameState.rogue_quickthink_stage === 1 ? 3 : 2);
     const key = `rq:${gameState.move_number}:${gameState.rogue_quickthink_stage}`;
     if (cardTurnKey !== key) {
-      log(`⚡ 快速思考：${seconds} 秒内完成这一手`);
-      startCardTurnTimer(seconds, key, "快棋", () => {
-        log("⚡ 快速思考超时，自动虚手");
+      log(ui(`⚡ 快速思考：${seconds} 秒内完成这一手`, `⚡ Quick Thinking: finish this move within ${seconds} seconds.`));
+      startCardTurnTimer(seconds, key, ui("快棋", "Fast"), () => {
+        log(ui("⚡ 快速思考超时，自动虚手", "⚡ Quick Thinking timed out. Auto-pass."));
         sendWS({ action: "pass" });
         if (!twoPlayerMode) {
           isMyTurn = false;
@@ -1742,9 +1812,9 @@ function syncCardTurnTimer() {
     const seconds = gameState.ultimate_quickthink_seconds || 5;
     const key = `uq:${gameState.ultimate_quickthink_token || 0}:${seconds}`;
     if (cardTurnKey !== key) {
-      log(`⚡ 大招快速思考：${seconds} 秒自由落子开始`);
-      startCardTurnTimer(seconds, key, "自由落子", () => {
-        log("⚡ 自由落子时间结束，AI 开始读盘");
+      log(ui(`⚡ 大招快速思考：${seconds} 秒自由落子开始`, `⚡ Ultimate Quick Thinking: free placement begins for ${seconds} seconds.`));
+      startCardTurnTimer(seconds, key, ui("自由落子", "Free"), () => {
+        log(ui("⚡ 自由落子时间结束，AI 开始读盘", "⚡ Free placement ended. The AI is reading the board."));
         sendWS({ action: "ultimate_quickthink_end" });
         if (!twoPlayerMode) {
           isMyTurn = false;
@@ -1807,7 +1877,7 @@ function exportSgf() {
   a.download = `goai_${dt}.sgf`;
   a.click();
   URL.revokeObjectURL(url);
-  log("棋谱已保存");
+  log(ui("棋谱已保存", "SGF saved"));
 }
 
 function parseSgf(text) {
@@ -1838,7 +1908,7 @@ function loadSgfFile(file) {
   reader.onload = (e) => {
     try {
       const { size, komi, moves } = parseSgf(e.target.result);
-      if (moves.length === 0) { alert("棋谱中未找到有效着法"); return; }
+      if (moves.length === 0) { alert(ui("棋谱中未找到有效着法", "No valid moves were found in the SGF")); return; }
 
       // Enter review mode with loaded SGF
       sgfLoadedMode = true;
@@ -1851,12 +1921,12 @@ function loadSgfFile(file) {
       resizeBoard(size);
       updateReviewUI();
       render();
-      log(`已导入棋谱：${moves.length}手 ${size}×${size} 贴目${komi}`);
+      log(ui(`已导入棋谱：${moves.length}手 ${size}×${size} 贴目${komi}`, `SGF loaded: ${moves.length} moves, ${size}x${size}, komi ${komi}`));
 
       // Request analysis for current position
       requestReviewAnalysis();
     } catch (err) {
-      alert("棋谱解析失败: " + err.message);
+      alert(ui("棋谱解析失败: ", "Failed to parse SGF: ") + err.message);
     }
   };
   reader.readAsText(file);
@@ -1923,7 +1993,7 @@ function updateReviewUI() {
   const cur = reviewIndex + 1;
   const infoEl = document.getElementById("review-info");
   if (infoEl) {
-    infoEl.textContent = reviewMode ? `第 ${cur}/${total} 手` : "";
+    infoEl.textContent = reviewMode ? ui(`第 ${cur}/${total} 手`, `Move ${cur}/${total}`) : "";
   }
 }
 
@@ -2793,7 +2863,7 @@ document.getElementById("rb-puppet").addEventListener("click", () => {
   if (!activeRogueCard || activeRogueCard !== "puppet") return;
   if ((rogueUses.puppet || 0) <= 0) return;
   puppetMode = true;
-  log("🎭 傀儡术：请在棋盘上点击 AI 的落子位置");
+  log(ui("🎭 傀儡术：请在棋盘上点击 AI 的落子位置", "🎭 Puppet Move: click the point where the AI should play."));
 });
 
 // Twin button click
@@ -2910,7 +2980,7 @@ function commitPlay(x, y) {
     clearTimeout(aiResponseTimer);
     aiResponseTimer = setTimeout(() => {
       if (!isMyTurn && gameState && !gameState.game_over) {
-        log("⚠ AI 响应超时，尝试重新请求…");
+        log(ui("⚠ AI 响应超时，尝试重新请求…", "⚠ AI response timed out. Retrying..."));
         sendWS({ action: "request_hint" });
         setThinking(false);
         // Re-check game state
@@ -3044,9 +3114,10 @@ function handleMessage(msg) {
       initTimers();
       if (timerMode !== "none") startTimerFor(msg.current_player);
       if (twoPlayerMode) {
-        log("两人对局开始 — 黑棋先行");
+        log(ui("两人对局开始 — 黑棋先行", "Two-player game started — Black moves first"));
       } else {
-        log(`新对局 — 我执${myColor==="B"?"黑":"白"}棋，AI：${RANK_LABELS[msg.level]||msg.level}`);
+        log(ui(`新对局 — 我执${myColor==="B"?"黑":"白"}棋，AI：${RANK_LABELS[msg.level]||msg.level}`,
+          `New game — you play ${myColor==="B"?"Black":"White"}, AI: ${RANK_LABELS[msg.level]||msg.level}`));
       }
       break;
     }
@@ -3093,9 +3164,9 @@ function handleMessage(msg) {
       clearTimeout(aiResponseTimer);
       if (msg.x !== null) {
         const gtp = `${COLS[msg.x]}${boardSize - msg.y}`;
-        log(`AI(${msg.color==="B"?"黑":"白"}) → ${gtp}`);
+        log(currentLang === "en" ? `AI (${msg.color==="B"?"Black":"White"}) -> ${gtp}` : `AI(${msg.color==="B"?"黑":"白"}) → ${gtp}`);
       } else {
-        log("AI 虚手");
+        log(ui("AI 虚手", "AI passes"));
       }
       if (!animFrameId) render();
       break;
@@ -3107,14 +3178,22 @@ function handleMessage(msg) {
       // Chinese rules (komi 7.5): use 子; Japanese rules (komi 6.5): use 目
       const unit = (gameState && gameState.komi === 7.5) ? "子" : "目";
       document.getElementById("info-score").textContent =
-        sc > 0.5 ? `黑领先 ${sc.toFixed(1)}${unit}` : sc < -0.5 ? `白领先 ${Math.abs(sc).toFixed(1)}${unit}` : "持平";
+        sc > 0.5
+          ? ui(`黑领先 ${sc.toFixed(1)}${unit}`, `Black +${sc.toFixed(1)} ${unit === "子" ? "stones" : "points"}`)
+          : sc < -0.5
+            ? ui(`白领先 ${Math.abs(sc).toFixed(1)}${unit}`, `White +${Math.abs(sc).toFixed(1)} ${unit === "子" ? "stones" : "points"}`)
+            : ui("持平", "Even");
       if (msg.ownership && msg.ownership.length > 0) {
         const own = msg.ownership;
         let bTerr = 0, wTerr = 0;
         own.forEach(v => { if (v > 0.5) bTerr++; else if (v < -0.5) wTerr++; });
         const diff = bTerr - wTerr;
         document.getElementById("info-territory").textContent =
-          diff > 0 ? `黑多 ${diff} ${unit}` : diff < 0 ? `白多 ${Math.abs(diff)} ${unit}` : "均势";
+          diff > 0
+            ? ui(`黑多 ${diff} ${unit}`, `Black +${diff} ${unit === "子" ? "stones" : "points"}`)
+            : diff < 0
+              ? ui(`白多 ${Math.abs(diff)} ${unit}`, `White +${Math.abs(diff)} ${unit === "子" ? "stones" : "points"}`)
+              : ui("均势", "Balanced");
       } else {
         document.getElementById("info-territory").textContent = "--";
       }
@@ -3129,11 +3208,11 @@ function handleMessage(msg) {
       setThinking(false); setButtons(false);
       stopTimerTick();
       clearCardTurnTimer();
-      const winnerName = msg.winner==="B"?"黑棋": msg.winner==="W"?"白棋":"平局";
+      const winnerName = msg.winner==="B" ? ui("黑棋", "Black") : msg.winner==="W" ? ui("白棋", "White") : ui("平局", "Draw");
       const youWin = twoPlayerMode ? false : (msg.winner === myColor);
       const titleText = twoPlayerMode
-        ? `${winnerName}胜！`
-        : (youWin ? "你赢了！" : msg.winner ? "AI 胜利" : "平局");
+        ? `${winnerName}${ui("胜！", " wins!")}`
+        : (youWin ? ui("你赢了！", "You win!") : msg.winner ? ui("AI 胜利", "AI wins") : ui("平局", "Draw"));
       // Format score string: Chinese rules uses 子, Japanese uses 目
       let scoreDisplay = msg.score || "—";
       if (msg.score && gameState) {
@@ -3141,12 +3220,16 @@ function handleMessage(msg) {
         // KataGo returns e.g. "B+2.5" — append correct unit
         const m = msg.score.match(/^([BW])\+(.+)$/);
         if (m) {
-          const who = m[1] === "B" ? "黑" : "白";
-          scoreDisplay = `${who}胜${m[2]}${isChinese ? "子" : "目"}`;
+          const who = m[1] === "B" ? ui("黑", "Black") : ui("白", "White");
+          scoreDisplay = currentLang === "en"
+            ? `${who} +${m[2]} ${isChinese ? "stones" : "points"}`
+            : `${who}胜${m[2]}${isChinese ? "子" : "目"}`;
         }
       }
       showOverlay(titleText, reasonText(msg.reason), winnerName, scoreDisplay);
-      log(`${winnerName}胜 ${scoreDisplay} (${reasonText(msg.reason)})`);
+      log(currentLang === "en"
+        ? `${winnerName} wins ${scoreDisplay} (${reasonText(msg.reason)})`
+        : `${winnerName}胜 ${scoreDisplay} (${reasonText(msg.reason)})`);
       break;
     }
 
@@ -3174,24 +3257,24 @@ function handleMessage(msg) {
       render();
       setButtons(!msg.game_over);
       updateUI();
-      log(`已恢复对局（第${msg.move_number}手）`);
-      if (msg.game_over) log("对局已结束");
+      log(ui(`已恢复对局（第${msg.move_number}手）`, `Game restored (move ${msg.move_number})`));
+      if (msg.game_over) log(ui("对局已结束", "The game is already over"));
       break;
     }
 
     case "reconnect_failed":
-      log("暂无进行中的对局，请点击「开始对弈」开始");
+      log(ui("暂无进行中的对局，请点击「开始对弈」开始", "No active game was found. Click Start Game to begin."));
       break;
 
     case "error":
-      log(`⚠ ${msg.message}`);
+      log(`⚠ ${translateServerEventMessage(msg.message)}`);
       setThinking(false);
       if (gameState && !gameState.game_over)
         isMyTurn = (gameState.current_player === myColor);
       break;
 
     case "level_set":
-      log(`级别 → ${RANK_LABELS[msg.level]||msg.level}`);
+      log(ui(`级别 → ${RANK_LABELS[msg.level]||msg.level}`, `Level -> ${RANK_LABELS[msg.level]||msg.level}`));
       if (gameState) gameState.level = msg.level;
       updateUI();
       break;
@@ -3214,12 +3297,12 @@ function handleMessage(msg) {
         rogueSealing = true;
         document.getElementById("seal-overlay").style.display = "block";
       }
-      log(`🃏 已选择强化卡：${msg.icon} ${msg.name}`);
+      log(ui(`🃏 已选择强化卡：${msg.icon} ${getRogueCardName(msg.card_id)}`, `🃏 Card selected: ${msg.icon} ${getRogueCardName(msg.card_id)}`));
       break;
 
     case "rogue_seal_update":
       document.getElementById("seal-hint").textContent =
-        `🚫 请在棋盘上点击封印点（剩余 ${msg.remaining} 个）`;
+        ui(`🚫 请在棋盘上点击封印点（剩余 ${msg.remaining} 个）`, `🚫 Click points on the board to seal them (${msg.remaining} left)`);
       rogueSeals = msg.points;
       if (!animFrameId) render();
       break;
@@ -3227,12 +3310,12 @@ function handleMessage(msg) {
     case "rogue_seal_done":
       rogueSealing = false;
       document.getElementById("seal-overlay").style.display = "none";
-      log("🚫 三道封印已设定！");
+      log(ui("🚫 三道封印已设定！", "🚫 Three seals are now in place!"));
       if (!animFrameId) render();
       break;
 
     case "rogue_event":
-      log(msg.msg);
+      log(translateServerEventMessage(msg.msg));
       break;
 
     case "rogue_uses_update":
@@ -3251,21 +3334,23 @@ function handleMessage(msg) {
       ultimateMode = true;
       ultimatePlayerCard = msg.player_card;
       ultimateAiCard = msg.ai_card;
-      ultimatePlayerName = msg.player_icon + " " + msg.player_name;
-      ultimateAiName = msg.ai_icon + " " + msg.ai_name;
+      ultimatePlayerName = "";
+      ultimateAiName = "";
       document.getElementById("ultimate-overlay").classList.remove("show");
       updateUltimateBar();
       syncCardTurnTimer();
       if (!animFrameId) render();
-      log(`\u{1F0CF} 你选择了 ${msg.player_icon} ${msg.player_name}`);
-      log(`\u{1F916} AI 选择了 ${msg.ai_icon} ${msg.ai_name}`);
-      log("20 手决胜开始！");
+      log(ui(`\u{1F0CF} 你选择了 ${msg.player_icon} ${getUltimateCardName(msg.player_card)}`, `\u{1F0CF} You chose ${msg.player_icon} ${getUltimateCardName(msg.player_card)}`));
+      log(ui(`\u{1F916} AI 选择了 ${msg.ai_icon} ${getUltimateCardName(msg.ai_card)}`, `\u{1F916} The AI chose ${msg.ai_icon} ${getUltimateCardName(msg.ai_card)}`));
+      log(ui("20 手决胜开始！", "The 20-move showdown begins!"));
       break;
   }
 }
 
 function reasonText(r) {
-  return {resign:"认输",ai_resign:"AI认输",score:"计数",double_pass:"双方虚手",timeout:"超时",ultimate_20moves:"20手决胜"}[r] || r || "";
+  return currentLang === "en"
+    ? ({resign:"Resignation", ai_resign:"AI resigned", score:"Scoring", double_pass:"Double pass", timeout:"Timeout", ultimate_20moves:"20-move showdown"}[r] || r || "")
+    : ({resign:"认输", ai_resign:"AI认输", score:"计数", double_pass:"双方虚手", timeout:"超时", ultimate_20moves:"20手决胜"}[r] || r || "");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -3676,10 +3761,10 @@ RANK_GROUPS.forEach(r => {
     const gpuHint = document.createElement("div");
     gpuHint.style.cssText = "font-size:11px;color:#aaa;margin-top:2px;padding:0 4px;";
     if (gpu.cpu_mode) {
-      gpuHint.textContent = `🖥 CPU模式 — 级位流畅，段位推理较慢`;
+      gpuHint.textContent = ui(`🖥 CPU模式 — 级位流畅，段位推理较慢`, `🖥 CPU mode — kyu play is smooth, dan-level thinking may be slower`);
       gpuHint.style.color = "#ff9800";
     } else {
-      gpuHint.textContent = `🖥 ${gpu.name} (${gpu.vram_mb}MB) — ${gpu.tier_label}显卡`;
+      gpuHint.textContent = ui(`🖥 ${gpu.name} (${gpu.vram_mb}MB) — ${gpu.tier_label}显卡`, `🖥 ${gpu.name} (${gpu.vram_mb}MB) — ${gpu.tier_label} GPU`);
     }
     selLevel.parentNode.appendChild(gpuHint);
 
@@ -3695,7 +3780,9 @@ RANK_GROUPS.forEach(r => {
         if (opt.disabled) continue;
         const rIdx = RANK_ORDER.indexOf(opt.value);
         if (rIdx >= slowIdx) {
-          opt.textContent = "⚠️ " + opt.textContent + " (推理较慢)";
+          opt.textContent = currentLang === "en"
+            ? ("⚠️ " + opt.textContent + " (slower)")
+            : ("⚠️ " + opt.textContent + " (推理较慢)");
           opt.style.color = "#ff9800";
         }
       }
