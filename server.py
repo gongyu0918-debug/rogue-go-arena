@@ -3903,6 +3903,11 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
     if ai_card and coord and gtp_move.upper() != "PASS":
         board_modified = await _apply_ultimate_effect(
             game, send_fn, coord[0], coord[1], color, ai_card)
+        if board_modified:
+            # AI-side ultimate effects can rewrite the visible board directly.
+            # Sync immediately so the engine does not continue from a stale
+            # pre-effect position on the player's next move.
+            await _sync_board_to_katago(game)
 
     chain_bonus = (
         ai_card == "chain"
@@ -3930,8 +3935,6 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
         game.ultimate_extra_turn = True
         game.current_player = color
         await send_fn({"type": "rogue_event", "msg": "AI 的双刀流触发，AI 将继续落子"})
-        if board_modified:
-            await _sync_board_to_katago(game)
         await send_fn({"type": "game_state", **game.to_state()})
         if game.ultimate_move_count < 20:
             await _ultimate_ai_move(game, send_fn, allow_double_bonus=False)
@@ -3939,7 +3942,6 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
 
     game.ultimate_extra_turn = False
     game.current_player = game.player_color
-    _prepare_player_turn_modifiers(game)
     _prepare_player_turn_modifiers(game)
     await send_fn({"type": "game_state", **game.to_state()})
 

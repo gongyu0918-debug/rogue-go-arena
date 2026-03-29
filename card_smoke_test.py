@@ -765,6 +765,36 @@ async def smoke_ultimate_turn_flow():
     await run_case("double", ["E3", "F3"], [1.0, 1.0])
 
 
+async def smoke_ultimate_ai_effect_sync():
+    game = make_game()
+    game.ultimate = True
+    game.current_player = game.ai_color
+    game.ultimate_ai_card = "proliferate"
+    sent = []
+    sync_count = {"count": 0}
+
+    async def send(payload):
+        sent.append(copy.deepcopy(payload))
+
+    old_engine = s.engine
+    old_sync = s._sync_board_to_katago
+    try:
+        s.engine = DummyEngine(["E5"])
+
+        async def fake_sync(_game):
+            sync_count["count"] += 1
+
+        s._sync_board_to_katago = fake_sync
+        await s._ultimate_ai_move(game, send)
+    finally:
+        s.engine = old_engine
+        s._sync_board_to_katago = old_sync
+
+    assert sync_count["count"] >= 2
+    assert any(msg.get("type") == "game_state" for msg in sent)
+    assert sum(1 for row in game.board for cell in row if cell == 2) >= 2
+
+
 async def main():
     old_engine = s.engine
     try:
@@ -780,6 +810,7 @@ async def main():
         await smoke_ultimate_effects()
         await smoke_new_ultimate_cards()
         await smoke_ultimate_turn_flow()
+        await smoke_ultimate_ai_effect_sync()
         await smoke_quickthink_flow()
         await smoke_featured_pools()
         await smoke_suboptimal_extended()
