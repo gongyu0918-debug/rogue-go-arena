@@ -3,6 +3,7 @@ GoAI Server - KataGo-powered Go AI with FastAPI WebSocket backend
 """
 import argparse
 import asyncio
+import copy
 import json
 import random
 import subprocess
@@ -1075,6 +1076,8 @@ class GoGame:
         self.ultimate_quickthink_token: int = 0
         self.ultimate_fool_shapes: set[tuple[tuple[int, int], ...]] = set()
         self.ultimate_shadow_clone_links: list[dict] = []
+        self._history: list[dict] = []
+        self.reset_history()
 
     # ─── Board logic ─────────────────────────────────────────────────────────
     def neighbors(self, x, y):
@@ -1121,6 +1124,31 @@ class GoGame:
                     captured += len(grp)
         self.captures[color] = self.captures.get(color, 0) + captured
         return captured
+
+    def _snapshot_state(self) -> dict:
+        return copy.deepcopy({
+            k: v for k, v in self.__dict__.items()
+            if k != "_history"
+        })
+
+    def reset_history(self):
+        self._history = [self._snapshot_state()]
+
+    def push_history(self):
+        self._history.append(self._snapshot_state())
+
+    def undo_history(self, steps: int) -> bool:
+        if steps <= 0 or len(self._history) <= 1:
+            return False
+        history = self._history
+        while steps > 0 and len(history) > 1:
+            history.pop()
+            steps -= 1
+        state = copy.deepcopy(history[-1])
+        self.__dict__.clear()
+        self.__dict__.update(state)
+        self._history = history
+        return True
 
     def rebuild_board(self):
         self.board = [[0] * self.size for _ in range(self.size)]
@@ -2042,6 +2070,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                                     game.place_stone(coord[0], coord[1], "B")
                                     game.moves.append(("B", gtp))
                             game.current_player = "W"
+                    game.reset_history()
 
                     await send({"type": "game_start", **game.to_state()})
 
@@ -2140,9 +2169,12 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                                 await _ultimate_force_score(game, send)
                             continue
 
+                        board_modified = False
                         if p_card:
-                            await _apply_ultimate_effect(game, send, x, y, color, p_card)
-                        await _resolve_pending_ultimate_shadow_links(game, send)
+                            board_modified = await _apply_ultimate_effect(game, send, x, y, color, p_card)
+                        pending_modified = await _resolve_pending_ultimate_shadow_links(game, send)
+                        if board_modified or pending_modified:
+                            await _sync_board_to_katago(game)
 
                         chain_bonus = (
                             p_card == "chain"
@@ -2158,6 +2190,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         game.current_player = (
                             game.player_color if (chain_bonus or double_bonus) else game.ai_color
                         )
+                        game.push_history()
                         await send({"type": "game_state", **game.to_state()})
 
                         if game.ultimate_move_count >= 20:
@@ -2225,6 +2258,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         else:
                             game.rogue_quickthink_stage = 0
 
+                    game.push_history()
                     await send({"type": "game_state", **game.to_state()})
 
                     # Rogue: skip AI turn (twin / exchange / handicap_quest)
@@ -2269,6 +2303,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         if game.ultimate_player_card == "quickthink" and game.ultimate_quickthink_active:
                             game.ultimate_quickthink_active = False
                             game.current_player = game.ai_color
+                            game.push_history()
                             await send({"type": "game_state", **game.to_state()})
                             if game.ultimate_move_count >= 20:
                                 await _ultimate_force_score(game, send)
@@ -2282,6 +2317,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         game.passed[color] = True
                         game.current_player = "W" if color == "B" else "B"
                         game.ultimate_double_pending = False
+                        game.push_history()
                         await send({"type": "game_state", **game.to_state()})
                         if game.ultimate_move_count >= 20:
                             await _ultimate_force_score(game, send)
@@ -2337,21 +2373,12 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
 
                     undo_count = 1 if game.two_player else (
                         2 if len(game.moves) >= 2 else 1)
-                    for _ in range(undo_count):
-                        if game.moves:
-                            if engine.ready:
-                                await run_in_executor(
-                                    engine.send_command, "undo")
-                            game.moves.pop()
-
-                    game.current_player = game.player_color if not game.two_player \
-                        else ("B" if len(game.moves) % 2 == 0 else "W")
+                    if not game.undo_history(undo_count):
+                        continue
                     game.game_over = False
-                    game.rebuild_board()
-                    if game.rogue_card == "foolish_wisdom":
-                        game.rogue_fool_shapes = set()
-                    if game.ultimate_player_card == "foolish_wisdom":
-                        game.ultimate_fool_shapes = set()
+                    game.winner = None
+                    if engine.ready:
+                        await _sync_board_to_katago(game)
                     _prepare_player_turn_modifiers(game)
                     await send({"type": "game_state", **game.to_state()})
 
@@ -2456,6 +2483,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     if game.ai_rogue_enabled and not game.two_player:
                         ai_card_id = pick_ai_rogue_card(exclude=[card_id])
                         await _activate_ai_rogue_card(game, send, ai_card_id)
+                    game.reset_history()
                     # If not seal (which needs setup), start AI move
                     if card_id != "seal":
                         if not game.two_player and engine.ready and game.ai_color == game.current_player:
@@ -2478,6 +2506,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                                 "remaining": 3 - len(game.rogue_seal_points)})
                     if len(game.rogue_seal_points) >= 3:
                         game.rogue_waiting_seal = False
+                        game.reset_history()
                         await send({"type": "rogue_seal_done"})
                         if engine.ready and game.ai_color == game.current_player:
                             await _ai_move(game, send)
@@ -2512,6 +2541,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     game.place_stone(x, y, ai_color)
                     game.passed[ai_color] = False
                     game.current_player = game.player_color
+                    game.push_history()
                     await send({"type": "game_state", **game.to_state()})
                     await send({"type": "ai_move", "gtp": gtp,
                                 "color": ai_color, "x": x, "y": y})
@@ -2597,6 +2627,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     ai_card_id = pick_ai_ultimate_card(exclude=[card_id])
                     game.ultimate_ai_card = ai_card_id
                     adef = ULTIMATE_CARDS[ai_card_id]
+                    game.reset_history()
                     await send({"type": "ultimate_cards_selected",
                                 "player_card": card_id,
                                 "player_name": pdef["name"],
@@ -2779,14 +2810,67 @@ def _adjacent8_points(x: int, y: int, size: int) -> list[tuple[int, int]]:
 
 
 def _set_points_to_color(game: GoGame, points: list[tuple[int, int]], color: str) -> list[tuple[int, int]]:
-    """Directly set a batch of points to color without capture logic."""
+    """Apply a batch color change and stabilize nearby groups immediately."""
+    return _apply_magic_points(game, points, color, overwrite_enemy=True)
+
+
+def _remove_dead_groups(game: GoGame, seeds: list[tuple[int, int]], color_value: int) -> list[tuple[int, int]]:
+    removed = []
+    seen = set()
+    for x, y in seeds:
+        if not (0 <= x < game.size and 0 <= y < game.size):
+            continue
+        if game.board[y][x] != color_value or (x, y) in seen:
+            continue
+        grp = game.get_group(x, y)
+        seen.update(grp)
+        if grp and not game.has_liberty(grp):
+            for gx, gy in grp:
+                game.board[gy][gx] = 0
+                removed.append((gx, gy))
+    return removed
+
+
+def _apply_magic_points(
+    game: GoGame,
+    points: list[tuple[int, int]],
+    color: str,
+    *,
+    overwrite_enemy: bool,
+) -> list[tuple[int, int]]:
+    """Apply multi-stone effects as one stabilized batch so later turns don't
+    unexpectedly delete or flip those stones.
+    """
     cv = 1 if color == "B" else 2
-    changed = []
+    ov = 3 - cv
+    touched = []
+    seen = set()
     for x, y in points:
-        if game.board[y][x] != cv:
-            game.board[y][x] = cv
-            changed.append((x, y))
-    return changed
+        if (x, y) in seen:
+            continue
+        seen.add((x, y))
+        if not (0 <= x < game.size and 0 <= y < game.size):
+            continue
+        cell = game.board[y][x]
+        if cell == cv:
+            continue
+        if cell == ov and not overwrite_enemy:
+            continue
+        if cell not in (0, ov):
+            continue
+        game.board[y][x] = cv
+        touched.append((x, y))
+
+    if not touched:
+        return []
+
+    frontier = set(touched)
+    for x, y in touched:
+        frontier.update(game.neighbors(x, y))
+    frontier_list = list(frontier)
+    _remove_dead_groups(game, frontier_list, ov)
+    _remove_dead_groups(game, frontier_list, cv)
+    return [(x, y) for x, y in touched if game.board[y][x] == cv]
 
 
 def _try_spawn_bonus_stone(game: GoGame, x: int, y: int, color: str) -> bool:
@@ -2816,12 +2900,8 @@ def _try_spawn_bonus_stone(game: GoGame, x: int, y: int, color: str) -> bool:
 
 
 def _spawn_bonus_points(game: GoGame, points: list[tuple[int, int]], color: str) -> list[tuple[int, int]]:
-    """Spawn bonus stones on empty legal points without overwriting existing stones."""
-    changed = []
-    for x, y in points:
-        if _try_spawn_bonus_stone(game, x, y, color):
-            changed.append((x, y))
-    return changed
+    """Spawn bonus stones as a stabilized batch without overwriting enemy stones."""
+    return _apply_magic_points(game, points, color, overwrite_enemy=False)
 
 
 def _collect_joseki_burst_points(
@@ -3503,10 +3583,8 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
                 if 0 <= nx < size and 0 <= ny < size and game.board[ny][nx] == 0:
                     candidates.append((nx, ny))
         rng.shuffle(candidates)
-        placed = 0
-        for bx, by in candidates[:5]:
-            game.board[by][bx] = cv
-            placed += 1
+        placed_points = _spawn_bonus_points(game, candidates[:5], color)
+        placed = len(placed_points)
         if placed > 0:
             modified = True
             await send_fn({"type": "rogue_event",
@@ -3517,9 +3595,9 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
         own_stones = [(sx, sy) for sy in range(size) for sx in range(size)
                       if game.board[sy][sx] == cv]
         rng.shuffle(own_stones)
-        grown = 0
+        growth_targets = []
         for sx, sy in own_stones:
-            if grown >= ULTIMATE_WILDGROW_MAX_GROWTH:
+            if len(growth_targets) >= ULTIMATE_WILDGROW_MAX_GROWTH:
                 break
             adj = []
             for dy in range(-1, 2):
@@ -3528,11 +3606,10 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
                     if 0 <= nx < size and 0 <= ny < size and game.board[ny][nx] == 0:
                         adj.append((nx, ny))
             if adj:
-                bx, by = rng.choice(adj)
-                game.board[by][bx] = cv
-                grown += 1
-                modified = True
+                growth_targets.append(rng.choice(adj))
+        grown = len(_spawn_bonus_points(game, growth_targets, color))
         if grown > 0:
+            modified = True
             await send_fn({"type": "rogue_event",
                            "msg": f"🌿 狂野生长！{grown} 颗棋子生长出新子"})
 
@@ -3583,27 +3660,29 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
                 clone_target = nearby[0]
         if clone_target:
             tx, ty = clone_target
-            game.board[ty][tx] = cv
-            modified = True
-            game.ultimate_shadow_clone_links.append({
-                "trigger_move": game.ultimate_move_count + 1,
-                "color": cv,
-                "from": (x, y),
-                "to": (tx, ty),
-            })
-            await send_fn({"type": "rogue_event",
-                           "msg": f"👥 影分身！在 {coord_to_gtp(tx, ty, size)} 出现分身，下一回合会连成镜像线"})
+            placed = _spawn_bonus_points(game, [(tx, ty)], color)
+            if placed:
+                modified = True
+                game.ultimate_shadow_clone_links.append({
+                    "trigger_move": game.ultimate_move_count + 1,
+                    "color": cv,
+                    "from": (x, y),
+                    "to": (tx, ty),
+                })
+                await send_fn({"type": "rogue_event",
+                               "msg": f"👥 影分身！在 {coord_to_gtp(tx, ty, size)} 出现分身，下一回合会连成镜像线"})
 
     elif card == "plague":
         # Convert ALL enemy stones in 3×3 area
-        converted = 0
+        targets = []
         for dy in range(-1, 2):
             for dx in range(-1, 2):
                 nx, ny = x + dx, y + dy
                 if 0 <= nx < size and 0 <= ny < size and game.board[ny][nx] == ov:
-                    game.board[ny][nx] = cv
-                    converted += 1
-                    modified = True
+                    targets.append((nx, ny))
+        converted = len(_set_points_to_color(game, targets, color))
+        if converted > 0:
+            modified = True
         if converted > 0:
             await send_fn({"type": "rogue_event",
                            "msg": f"☠️ 瘟疫蔓延！感染 {converted} 颗敌子"})
@@ -3627,10 +3706,7 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
         empties = [(sx, sy) for sy in range(size) for sx in range(size)
                    if game.board[sy][sx] == 0]
         rng.shuffle(empties)
-        placed = 0
-        for bx, by in empties[:ULTIMATE_QUANTUM_PLACE_COUNT]:
-            game.board[by][bx] = cv
-            placed += 1
+        placed = len(_spawn_bonus_points(game, empties[:ULTIMATE_QUANTUM_PLACE_COUNT], color))
         if placed > 0:
             modified = True
             await send_fn({"type": "rogue_event",
@@ -3725,18 +3801,12 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
         empties = [(sx, sy) for sy in range(size) for sx in range(size)
                    if game.board[sy][sx] == 0]
         rng.shuffle(empties)
-        spawned = 0
-        for bx, by in empties[:3]:
-            game.board[by][bx] = cv
-            spawned += 1
-            modified = True
+        spawned = len(_spawn_bonus_points(game, empties[:3], color))
         enemies = [(sx, sy) for sy in range(size) for sx in range(size)
                    if game.board[sy][sx] == ov]
         rng.shuffle(enemies)
-        converted = 0
-        for ex, ey in enemies[:2]:
-            game.board[ey][ex] = cv
-            converted += 1
+        converted = len(_set_points_to_color(game, enemies[:2], color))
+        if spawned + converted > 0:
             modified = True
         if spawned + converted > 0:
             await send_fn({"type": "rogue_event",
@@ -3791,10 +3861,8 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
                         modified = True
             empties = [(sx, sy) for sy in range(size) for sx in range(size) if game.board[sy][sx] == 0]
             rng.shuffle(empties)
-            filled = 0
-            for bx, by in empties[:ULTIMATE_GODHAND_FILL_COUNT]:
-                game.board[by][bx] = cv
-                filled += 1
+            filled = len(_spawn_bonus_points(game, empties[:ULTIMATE_GODHAND_FILL_COUNT], color))
+            if filled > 0:
                 modified = True
             await send_fn({"type": "rogue_event",
                            "msg": f"✨ 神之一手发动，清空 {cleared} 颗敌子并洒下 {filled} 颗同色棋"})
@@ -3873,13 +3941,13 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
             batch = empties[:ULTIMATE_FOOLISH_FILL_COUNT]
             if not batch:
                 break
-            for bx, by in batch:
-                game.board[by][bx] = cv
+            placed = _spawn_bonus_points(game, batch, color)
+            if placed:
                 modified = True
             wave += 1
-            total_generated += len(batch)
+            total_generated += len(placed)
             await send_fn({"type": "rogue_event",
-                           "msg": f"🪤 大智若愚第 {wave} 波发动，识别到 {len(pending_shapes)} 个愚形，生成 {len(batch)} 颗己方棋子"})
+                           "msg": f"🪤 大智若愚第 {wave} 波发动，识别到 {len(pending_shapes)} 个愚形，生成 {len(placed)} 颗己方棋子"})
             pending_shapes = _find_new_fool_shapes(game, color, game.ultimate_fool_shapes)
             if pending_shapes:
                 await asyncio.sleep(ULTIMATE_FOOLISH_CHAIN_DELAY)
@@ -3894,23 +3962,23 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
         col_slots = sum(1 for fy in range(size) if game.board[fy][x] == 0)
         choose_row = row_slots >= col_slots
         if choose_row:
-            placed = 0
-            for fx in range(size):
-                if game.board[y][fx] == 0:
-                    game.board[y][fx] = cv
-                    placed += 1
-                    modified = True
+            placed = len(_spawn_bonus_points(
+                game,
+                [(fx, y) for fx in range(size) if game.board[y][fx] == 0],
+                color,
+            ))
             if placed > 0:
+                modified = True
                 await send_fn({"type": "rogue_event",
                                "msg": f"🧱 万里长城！第 {size - y} 行筑起 {placed} 子"})
         else:
-            placed = 0
-            for fy in range(size):
-                if game.board[fy][x] == 0:
-                    game.board[fy][x] = cv
-                    placed += 1
-                    modified = True
+            placed = len(_spawn_bonus_points(
+                game,
+                [(x, fy) for fy in range(size) if game.board[fy][x] == 0],
+                color,
+            ))
             if placed > 0:
+                modified = True
                 cols = "ABCDEFGHJKLMNOPQRST"
                 await send_fn({"type": "rogue_event",
                                "msg": f"🧱 万里长城！{cols[x]} 列筑起 {placed} 子"})
@@ -3973,6 +4041,7 @@ async def _ultimate_force_score(game: GoGame, send_fn):
         score_str = f"W+{w_score_final - b_score_final:.1f}"
 
     game.winner = winner
+    game.push_history()
     await send_fn({"type": "game_state", **game.to_state()})
     await send_fn({"type": "game_over", "winner": winner,
                     "score": score_str, "reason": "ultimate_20moves"})
@@ -4135,6 +4204,7 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
     game.ultimate_extra_turn = False
     game.current_player = game.player_color
     _prepare_player_turn_modifiers(game)
+    game.push_history()
     await send_fn({"type": "game_state", **game.to_state()})
 
     if game.ultimate_move_count >= 20:
@@ -4156,6 +4226,7 @@ async def _ai_move(game: GoGame, send_fn):
         game.passed[color] = True
         game.current_player = game.player_color
         _prepare_player_turn_modifiers(game)
+        game.push_history()
         await send_fn({"type": "game_state", **game.to_state()})
         await send_fn({"type": "ai_move", "gtp": "pass", "color": color,
                         "x": None, "y": None})
@@ -4179,6 +4250,7 @@ async def _ai_move(game: GoGame, send_fn):
                         game.passed[color] = False
                         game.current_player = game.player_color
                         _prepare_player_turn_modifiers(game)
+                        game.push_history()
                         await send_fn({"type": "game_state", **game.to_state()})
                         await send_fn({"type": "ai_move", "gtp": m_gtp,
                                         "color": color, "x": mx, "y": my})
@@ -4193,6 +4265,7 @@ async def _ai_move(game: GoGame, send_fn):
         game.passed[color] = True
         game.current_player = game.player_color
         _prepare_player_turn_modifiers(game)
+        game.push_history()
         await send_fn({"type": "game_state", **game.to_state()})
         await send_fn({"type": "ai_move", "gtp": "pass", "color": color,
                         "x": None, "y": None})
@@ -4440,6 +4513,7 @@ async def _ai_move(game: GoGame, send_fn):
         await send_fn({"type": "rogue_event",
                         "msg": f"蚕食反制：AI 提掉了 {captured} 子，当前贴目变为 {game.komi}"})
 
+    game.push_history()
     await send_fn({"type": "game_state", **game.to_state()})
 
     if game.passed["B"] and game.passed["W"]:
@@ -4664,6 +4738,7 @@ async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
         await send_fn({"type": "rogue_event",
                         "msg": f"🐛 蚕食！AI 提 {captured} 子，贴目变为 {game.komi}"})
 
+    game.push_history()
     await send_fn({"type": "game_state", **game.to_state()})
 
     if game.passed["B"] and game.passed["W"]:

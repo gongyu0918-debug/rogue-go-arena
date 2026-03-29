@@ -618,6 +618,52 @@ async def smoke_place_stone_does_not_overwrite():
     assert game.board[2][2] == 1
 
 
+async def smoke_batch_bonus_persists_after_followup_move():
+    game = make_game(size=5)
+    game.board[0][0] = 2
+    changed = s._spawn_bonus_points(game, [(1, 1), (2, 1), (1, 2), (2, 2)], "B")
+    assert set(changed) == {(1, 1), (2, 1), (1, 2), (2, 2)}
+    before = copy.deepcopy(game.board)
+    game.place_stone(4, 4, "W")
+    assert game.board[1][1] == 1
+    assert game.board[1][2] == 1
+    assert game.board[2][1] == 1
+    assert game.board[2][2] == 1
+    for y in range(4):
+        for x in range(4):
+            if before[y][x] == 1:
+                assert game.board[y][x] == 1
+
+
+async def smoke_undo_preserves_bonus_stones():
+    game = make_game(size=9)
+    game.rogue_enabled = True
+    game.rogue_card = "sanrensei"
+    game.reset_history()
+
+    stars = [(2, 2), (6, 2), (2, 6)]
+    old_shuffle = s.random.shuffle
+    try:
+        s.random.shuffle = lambda _items: None
+        for idx, (x, y) in enumerate(stars):
+            gtp = s.coord_to_gtp(x, y, game.size)
+            game.moves.append(("B", gtp))
+            game.place_stone(x, y, "B")
+            await s._apply_player_rogue_move_effects(game, lambda _payload: asyncio.sleep(0), x, y, "B", 0)
+            game.push_history()
+            if idx == 2:
+                board_after_bonus = copy.deepcopy(game.board)
+
+        game.moves.append(("W", s.coord_to_gtp(8, 8, game.size)))
+        game.place_stone(8, 8, "W")
+        game.push_history()
+        assert game.undo_history(1) is True
+    finally:
+        s.random.shuffle = old_shuffle
+
+    assert game.board == board_after_bonus
+
+
 async def smoke_foolish_wisdom_ultimate():
     game = make_game()
     game.ultimate = True
@@ -875,6 +921,8 @@ async def main():
         await smoke_foolish_wisdom_rogue()
         await smoke_bonus_spawn_safety()
         await smoke_place_stone_does_not_overwrite()
+        await smoke_batch_bonus_persists_after_followup_move()
+        await smoke_undo_preserves_bonus_stones()
         await smoke_foolish_wisdom_ultimate()
         await smoke_two_player_rogue_shared_cards()
         await smoke_ai_rogue_support()
