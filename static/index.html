@@ -53,6 +53,28 @@ header h1 { font-size: 1.4rem; color: #d4af37; letter-spacing: 2px; text-shadow:
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.lang-chip {
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(212, 175, 55, 0.08);
+  color: #f0d98a;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: .76rem;
+  font-weight: 700;
+  letter-spacing: .4px;
+  min-width: 74px;
+}
+.lang-chip:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.16);
+  box-shadow: 0 0 12px rgba(212,175,55,.18);
+}
 .main-layout {
   display: flex;
   gap: 24px;
@@ -598,7 +620,10 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
     <span id="status-text">连接中…</span>
     <span id="sound-toggle" title="音效开关">🔊</span>
   </div>
-  <div id="network-badge">本机：http://localhost:8000</div>
+  <div class="header-actions">
+    <button id="lang-toggle" class="lang-chip" title="切换语言">EN</button>
+    <div id="network-badge">本机：http://localhost:8000</div>
+  </div>
 </header>
 
 <div class="main-layout" style="justify-content: center;">
@@ -976,6 +1001,109 @@ function ui(zh, en) {
   return currentLang === "en" ? en : zh;
 }
 
+const ROGUE_CARD_I18N = {
+  tengen: { name: "Tengen", desc: "For the AI's first 2 moves, it prefers the center or star points." },
+  dice: { name: "Dice Roll", desc: "The AI has a 14% chance to pass immediately." },
+  erosion: { name: "Erosion", desc: "Every captured enemy stone swings komi by 2 extra points." },
+  puppet: { name: "Puppet Move", desc: "Use once to force the AI to play at the point you choose." },
+  seal: { name: "Seal", desc: "Choose 3 points that the AI cannot play on this game." },
+  twin: { name: "Combo", desc: "Use once to take two turns in a row." },
+  nerf: { name: "Soft Nerf", desc: "Reduce the AI search budget by 60%." },
+  komi_relief: { name: "Komi Relief", desc: "Reduce komi from 7.5 to 2.5." },
+  time_press: { name: "Time Pressure", desc: "Cap the AI at 0.7 seconds per move." },
+  lowline: { name: "Low Flight", desc: "The AI leans toward low-line moves for its first 6 turns." },
+  suboptimal: { name: "Second Best", desc: "For the first 10 AI moves, it chooses from the 3rd-5th best points." },
+  mirror: { name: "Mirror", desc: "The AI has a 30% chance to mirror your last move." },
+  slip: { name: "Butter Fingers", desc: "The AI has a 38% chance to slip to an adjacent point." },
+  blackhole: { name: "Black Hole", desc: "The center 13-line zone becomes off-limits to the AI." },
+  exchange: { name: "Swap Turn", desc: "Use once to make the AI pass and give the turn back to you." },
+  fog: { name: "Fog", desc: "Before each AI move, a visible 3x3 mask appears and the AI cannot play inside it." },
+  gravity: { name: "Gravity", desc: "For the AI's first 5 moves, it is pulled toward star points." },
+  golden_corner: { name: "Golden Corner", desc: "A random 4x4 corner zone is sealed off from the AI." },
+  sansan: { name: "3-3 Opening", desc: "The AI rushes 3-3 points first, then avoids corner 5x5 zones." },
+  shadow: { name: "Shadow", desc: "The AI's first 3 moves tend to stick close to its previous move." },
+  sprout: { name: "Sprout", desc: "After your first successful capture, an extra friendly stone grows nearby." },
+  joseki_ocd: { name: "Joseki OCD", desc: "Hit 3 of 7 highlighted points to auto-fill the remaining joseki points." },
+  handicap_quest: { name: "Handicap Quest", desc: "Pass once first, then earn bonus AI passes every 4 of your moves." },
+  god_hand: { name: "Hand of God", desc: "Step into a hidden 3x3 diamond and explode 5 same-color stones nearby." },
+  sansan_trap: { name: "3-3 Is a Trap", desc: "If the AI opens on a corner 3-3, you get 3 nearby support stones." },
+  corner_helper: { name: "Corner Assistant", desc: "If your corner has 2 stones in 5x5, it adds 2 more support stones." },
+  sanrensei: { name: "Three-Star Formation", desc: "If your first 3 moves are star points, gain 3 extra stones." },
+  no_regret: { name: "No Regrets", desc: "Undo is disabled, but each move has a 14% chance to add a backup stone." },
+  quickthink: { name: "Quick Thinking", desc: "Play within 3 seconds, then chain a bonus move within 2 seconds." },
+  foolish_wisdom: { name: "Wise Fool", desc: "Make an isolated L-shape and gain a bonus stone in the nearby 5x5 zone." },
+};
+
+const ULTIMATE_CARD_I18N = {
+  chain: { name: "Combo Chain", desc: "Every player move has a 65% chance to grant one more move." },
+  proliferate: { name: "Infinite Bloom", desc: "After you play, spawn 5 extra same-color stones in a 5x5 area." },
+  double: { name: "Dual Blades", desc: "Your turn always becomes a 2-move combo." },
+  wildgrow: { name: "Wild Growth", desc: "Four of your stones keep expanding into nearby empty points." },
+  rejection: { name: "Repulsion", desc: "Enemy stones in the 3x3 around your move are pushed or destroyed." },
+  territory: { name: "Absolute Territory", desc: "Create a 4-step forbidden zone around your move." },
+  shadow_clone: { name: "Shadow Clone", desc: "A mirrored clone stone appears across the board." },
+  plague: { name: "Plague", desc: "Convert every enemy stone in the surrounding 3x3 area." },
+  meteor: { name: "Meteor", desc: "Randomly destroy 5 enemy stones anywhere on the board." },
+  quantum: { name: "Quantum Entanglement", desc: "Create 5 random same-color stones across the whole board." },
+  devour: { name: "Devour", desc: "Erase all enemy stones inside the surrounding 5x5 area." },
+  timewarp: { name: "Time Rift", desc: "An 85% chance to erase the opponent's last 2 moves." },
+  blackout: { name: "Cataclysm", desc: "Clear all enemy stones on the cross centered on your move." },
+  magnet: { name: "Magnetic Pull", desc: "Your stones rush toward the move point and crush enemies on the path." },
+  necro: { name: "Necromancy", desc: "Summon 3 friendly stones and convert 2 enemy stones." },
+  wall: { name: "Fortress Wall", desc: "Fill the stronger row or column into a full wall of stones." },
+  joseki_burst: { name: "Joseki Burst", desc: "Complete highlighted joseki points, then explode extra stones." },
+  god_hand: { name: "Hand of God", desc: "Trigger the hidden 5x5 diamond to wipe enemies and flood the board with 50 stones." },
+  corner_helper: { name: "Corner Assistant", desc: "Seal an 8x8 corner boundary with your stones and clear enemies inside." },
+  sanrensei: { name: "Three-Star Formation", desc: "If your first 3 moves are star points, ignite star-point influence everywhere." },
+  quickthink: { name: "Quick Thinking", desc: "For 5 seconds, place as many stones as you want before the AI reads the board." },
+  foolish_wisdom: { name: "Wise Fool", desc: "Trigger an ugly-shape chain that keeps spawning 20 stones until it stops." },
+};
+
+let rogueOfferCards = [];
+let ultimateOfferCards = [];
+
+function setLanguage(lang) {
+  currentLang = lang === "en" ? "en" : "zh";
+  localStorage.setItem("goai_lang", currentLang);
+  applyLanguage();
+}
+
+function getTranslatedCard(card, mode) {
+  if (currentLang !== "en") return card;
+  const dict = mode === "ultimate" ? ULTIMATE_CARD_I18N : ROGUE_CARD_I18N;
+  const meta = dict[card.id];
+  if (!meta) return card;
+  return { ...card, name: meta.name, desc: meta.desc };
+}
+
+function getRogueCardName(cardId) {
+  return currentLang === "en"
+    ? (ROGUE_CARD_I18N[cardId]?.name || cardId)
+    : ({
+      dice: "投骰子", erosion: "蚕食", puppet: "傀儡术", seal: "封印术", twin: "连击",
+      nerf: "弱化", komi_relief: "贴目减负", time_press: "时间压制", tengen: "天元",
+      lowline: "低空飞行", suboptimal: "次优之选", mirror: "镜像", slip: "手滑了",
+      blackhole: "黑洞", exchange: "乾坤挪移", fog: "迷雾", gravity: "引力",
+      golden_corner: "黄金角", sansan: "三三开局", sansan_trap: "三三是陷阱",
+      shadow: "影子", sprout: "萌芽", joseki_ocd: "定式强迫症", handicap_quest: "让子任务",
+      god_hand: "神之一手", corner_helper: "守角辅助器", sanrensei: "三连星",
+      no_regret: "我不悔棋", quickthink: "快速思考", foolish_wisdom: "大智若愚",
+    }[cardId] || cardId);
+}
+
+function getUltimateCardName(cardId) {
+  return currentLang === "en"
+    ? (ULTIMATE_CARD_I18N[cardId]?.name || cardId)
+    : ({
+      chain: "连珠棋", proliferate: "无限增殖", double: "双刀流", wildgrow: "狂野生长",
+      rejection: "排异反应", territory: "绝对领地", shadow_clone: "影分身", plague: "瘟疫",
+      meteor: "陨石", quantum: "量子纠缠", devour: "吞噬", timewarp: "时空裂缝",
+      blackout: "天崩地裂", magnet: "磁力吸附", necro: "亡灵召唤", wall: "城墙",
+      joseki_burst: "定式爆发", god_hand: "神之一手", corner_helper: "守角辅助器",
+      sanrensei: "三连星", quickthink: "快速思考", foolish_wisdom: "大智若愚",
+    }[cardId] || cardId);
+}
+
 function setText(selector, text) {
   const el = document.querySelector(selector);
   if (el) el.textContent = text;
@@ -1015,9 +1143,7 @@ function ensureLanguageControl() {
   const sel = document.getElementById("lang-select");
   sel.value = currentLang;
   sel.addEventListener("change", (e) => {
-    currentLang = e.target.value === "en" ? "en" : "zh";
-    localStorage.setItem("goai_lang", currentLang);
-    applyLanguage();
+    setLanguage(e.target.value);
   });
 }
 
@@ -1028,6 +1154,11 @@ function applyLanguage() {
   ensureLanguageControl();
   const langSelect = document.getElementById("lang-select");
   if (langSelect) langSelect.value = currentLang;
+  const langToggle = document.getElementById("lang-toggle");
+  if (langToggle) {
+    langToggle.textContent = currentLang === "en" ? "中文" : "EN";
+    langToggle.title = ui("切换到英文界面", "Switch to Chinese");
+  }
   setText("#lang-panel-title", ui("语言", "Language"));
   setText("#lang-panel-label", ui("语言", "Language"));
 
@@ -1060,14 +1191,15 @@ function applyLanguage() {
 
   const drawerTitle = document.querySelector("#settings-drawer h2");
   if (drawerTitle) drawerTitle.textContent = ui("全局设定", "Settings");
-  const panelTitles = document.querySelectorAll("#settings-drawer .panel-card h3");
-  if (panelTitles[1]) panelTitles[1].textContent = ui("界面选项", "Interface");
-  if (panelTitles[2]) panelTitles[2].textContent = ui("辅助分析", "Analysis");
-  if (panelTitles[3]) panelTitles[3].textContent = ui("复盘/棋谱", "Review / SGF");
-  if (panelTitles[4]) panelTitles[4].textContent = ui("对局信息", "Game Info");
-  if (panelTitles[5]) panelTitles[5].textContent = ui("棋谱记录", "Game Log");
+  const panelTitles = document.querySelectorAll("#settings-drawer .panel-card h3:not(#lang-panel-title)");
+  if (panelTitles[0]) panelTitles[0].textContent = ui("界面选项", "Interface");
+  if (panelTitles[1]) panelTitles[1].textContent = ui("辅助分析", "Analysis");
+  if (panelTitles[2]) panelTitles[2].textContent = ui("复盘/棋谱", "Review / SGF");
+  if (panelTitles[3]) panelTitles[3].textContent = ui("对局信息", "Game Info");
+  if (panelTitles[4]) panelTitles[4].textContent = ui("棋谱记录", "Game Log");
 
-  const settingsLabels = document.querySelectorAll("#settings-drawer .form-row label");
+  const settingsLabels = Array.from(document.querySelectorAll("#settings-drawer .form-row label"))
+    .filter(el => el.id !== "lang-panel-label");
   if (settingsLabels[0]) settingsLabels[0].textContent = ui("落子模式", "Placement");
   const toggleLabels = document.querySelectorAll("#settings-drawer .toggle-label");
   if (toggleLabels[0]) toggleLabels[0].textContent = ui("显示推荐落点", "Show Suggested Moves");
@@ -1089,9 +1221,9 @@ function applyLanguage() {
   ];
   infoLabels.forEach((el, idx) => { if (infoTexts[idx]) el.textContent = infoTexts[idx]; });
 
-  const overlayStats = document.querySelectorAll("#overlay .stat-card .label");
+  const overlayStats = document.querySelectorAll("#overlay .score-item .label");
   if (overlayStats[0]) overlayStats[0].textContent = ui("胜方", "Winner");
-  if (overlayStats[1]) overlayStats[1].textContent = ui("目差", "Margin");
+  if (overlayStats[1]) overlayStats[1].textContent = ui("比分", "Score");
   const overlayBtns = document.querySelectorAll("#overlay .btn-row button");
   if (overlayBtns[0]) overlayBtns[0].textContent = ui("复盘", "Review");
   if (overlayBtns[1]) overlayBtns[1].textContent = ui("再来一局", "Play Again");
@@ -1152,6 +1284,16 @@ function applyLanguage() {
   setText("#wr-black-label", `${ui("黑", "Black")} 50.0%`);
   setText("#wr-white-label", `${ui("白", "White")} 50.0%`);
   setText("#status-text", ui("连接中…", "Connecting..."));
+  updateNetworkBadge(window.__goaiNetworkStatus);
+  if (document.getElementById("rogue-overlay").classList.contains("show") && rogueOfferCards.length) {
+    showRogueCards(rogueOfferCards);
+  }
+  if (document.getElementById("ultimate-overlay").classList.contains("show") && ultimateOfferCards.length) {
+    showUltimateCards(ultimateOfferCards);
+  }
+  if (activeRogueCard) updateRogueBar();
+  if (ultimateMode) updateUltimateBar();
+  if (gameState) updateUI();
 }
 
 // Review mode state
@@ -1867,14 +2009,20 @@ let boardRecoveryTimer = null;
 let boardWatchdogTimer = null;
 
 function updateNetworkBadge(status) {
+  window.__goaiNetworkStatus = status || null;
   const badge = document.getElementById("network-badge");
   if (!badge) return;
   const local = status?.access_urls?.local?.[0] || `${location.protocol}//${location.host}`;
   const lan = status?.access_urls?.lan?.[0];
-  badge.textContent = lan ? `本机：${local}  |  手机：${lan}` : `本机：${local}`;
+  badge.textContent = lan
+    ? ui(`本机：${local}  |  手机：${lan}`, `Local: ${local}  |  LAN: ${lan}`)
+    : ui(`本机：${local}`, `Local: ${local}`);
   badge.title = lan
-    ? `本机访问：${local}\n局域网访问：${status.access_urls.lan.join("\n")}`
-    : `本机访问：${local}`;
+    ? ui(
+        `本机访问：${local}\n局域网访问：${status.access_urls.lan.join("\n")}`,
+        `Local: ${local}\nLAN: ${status.access_urls.lan.join("\n")}`
+      )
+    : ui(`本机访问：${local}`, `Local: ${local}`);
 }
 
 async function refreshNetworkInfo() {
@@ -2426,15 +2574,17 @@ let hoverXY = null;
 // ROGUE MODE FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 function showRogueCards(cards) {
+  rogueOfferCards = Array.isArray(cards) ? cards.map(c => ({ ...c })) : [];
   const container = document.getElementById("rogue-cards");
   container.innerHTML = "";
-  cards.forEach(c => {
+  rogueOfferCards.forEach(c0 => {
+    const c = getTranslatedCard(c0, "rogue");
     const div = document.createElement("div");
     div.className = "rogue-card";
     div.innerHTML = `<div class="rc-icon">${c.icon}</div>
       <div class="rc-name">${c.name}</div>
       <div class="rc-desc">${c.desc}</div>`;
-    div.onclick = () => sendWS({ action: "rogue_select_card", card_id: c.id });
+    div.onclick = () => sendWS({ action: "rogue_select_card", card_id: c0.id });
     container.appendChild(div);
   });
   document.getElementById("rogue-overlay").classList.add("show");
@@ -2445,39 +2595,7 @@ function updateRogueBar() {
   if (!activeRogueCard) { bar.style.display = "none"; return; }
   bar.style.display = "flex";
   const badge = document.getElementById("rogue-badge");
-  const names = {
-    dice: "投骰子",
-    erosion: "蚕食",
-    puppet: "傀儡术",
-    seal: "封印术",
-    twin: "连击",
-    nerf: "弱化",
-    komi_relief: "贴目减负",
-    time_press: "时间压制",
-    tengen: "天元",
-    lowline: "低空飞行",
-    suboptimal: "次优之选",
-    mirror: "镜像",
-    slip: "手滑了",
-    blackhole: "黑洞",
-    exchange: "乾坤挪移",
-    fog: "迷雾",
-    gravity: "引力",
-    golden_corner: "黄金角",
-    sansan: "三三开局",
-    sansan_trap: "三三是陷阱",
-    shadow: "影子",
-    sprout: "萌芽",
-    joseki_ocd: "定式强迫症",
-    handicap_quest: "让子任务",
-    god_hand: "神之一手",
-    corner_helper: "守角辅助器",
-    sanrensei: "三连星",
-    no_regret: "我不悔棋",
-    quickthink: "快速思考",
-    foolish_wisdom: "大智若愚",
-  };
-  badge.textContent = names[activeRogueCard] || activeRogueCard;
+  badge.textContent = getRogueCardName(activeRogueCard);
 
   // Active-use buttons
   const btnPuppet = document.getElementById("rb-puppet");
@@ -2491,19 +2609,19 @@ function updateRogueBar() {
   if (activeRogueCard === "puppet") {
     btnPuppet.style.display = "";
     const left = rogueUses.puppet || 0;
-    btnPuppet.textContent = `🎭 傀儡术 (${left})`;
+    btnPuppet.textContent = `🎭 ${ui("傀儡术", "Puppet")} (${left})`;
     btnPuppet.disabled = left <= 0;
   }
   if (activeRogueCard === "twin") {
     btnTwin.style.display = "";
     const left = rogueUses.twin || 0;
-    btnTwin.textContent = `⚡ 连击 (${left})`;
+    btnTwin.textContent = `⚡ ${ui("连击", "Combo")} (${left})`;
     btnTwin.disabled = left <= 0;
   }
   if (activeRogueCard === "exchange") {
     btnExchange.style.display = "";
     const left = rogueUses.exchange || 0;
-    btnExchange.textContent = `🔄 挪移 (${left})`;
+    btnExchange.textContent = `🔄 ${ui("挪移", "Swap")} (${left})`;
     btnExchange.disabled = left <= 0;
   }
 }
@@ -2529,19 +2647,21 @@ function resetRogueState() {
 }
 
 function showUltimateCards(cards) {
+  ultimateOfferCards = Array.isArray(cards) ? cards.map(c => ({ ...c })) : [];
   console.log("[Ultimate] showUltimateCards called, cards:", cards);
   const container = document.getElementById("ultimate-cards");
   if (!container) { console.error("[Ultimate] #ultimate-cards not found!"); return; }
   container.innerHTML = "";
-  cards.forEach(c => {
+  ultimateOfferCards.forEach(c0 => {
+    const c = getTranslatedCard(c0, "ultimate");
     const div = document.createElement("div");
     div.className = "ultimate-card";
     div.innerHTML = `<div class="rc-icon">${c.icon}</div>
       <div class="rc-name">${c.name}</div>
       <div class="rc-desc">${c.desc}</div>`;
     div.onclick = () => {
-      console.log("[Ultimate] Card clicked:", c.id);
-      sendWS({ action: "ultimate_select_card", card_id: c.id });
+      console.log("[Ultimate] Card clicked:", c0.id);
+      sendWS({ action: "ultimate_select_card", card_id: c0.id });
     };
     container.appendChild(div);
   });
@@ -2581,12 +2701,12 @@ function updateUltimateBar() {
   const bar = document.getElementById("ultimate-bar");
   if (!ultimateMode) { bar.style.display = "none"; return; }
   bar.style.display = "flex";
-  const pName = ultimatePlayerName || ULTIMATE_NAMES[ultimatePlayerCard] || "—";
-  const aName = ultimateAiName || ULTIMATE_NAMES[ultimateAiCard] || "—";
-  document.getElementById("ub-player-card").textContent = "你: " + pName;
+  const pName = ultimatePlayerName || getUltimateCardName(ultimatePlayerCard) || "—";
+  const aName = ultimateAiName || getUltimateCardName(ultimateAiCard) || "—";
+  document.getElementById("ub-player-card").textContent = ui("你: ", "You: ") + pName;
   document.getElementById("ub-ai-card").textContent = "AI: " + aName;
   const mc = gameState ? (gameState.ultimate_move_count || 0) : 0;
-  document.getElementById("ub-moves").textContent = mc + " / 20";
+  document.getElementById("ub-moves").textContent = ui(`决胜 ${mc} / 20`, `${mc} / 20`);
 }
 
 function drawRogueMarks() {
@@ -3306,11 +3426,11 @@ document.getElementById("btn-new").addEventListener("click", () => {
 
   if (startMode === "guess") {
     playerColor = Math.random() < 0.5 ? "B" : "W";
-    log(`猜先结果：你执${playerColor==="B"?"黑":"白"}棋`);
+    log(ui(`猜先结果：你执${playerColor==="B"?"黑":"白"}棋`, `Guess Color result: you play ${playerColor==="B"?"Black":"White"}`));
   } else if (startMode === "give") {
     playerColor = "B";
     komi = 0;
-    log("让先：你执黑，贴目0");
+    log(ui("让先：你执黑，贴目0", "Take Black: you play Black, komi is set to 0"));
   } else if (isTwoPlayer) {
     playerColor = "B";
   }
@@ -3368,6 +3488,10 @@ document.getElementById("btn-new").addEventListener("click", () => {
   }, 200);
 });
 
+document.getElementById("lang-toggle").addEventListener("click", () => {
+  setLanguage(currentLang === "en" ? "zh" : "en");
+});
+
 document.getElementById("btn-pass").addEventListener("click", () => {
   if (!twoPlayerMode && !isMyTurn) return;
   if (!gameState || gameState.game_over) return;
@@ -3376,23 +3500,23 @@ document.getElementById("btn-pass").addEventListener("click", () => {
   if (ultimateMode && ultimatePlayerCard === "quickthink" && gameState.ultimate_quickthink_active) {
     sendWS({ action: "ultimate_quickthink_end" });
     if (!twoPlayerMode) { isMyTurn = false; setThinking(true); }
-    log("快速思考结束，轮到 AI 读盘");
+    log(ui("快速思考结束，轮到 AI 读盘", "Quick Thinking ended. The AI is reading the board."));
     return;
   }
   sendWS({ action: "pass" });
   if (!twoPlayerMode) { isMyTurn = false; setThinking(true); }
-  log(`${passColor==="B"?"黑棋":"白棋"} 虚手`);
+  log(currentLang === "en" ? `${passColor==="B"?"Black":"White"} passes` : `${passColor==="B"?"黑棋":"白棋"} 虚手`);
 });
 
 document.getElementById("btn-undo").addEventListener("click", () => {
   if (gameState && gameState.rogue_undo_disabled) {
-    log("当前卡牌效果禁用了悔棋");
+    log(ui("当前卡牌效果禁用了悔棋", "Undo is disabled by the current card"));
     return;
   }
   previousBoard = gameState ? gameState.board.map(row => [...row]) : null;
   sendWS({ action: "undo" });
   setThinking(false);
-  log("请求悔棋");
+  log(ui("请求悔棋", "Undo requested"));
 });
 
 document.getElementById("btn-score").addEventListener("click", () => {
@@ -3400,20 +3524,20 @@ document.getElementById("btn-score").addEventListener("click", () => {
   const wr = analysis ? analysis.winrate : 0.5;
   const blackPct = wr * 100;
   if (blackPct < 80 && (100 - blackPct) < 80) {
-    log("⚠ 胜率未达80%，暂不可计算胜负");
+    log(ui("⚠ 胜率未达80%，暂不可计算胜负", "⚠ Win rate is below 80%, scoring is unavailable"));
     return;
   }
-  showConfirmModal("是否进行形势计算并申请终局？", () => {
+  showConfirmModal(ui("是否进行形势计算并申请终局？", "Run scoring and request endgame?"), () => {
     sendWS({ action: "score" });
-    log("请求终局计分…");
+    log(ui("请求终局计分…", "Requesting endgame scoring..."));
   });
 });
 
 document.getElementById("btn-resign").addEventListener("click", () => {
-  showConfirmModal("您确定要认输吗？", () => {
+  showConfirmModal(ui("您确定要认输吗？", "Are you sure you want to resign?"), () => {
     sendWS({ action: "resign" });
     setButtons(false);
-    log("你认输了");
+    log(ui("你认输了", "You resigned"));
   });
 });
 

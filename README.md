@@ -1,56 +1,102 @@
 # GoAI
 
-中文简介：
+一个更像游戏、而不只是工具的围棋 AI 项目。
 
-`GoAI` 是一个基于 `KataGo` 引擎制作的围棋娱乐项目，重点不是严肃比赛，而是“好玩、爽快、容易上手”。除了普通对弈模式，它还加入了两种更偏游戏化的玩法：
+`GoAI` 基于 `KataGo` 引擎，但它的目标不是做一套严肃比赛向的围棋平台，而是做一款“朋友也愿意马上点开玩一局”的 Roguelike 风格围棋游戏。
 
-- `Rogue` 模式：开局三选一卡牌，围绕节奏、陷阱、补子、限制 AI 等效果展开
-- `Ultimate` 模式：更夸张的大招卡牌，强调短局、高爆发、强演出
+它最核心的特色不是单纯的强棋力，而是：
 
-这个项目主要面向 Windows 普通玩家，优先考虑“安装简单、启动稳定、没有 NVIDIA 也能玩”。当前版本支持：
+- 开局就有 `Rogue` 三选一卡牌
+- 还有更夸张、更爽快的 `Ultimate` 大招模式
+- 支持普通 AI 对弈，也支持更偏娱乐化、偏演出化的玩法
+- 支持中英双语界面切换
+- 优先照顾普通 Windows 玩家，尽量做到装上就能跑
 
-- 有 NVIDIA 时优先尝试 `CUDA`
-- 无 `CUDA` 时回退 `OpenCL`
-- `OpenCL` 不可用时回退 `CPU`
+English:
 
-English summary:
+`GoAI` is a Go / Weiqi game project built on top of `KataGo`, but it is not trying to be just another serious engine frontend. The goal is to make Go feel playful, fast, surprising, and easy to share with friends.
 
-`GoAI` is a hobby Go/Weiqi game project built on top of the `KataGo` engine. It is designed more as a fun playable experience than as a serious tournament or research tool.
+The headline features are:
 
 - `Rogue Mode`: pick 1 out of 3 cards at the start of the game
-- `Ultimate Mode`: fast, flashy, overpowered card battles
+- `Ultimate Mode`: absurd, flashy overpowered card battles
+- normal AI play is still available
+- bilingual Chinese / English UI toggle
+- Windows builds aim for easy installation and stable startup
 
-The Windows build aims to be easy to install, stable to start, and able to fall back from CUDA to OpenCL or CPU on ordinary machines.
+## Why It Feels Different
+
+普通围棋 AI 项目更像分析工具，而 `GoAI` 更像“围棋 + Roguelike 卡牌规则”的轻游戏：
+
+- 有的卡会限制 AI 走法
+- 有的卡会奖励补子、爆发、连击
+- 有的卡会触发隐藏区域、角部机关、愚形连锁
+- 大招模式里则强调 20 手内爆发、翻盘、演出感
+
+English:
+
+Most Go engine apps feel like training or analysis tools. `GoAI` tries to feel more like a playful board game:
+
+- some cards nerf or mislead the AI
+- some cards spawn extra stones or create traps
+- some cards reward patterns, shape tricks, or hidden triggers
+- Ultimate mode turns the game into a short explosive showdown
+
+## Main Modes
+
+### 1. Normal Play
+
+- Standard AI play with multiple strength presets
+- Suitable when you just want to play a regular game
+
+### 2. Rogue Mode
+
+- At the start of the game, choose 1 of 3 cards
+- Cards reshape the rules of that game
+- The tone is “clever advantage, trick plays, tempo abuse, and weird board events”
+
+Typical examples:
+
+- make the AI pass sometimes
+- block zones the AI cannot enter
+- complete joseki targets for bonus stones
+- trigger hidden effects from shape patterns
+
+### 3. Ultimate Mode
+
+- You and the AI each get an overpowered card
+- The pace is intentionally faster and more explosive
+- Designed for short, dramatic games rather than classical balance
+
+Typical examples:
+
+- extra turns
+- mass stone generation
+- board-wide wipe effects
+- chain reactions from patterns or hidden areas
 
 ## Project Positioning
 
-- This is a fan-made hobby project, not an official KataGo GUI.
-- It is not affiliated with, endorsed by, or maintained by the KataGo project.
-- The maintainer is a Go enthusiast, not a professional software engineer.
-- For transparency: the code in this project was developed with heavy AI coding assistance, mainly using tools such as `Claude Code` and `Codex`, while the maintainer provided gameplay ideas, testing, packaging goals, and iteration direction.
+- This is a fan-made hobby project
+- It is not an official KataGo GUI
+- It is not affiliated with, endorsed by, or maintained by the KataGo project
+- The maintainer is a Go enthusiast, not a professional software engineer
+- For transparency: the project was developed with heavy AI coding assistance, mainly using tools such as `Claude Code` and `Codex`, while the maintainer provided gameplay ideas, balancing direction, packaging goals, and testing feedback
 
-## Main Features
+## Runtime Goals
 
-- Normal AI play with multiple strength presets
-- Rogue card mode
-- Ultimate overpowered card mode
-- Windows desktop launcher
-- FastAPI backend + browser frontend
-- CUDA / OpenCL / CPU fallback
+The Windows build is tuned for ordinary users first:
 
-## Intended Use
+- easy install
+- stable startup
+- clear fallback behavior
+- machines without NVIDIA should still work
 
-This project is intended for:
+Current fallback path:
 
-- casual play
-- friends and family entertainment
-- experimental roguelike-style Go gameplay ideas
-
-This project is not intended for:
-
-- official tournaments
-- benchmark-style engine comparisons
-- claiming any official relationship with KataGo
+- use `CUDA` first when available
+- fall back to `OpenCL`
+- fall back again to `CPU`
 
 ## Runtime Environment
 
@@ -74,59 +120,53 @@ Build / packaging tools used by this project:
 
 ## Quick Start
 
-### Option 1: Use a packaged Windows release
+### Option 1: Use the packaged Windows release
 
-If you only want to play, the easiest way is to use the packaged Windows installer from the project Releases page.
+If you just want to play, use the installer from the GitHub Releases page.
 
 ### Option 2: Run from source
 
-1. Install Python 3.11.
-2. Install dependencies:
+1. Install Python 3.11
+2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Prepare the `katago/` directory.
+3. Prepare the `katago/` directory
 
-This source repository intentionally does not include large third-party engine binaries, neural network weights, or NVIDIA runtime DLLs by default for repository cleanliness and licensing caution. See `katago/README.md` for expected files.
+This repository intentionally does not include large third-party engine binaries, neural network weights, or NVIDIA runtime DLLs by default. See `katago/README.md` for expected files.
 
-4. Run the backend:
+4. Run the backend
 
 ```bash
 python server.py
 ```
 
-5. Or run the launcher:
+5. Or run the launcher
 
 ```bash
 python launcher.py
 ```
 
-## Commercial Use And License
+## Non-Commercial By Default
 
-The original code in this repository is not under a blanket MIT-style commercial license anymore.
+The original code in this repository is available for:
 
-Current policy:
+- non-commercial use
+- non-commercial modification
+- non-commercial redistribution
+- non-commercial sharing of source and packaged builds
 
-- non-commercial use is allowed
-- non-commercial modification is allowed
-- non-commercial redistribution is allowed
-- non-commercial sharing of the packaged build is allowed
-- commercial use is not automatically allowed
+Commercial use is not automatically granted.
 
-In plain language:
-
-- if you are a normal player, hobbyist, student, streamer, club member, or friend sharing this for non-commercial purposes, you can use and share it directly
-- if you want to use this project in a commercial product, paid service, business deployment, paid bundle, or other commercial setting, please contact the repository owner first
-
-Please keep the copyright notice and license text when redistributing the project source or substantial portions of it.
+If you want to use this project in a commercial product, paid service, paid deployment, or business setting, please contact the repository owner first.
 
 Important:
 
-- this policy applies to this repository's own original code and content
+- this applies to this repository's original code and original content
 - third-party components remain under their own licenses
-- bundled or downloaded engine binaries, model files, NVIDIA files, and other third-party materials are not relicensed by this repository
+- engine binaries, model files, NVIDIA files, and other third-party materials are not relicensed by this repository
 
 Please read:
 
@@ -153,8 +193,10 @@ To keep the GitHub repository smaller and easier to review:
 
 - source code stays in Git
 - logs, build outputs, local test files, models, and packaged binaries stay out of Git
-- packaged installers should be attached to GitHub Releases rather than committed into the source repository
+- packaged installers should be attached to GitHub Releases instead of being committed into the source repository
 
 ## Friendly Note
 
-This project was built with enthusiasm first and polish second. The goal is simple: make a playful, approachable Go game that more people can install and enjoy.
+这不是一个“完美无瑕的专业软件产品”，而是一个围棋爱好者把自己想玩的玩法做出来、再努力打磨到朋友也能直接安装游玩的项目。
+
+If the app feels a little rough around the edges sometimes, that is honest rather than hidden. The goal is simple: make Go more playful, more surprising, and easier to share.
