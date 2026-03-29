@@ -1,0 +1,3810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>围棋AI — KataGo</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", sans-serif;
+  background: #0d0f12; /* Deep dark background */
+  background-image: radial-gradient(circle at 50% 0%, #1a1c23 0%, #0d0f12 70%);
+  background-attachment: fixed;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+}
+header {
+  width: 100%;
+  background: #14151a;
+  padding: 12px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.6);
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+}
+#header-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+header h1 { font-size: 1.4rem; color: #d4af37; letter-spacing: 2px; text-shadow: 0 0 10px rgba(212, 175, 55, 0.2); font-weight: 600; }
+#status-dot { width: 10px; height: 10px; border-radius: 50%; background: #e74c3c; flex-shrink: 0; transition: background .3s; box-shadow: 0 0 6px rgba(231,76,60,.5); }
+#status-dot.ready { background: #2ecc71; box-shadow: 0 0 8px rgba(46,204,113,.5); }
+#status-text { font-size: .85rem; color: #888; }
+#network-badge {
+  max-width: min(100%, 460px);
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  font-size: .78rem;
+  color: #a0a0a0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.main-layout {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 1280px;
+}
+/* Win Rate Bar */
+#winrate-bar-wrap { width: 100%; margin-bottom: 8px; }
+#winrate-bar {
+  width: 100%; height: 28px;
+  border-radius: 14px; overflow: hidden;
+  background: linear-gradient(90deg, #d8d8d8, #f0f0f0);
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.3), 0 1px 4px rgba(0,0,0,.2);
+}
+#wr-black {
+  height: 100%;
+  background: linear-gradient(90deg, #0a0a0a, #333, #444);
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+  display: flex; align-items: center;
+  padding-left: 10px;
+}
+#wr-white {
+  position: absolute; right: 0; top: 0;
+  height: 100%;
+  display: flex; align-items: center;
+  padding-right: 10px;
+}
+.wr-label { font-size: .78rem; font-weight: 700; }
+#wr-black .wr-label { color: #fff; }
+#wr-white .wr-label { color: #111; }
+
+/* Timers */
+.timer-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 8px;
+}
+.timer-box {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: .82rem;
+  font-weight: 700;
+  font-family: "Consolas", "Courier New", monospace;
+  min-width: 110px;
+}
+.timer-box.black { background: #222; color: #fff; border: 2px solid #444; }
+.timer-box.white { background: #f0f0f0; color: #111; border: 2px solid #ccc; }
+.timer-box.active { border-color: #e2b714; box-shadow: 0 0 8px rgba(226,183,20,.4); }
+.timer-box.danger { border-color: #c0392b; box-shadow: 0 0 8px rgba(192,57,43,.4); }
+.timer-stone {
+  width: 14px; height: 14px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.timer-stone.b { background: radial-gradient(circle at 35% 35%, #555, #000); }
+.timer-stone.w { background: radial-gradient(circle at 35% 35%, #fff, #aaa); border: 1px solid #999; }
+.timer-hidden { visibility: hidden; }
+
+/* Board */
+#board-container {
+  position: relative;
+  flex: 0 1 700px;
+  width: min(100%, 700px);
+  min-width: 0;
+}
+#board-canvas {
+  display: block;
+  cursor: crosshair;
+  border-radius: 4px; /* subtle border radius for wood board */
+  box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 8px 16px rgba(0,0,0,.4);
+  touch-action: none;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Icon Toolbar */
+.board-toolbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+.board-toolbar button {
+  background: #111216;
+  border: 1px solid #333;
+  color: #ccc;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,.3);
+  transition: all .15s ease;
+  flex: none; /* Prevent sizing issues on mobile */
+}
+.board-toolbar button:hover:not(:disabled) {
+  background: #22252e;
+  color: #fff;
+  border-color: #d4af37;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(212,175,55,.15);
+}
+.board-toolbar button:active { transform: translateY(0); }
+.board-toolbar button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Side Panel Drawer */
+.settings-drawer {
+  position: fixed;
+  top: 0; right: -380px; /* Hidden by default */
+  width: 360px; height: 100vh;
+  background: rgba(20, 22, 28, 0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: -4px 0 24px rgba(0,0,0,0.8);
+  z-index: 1000;
+  overflow-y: auto;
+  transition: right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  padding: 24px;
+  border-left: 1px solid rgba(255,255,255,.05);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.settings-drawer.open { right: 0; }
+.drawer-close {
+  display: block; position: absolute;
+  top: 16px; right: 20px;
+  font-size: 1.4rem; color: #888;
+  background: none; border: none; cursor: pointer;
+  box-shadow: none; width: auto; height: auto; padding: 0;
+  border-radius: 0;
+}
+.drawer-close:hover { color: #fff; transform: scale(1.1); background: transparent; }
+
+.panel-card {
+  background: #181a20;
+  border-radius: 12px;
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.05);
+}
+.panel-card h3 {
+  font-size: .9rem; color: #d4af37;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  padding-bottom: 8px;
+  letter-spacing: 1px;
+}
+.form-row { display: flex; gap: 8px; align-items: center; margin-bottom: 7px; }
+.form-row label { font-size: .78rem; color: #aaa; min-width: 48px; }
+select, input[type=number] {
+  background: #111216; color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 6px; padding: 6px 10px;
+  font-size: .85rem; flex: 1;
+}
+select:focus, input:focus { outline: 1px solid #d4af37; }
+
+/* Buttons */
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+button {
+  padding: 8px 14px;
+  border: none; border-radius: 6px;
+  cursor: pointer; font-size: .85rem;
+  font-weight: 600; letter-spacing: 0.5px;
+  transition: transform .12s, box-shadow .2s, opacity .15s, background .15s;
+}
+button:active { transform: scale(.97); }
+button:disabled { opacity: .38; cursor: default; transform: none; }
+.btn-primary  { background: #d4af37; color: #111; }
+.btn-primary:hover:not(:disabled)  { background: #ebd169; box-shadow: 0 0 12px rgba(212,175,55,.4); }
+.btn-secondary { background: #22252e; color: #eee; border: 1px solid #333; }
+.btn-secondary:hover:not(:disabled) { background: #2a2e38; }
+.btn-danger  { background: #c62828; color: #fff; }
+.btn-danger:hover:not(:disabled)  { background: #d32f2f; }
+.btn-green   { background: #2e8b57; color: #fff; }
+.btn-green:hover:not(:disabled)   { background: #3cb371; }
+.btn-purple  { background: #5c4b8b; color: #fff; }
+.btn-purple:hover:not(:disabled)  { background: #6a579e; }
+
+/* Start mode selector */
+.mode-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.mode-btn {
+  flex: 1; padding: 8px 4px;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #111216; color: #aaa;
+  font-size: .8rem; font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+}
+.mode-btn.active { background: #22252e; color: #d4af37; border-color: #d4af37; box-shadow: 0 0 8px rgba(212,175,55,.15); }
+.mode-btn:hover:not(.active) { background: #1a1c22; color: #ccc; }
+
+/* Move info */
+#move-info { font-size: .85rem; line-height: 1.8; }
+.info-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.02); }
+.info-val { color: #d4af37; font-weight: 600; }
+
+/* Toggle */
+.toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.toggle {
+  width: 42px; height: 24px;
+  background: #111216; border-radius: 12px;
+  position: relative; cursor: pointer;
+  border: 1px solid #333; flex-shrink: 0;
+  transition: background .2s, border-color .2s;
+}
+.toggle.on { background: #27ae60; border-color: #2ecc71; box-shadow: 0 0 6px rgba(39,174,96,.3); }
+.toggle::after {
+  content: ''; position: absolute;
+  width: 16px; height: 16px; background: #fff;
+  border-radius: 50%; top: 2px; left: 2px;
+  transition: left .2s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.toggle.on::after { left: 20px; }
+.toggle-label { font-size: .8rem; color: #ccc; }
+
+/* Review controls (mostly hidden inside toolbar now) */
+.review-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#review-info {
+  font-size: .85rem;
+  color: #d4af37;
+  font-weight: 600;
+  margin: 0 8px;
+}
+
+/* SGF controls */
+.sgf-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.sgf-row button { flex: 1; }
+#sgf-file-input { display: none; }
+
+/* Game log */
+#game-log {
+  max-height: 140px;
+  overflow-y: auto;
+  font-size: .75rem;
+  line-height: 1.55;
+  color: #aaa;
+}
+#game-log::-webkit-scrollbar { width: 3px; }
+#game-log::-webkit-scrollbar-thumb { background: #2a4a8a; border-radius: 2px; }
+
+/* Overlay */
+#overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 100;
+  align-items: center; justify-content: center;
+}
+#overlay.show { display: flex; animation: overlayIn .25s ease; }
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+#overlay.show #overlay-content { animation: overlayPop .3s cubic-bezier(.34,1.56,.64,1); }
+@keyframes overlayPop {
+  from { transform: scale(.85); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+#overlay-content {
+  background: linear-gradient(160deg, #1c2d4f 0%, #16213e 60%, #122040 100%);
+  border-radius: 16px;
+  padding: 36px;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,.7), 0 0 0 1px rgba(226,183,20,.1);
+  max-width: 360px;
+  position: relative;
+}
+#overlay-close {
+  position: absolute;
+  top: 10px; right: 14px;
+  background: none; border: none;
+  color: #888; font-size: 1.4rem;
+  cursor: pointer; padding: 4px 8px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: color .15s, background .15s;
+}
+#overlay-close:hover { color: #fff; background: rgba(255,255,255,.1); }
+#overlay-content h2 { font-size: 1.8rem; color: #e2b714; margin-bottom: 10px; }
+#overlay-content p  { font-size: .95rem; color: #ccc; margin-bottom: 20px; }
+.score-row { display: flex; justify-content: space-around; margin-bottom: 20px; }
+.score-item {
+  background: rgba(15,52,96,.5);
+  border-radius: 10px;
+  padding: 10px 20px;
+  min-width: 100px;
+  border: 1px solid rgba(42,74,138,.4);
+}
+.score-item .label { font-size: .72rem; color: #8899b4; margin-bottom: 4px; }
+.score-item .value { font-size: 1.15rem; font-weight: 700; color: #e2b714; }
+
+/* Thinking */
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(226,183,20,.2);
+  border-top-color: #e2b714;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#thinking-indicator,
+#thinking-indicator-panel {
+  display: none; align-items: center;
+  gap: 5px; font-size: .8rem; color: #e2b714;
+  margin-top: 8px;
+}
+#thinking-indicator.show,
+#thinking-indicator-panel.show { display: flex; }
+
+/* Divider */
+.divider { height: 1px; background: #2a3a5e; margin: 8px 0; }
+
+/* Color badge */
+.my-color-badge {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 4px;
+  border: 1px solid #888;
+}
+
+/* Sound toggle in header */
+#sound-toggle {
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  user-select: none;
+}
+#sound-toggle:hover { background: rgba(255,255,255,.1); }
+
+@media (max-width: 980px) {
+  header { padding: 12px 16px; }
+  #network-badge { max-width: 100%; display: none; /* Hide on smaller screens for cleaner look */ }
+  .main-layout {
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+  }
+  #board-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  body { background: #0b0c0e; }
+  header { padding: 8px 12px; }
+  header h1 { font-size: 1.2rem; }
+  #status-text { display: none; } /* Simpler header on mobile */
+  
+  .main-layout {
+    gap: 12px;
+    padding: 10px;
+    margin-bottom: 20px;
+  }
+  
+  #board-container {
+    flex: none;
+    width: 100%;
+    max-width: 100vw;
+  }
+  
+  #board-canvas {
+    border-radius: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,.5);
+    margin-left: -10px; /* Stretch to edges on mobile */
+    width: calc(100% + 20px) !important;
+  }
+
+  .panel-card {
+    padding: 14px;
+    border-radius: 12px;
+    box-shadow: none; /* Flatter look on mobile */
+    border: 1px solid rgba(255,255,255,.05);
+  }
+  .panel-card h3 { font-size: .85rem; }
+  
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .form-row label {
+    font-size: .8rem;
+    color: #bbb;
+  }
+  
+  .mode-row { gap: 8px; }
+  .mode-btn { padding: 10px 4px; }
+  
+  .btn-row { gap: 10px; }
+  .btn-row button {
+    flex: 1 1 calc(50% - 5px);
+    min-height: 44px; /* Larger touch targets */
+    font-size: .9rem;
+  }
+  
+  #move-info { font-size: .85rem; }
+  .info-row { padding: 6px 0; }
+  
+  #game-log {
+    max-height: 100px;
+    font-size: .75rem;
+  }
+  .timer-box { font-size: .8rem; min-width: 90px; padding: 4px 8px; }
+}
+
+/* Custom Modal Overlays */
+.overlay-modal {
+  display: none; position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(10, 12, 16, 0.85); backdrop-filter: blur(8px);
+  z-index: 2000; align-items: center; justify-content: center;
+}
+.overlay-modal.show {
+  display: flex; animation: fadeIn 0.2s ease-out;
+}
+.modal-content {
+  background: #181a20; border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px; padding: 24px; box-shadow: 0 16px 48px rgba(0,0,0,0.8);
+  width: 90%; max-width: 400px; max-height: 90vh; overflow-y: auto;
+  position: relative;
+}
+.modal-close {
+  position: absolute; top: 16px; right: 16px; font-size: 1.4rem; color: #888;
+  background: none; border: none; cursor: pointer;
+  padding: 0; width: auto; height: auto; box-shadow: none;
+}
+.modal-close:hover { color: #fff; transform: scale(1.1); background: transparent; }
+#confirm-msg { font-size: 1.1rem; color: #fff; margin-bottom: 24px; text-align: center; font-weight: 500;}
+
+/* Finetune UI Overlay */
+#finetune-ui {
+  display: none; position: absolute; z-index: 50;
+  width: 150px; height: 150px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+#finetune-ui.show { display: block; }
+.ft-btn {
+  position: absolute; width: 32px; height: 32px;
+  background: none; border: none;
+  color: rgba(255,255,255,0.5); display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; cursor: pointer; pointer-events: auto;
+  transition: color 0.15s; padding: 0; margin: 0;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  line-height: 1;
+}
+.ft-btn:active { color: rgba(255,255,255,0.85); }
+#ft-up    { top: 0; left: 50%; transform: translateX(-50%); }
+#ft-down  { bottom: 0; left: 50%; transform: translateX(-50%); }
+#ft-left  { top: 50%; left: 0; transform: translateY(-50%); }
+#ft-right { top: 50%; right: 0; transform: translateY(-50%); }
+#ft-ok    { top: 6px; right: 6px; color: rgba(80,200,120,0.55); font-size: 1.1rem; width: 28px; height: 28px; }
+#ft-ok:active { color: rgba(80,200,120,0.9); }
+
+/* Rogue Cards */
+.rogue-card {
+  width: 150px; padding: 16px 12px; border-radius: 12px; cursor: pointer;
+  background: linear-gradient(145deg, #1a1a2e, #16213e); border: 2px solid #333;
+  text-align: center; transition: all 0.2s; user-select: none;
+}
+.rogue-card:hover { border-color: #d4af37; transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(212,175,55,0.25); }
+.rogue-card .rc-icon { font-size: 2.2rem; margin-bottom: 8px; }
+.rogue-card .rc-name { color: #d4af37; font-weight: 700; font-size: .95rem; margin-bottom: 6px; }
+.rogue-card .rc-desc { color: #aaa; font-size: .75rem; line-height: 1.4; }
+/* Rogue ability bar */
+#rogue-bar { display:none; position:absolute; top:4px; right:4px; z-index:40;
+  background:rgba(15,15,20,0.85); border:1px solid rgba(212,175,55,0.3);
+  border-radius:8px; padding:4px 8px; backdrop-filter:blur(4px); }
+#rogue-bar .rb-badge { color:#d4af37; font-size:.75rem; font-weight:600; }
+#rogue-bar button { background:none; border:1px solid rgba(212,175,55,0.4);
+  color:#d4af37; border-radius:6px; padding:3px 8px; font-size:.72rem;
+  cursor:pointer; margin-left:6px; }
+#rogue-bar button:disabled { opacity:0.3; cursor:default; }
+#rogue-bar button:hover:not(:disabled) { background:rgba(212,175,55,0.15); }
+.rogue-seal-mark { position:absolute; pointer-events:none; z-index:30; }
+
+/* Ultimate mode cards & bar */
+.ultimate-card {
+  width: 150px; padding: 16px 12px; border-radius: 12px; cursor: pointer;
+  background: linear-gradient(145deg, #2a0a0a, #1a0520); border: 2px solid #ff4444;
+  text-align: center; transition: all 0.2s; user-select: none;
+}
+.ultimate-card:hover { border-color: #ff6666; transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 8px 30px rgba(255,68,68,0.4); }
+.ultimate-card .rc-icon { font-size: 2.4rem; margin-bottom: 8px; }
+.ultimate-card .rc-name { color: #ff6666; font-weight: 700; font-size: .95rem; margin-bottom: 6px; }
+.ultimate-card .rc-desc { color: #ffaaaa; font-size: .75rem; line-height: 1.4; }
+#ultimate-bar {
+  display:none; position:absolute; top:4px; left:4px; right:4px; z-index:40;
+  background:rgba(40,5,5,0.9); border:1px solid rgba(255,68,68,0.4);
+  border-radius:8px; padding:5px 10px; backdrop-filter:blur(4px);
+  font-size:.75rem; color:#ffaaaa;
+  display:none; justify-content:space-between; align-items:center;
+}
+#ultimate-bar .ub-player { color:#ff6666; font-weight:700; }
+#ultimate-bar .ub-ai { color:#66aaff; font-weight:700; }
+#ultimate-bar .ub-moves { color:#ffcc00; font-weight:700; font-size:.85rem; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div id="header-main">
+    <div id="status-dot"></div>
+    <h1>围棋 AI</h1>
+    <span id="status-text">连接中…</span>
+    <span id="sound-toggle" title="音效开关">🔊</span>
+  </div>
+  <div id="network-badge">本机：http://localhost:8000</div>
+</header>
+
+<div class="main-layout" style="justify-content: center;">
+  <!-- Board -->
+  <div id="board-container">
+    <div id="rogue-bar">
+      <span class="rb-badge" id="rogue-badge"></span>
+      <button id="rb-puppet" style="display:none" disabled>🎭 傀儡术</button>
+      <button id="rb-twin" style="display:none" disabled>⚡ 连击</button>
+      <button id="rb-exchange" style="display:none" disabled>🔄 挪移</button>
+    </div>
+    <div id="ultimate-bar">
+      <span class="ub-player" id="ub-player-card"></span>
+      <span class="ub-moves" id="ub-moves"></span>
+      <span class="ub-ai" id="ub-ai-card"></span>
+    </div>
+    <div id="winrate-bar-wrap">
+      <div id="winrate-bar">
+        <div id="wr-black" style="width:50%">
+          <span class="wr-label" id="wr-black-label">黑 50.0%</span>
+        </div>
+        <div id="wr-white">
+          <span class="wr-label" id="wr-white-label">白 50.0%</span>
+        </div>
+      </div>
+    </div>
+    <div class="timer-wrap timer-hidden" id="timer-wrap">
+      <div class="timer-box black" id="timer-black">
+        <span class="timer-stone b"></span>
+        <span id="timer-black-text">--:--</span>
+      </div>
+      <div class="timer-box white" id="timer-white">
+        <span class="timer-stone w"></span>
+        <span id="timer-white-text">--:--</span>
+      </div>
+    </div>
+    <canvas id="board-canvas"></canvas>
+    
+    <!-- Finetune mode overlay -->
+    <div id="finetune-ui">
+      <button class="ft-btn" id="ft-up" title="上移">&#9650;</button>
+      <button class="ft-btn" id="ft-down" title="下移">&#9660;</button>
+      <button class="ft-btn" id="ft-left" title="左移">&#9664;</button>
+      <button class="ft-btn" id="ft-right" title="右移">&#9654;</button>
+      <button class="ft-btn" id="ft-ok" title="确认落子">&#10003;</button>
+    </div>
+
+    <div id="thinking-indicator">
+      <span class="spinner"></span>AI 思考中…
+    </div>
+
+    <!-- Smart Board Toolbar -->
+    <div class="board-toolbar" id="main-toolbar">
+      <button id="btn-setup" title="开始对局" onclick="openSetupModal()">➕</button>
+      <button id="btn-pass" title="虚手" disabled>✋</button>
+      <button id="btn-undo" title="悔棋" disabled>↩️</button>
+      <button id="btn-score" title="计算胜负" disabled>⚖️</button>
+      <button id="btn-territory-toggle" title="形势分析" onclick="toggleTerritory()">👁️</button>
+      <button id="btn-resign" title="认输" disabled>🏳️</button>
+      <button title="打开功能" onclick="document.getElementById('settings-drawer').classList.add('open')">⚙️</button>
+    </div>
+    
+    <!-- Review Toolbar (replaces main toolbar when reviewing) -->
+    <div class="board-toolbar review-bar" id="review-toolbar" style="display:none;">
+      <span id="review-info"></span>
+      <button id="btn-review-first" title="第一手">⏭</button>
+      <button id="btn-review-prev" title="上一手">◀</button>
+      <button id="btn-review-next" title="下一手">▶</button>
+      <button id="btn-review-last" title="最后一手">⏭</button>
+      <button id="btn-review-exit" title="退出复盘" style="background:#5c4b8b;">⏏</button>
+      <button title="打开功能" onclick="document.getElementById('settings-drawer').classList.add('open')">⚙️</button>
+    </div>
+  </div>
+
+  <!-- Settings Drawer Details -->
+  <div class="settings-drawer" id="settings-drawer">
+    <button class="drawer-close" onclick="document.getElementById('settings-drawer').classList.remove('open')" title="关闭">✕</button>
+    <h2 style="color:#d4af37; margin-bottom: 12px; font-size: 1.2rem;">全局设定</h2>
+
+    <!-- Options -->
+    <div class="panel-card">
+      <h3>界面选项</h3>
+      <div class="form-row">
+        <label>落子模式</label>
+        <select id="sel-placement">
+          <option value="direct" selected>直接落子</option>
+          <option value="fine">精确落子(支持微调)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <h3>辅助分析</h3>
+      <div class="toggle-row">
+        <div class="toggle on" id="hint-toggle"></div>
+        <span class="toggle-label">显示推荐落点</span>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle" id="move-number-toggle"></div>
+        <span class="toggle-label">显示手数</span>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle on" id="territory-toggle"></div>
+        <span class="toggle-label">形势判断</span>
+      </div>
+      <div id="thinking-indicator-panel">
+        <span class="spinner"></span>AI 思考中…
+      </div>
+
+      <div class="divider" style="margin-top:16px;"></div>
+      <h3 style="font-size:.82rem;color:#e2b714;margin:6px 0">复盘/棋谱</h3>
+      <div class="sgf-row">
+        <button class="btn-purple" id="btn-sgf-save">保存棋谱</button>
+        <button class="btn-purple" id="btn-sgf-load">导入棋谱</button>
+        <input type="file" id="sgf-file-input" accept=".sgf,.SGF">
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="panel-card">
+      <h3>对局信息</h3>
+      <div id="move-info">
+        <div class="info-row"><span>我执</span>
+          <span class="info-val" id="info-my-color">—</span></div>
+        <div class="info-row"><span>当前手数</span>
+          <span class="info-val" id="info-move">—</span></div>
+        <div class="info-row"><span>行棋方</span>
+          <span class="info-val" id="info-player">—</span></div>
+        <div class="info-row"><span>黑吃子</span>
+          <span class="info-val" id="info-cap-b">0</span></div>
+        <div class="info-row"><span>白吃子</span>
+          <span class="info-val" id="info-cap-w">0</span></div>
+        <div class="info-row"><span>形势估算</span>
+          <span class="info-val" id="info-score">—</span></div>
+        <div class="info-row"><span>地盘差</span>
+          <span class="info-val" id="info-territory">—</span></div>
+        <div class="info-row"><span>对手级别</span>
+          <span class="info-val" id="info-level">—</span></div>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="panel-card">
+      <h3>棋谱记录</h3>
+      <div id="game-log"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Game Over Overlay -->
+<div id="overlay">
+  <div id="overlay-content">
+    <button id="overlay-close" onclick="closeOverlay()" title="关闭">✕</button>
+    <h2 id="overlay-title">对局结束</h2>
+    <p  id="overlay-msg"></p>
+    <div class="score-row">
+      <div class="score-item">
+        <div class="label">胜方</div>
+        <div class="value" id="overlay-winner">—</div>
+      </div>
+      <div class="score-item">
+        <div class="label">比分</div>
+        <div class="value" id="overlay-score">—</div>
+      </div>
+    </div>
+    <div class="btn-row" style="justify-content:center;gap:12px">
+      <button class="btn-primary"   onclick="enterReviewMode()">复盘</button>
+      <button class="btn-secondary" onclick="newGameFromOverlay()">再来一局</button>
+    </div>
+  </div>
+</div>
+
+<!-- Setup Modal Overlay -->
+<div id="setup-modal" class="overlay-modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeSetupModal()" title="关闭">✕</button>
+    <h2 style="color:#d4af37; margin-bottom:16px; font-size:1.3rem; margin-top:0;">开始对弈</h2>
+
+    <div class="form-row"><label>开局</label>
+      <div class="mode-row" style="flex:1; margin:0">
+        <div class="mode-btn active" id="mode-normal" onclick="setMode('normal')">正常对局</div>
+        <div class="mode-btn" id="mode-guess"  onclick="setMode('guess')">猜先</div>
+        <div class="mode-btn" id="mode-give"   onclick="setMode('give')">让先</div>
+        <div class="mode-btn" id="mode-two"    onclick="setMode('two')">两人对局</div>
+      </div>
+    </div>
+
+    <div class="form-row" id="row-color">
+      <label>我执</label>
+      <select id="sel-color">
+        <option value="B" selected>黑棋（先手）</option>
+        <option value="W">白棋（后手）</option>
+      </select>
+    </div>
+
+    <div id="mode-hint" style="font-size:.75rem;color:#888;margin-bottom:7px;display:none"></div>
+
+    <div class="form-row">
+      <label>棋盘</label>
+      <select id="sel-size">
+        <option value="19" selected>19×19 标准</option>
+        <option value="13">13×13</option>
+        <option value="9">9×9</option>
+      </select>
+    </div>
+    <div class="form-row" id="row-handicap">
+      <label>让子</label>
+      <select id="sel-handicap">
+        <option value="0" selected>无让子</option>
+        <option value="2">让2子</option>
+        <option value="3">让3子</option>
+        <option value="4">让4子</option>
+        <option value="5">让5子</option>
+        <option value="6">让6子</option>
+        <option value="7">让7子</option>
+        <option value="8">让8子</option>
+        <option value="9">让9子</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>贴目</label>
+      <select id="sel-komi">
+        <option value="7.5" selected>7.5（中国规则）</option>
+        <option value="6.5">6.5（日韩规则）</option>
+        <option value="0.5">0.5</option>
+        <option value="0">0（让先/让子棋）</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>对手</label>
+      <select id="sel-level"></select>
+    </div>
+
+    <!-- Time Control -->
+    <div class="divider" style="margin:12px 0;"></div>
+    <div class="form-row">
+      <label>用时</label>
+      <select id="sel-time-mode">
+        <option value="none" selected>无限制</option>
+        <option value="byoyomi">包干+读秒</option>
+        <option value="absolute">包干用时</option>
+      </select>
+    </div>
+    <div id="time-settings" style="display:none">
+      <div class="form-row">
+        <label>主时</label>
+        <select id="sel-main-time">
+          <option value="60">1分钟</option>
+          <option value="180">3分钟</option>
+          <option value="300" selected>5分钟</option>
+          <option value="600">10分钟</option>
+          <option value="900">15分钟</option>
+          <option value="1200">20分钟</option>
+          <option value="1800">30分钟</option>
+          <option value="3600">60分钟</option>
+        </select>
+      </div>
+      <div class="form-row" id="row-byoyomi">
+        <label>读秒</label>
+        <select id="sel-byo-periods">
+          <option value="3" selected>3次</option>
+          <option value="5">5次</option>
+          <option value="10">10次</option>
+        </select>
+        <select id="sel-byo-time">
+          <option value="20">20秒</option>
+          <option value="30" selected>30秒</option>
+          <option value="40">40秒</option>
+          <option value="60">60秒</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row" id="rogue-row" style="margin-top:8px;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <input type="checkbox" id="chk-rogue" style="width:16px;height:16px;accent-color:#d4af37;">
+        <span style="color:#d4af37;font-weight:600;">Rogue 模式</span>
+        <span style="color:#888;font-size:.75rem;">（开局三选一强化卡）</span>
+      </label>
+    </div>
+    <div class="form-row" id="ultimate-row" style="margin-top:4px;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <input type="checkbox" id="chk-ultimate" style="width:16px;height:16px;accent-color:#ff4444;">
+        <span style="color:#ff4444;font-weight:700;">大招模式</span>
+        <span style="color:#888;font-size:.75rem;">（双方各选超强卡，20手决胜）</span>
+      </label>
+    </div>
+
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn-primary" id="btn-new" style="flex:1; padding:12px 0; font-size:1rem;">确认开始</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rogue Card Selection Overlay -->
+<div id="rogue-overlay" class="overlay-modal">
+  <div class="modal-content" style="max-width:560px; background:rgba(15,15,20,0.97);">
+    <h2 style="color:#d4af37; text-align:center; margin-bottom:4px; font-size:1.2rem;">Rogue 模式</h2>
+    <p style="color:#888; text-align:center; margin-bottom:16px; font-size:.85rem;">选择一张强化卡开始对局</p>
+    <div id="rogue-cards" style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;"></div>
+  </div>
+</div>
+
+<!-- Ultimate Card Selection Overlay -->
+<div id="ultimate-overlay" class="overlay-modal">
+  <div class="modal-content" style="max-width:600px; background:rgba(30,5,5,0.97); border:2px solid #ff4444;">
+    <h2 style="color:#ff4444; text-align:center; margin-bottom:4px; font-size:1.3rem; text-shadow:0 0 12px rgba(255,68,68,0.6);">
+      大招模式</h2>
+    <p style="color:#ff8888; text-align:center; margin-bottom:16px; font-size:.85rem;">选择你的超强卡牌 — AI 也将获得一张</p>
+    <div id="ultimate-cards" style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;"></div>
+  </div>
+</div>
+
+<!-- Rogue Seal Selection Overlay -->
+<div id="seal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; z-index:80;
+  background:rgba(212,175,55,0.12); padding:10px; text-align:center; pointer-events:none;">
+  <span style="color:#d4af37; font-weight:600; font-size:.95rem;" id="seal-hint">🚫 请在棋盘上点击 3 个封印点（剩余 3 个）</span>
+</div>
+
+<!-- Custom Confirm Modal Overlay -->
+<div id="confirm-modal" class="overlay-modal">
+  <div class="modal-content" style="max-width:320px;">
+    <p id="confirm-msg"></p>
+    <div class="btn-row" style="justify-content:center;">
+      <button class="btn-secondary" onclick="closeConfirmModal()" style="flex:1">取消</button>
+      <button class="btn-primary" id="btn-confirm-ok" style="flex:1">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONSTANTS & RANK TABLES
+// ═══════════════════════════════════════════════════════════════════════════════
+const RANK_GROUPS = [
+  { label: "── 级位 ──", separator: true },
+  ...["18k","17k","16k","15k","14k","13k","12k","11k","10k",
+      "9k","8k","7k","6k","5k","4k","3k","2k","1k"].map(id => ({ id, label: id.replace("k","级") })),
+  { label: "── 业余段位 ──", separator: true },
+  ...["a1d","a2d","a3d","a4d","a5d","a6d","a7d","a8d","a9d"].map((id,i) => ({
+    id, label: `业余${i+1}段`
+  })),
+  { label: "── 职业段位 ──", separator: true },
+  ...["p1d","p2d","p3d","p4d","p5d","p6d","p7d","p8d","p9d"].map((id,i) => ({
+    id, label: ["职业一段","职业二段","职业三段","职业四段","职业五段",
+                "职业六段","职业七段","职业八段","职业九段"][i]
+  })),
+];
+
+const RANK_LABELS = {};
+RANK_GROUPS.filter(r => !r.separator).forEach(r => RANK_LABELS[r.id] = r.label);
+const COLS = "ABCDEFGHJKLMNOPQRST";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════════
+let ws = null, gameState = null;
+let analysis = { winrate: 0.5, score: 0, top_moves: [], ownership: [] };
+let showHints = true, showTerritory = true, showMoveNumbers = false;
+let boardSize = 19, CELL = 32, PAD;
+let gameId = localStorage.getItem("goai_game_id") || Math.random().toString(36).slice(2);
+localStorage.setItem("goai_game_id", gameId);
+let myColor = "B", aiColor = "W";
+let lastAiMove = null, isMyTurn = false;
+let startMode = "normal";
+let twoPlayerMode = false;
+let intentionalClose = false;
+let previousBoard = null; // for capture detection
+const urlLang = new URLSearchParams(location.search).get("lang");
+let currentLang = (((urlLang || localStorage.getItem("goai_lang") || navigator.language || "zh")).toLowerCase().startsWith("en")) ? "en" : "zh";
+localStorage.setItem("goai_lang", currentLang);
+
+function ui(zh, en) {
+  return currentLang === "en" ? en : zh;
+}
+
+function setText(selector, text) {
+  const el = document.querySelector(selector);
+  if (el) el.textContent = text;
+}
+
+function setTitle(selector, text) {
+  const el = document.querySelector(selector);
+  if (el) el.title = text;
+}
+
+function setOptionText(selectId, pairs) {
+  const el = document.getElementById(selectId);
+  if (!el) return;
+  pairs.forEach(([value, zh, en]) => {
+    const opt = el.querySelector(`option[value="${value}"]`);
+    if (opt) opt.textContent = ui(zh, en);
+  });
+}
+
+function ensureLanguageControl() {
+  if (document.getElementById("lang-select")) return;
+  const drawer = document.getElementById("settings-drawer");
+  if (!drawer) return;
+  const panel = document.createElement("div");
+  panel.className = "panel-card";
+  panel.innerHTML = `
+    <h3 id="lang-panel-title">Language</h3>
+    <div class="form-row">
+      <label id="lang-panel-label">Language</label>
+      <select id="lang-select">
+        <option value="zh">简体中文</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+  `;
+  drawer.insertBefore(panel, drawer.firstChild.nextSibling);
+  const sel = document.getElementById("lang-select");
+  sel.value = currentLang;
+  sel.addEventListener("change", (e) => {
+    currentLang = e.target.value === "en" ? "en" : "zh";
+    localStorage.setItem("goai_lang", currentLang);
+    applyLanguage();
+  });
+}
+
+function applyLanguage() {
+  document.documentElement.lang = currentLang === "en" ? "en" : "zh-CN";
+  document.title = ui("围棋AI - KataGo", "GoAI - KataGo");
+
+  ensureLanguageControl();
+  const langSelect = document.getElementById("lang-select");
+  if (langSelect) langSelect.value = currentLang;
+  setText("#lang-panel-title", ui("语言", "Language"));
+  setText("#lang-panel-label", ui("语言", "Language"));
+
+  setText("#header-main h1", ui("围棋 AI", "Go AI"));
+  setTitle("#sound-toggle", ui("音效开关", "Sound"));
+  setText("#thinking-indicator", ui("AI 思考中…", "AI is thinking..."));
+  setText("#thinking-indicator-panel", ui("AI 思考中…", "AI is thinking..."));
+
+  setTitle("#btn-setup", ui("开始对局", "Start Game"));
+  setTitle("#btn-pass", ui("虚手", "Pass"));
+  setTitle("#btn-undo", ui("悔棋", "Undo"));
+  setTitle("#btn-score", ui("计算胜负", "Score"));
+  setTitle("#btn-territory-toggle", ui("形势分析", "Territory"));
+  setTitle("#btn-resign", ui("认输", "Resign"));
+  setTitle("#main-toolbar button:last-child", ui("打开功能", "Settings"));
+  setTitle("#review-toolbar button:last-child", ui("打开功能", "Settings"));
+  setTitle("#btn-review-first", ui("第一手", "First Move"));
+  setTitle("#btn-review-prev", ui("上一手", "Previous Move"));
+  setTitle("#btn-review-next", ui("下一手", "Next Move"));
+  setTitle("#btn-review-last", ui("最后一手", "Last Move"));
+  setTitle("#btn-review-exit", ui("退出复盘", "Exit Review"));
+  setTitle(".drawer-close", ui("关闭", "Close"));
+  setTitle("#overlay-close", ui("关闭", "Close"));
+  setTitle(".modal-close", ui("关闭", "Close"));
+  setTitle("#ft-up", ui("上移", "Up"));
+  setTitle("#ft-down", ui("下移", "Down"));
+  setTitle("#ft-left", ui("左移", "Left"));
+  setTitle("#ft-right", ui("右移", "Right"));
+  setTitle("#ft-ok", ui("确认落子", "Confirm Move"));
+
+  const drawerTitle = document.querySelector("#settings-drawer h2");
+  if (drawerTitle) drawerTitle.textContent = ui("全局设定", "Settings");
+  const panelTitles = document.querySelectorAll("#settings-drawer .panel-card h3");
+  if (panelTitles[1]) panelTitles[1].textContent = ui("界面选项", "Interface");
+  if (panelTitles[2]) panelTitles[2].textContent = ui("辅助分析", "Analysis");
+  if (panelTitles[3]) panelTitles[3].textContent = ui("复盘/棋谱", "Review / SGF");
+  if (panelTitles[4]) panelTitles[4].textContent = ui("对局信息", "Game Info");
+  if (panelTitles[5]) panelTitles[5].textContent = ui("棋谱记录", "Game Log");
+
+  const settingsLabels = document.querySelectorAll("#settings-drawer .form-row label");
+  if (settingsLabels[0]) settingsLabels[0].textContent = ui("落子模式", "Placement");
+  const toggleLabels = document.querySelectorAll("#settings-drawer .toggle-label");
+  if (toggleLabels[0]) toggleLabels[0].textContent = ui("显示推荐落点", "Show Suggested Moves");
+  if (toggleLabels[1]) toggleLabels[1].textContent = ui("显示手数", "Show Move Numbers");
+  if (toggleLabels[2]) toggleLabels[2].textContent = ui("形势判断", "Territory Estimate");
+  setText("#btn-sgf-save", ui("保存棋谱", "Save SGF"));
+  setText("#btn-sgf-load", ui("导入棋谱", "Load SGF"));
+
+  const infoLabels = document.querySelectorAll("#move-info .info-row span:first-child");
+  const infoTexts = [
+    ui("我执", "You Play"),
+    ui("当前手数", "Move"),
+    ui("行棋方", "Turn"),
+    ui("黑吃子", "Black Captures"),
+    ui("白吃子", "White Captures"),
+    ui("形势估算", "Score Estimate"),
+    ui("地盘差", "Territory Diff"),
+    ui("对手级别", "Opponent")
+  ];
+  infoLabels.forEach((el, idx) => { if (infoTexts[idx]) el.textContent = infoTexts[idx]; });
+
+  const overlayStats = document.querySelectorAll("#overlay .stat-card .label");
+  if (overlayStats[0]) overlayStats[0].textContent = ui("胜方", "Winner");
+  if (overlayStats[1]) overlayStats[1].textContent = ui("目差", "Margin");
+  const overlayBtns = document.querySelectorAll("#overlay .btn-row button");
+  if (overlayBtns[0]) overlayBtns[0].textContent = ui("复盘", "Review");
+  if (overlayBtns[1]) overlayBtns[1].textContent = ui("再来一局", "Play Again");
+
+  const setupTitle = document.querySelector("#setup-modal h2");
+  if (setupTitle) setupTitle.textContent = ui("开始对弈", "Start Game");
+  const setupLabels = document.querySelectorAll("#setup-modal .form-row > label");
+  const setupTexts = [
+    ui("开局", "Mode"),
+    ui("我执", "Color"),
+    ui("棋盘", "Board"),
+    ui("让子", "Handicap"),
+    ui("贴目", "Komi"),
+    ui("对手", "Opponent"),
+    ui("用时", "Time"),
+    ui("主时", "Main Time"),
+    ui("读秒", "Byo-yomi")
+  ];
+  setupLabels.forEach((el, idx) => { if (setupTexts[idx]) el.textContent = setupTexts[idx]; });
+  setText("#mode-normal", ui("正常对局", "Normal"));
+  setText("#mode-guess", ui("猜先", "Guess Color"));
+  setText("#mode-give", ui("让先", "Take Black"));
+  setText("#mode-two", ui("两人对局", "Two Players"));
+  setText("#btn-new", ui("确认开始", "Start"));
+  setText("#confirm-msg", ui("确认执行此操作？", "Confirm this action?"));
+  const confirmBtns = document.querySelectorAll("#confirm-modal .btn-row button");
+  if (confirmBtns[0]) confirmBtns[0].textContent = ui("取消", "Cancel");
+  if (confirmBtns[1]) confirmBtns[1].textContent = ui("确定", "Confirm");
+  const rogueTitle = document.querySelector("#rogue-overlay h2");
+  if (rogueTitle) rogueTitle.textContent = ui("Rogue 模式", "Rogue Mode");
+  const rogueSub = document.querySelector("#rogue-overlay p");
+  if (rogueSub) rogueSub.textContent = ui("请选择一张强化卡", "Choose one card");
+  const ultTitle = document.querySelector("#ultimate-overlay h2");
+  if (ultTitle) ultTitle.textContent = ui("大招模式", "Ultimate Mode");
+  const ultSub = document.querySelector("#ultimate-overlay p");
+  if (ultSub) ultSub.textContent = ui("你与 AI 各选一张超强卡", "You and the AI each choose one card");
+
+  const rogueSpans = document.querySelectorAll("#rogue-row span");
+  if (rogueSpans[0]) rogueSpans[0].textContent = "Rogue Mode";
+  if (rogueSpans[1]) rogueSpans[1].textContent = ui("（开局三选一强化卡）", "(pick 1 of 3 opening cards)");
+  const ultSpans = document.querySelectorAll("#ultimate-row span");
+  if (ultSpans[0]) ultSpans[0].textContent = ui("大招模式", "Ultimate Mode");
+  if (ultSpans[1]) ultSpans[1].textContent = ui("（双方各选超强卡，20手决胜）", "(both sides choose an overpowered card, 20 moves to decide)");
+
+  setOptionText("sel-placement", [
+    ["direct", "直接落子", "Direct"],
+    ["fine", "精准落子(支持微调)", "Fine-tune"]
+  ]);
+  setOptionText("sel-color", [
+    ["B", "黑棋（先手）", "Black (First)"],
+    ["W", "白棋（后手）", "White (Second)"]
+  ]);
+  setOptionText("sel-time-mode", [
+    ["none", "无限制", "No Limit"],
+    ["byoyomi", "包干+读秒", "Main + Byo-yomi"],
+    ["absolute", "包干用时", "Absolute"]
+  ]);
+  setText("#wr-black-label", `${ui("黑", "Black")} 50.0%`);
+  setText("#wr-white-label", `${ui("白", "White")} 50.0%`);
+  setText("#status-text", ui("连接中…", "Connecting..."));
+}
+
+// Review mode state
+let reviewMode = false;
+let reviewMoves = [];  // [{color, gtp}, ...]
+let reviewIndex = -1;  // -1 = empty board
+let reviewBoardSize = 19;
+let reviewKomi = 7.5;
+let sgfLoadedMode = false; // true if reviewing a loaded SGF
+
+// Animation state
+let animations = []; // { type, x, y, startTime, duration, data }
+let animFrameId = null;
+
+// Rogue mode state
+let activeRogueCard = null;
+let rogueUses = {};
+let rogueSealing = false;
+let rogueSeals = [];       // [[x,y], ...]
+let puppetMode = false;    // waiting for player to pick AI's move
+
+// Ultimate mode state
+let ultimateMode = false;
+let ultimatePlayerCard = null;
+let ultimateAiCard = null;
+let ultimatePlayerName = "";
+let ultimateAiName = "";
+
+// Timer state
+let timerMode = "none"; // none | byoyomi | absolute
+let mainTimeSetting = 300;
+let byoPeriodsSetting = 3;
+let byoTimeSetting = 30;
+let blackTimer = { main: 0, byoPeriods: 0, byoTime: 0, running: false };
+let whiteTimer = { main: 0, byoPeriods: 0, byoTime: 0, running: false };
+let timerInterval = null;
+let lastTimerTick = 0;
+let cardTurnTimer = null;
+let cardTurnTick = null;
+let cardTurnDeadline = 0;
+let cardTurnRemaining = 0;
+let cardTurnLabel = "";
+let cardTurnKey = "";
+
+// Sound
+let soundEnabled = true;
+let audioCtx = null;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AUDIO SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════
+function getAudioCtx() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) audioCtx = new AC();
+  }
+  return audioCtx;
+}
+
+function playStoneSound() {
+  if (!soundEnabled) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    // Percussive "tock" sound - stone on wood
+    const dur = 0.07;
+    const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.012));
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 3200;
+    bp.Q.value = 2.5;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.6, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    src.connect(bp).connect(gain).connect(ctx.destination);
+    src.start();
+    src.stop(ctx.currentTime + dur);
+  } catch (_) {}
+}
+
+function playCaptureSound(count) {
+  if (!soundEnabled || count === 0) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    const n = Math.min(count, 6);
+    for (let i = 0; i < n; i++) {
+      setTimeout(() => {
+        const dur = 0.05;
+        const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let j = 0; j < d.length; j++) {
+          d[j] = (Math.random() * 2 - 1) * Math.exp(-j / (ctx.sampleRate * 0.008));
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        const bp = ctx.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.value = 1800 + i * 200;
+        bp.Q.value = 1.5;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+        src.connect(bp).connect(gain).connect(ctx.destination);
+        src.start();
+        src.stop(ctx.currentTime + dur);
+      }, i * 50);
+    }
+  } catch (_) {}
+}
+
+function playTimerWarningSound() {
+  if (!soundEnabled) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (_) {}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LOCAL BOARD LOGIC (for review mode)
+// ═══════════════════════════════════════════════════════════════════════════════
+class LocalBoard {
+  constructor(size) {
+    this.size = size;
+    this.grid = Array.from({length: size}, () => new Array(size).fill(0));
+    this.captures = { B: 0, W: 0 };
+  }
+
+  clone() {
+    const b = new LocalBoard(this.size);
+    for (let y = 0; y < this.size; y++)
+      for (let x = 0; x < this.size; x++)
+        b.grid[y][x] = this.grid[y][x];
+    b.captures.B = this.captures.B;
+    b.captures.W = this.captures.W;
+    return b;
+  }
+
+  neighbors(x, y) {
+    const n = [];
+    if (x > 0) n.push([x-1, y]);
+    if (x < this.size-1) n.push([x+1, y]);
+    if (y > 0) n.push([x, y-1]);
+    if (y < this.size-1) n.push([x, y+1]);
+    return n;
+  }
+
+  getGroup(x, y) {
+    const color = this.grid[y][x];
+    if (!color) return [];
+    const group = [];
+    const visited = new Set();
+    const stack = [[x, y]];
+    while (stack.length) {
+      const [cx, cy] = stack.pop();
+      const key = cy * this.size + cx;
+      if (visited.has(key)) continue;
+      visited.add(key);
+      group.push([cx, cy]);
+      for (const [nx, ny] of this.neighbors(cx, cy)) {
+        if (this.grid[ny][nx] === color && !visited.has(ny * this.size + nx)) {
+          stack.push([nx, ny]);
+        }
+      }
+    }
+    return group;
+  }
+
+  hasLiberty(group) {
+    for (const [x, y] of group) {
+      for (const [nx, ny] of this.neighbors(x, y)) {
+        if (this.grid[ny][nx] === 0) return true;
+      }
+    }
+    return false;
+  }
+
+  play(x, y, color) {
+    const cv = color === "B" ? 1 : 2;
+    const ov = 3 - cv;
+    this.grid[y][x] = cv;
+    let captured = [];
+    for (const [nx, ny] of this.neighbors(x, y)) {
+      if (this.grid[ny][nx] === ov) {
+        const grp = this.getGroup(nx, ny);
+        if (!this.hasLiberty(grp)) {
+          for (const [gx, gy] of grp) {
+            this.grid[gy][gx] = 0;
+          }
+          captured.push(...grp);
+        }
+      }
+    }
+    this.captures[color] += captured.length;
+    return captured;
+  }
+}
+
+function gtpToCoord(gtp, size) {
+  if (!gtp || gtp.toUpperCase() === "PASS") return null;
+  const col = COLS.indexOf(gtp[0].toUpperCase());
+  const row = size - parseInt(gtp.slice(1));
+  if (col >= 0 && col < size && row >= 0 && row < size) return [col, row];
+  return null;
+}
+
+// Build board state at move index (-1 = empty)
+function buildBoardAtIndex(moves, size, index) {
+  const board = new LocalBoard(size);
+  const limit = Math.min(index + 1, moves.length);
+  for (let i = 0; i < limit; i++) {
+    const coord = gtpToCoord(moves[i].gtp, size);
+    if (coord) board.play(coord[0], coord[1], moves[i].color);
+  }
+  return board;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ANIMATION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════
+function addPlaceAnimation(x, y) {
+  animations.push({
+    type: "place",
+    x, y,
+    startTime: performance.now(),
+    duration: 180,
+  });
+  startAnimLoop();
+}
+
+function addCaptureAnimation(stones) {
+  if (!stones || stones.length === 0) return;
+  for (const [x, y, color] of stones) {
+    animations.push({
+      type: "capture",
+      x, y, color,
+      startTime: performance.now(),
+      duration: 300,
+    });
+  }
+  startAnimLoop();
+}
+
+function startAnimLoop() {
+  if (animFrameId) return;
+  function loop() {
+    const now = performance.now();
+    animations = animations.filter(a => now - a.startTime < a.duration);
+    render();
+    if (animations.length > 0) {
+      animFrameId = requestAnimationFrame(loop);
+    } else {
+      animFrameId = null;
+    }
+  }
+  animFrameId = requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TIMER SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════
+function initTimers() {
+  if (timerMode === "none") {
+    document.getElementById("timer-wrap").classList.add("timer-hidden");
+    stopTimerTick();
+    return;
+  }
+  document.getElementById("timer-wrap").classList.remove("timer-hidden");
+  blackTimer = { main: mainTimeSetting, byoPeriods: byoPeriodsSetting, byoTime: byoTimeSetting, running: false };
+  whiteTimer = { main: mainTimeSetting, byoPeriods: byoPeriodsSetting, byoTime: byoTimeSetting, running: false };
+  if (timerMode === "absolute") {
+    blackTimer.byoPeriods = 0;
+    whiteTimer.byoPeriods = 0;
+  }
+  updateTimerDisplay();
+}
+
+function startTimerFor(color) {
+  if (timerMode === "none") return;
+  blackTimer.running = (color === "B");
+  whiteTimer.running = (color === "W");
+  lastTimerTick = performance.now();
+  if (!timerInterval) {
+    timerInterval = setInterval(tickTimer, 100);
+  }
+  updateTimerDisplay();
+}
+
+function stopTimerTick() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  blackTimer.running = false;
+  whiteTimer.running = false;
+}
+
+function tickTimer() {
+  const now = performance.now();
+  const dt = (now - lastTimerTick) / 1000;
+  lastTimerTick = now;
+
+  for (const [color, timer] of [["B", blackTimer], ["W", whiteTimer]]) {
+    if (!timer.running) continue;
+    if (timer.main > 0) {
+      timer.main = Math.max(0, timer.main - dt);
+      if (timer.main <= 0 && timer.byoPeriods > 0) {
+        timer.byoTime = (color === "B" ? byoTimeSetting : byoTimeSetting);
+      }
+      if (timer.main <= 10 && timer.main > 9.9) playTimerWarningSound();
+    } else if (timer.byoPeriods > 0) {
+      timer.byoTime -= dt;
+      if (timer.byoTime <= 5 && timer.byoTime > 4.9) playTimerWarningSound();
+      if (timer.byoTime <= 0) {
+        timer.byoPeriods--;
+        if (timer.byoPeriods <= 0) {
+          // Time expired
+          timer.running = false;
+          stopTimerTick();
+          sendWS({ action: "time_expired", color });
+          return;
+        }
+        timer.byoTime = byoTimeSetting;
+      }
+    } else {
+      // No main time and no byo-yomi - time expired
+      timer.running = false;
+      stopTimerTick();
+      sendWS({ action: "time_expired", color });
+      return;
+    }
+  }
+  updateTimerDisplay();
+}
+
+function onMoveCompleted(nextColor) {
+  if (timerMode === "none") return;
+  // Reset byo-yomi for the player who just moved
+  const prevColor = nextColor === "B" ? "W" : "B";
+  const prevTimer = prevColor === "B" ? blackTimer : whiteTimer;
+  if (prevTimer.main <= 0 && prevTimer.byoPeriods > 0) {
+    prevTimer.byoTime = byoTimeSetting;
+  }
+  startTimerFor(nextColor);
+}
+
+function formatTime(seconds) {
+  if (seconds <= 0) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function updateTimerDisplay() {
+  const formatTimer = (t) => {
+    if (t.main > 0) return formatTime(t.main);
+    if (t.byoPeriods > 0) return `${Math.ceil(t.byoTime)}s ×${t.byoPeriods}`;
+    return "0:00";
+  };
+
+  const bt = document.getElementById("timer-black");
+  const wt = document.getElementById("timer-white");
+  document.getElementById("timer-black-text").textContent = formatTimer(blackTimer);
+  document.getElementById("timer-white-text").textContent = formatTimer(whiteTimer);
+
+  bt.classList.toggle("active", blackTimer.running);
+  wt.classList.toggle("active", whiteTimer.running);
+  bt.classList.toggle("danger", blackTimer.main <= 0 && blackTimer.byoPeriods <= 1 && blackTimer.running);
+  wt.classList.toggle("danger", whiteTimer.main <= 0 && whiteTimer.byoPeriods <= 1 && whiteTimer.running);
+}
+
+function clearCardTurnTimer() {
+  if (cardTurnTimer) {
+    clearTimeout(cardTurnTimer);
+    cardTurnTimer = null;
+  }
+  if (cardTurnTick) {
+    clearInterval(cardTurnTick);
+    cardTurnTick = null;
+  }
+  cardTurnDeadline = 0;
+  cardTurnRemaining = 0;
+  cardTurnLabel = "";
+  cardTurnKey = "";
+}
+
+function startCardTurnTimer(seconds, key, label, onExpire) {
+  clearCardTurnTimer();
+  cardTurnDeadline = performance.now() + seconds * 1000;
+  cardTurnRemaining = seconds;
+  cardTurnLabel = label;
+  cardTurnKey = key;
+  updateUI();
+  cardTurnTick = setInterval(() => {
+    cardTurnRemaining = Math.max(0, (cardTurnDeadline - performance.now()) / 1000);
+    updateUI();
+  }, 100);
+  cardTurnTimer = setTimeout(() => {
+    cardTurnRemaining = 0;
+    updateUI();
+    clearCardTurnTimer();
+    onExpire();
+  }, Math.max(0, seconds * 1000));
+}
+
+function syncCardTurnTimer() {
+  if (!gameState || gameState.game_over || twoPlayerMode || !isMyTurn) {
+    clearCardTurnTimer();
+    return;
+  }
+
+  if (activeRogueCard === "quickthink" && gameState.rogue_quickthink_stage > 0) {
+    const seconds = gameState.rogue_quickthink_seconds || (gameState.rogue_quickthink_stage === 1 ? 3 : 2);
+    const key = `rq:${gameState.move_number}:${gameState.rogue_quickthink_stage}`;
+    if (cardTurnKey !== key) {
+      log(`⚡ 快速思考：${seconds} 秒内完成这一手`);
+      startCardTurnTimer(seconds, key, "快棋", () => {
+        log("⚡ 快速思考超时，自动虚手");
+        sendWS({ action: "pass" });
+        if (!twoPlayerMode) {
+          isMyTurn = false;
+          setThinking(true);
+        }
+      });
+    }
+    return;
+  }
+
+  if (ultimateMode && ultimatePlayerCard === "quickthink" && gameState.ultimate_quickthink_active) {
+    const seconds = gameState.ultimate_quickthink_seconds || 5;
+    const key = `uq:${gameState.ultimate_quickthink_token || 0}:${seconds}`;
+    if (cardTurnKey !== key) {
+      log(`⚡ 大招快速思考：${seconds} 秒自由落子开始`);
+      startCardTurnTimer(seconds, key, "自由落子", () => {
+        log("⚡ 自由落子时间结束，AI 开始读盘");
+        sendWS({ action: "ultimate_quickthink_end" });
+        if (!twoPlayerMode) {
+          isMyTurn = false;
+          setThinking(true);
+        }
+      });
+    }
+    return;
+  }
+
+  clearCardTurnTimer();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SGF IMPORT / EXPORT
+// ═══════════════════════════════════════════════════════════════════════════════
+function coordToSgf(x, y) {
+  return String.fromCharCode(97 + x) + String.fromCharCode(97 + y);
+}
+
+function sgfToCoord(sgf, size) {
+  if (!sgf || sgf.length < 2) return null;
+  const x = sgf.charCodeAt(0) - 97;
+  const y = sgf.charCodeAt(1) - 97;
+  if (x >= 0 && x < size && y >= 0 && y < size) return [x, y];
+  return null;
+}
+
+function sgfCoordToGtp(sgf, size) {
+  const coord = sgfToCoord(sgf, size);
+  if (!coord) return "pass";
+  return COLS[coord[0]] + (size - coord[1]);
+}
+
+function exportSgf() {
+  const moves = reviewMode ? reviewMoves : (gameState?.moves_list || []).map(m => ({color: m[0], gtp: m[1]}));
+  if (!moves.length) { alert("暂无棋谱可保存"); return; }
+  const sz = reviewMode ? reviewBoardSize : (gameState?.size || 19);
+  const km = reviewMode ? reviewKomi : (gameState?.komi || 7.5);
+  const dt = new Date().toISOString().slice(0, 10);
+
+  let sgf = `(;GM[1]FF[4]CA[UTF-8]AP[GoAI:1.0]SZ[${sz}]KM[${km}]DT[${dt}]\n`;
+  for (const m of moves) {
+    const gtp = m.gtp || m[1];
+    const color = m.color || m[0];
+    const coord = gtpToCoord(gtp, sz);
+    const prop = color === "B" ? "B" : "W";
+    if (coord) {
+      sgf += `;${prop}[${coordToSgf(coord[0], coord[1])}]\n`;
+    } else {
+      sgf += `;${prop}[]\n`; // pass
+    }
+  }
+  sgf += ")\n";
+
+  const blob = new Blob([sgf], { type: "application/x-go-sgf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `goai_${dt}.sgf`;
+  a.click();
+  URL.revokeObjectURL(url);
+  log("棋谱已保存");
+}
+
+function parseSgf(text) {
+  const moves = [];
+  let size = 19, komi = 7.5;
+
+  // Extract properties
+  const szMatch = text.match(/SZ\[(\d+)\]/);
+  if (szMatch) size = parseInt(szMatch[1]);
+  const kmMatch = text.match(/KM\[([\d.+-]+)\]/);
+  if (kmMatch) komi = parseFloat(kmMatch[1]);
+
+  // Extract moves
+  const moveRegex = /;([BW])\[([a-s]{0,2})\]/g;
+  let m;
+  while ((m = moveRegex.exec(text)) !== null) {
+    const color = m[1];
+    const sgfCoord = m[2];
+    const gtp = sgfCoord ? sgfCoordToGtp(sgfCoord, size) : "pass";
+    moves.push({ color, gtp });
+  }
+
+  return { size, komi, moves };
+}
+
+function loadSgfFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const { size, komi, moves } = parseSgf(e.target.result);
+      if (moves.length === 0) { alert("棋谱中未找到有效着法"); return; }
+
+      // Enter review mode with loaded SGF
+      sgfLoadedMode = true;
+      reviewMoves = moves;
+      reviewBoardSize = size;
+      reviewKomi = komi;
+      reviewIndex = moves.length - 1;
+      reviewMode = true;
+
+      resizeBoard(size);
+      updateReviewUI();
+      render();
+      log(`已导入棋谱：${moves.length}手 ${size}×${size} 贴目${komi}`);
+
+      // Request analysis for current position
+      requestReviewAnalysis();
+    } catch (err) {
+      alert("棋谱解析失败: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// REVIEW MODE
+// ═══════════════════════════════════════════════════════════════════════════════
+function enterReviewMode() {
+  closeOverlay();
+  if (!gameState && !sgfLoadedMode) return;
+
+  if (!sgfLoadedMode) {
+    const ml = gameState.moves_list || [];
+    reviewMoves = ml.map(m => ({ color: m[0], gtp: m[1] }));
+    reviewBoardSize = gameState.size || boardSize;
+    reviewKomi = gameState.komi || 7.5;
+  }
+  reviewMode = true;
+  reviewIndex = reviewMoves.length - 1;
+
+  stopTimerTick();
+  
+  // Toggle toolbars
+  const mainBar = document.getElementById("main-toolbar");
+  if (mainBar) mainBar.style.display = "none";
+  const revBar = document.getElementById("review-toolbar");
+  if (revBar) revBar.style.display = "flex";
+
+  updateReviewUI();
+  render();
+  requestReviewAnalysis();
+}
+
+function exitReviewMode() {
+  reviewMode = false;
+  sgfLoadedMode = false;
+  reviewMoves = [];
+  reviewIndex = -1;
+  
+  // Toggle toolbars back
+  const mainBar = document.getElementById("main-toolbar");
+  if (mainBar) mainBar.style.display = "flex";
+  const revBar = document.getElementById("review-toolbar");
+  if (revBar) revBar.style.display = "none";
+  
+  document.getElementById("review-info").textContent = "";
+  if (gameState) {
+    resizeBoard(gameState.size || boardSize);
+    render();
+  }
+}
+
+function reviewGo(idx) {
+  if (!reviewMode || reviewMoves.length === 0) return;
+  reviewIndex = Math.max(-1, Math.min(idx, reviewMoves.length - 1));
+  updateReviewUI();
+  render();
+  requestReviewAnalysis();
+}
+
+function updateReviewUI() {
+  const total = reviewMoves.length;
+  const cur = reviewIndex + 1;
+  const infoEl = document.getElementById("review-info");
+  if (infoEl) {
+    infoEl.textContent = reviewMode ? `第 ${cur}/${total} 手` : "";
+  }
+}
+
+function requestReviewAnalysis() {
+  if (!reviewMode || reviewMoves.length === 0) return;
+  const moves = reviewMoves.slice(0, reviewIndex + 1).map(m => [m.color, m.gtp]);
+  sendWS({
+    action: "load_position",
+    size: reviewBoardSize,
+    komi: reviewKomi,
+    moves,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODE SELECTOR
+// ═══════════════════════════════════════════════════════════════════════════════
+function setMode(mode) {
+  startMode = mode;
+  document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("mode-" + mode).classList.add("active");
+
+  const rowColor    = document.getElementById("row-color");
+  const rowHandicap = document.getElementById("row-handicap");
+  const hint        = document.getElementById("mode-hint");
+  const komiSel     = document.getElementById("sel-komi");
+
+  const rogueRow = document.getElementById("rogue-row");
+  const ultimateRow = document.getElementById("ultimate-row");
+
+  rowColor.style.display = "flex";
+  rowHandicap.style.display = "flex";
+  hint.style.display = "none";
+  rogueRow.style.display = "";
+  ultimateRow.style.display = "";
+
+  if (mode === "guess") {
+    rowColor.style.display = "none";
+    hint.style.display = "block";
+    hint.textContent = "猜先：随机决定执黑/执白";
+  } else if (mode === "give") {
+    rowColor.style.display = "none";
+    rowHandicap.style.display = "none";
+    hint.style.display = "block";
+    hint.textContent = "让先：你执黑，AI执白，贴目自动设为0";
+    komiSel.value = "0";
+  } else if (mode === "two") {
+    rowColor.style.display = "none";
+    rowHandicap.style.display = "flex";
+    hint.style.display = "block";
+    hint.textContent = "两人对局：黑白双方均由人落子，可选择是否启用AI形势分析";
+    rogueRow.style.display = "none";
+    ultimateRow.style.display = "none";
+    document.getElementById("chk-rogue").checked = false;
+    document.getElementById("chk-ultimate").checked = false;
+  }
+}
+
+// Mutual exclusion: rogue vs ultimate checkboxes
+document.getElementById("chk-rogue").addEventListener("change", (e) => {
+  if (e.target.checked) document.getElementById("chk-ultimate").checked = false;
+});
+document.getElementById("chk-ultimate").addEventListener("change", (e) => {
+  if (e.target.checked) document.getElementById("chk-rogue").checked = false;
+});
+
+// Time control UI
+document.getElementById("sel-time-mode").addEventListener("change", (e) => {
+  const mode = e.target.value;
+  document.getElementById("time-settings").style.display = mode === "none" ? "none" : "";
+  document.getElementById("row-byoyomi").style.display = mode === "byoyomi" ? "flex" : "none";
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CANVAS RENDERING
+// ═══════════════════════════════════════════════════════════════════════════════
+const canvas = document.getElementById("board-canvas");
+const ctx = canvas.getContext("2d");
+const boardContainer = document.getElementById("board-container");
+const mainLayout = document.querySelector(".main-layout");
+const sidePanel = document.querySelector(".side-panel");
+let boardRecoveryTimer = null;
+let boardWatchdogTimer = null;
+
+function updateNetworkBadge(status) {
+  const badge = document.getElementById("network-badge");
+  if (!badge) return;
+  const local = status?.access_urls?.local?.[0] || `${location.protocol}//${location.host}`;
+  const lan = status?.access_urls?.lan?.[0];
+  badge.textContent = lan ? `本机：${local}  |  手机：${lan}` : `本机：${local}`;
+  badge.title = lan
+    ? `本机访问：${local}\n局域网访问：${status.access_urls.lan.join("\n")}`
+    : `本机访问：${local}`;
+}
+
+async function refreshNetworkInfo() {
+  try {
+    const resp = await fetch("/status", { cache: "no-store" });
+    if (!resp.ok) return;
+    updateNetworkBadge(await resp.json());
+  } catch (_) {}
+}
+
+function resizeBoard(size) {
+  boardSize = size;
+  const compact = window.innerWidth <= 640;
+  const stacked = window.innerWidth <= 980;
+  const layoutWidth = mainLayout?.clientWidth || window.innerWidth;
+  const sideWidth = stacked ? 0 : (sidePanel?.offsetWidth || 0);
+  const gap = stacked ? 0 : 16;
+  const containerWidth = boardContainer?.clientWidth || 0;
+  const availableWidth = Math.min(
+    700,
+    Math.max(
+      compact ? 280 : 360,
+      containerWidth || (layoutWidth - sideWidth - gap)
+    )
+  );
+  // Solve: total = PAD*2 + CELL*(size-1), PAD = CELL*padRatio
+  // total = CELL*(2*padRatio + size - 1) <= availableWidth
+  const padRatio = 1.3;
+  const denominator = 2 * padRatio + size - 1;
+  CELL = Math.floor(availableWidth / denominator);
+  CELL = Math.max(compact ? 16 : 22, Math.min(CELL, compact ? 30 : 38));
+  PAD = Math.floor(CELL * padRatio);
+  const total = Math.max(compact ? 280 : 360, PAD * 2 + CELL * (size - 1));
+  canvas.width = total;
+  canvas.height = total;
+  canvas.style.width = `${total}px`;
+  canvas.style.height = `${total}px`;
+}
+
+function boardLooksReady() {
+  if (!canvas || !ctx || !boardContainer) return false;
+  const rect = canvas.getBoundingClientRect();
+  const containerRect = boardContainer.getBoundingClientRect();
+  return (
+    canvas.width >= 200 &&
+    canvas.height >= 200 &&
+    rect.width >= 180 &&
+    rect.height >= 180 &&
+    containerRect.width >= 180
+  );
+}
+
+function scheduleBoardRecovery(delay = 250) {
+  if (boardRecoveryTimer) clearTimeout(boardRecoveryTimer);
+  boardRecoveryTimer = setTimeout(() => {
+    boardRecoveryTimer = null;
+    try {
+      resizeBoard(reviewMode ? reviewBoardSize : (gameState?.size || boardSize || 19));
+      _boardCacheParams = "";
+      _offScreenBoard = null;
+      render();
+    } catch (_) {}
+  }, delay);
+}
+
+function ensureBoardReady(delay = 250) {
+  if (!boardLooksReady()) scheduleBoardRecovery(delay);
+}
+
+let _boardCacheParams = "";
+let _offScreenBoard = null;
+
+// ─── Clean flat board (no texture, high clarity) ──────────────────────────────
+function drawBoard() {
+  const size = boardSize, W = canvas.width;
+  const currentParams = `${size}_${W}`;
+  
+  if (_boardCacheParams === currentParams && _offScreenBoard) {
+    ctx.drawImage(_offScreenBoard, 0, 0);
+    return;
+  }
+
+  _boardCacheParams = currentParams;
+  _offScreenBoard = document.createElement("canvas");
+  _offScreenBoard.width = W;
+  _offScreenBoard.height = W;
+  const bCtx = _offScreenBoard.getContext("2d");
+
+  // Solid warm golden-yellow background
+  bCtx.fillStyle = "#DCB35C";
+  bCtx.fillRect(0, 0, W, W);
+
+  // Subtle edge shadow for depth
+  const edgeGrad = bCtx.createRadialGradient(W/2, W/2, W*0.35, W/2, W/2, W*0.72);
+  edgeGrad.addColorStop(0, "rgba(0,0,0,0)");
+  edgeGrad.addColorStop(1, "rgba(0,0,0,0.08)");
+  bCtx.fillStyle = edgeGrad;
+  bCtx.fillRect(0, 0, W, W);
+
+  // Grid lines - crisp and dark
+  bCtx.strokeStyle = "rgba(30, 15, 0, 0.9)";
+  bCtx.lineWidth = 1;
+  for (let i = 0; i < size; i++) {
+    const p = PAD + i * CELL;
+    bCtx.beginPath(); bCtx.moveTo(p, PAD); bCtx.lineTo(p, PAD + (size-1)*CELL); bCtx.stroke();
+    bCtx.beginPath(); bCtx.moveTo(PAD, p); bCtx.lineTo(PAD + (size-1)*CELL, p); bCtx.stroke();
+  }
+
+  // Outer border
+  bCtx.strokeStyle = "rgba(20, 10, 0, 0.95)";
+  bCtx.lineWidth = 2;
+  bCtx.strokeRect(PAD - 1, PAD - 1, (size-1)*CELL + 2, (size-1)*CELL + 2);
+
+  // Star points
+  bCtx.fillStyle = "rgba(30, 15, 0, 0.95)";
+  getStarPoints(size).forEach(([sx, sy]) => {
+    bCtx.beginPath();
+    bCtx.arc(PAD + sx*CELL, PAD + sy*CELL, CELL * .13, 0, Math.PI*2);
+    bCtx.fill();
+  });
+
+  // Coordinates
+  bCtx.fillStyle = "rgba(40, 20, 5, 0.75)";
+  const fs = Math.max(9, Math.min(CELL * .35, 14));
+  bCtx.font = `600 ${fs}px "Consolas", monospace`;
+  bCtx.textAlign = "center"; bCtx.textBaseline = "middle";
+  for (let i = 0; i < size; i++) {
+    const p = PAD + i * CELL;
+    bCtx.fillText(COLS[i], p, PAD * .42);
+    bCtx.fillText(COLS[i], p, PAD + (size-1)*CELL + PAD * .58);
+    bCtx.fillText(size - i, PAD * .38, p);
+    bCtx.fillText(size - i, PAD + (size-1)*CELL + PAD * .62, p);
+  }
+
+  ctx.drawImage(_offScreenBoard, 0, 0);
+}
+
+function getStarPoints(size) {
+  if (size === 19) return [[3,3],[9,3],[15,3],[3,9],[9,9],[15,9],[3,15],[9,15],[15,15]];
+  if (size === 13) return [[3,3],[9,3],[3,9],[9,9],[6,6]];
+  if (size === 9)  return [[2,2],[6,2],[2,6],[6,6],[4,4]];
+  return [];
+}
+
+// ─── Highly Realistic 3D Stone rendering ──────────────────────────────────────────
+function drawStone(x, y, color, scale) {
+  scale = scale || 1;
+  const cx = PAD + x * CELL, cy = PAD + y * CELL;
+  const r = CELL * .47 * scale; // Slightly larger for that premium tight feel
+  if (r <= 0) return;
+
+  ctx.save();
+  
+  // High quality dynamic drop shadow
+  // Shadow shifts slightly to bottom-right mimicking a light source from top-left
+  ctx.shadowColor = "rgba(0,0,0,0.55)";
+  ctx.shadowBlur = CELL * .25;
+  ctx.shadowOffsetX = CELL * .08;
+  ctx.shadowOffsetY = CELL * .12;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  
+  if (color === "B") {
+    // Yunzi (云子) Slate Black Stone style - slight green/blue tint in the dark
+    const g = ctx.createRadialGradient(
+      cx - r * .35, cy - r * .35, r * .05,
+      cx + r * .1, cy + r * .1, r * 1.1
+    );
+    g.addColorStop(0, "#4a5054");   // Specular base
+    g.addColorStop(0.3, "#1a1c1e"); // Main body
+    g.addColorStop(0.8, "#0a0b0c"); // Deep shadows
+    g.addColorStop(1, "#000000");   // Edge
+    ctx.fillStyle = g;
+  } else {
+    // Clamshell (蛤碁石) White Stone style - slight warm ivory tone with inner glow
+    const g = ctx.createRadialGradient(
+      cx - r * .35, cy - r * .35, r * .05,
+      cx + r * .1, cy + r * .1, r * 1.1
+    );
+    g.addColorStop(0, "#ffffff");
+    g.addColorStop(0.4, "#fdfcf9");
+    g.addColorStop(0.8, "#e2ddcf"); // Ivory shadow
+    g.addColorStop(1, "#b5b0a3");   // Edge rim
+    ctx.fillStyle = g;
+  }
+  ctx.fill();
+  
+  // Turn off shadow for the rest of drawing
+  ctx.shadowColor = "transparent";
+
+  // Realistic edge reflection / rim light
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.lineWidth = 0.5;
+  if (color === "B") {
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+  } else {
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+  }
+  ctx.stroke();
+
+  // Primary Specular Reflection (Light source from top left)
+  // We use a stretched ellipse for the highlight to simulate curvature
+  if (scale > 0.5) {
+    ctx.save();
+    const hx = cx - r * .35, hy = cy - r * .35;
+    const hr = r * .3;
+    
+    // Scale context to draw an oval
+    ctx.translate(hx, hy);
+    ctx.rotate(Math.PI / 4); // Rotate highlight
+    ctx.scale(1, 0.6); // Compress Y to make it an ellipse
+
+    const hg = ctx.createRadialGradient(0, 0, 0, 0, 0, hr);
+    if (color === "B") {
+      hg.addColorStop(0, "rgba(255,255,255,0.3)");
+      hg.addColorStop(0.5, "rgba(255,255,255,0.08)");
+      hg.addColorStop(1, "rgba(255,255,255,0)");
+    } else {
+      hg.addColorStop(0, "rgba(255,255,255,0.9)");
+      hg.addColorStop(0.6, "rgba(255,255,255,0.4)");
+      hg.addColorStop(1, "rgba(255,255,255,0)");
+    }
+    
+    ctx.beginPath();
+    ctx.arc(0, 0, hr, 0, Math.PI * 2);
+    ctx.fillStyle = hg;
+    ctx.fill();
+    ctx.restore();
+    
+    // Secondary ambient reflection (bounce light from the board, bottom right)
+    if (color === "B") {
+      const bx = cx + r * .2, by = cy + r * .2;
+      const bRad = r * .7;
+      const bg_bounce = ctx.createRadialGradient(bx, by, r * .3, bx, by, bRad);
+      bg_bounce.addColorStop(0, "rgba(180, 130, 80, 0.0)");
+      bg_bounce.addColorStop(1, "rgba(180, 130, 80, 0.12)"); // Wood color reflection
+      
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2); // Clip to stone
+      ctx.fillStyle = bg_bounce;
+      ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawStones() {
+  const board = getCurrentBoard();
+  if (!board) return;
+  const sz = getCurrentSize();
+
+  for (let y = 0; y < sz; y++) {
+    for (let x = 0; x < sz; x++) {
+      const v = board[y][x];
+      if (!v) continue;
+      const color = v === 1 ? "B" : "W";
+
+      // Check if this stone has a place animation
+      const anim = animations.find(a => a.type === "place" && a.x === x && a.y === y);
+      if (anim) {
+        const t = (performance.now() - anim.startTime) / anim.duration;
+        const scale = Math.min(1, t < 0.5 ? t * 2 * 1.08 : 1.08 - (t - 0.5) * 0.16);
+        drawStone(x, y, color, scale);
+      } else {
+        drawStone(x, y, color);
+      }
+    }
+  }
+
+  // Capture animations (fading out stones)
+  const now = performance.now();
+  for (const anim of animations) {
+    if (anim.type !== "capture") continue;
+    const t = (now - anim.startTime) / anim.duration;
+    if (t >= 1) continue;
+    const alpha = 1 - t;
+    const scale = 1 - t * 0.3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawStone(anim.x, anim.y, anim.color, scale);
+    ctx.restore();
+  }
+
+  // Last move marker
+  if (!reviewMode) {
+    if (lastAiMove && lastAiMove.x !== null) {
+      drawLastMoveMarker(lastAiMove.x, lastAiMove.y, lastAiMove.color);
+    }
+  } else if (reviewIndex >= 0) {
+    const lastM = reviewMoves[reviewIndex];
+    if (lastM) {
+      const coord = gtpToCoord(lastM.gtp, sz);
+      if (coord) drawLastMoveMarker(coord[0], coord[1], lastM.color);
+    }
+  }
+
+  // Move numbers
+  if (showMoveNumbers) drawMoveNumbers();
+}
+
+function drawLastMoveMarker(x, y, color) {
+  const cx = PAD + x * CELL, cy = PAD + y * CELL;
+  ctx.save();
+  ctx.strokeStyle = color === "B" ? "#fff" : "#000";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, CELL * .18, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawMoveNumbers() {
+  const moves = reviewMode ? reviewMoves : (gameState?.moves_list || []).map(m => ({color: m[0], gtp: m[1]}));
+  const sz = getCurrentSize();
+  const limit = reviewMode ? reviewIndex + 1 : moves.length;
+
+  // We need to draw numbers for visible stones. Track which position has which move number.
+  // Only show the LAST move number for each position (handles captures and replays)
+  const posMap = new Map(); // "x,y" -> { number, color }
+  const board = new LocalBoard(sz);
+
+  for (let i = 0; i < limit; i++) {
+    const m = moves[i];
+    const coord = gtpToCoord(m.gtp, sz);
+    if (!coord) continue;
+    const captured = board.play(coord[0], coord[1], m.color);
+    // Remove captured positions from posMap
+    for (const [cx, cy] of captured) {
+      posMap.delete(`${cx},${cy}`);
+    }
+    posMap.set(`${coord[0]},${coord[1]}`, { number: i + 1, color: m.color });
+  }
+
+  ctx.save();
+  const fontSize = Math.max(8, Math.min(CELL * .32, 14));
+  ctx.font = `700 ${fontSize}px "Consolas", monospace`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  for (const [key, val] of posMap) {
+    const [x, y] = key.split(",").map(Number);
+    const cx = PAD + x * CELL, cy = PAD + y * CELL;
+    ctx.fillStyle = val.color === "B" ? "#ddd" : "#222";
+    ctx.fillText(val.number, cx, cy);
+  }
+  ctx.restore();
+}
+
+// ─── Hints ────────────────────────────────────────────────────────────────────
+function roundedRectPath(x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+function drawHintPercentChip(cx, cy, pct, rank) {
+  const chipR = Math.max(12, CELL * 0.27);
+  const hue = rank === 0 ? 96 : 92 - rank * 4;
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,.18)";
+  ctx.shadowBlur = CELL * 0.18;
+  ctx.beginPath();
+  ctx.arc(cx, cy, chipR, 0, Math.PI * 2);
+  ctx.fillStyle = `hsla(${hue}, 64%, 64%, 0.96)`;
+  ctx.fill();
+  ctx.strokeStyle = `hsla(${hue}, 46%, 22%, 0.92)`;
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#1f3c12";
+  ctx.font = `700 ${Math.max(9, Math.min(13, CELL * 0.24))}px "Microsoft YaHei", sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`${pct}%`, cx, cy);
+  ctx.restore();
+}
+
+function drawHints() {
+  if (!showHints || reviewMode) return;
+  if (!analysis.top_moves || !analysis.top_moves.length) return;
+  if (!gameState || gameState.game_over) return;
+  const myTurn = twoPlayerMode ? true : (gameState.current_player === myColor);
+  if (!myTurn) return;
+
+  const board = getCurrentBoard();
+  const moves = analysis.top_moves.slice(0, 5);
+  moves.forEach((m, i) => {
+    if (m.x === undefined || m.x === null) return;
+    if (board && board[m.y][m.x] !== 0) return;
+    const cx = PAD + m.x * CELL;
+    const cy = PAD + m.y * CELL;
+    const box = CELL * (i === 0 ? 0.56 : 0.5);
+    const pct = Math.round(m.winrate * 100);
+
+    if (i > 0) {
+      ctx.save();
+      roundedRectPath(cx - box / 2, cy - box / 2, box, box, box * 0.14);
+      ctx.fillStyle = `rgba(255,255,255,${0.22 - i * 0.03})`;
+      ctx.fill();
+      ctx.strokeStyle = `rgba(255,255,255,${0.12 - i * 0.015})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      const r = CELL * 0.43;
+      const g = ctx.createRadialGradient(
+        cx - r * 0.35, cy - r * 0.35, r * 0.1,
+        cx, cy, r
+      );
+      g.addColorStop(0, "rgba(92,92,92,.98)");
+      g.addColorStop(0.55, "rgba(36,36,36,.98)");
+      g.addColorStop(1, "rgba(12,12,12,.98)");
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,.28)";
+      ctx.shadowBlur = CELL * 0.3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "rgba(255,255,255,.16)";
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+    drawHintPercentChip(cx, cy, pct, i);
+  });
+}
+
+// ─── Territory ────────────────────────────────────────────────────────────────
+function drawTerritory() {
+  if (!showTerritory || !analysis.ownership || analysis.ownership.length === 0) return;
+  const board = getCurrentBoard();
+  const sz = getCurrentSize();
+  const own = analysis.ownership;
+
+  for (let y = 0; y < sz; y++) {
+    for (let x = 0; x < sz; x++) {
+      if (board && board[y][x] !== 0) continue;
+      const v = own[y * sz + x];
+      if (v === undefined || Math.abs(v) < 0.25) continue;
+      const cx = PAD + x * CELL, cy = PAD + y * CELL;
+      const alpha = Math.min(0.75, Math.abs(v) * 0.85);
+      const r = CELL * 0.22;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      if (v > 0) {
+        ctx.fillStyle = `rgba(30,30,30,${alpha})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(0,0,0,${alpha * 0.6})`; ctx.lineWidth = 0.5; ctx.stroke();
+      } else {
+        ctx.fillStyle = `rgba(240,240,240,${alpha})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(180,180,180,${alpha * 0.6})`; ctx.lineWidth = 0.5; ctx.stroke();
+      }
+    }
+  }
+}
+
+// ─── Review mode hint drawing ─────────────────────────────────────────────────
+function drawReviewHints() {
+  if (!reviewMode || !showHints) return;
+  if (!analysis.top_moves || !analysis.top_moves.length) return;
+
+  const board = buildBoardAtIndex(reviewMoves, reviewBoardSize, reviewIndex);
+  const moves = analysis.top_moves.slice(0, 5);
+  moves.forEach((m, i) => {
+    if (m.x === undefined || m.x === null) return;
+    if (board.grid[m.y][m.x] !== 0) return;
+    const cx = PAD + m.x * CELL;
+    const cy = PAD + m.y * CELL;
+    const pct = Math.round(m.winrate * 100);
+
+    if (i === 0) {
+      const r = CELL * 0.43;
+      const g = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.1, cx, cy, r);
+      g.addColorStop(0, "rgba(92,92,92,.9)");
+      g.addColorStop(0.55, "rgba(36,36,36,.9)");
+      g.addColorStop(1, "rgba(12,12,12,.9)");
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,.28)";
+      ctx.shadowBlur = CELL * 0.3;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = g; ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    } else {
+      const box = CELL * 0.5;
+      ctx.save();
+      roundedRectPath(cx - box / 2, cy - box / 2, box, box, box * 0.14);
+      ctx.fillStyle = `rgba(255,255,255,${0.2 - i * 0.03})`;
+      ctx.fill();
+      ctx.restore();
+    }
+    drawHintPercentChip(cx, cy, pct, i);
+  });
+}
+
+// ─── Main render ──────────────────────────────────────────────────────────────
+let fineTunePos = null;
+function updateFinetuneUI() {
+  const ui = document.getElementById("finetune-ui");
+  if (!ui) return;
+  if (!fineTunePos || reviewMode) {
+    ui.classList.remove("show");
+    return;
+  }
+  ui.classList.add("show");
+  
+  const rect = canvas.getBoundingClientRect();
+  const cCont = document.getElementById("board-container").getBoundingClientRect();
+  
+  const internalX = PAD + fineTunePos.x * CELL;
+  const internalY = PAD + fineTunePos.y * CELL;
+  
+  const displayX = (internalX / canvas.width) * rect.width;
+  const displayY = (internalY / canvas.height) * rect.height;
+  
+  const offsetX = displayX + (rect.left - cCont.left);
+  const offsetY = displayY + (rect.top - cCont.top);
+
+  ui.style.left = offsetX + "px";
+  ui.style.top = offsetY + "px";
+}
+
+function getCurrentBoard() {
+  if (reviewMode) {
+    const b = buildBoardAtIndex(reviewMoves, reviewBoardSize, reviewIndex);
+    return b.grid;
+  }
+  return gameState?.board;
+}
+
+function getCurrentSize() {
+  return reviewMode ? reviewBoardSize : (gameState?.size || boardSize);
+}
+
+let hoverXY = null;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROGUE MODE FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+function showRogueCards(cards) {
+  const container = document.getElementById("rogue-cards");
+  container.innerHTML = "";
+  cards.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "rogue-card";
+    div.innerHTML = `<div class="rc-icon">${c.icon}</div>
+      <div class="rc-name">${c.name}</div>
+      <div class="rc-desc">${c.desc}</div>`;
+    div.onclick = () => sendWS({ action: "rogue_select_card", card_id: c.id });
+    container.appendChild(div);
+  });
+  document.getElementById("rogue-overlay").classList.add("show");
+}
+
+function updateRogueBar() {
+  const bar = document.getElementById("rogue-bar");
+  if (!activeRogueCard) { bar.style.display = "none"; return; }
+  bar.style.display = "flex";
+  const badge = document.getElementById("rogue-badge");
+  const names = {
+    dice: "投骰子",
+    erosion: "蚕食",
+    puppet: "傀儡术",
+    seal: "封印术",
+    twin: "连击",
+    nerf: "弱化",
+    komi_relief: "贴目减负",
+    time_press: "时间压制",
+    tengen: "天元",
+    lowline: "低空飞行",
+    suboptimal: "次优之选",
+    mirror: "镜像",
+    slip: "手滑了",
+    blackhole: "黑洞",
+    exchange: "乾坤挪移",
+    fog: "迷雾",
+    gravity: "引力",
+    golden_corner: "黄金角",
+    sansan: "三三开局",
+    sansan_trap: "三三是陷阱",
+    shadow: "影子",
+    sprout: "萌芽",
+    joseki_ocd: "定式强迫症",
+    handicap_quest: "让子任务",
+    god_hand: "神之一手",
+    corner_helper: "守角辅助器",
+    sanrensei: "三连星",
+    no_regret: "我不悔棋",
+    quickthink: "快速思考",
+    foolish_wisdom: "大智若愚",
+  };
+  badge.textContent = names[activeRogueCard] || activeRogueCard;
+
+  // Active-use buttons
+  const btnPuppet = document.getElementById("rb-puppet");
+  const btnTwin = document.getElementById("rb-twin");
+  const btnExchange = document.getElementById("rb-exchange");
+
+  btnPuppet.style.display = "none";
+  btnTwin.style.display = "none";
+  btnExchange.style.display = "none";
+
+  if (activeRogueCard === "puppet") {
+    btnPuppet.style.display = "";
+    const left = rogueUses.puppet || 0;
+    btnPuppet.textContent = `🎭 傀儡术 (${left})`;
+    btnPuppet.disabled = left <= 0;
+  }
+  if (activeRogueCard === "twin") {
+    btnTwin.style.display = "";
+    const left = rogueUses.twin || 0;
+    btnTwin.textContent = `⚡ 连击 (${left})`;
+    btnTwin.disabled = left <= 0;
+  }
+  if (activeRogueCard === "exchange") {
+    btnExchange.style.display = "";
+    const left = rogueUses.exchange || 0;
+    btnExchange.textContent = `🔄 挪移 (${left})`;
+    btnExchange.disabled = left <= 0;
+  }
+}
+
+function resetRogueState() {
+  activeRogueCard = null;
+  rogueUses = {};
+  rogueSealing = false;
+  rogueSeals = [];
+  puppetMode = false;
+  document.getElementById("rogue-bar").style.display = "none";
+  document.getElementById("rogue-overlay").classList.remove("show");
+  document.getElementById("seal-overlay").style.display = "none";
+  // Ultimate reset
+  ultimateMode = false;
+  ultimatePlayerCard = null;
+  ultimateAiCard = null;
+  ultimatePlayerName = "";
+  ultimateAiName = "";
+  document.getElementById("ultimate-bar").style.display = "none";
+  document.getElementById("ultimate-overlay").classList.remove("show");
+  clearCardTurnTimer();
+}
+
+function showUltimateCards(cards) {
+  console.log("[Ultimate] showUltimateCards called, cards:", cards);
+  const container = document.getElementById("ultimate-cards");
+  if (!container) { console.error("[Ultimate] #ultimate-cards not found!"); return; }
+  container.innerHTML = "";
+  cards.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "ultimate-card";
+    div.innerHTML = `<div class="rc-icon">${c.icon}</div>
+      <div class="rc-name">${c.name}</div>
+      <div class="rc-desc">${c.desc}</div>`;
+    div.onclick = () => {
+      console.log("[Ultimate] Card clicked:", c.id);
+      sendWS({ action: "ultimate_select_card", card_id: c.id });
+    };
+    container.appendChild(div);
+  });
+  const overlay = document.getElementById("ultimate-overlay");
+  overlay.classList.add("show");
+  console.log("[Ultimate] Overlay display:", getComputedStyle(overlay).display,
+              "visibility:", getComputedStyle(overlay).visibility,
+              "z-index:", getComputedStyle(overlay).zIndex);
+}
+
+const ULTIMATE_NAMES = {
+  chain: "连珠棋",
+  proliferate: "无限增殖",
+  double: "双刀流",
+  wildgrow: "狂野生长",
+  rejection: "排异反应",
+  territory: "绝对领地",
+  shadow_clone: "影分身",
+  plague: "瘟疫",
+  meteor: "陨石",
+  quantum: "量子纠缠",
+  devour: "吞噬",
+  timewarp: "时空裂缝",
+  blackout: "天崩地裂",
+  magnet: "磁力吸附",
+  necro: "亡灵召唤",
+  wall: "城墙",
+  joseki_burst: "定式爆发",
+  god_hand: "神之一手",
+  corner_helper: "守角辅助器",
+  sanrensei: "三连星",
+  quickthink: "快速思考",
+  foolish_wisdom: "大智若愚",
+};
+
+function updateUltimateBar() {
+  const bar = document.getElementById("ultimate-bar");
+  if (!ultimateMode) { bar.style.display = "none"; return; }
+  bar.style.display = "flex";
+  const pName = ultimatePlayerName || ULTIMATE_NAMES[ultimatePlayerCard] || "—";
+  const aName = ultimateAiName || ULTIMATE_NAMES[ultimateAiCard] || "—";
+  document.getElementById("ub-player-card").textContent = "你: " + pName;
+  document.getElementById("ub-ai-card").textContent = "AI: " + aName;
+  const mc = gameState ? (gameState.ultimate_move_count || 0) : 0;
+  document.getElementById("ub-moves").textContent = mc + " / 20";
+}
+
+function drawRogueMarks() {
+  ctx.save();
+  // Draw seal/blackhole/golden_corner forbidden zones
+  if (rogueSeals.length) {
+    const isBlackhole = activeRogueCard === "blackhole";
+    const isGolden = activeRogueCard === "golden_corner";
+    const isFog = activeRogueCard === "fog";
+    rogueSeals.forEach(([sx, sy]) => {
+      const px = PAD + sx * CELL;
+      const py = PAD + sy * CELL;
+      if (isBlackhole) {
+        ctx.fillStyle = "rgba(80, 0, 120, 0.22)";
+        ctx.fillRect(px - CELL/2, py - CELL/2, CELL, CELL);
+        ctx.fillStyle = "rgba(80, 0, 120, 0.45)";
+        ctx.font = `${CELL * 0.32}px sans-serif`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText("?", px, py);
+      } else if (isGolden) {
+        ctx.fillStyle = "rgba(212, 175, 55, 0.18)";
+        ctx.fillRect(px - CELL/2, py - CELL/2, CELL, CELL);
+        ctx.fillStyle = "rgba(212, 175, 55, 0.5)";
+        ctx.font = `${CELL * 0.32}px sans-serif`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText("?", px, py);
+      } else if (isFog) {
+        ctx.fillStyle = "rgba(70, 150, 210, 0.22)";
+        ctx.fillRect(px - CELL/2, py - CELL/2, CELL, CELL);
+        ctx.strokeStyle = "rgba(70, 150, 210, 0.45)";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(px - CELL/2, py - CELL/2, CELL, CELL);
+      } else {
+        const r = CELL * 0.32;
+        ctx.strokeStyle = "rgba(220, 40, 40, 0.85)";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(px - r, py - r); ctx.lineTo(px + r, py + r);
+        ctx.moveTo(px + r, py - r); ctx.lineTo(px - r, py + r);
+        ctx.stroke();
+      }
+    });
+  }
+  // Draw joseki_ocd target points (green circles)
+  if (activeRogueCard === "joseki_ocd" && gameState
+      && gameState.rogue_joseki_targets && !gameState.rogue_joseki_done) {
+    const board = getCurrentBoard();
+    gameState.rogue_joseki_targets.forEach(([tx, ty]) => {
+      if (board && board[ty] && board[ty][tx] !== 0) return; // occupied
+      const px = PAD + tx * CELL;
+      const py = PAD + ty * CELL;
+      ctx.strokeStyle = "rgba(0, 200, 80, 0.7)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(px, py, CELL * 0.38, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(0, 200, 80, 0.15)";
+      ctx.fill();
+    });
+  }
+  if (ultimatePlayerCard === "joseki_burst" && gameState
+      && gameState.ultimate_joseki_targets && !gameState.ultimate_joseki_done) {
+    const board = getCurrentBoard();
+    gameState.ultimate_joseki_targets.forEach(([tx, ty]) => {
+      if (board && board[ty] && board[ty][tx] === (myColor === "B" ? 1 : 2)) return;
+      const px = PAD + tx * CELL;
+      const py = PAD + ty * CELL;
+      ctx.strokeStyle = "rgba(255, 120, 20, 0.85)";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(px, py, CELL * 0.26, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255, 120, 20, 0.18)";
+      ctx.beginPath();
+      ctx.arc(px, py, CELL * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+  ctx.restore();
+}
+
+// Puppet button click
+document.getElementById("rb-puppet").addEventListener("click", () => {
+  if (!activeRogueCard || activeRogueCard !== "puppet") return;
+  if ((rogueUses.puppet || 0) <= 0) return;
+  puppetMode = true;
+  log("🎭 傀儡术：请在棋盘上点击 AI 的落子位置");
+});
+
+// Twin button click
+document.getElementById("rb-twin").addEventListener("click", () => {
+  if (!activeRogueCard || activeRogueCard !== "twin") return;
+  if ((rogueUses.twin || 0) <= 0) return;
+  sendWS({ action: "rogue_use_twin" });
+});
+
+// Exchange button click
+document.getElementById("rb-exchange").addEventListener("click", () => {
+  if (!activeRogueCard || activeRogueCard !== "exchange") return;
+  if ((rogueUses.exchange || 0) <= 0) return;
+  sendWS({ action: "rogue_use_exchange" });
+});
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBoard();
+  drawTerritory();
+  drawStones();
+  drawRogueMarks();
+  if (reviewMode) {
+    drawReviewHints();
+  } else {
+    drawHints();
+  }
+
+  // Hover preview OR fine-tune
+  if (!reviewMode) {
+    const canClick = twoPlayerMode ? (gameState && !gameState.game_over) : isMyTurn;
+    const hoverColor = twoPlayerMode ? (gameState && gameState.current_player) || myColor : myColor;
+    const board = getCurrentBoard();
+    if (canClick && board) {
+      if (fineTunePos) {
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        drawStone(fineTunePos.x, fineTunePos.y, hoverColor, 0.95);
+        ctx.restore();
+      } else if (hoverXY) {
+        const {x, y} = hoverXY;
+        if (x >= 0 && x < boardSize && y >= 0 && y < boardSize && board[y][x] === 0) {
+          ctx.save();
+          ctx.globalAlpha = 0.4;
+          drawStone(x, y, hoverColor, 0.95);
+          ctx.restore();
+        }
+      }
+    }
+  }
+  updateFinetuneUI();
+}
+
+// ─── Board input ──────────────────────────────────────────────────────────────
+function boardXY(e) {
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width / rect.width;
+  const sy = canvas.height / rect.height;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  const x = Math.round(((clientX - rect.left) * sx - PAD) / CELL);
+  const y = Math.round(((clientY - rect.top) * sy - PAD) / CELL);
+  return { x, y };
+}
+
+// ─── Unified play logic (debounced for mobile touch+click) ───────────────────
+let lastPlayTime = 0;
+let aiResponseTimer = null;
+function tryPlay(x, y) {
+  const now = Date.now();
+  const minGap = (ultimateMode && ultimatePlayerCard === "quickthink" && gameState?.ultimate_quickthink_active) ? 80 : 400;
+  if (now - lastPlayTime < minGap) return; // debounce touch+click dual-fire
+  if (reviewMode) return;
+  if (!gameState || gameState.game_over) return;
+  if (!twoPlayerMode && !isMyTurn) return;
+  if (x < 0 || x >= boardSize || y < 0 || y >= boardSize) return;
+
+  const mode = document.getElementById("sel-placement").value;
+  if (mode === "fine") {
+    fineTunePos = { x, y };
+    if (!animFrameId) render();
+    return;
+  }
+  
+  if (gameState.board[y][x] !== 0) return;
+  commitPlay(x, y);
+}
+
+function commitPlay(x, y) {
+  if (gameState.board[y][x] !== 0) return;
+  fineTunePos = null;
+  updateFinetuneUI();
+
+  const expectsAi = !(
+    (activeRogueCard === "quickthink" && gameState?.rogue_quickthink_stage === 1) ||
+    (ultimateMode && ultimatePlayerCard === "quickthink" && gameState?.ultimate_quickthink_active)
+  );
+
+  lastPlayTime = Date.now();
+  previousBoard = gameState.board.map(row => [...row]);
+
+  // Optimistic update: immediately show the player's stone
+  const myVal = (twoPlayerMode ? gameState.current_player : myColor) === "B" ? 1 : 2;
+  gameState.board[y][x] = myVal;
+  addPlaceAnimation(x, y);
+  playStoneSound();
+  if (!animFrameId) render();
+
+  sendWS({ action: "play", x, y });
+  if (!twoPlayerMode) {
+    isMyTurn = !expectsAi;
+    setThinking(expectsAi);
+    // Safety timeout: if AI doesn't respond in 30s, try to recover
+    clearTimeout(aiResponseTimer);
+    aiResponseTimer = setTimeout(() => {
+      if (!isMyTurn && gameState && !gameState.game_over) {
+        log("⚠ AI 响应超时，尝试重新请求…");
+        sendWS({ action: "request_hint" });
+        setThinking(false);
+        // Re-check game state
+        if (gameState) isMyTurn = (gameState.current_player === myColor);
+      }
+    }, 30000);
+  }
+}
+
+canvas.addEventListener("click", e => {
+  const {x, y} = boardXY(e);
+  if (x < 0 || x >= boardSize || y < 0 || y >= boardSize) return;
+  // Rogue: seal point selection
+  if (rogueSealing) {
+    sendWS({ action: "rogue_seal_point", x, y });
+    return;
+  }
+  // Rogue: puppet mode — choose AI's move
+  if (puppetMode) {
+    puppetMode = false;
+    sendWS({ action: "rogue_use_puppet", x, y });
+    return;
+  }
+  tryPlay(x, y);
+});
+
+canvas.addEventListener("mousemove", e => {
+  if (reviewMode) return;
+  const {x, y} = boardXY(e);
+  hoverXY = {x, y};
+  if (!animFrameId) render();
+});
+canvas.addEventListener("mouseleave", () => { hoverXY = null; if (!animFrameId) render(); });
+
+// Touch support - passive:false ensures preventDefault works on mobile
+canvas.addEventListener("touchend", e => {
+  e.preventDefault();
+  if (!e.changedTouches || !e.changedTouches[0]) return;
+  const touch = e.changedTouches[0];
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width / rect.width;
+  const sy = canvas.height / rect.height;
+  const x = Math.round(((touch.clientX - rect.left) * sx - PAD) / CELL);
+  const y = Math.round(((touch.clientY - rect.top) * sy - PAD) / CELL);
+  if (x < 0 || x >= boardSize || y < 0 || y >= boardSize) return;
+  if (rogueSealing) { sendWS({ action: "rogue_seal_point", x, y }); return; }
+  if (puppetMode) { puppetMode = false; sendWS({ action: "rogue_use_puppet", x, y }); return; }
+  tryPlay(x, y);
+}, { passive: false });
+
+// Prevent touchstart from scrolling the page when touching the board
+canvas.addEventListener("touchstart", e => { e.preventDefault(); }, { passive: false });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CAPTURE DETECTION (board diff for animations)
+// ═══════════════════════════════════════════════════════════════════════════════
+function detectCaptures(oldBoard, newBoard, size) {
+  if (!oldBoard || !newBoard) return [];
+  const captured = [];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (oldBoard[y][x] !== 0 && newBoard[y][x] === 0) {
+        captured.push([x, y, oldBoard[y][x] === 1 ? "B" : "W"]);
+      }
+    }
+  }
+  return captured;
+}
+
+function detectNewStone(oldBoard, newBoard, size) {
+  if (!oldBoard || !newBoard) return null;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (oldBoard[y][x] === 0 && newBoard[y][x] !== 0) {
+        return { x, y };
+      }
+    }
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WEBSOCKET
+// ═══════════════════════════════════════════════════════════════════════════════
+function connect() {
+  const wsScheme = location.protocol === "https:" ? "wss" : "ws";
+  const wsUrl = `${wsScheme}://${location.host}/ws/${gameId}`;
+  ws = new WebSocket(wsUrl);
+  ws.onopen = () => {
+    document.getElementById("status-dot").className = "ready";
+    document.getElementById("status-text").textContent = "已连接";
+    log("已连接");
+    refreshNetworkInfo();
+    if (!gameState) sendWS({ action: "reconnect" });
+  };
+  ws.onclose = () => {
+    document.getElementById("status-dot").className = "";
+    if (intentionalClose) { intentionalClose = false; return; }
+    document.getElementById("status-text").textContent = "连接断开，重连中…";
+    setTimeout(connect, 2000);
+  };
+  ws.onmessage = e => handleMessage(JSON.parse(e.data));
+  ws.onerror   = () => { document.getElementById("status-text").textContent = "连接错误"; };
+}
+
+function sendWS(data) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MESSAGE HANDLER
+// ═══════════════════════════════════════════════════════════════════════════════
+function handleMessage(msg) {
+  switch (msg.type) {
+
+    case "game_start": {
+      twoPlayerMode = !!msg.two_player;
+      gameState = msg;
+      myColor  = msg.player_color;
+      aiColor  = msg.ai_color;
+      lastAiMove = null;
+      previousBoard = null;
+      analysis = { winrate: 0.5, score: 0, top_moves: [], ownership: [] };
+      isMyTurn = twoPlayerMode ? true : (msg.current_player === myColor);
+      reviewMode = false; sgfLoadedMode = false;
+      resizeBoard(msg.size);
+      render();
+      setButtons(true);
+      updateUI();
+      updateWinRate(0.5);
+      initTimers();
+      if (timerMode !== "none") startTimerFor(msg.current_player);
+      if (twoPlayerMode) {
+        log("两人对局开始 — 黑棋先行");
+      } else {
+        log(`新对局 — 我执${myColor==="B"?"黑":"白"}棋，AI：${RANK_LABELS[msg.level]||msg.level}`);
+      }
+      break;
+    }
+
+    case "game_state": {
+      const oldBoard = previousBoard || (gameState ? gameState.board : null);
+      gameState = msg;
+      isMyTurn = twoPlayerMode ? !msg.game_over : (msg.current_player === myColor);
+
+      // Detect new stone and captures for animation
+      if (oldBoard) {
+        const newStone = detectNewStone(oldBoard, msg.board, msg.size || boardSize);
+        const captured = detectCaptures(oldBoard, msg.board, msg.size || boardSize);
+        if (newStone) {
+          addPlaceAnimation(newStone.x, newStone.y);
+          playStoneSound();
+        }
+        if (captured.length > 0) {
+          addCaptureAnimation(captured);
+          playCaptureSound(captured.length);
+        }
+      }
+      previousBoard = msg.board.map(row => [...row]);
+
+      // Sync rogue uses from game state
+      if (msg.rogue_uses) { rogueUses = msg.rogue_uses; updateRogueBar(); }
+      // Sync ultimate bar
+      if (ultimateMode) updateUltimateBar();
+      syncCardTurnTimer();
+
+      // Timer: switch to next player
+      if (timerMode !== "none" && !msg.game_over) {
+        onMoveCompleted(msg.current_player);
+      }
+
+      updateUI();
+      if (!animFrameId) render();
+      break;
+    }
+
+    case "ai_move":
+      lastAiMove = msg;
+      setThinking(false);
+      clearTimeout(aiResponseTimer);
+      if (msg.x !== null) {
+        const gtp = `${COLS[msg.x]}${boardSize - msg.y}`;
+        log(`AI(${msg.color==="B"?"黑":"白"}) → ${gtp}`);
+      } else {
+        log("AI 虚手");
+      }
+      if (!animFrameId) render();
+      break;
+
+    case "analysis": {
+      analysis = msg;
+      updateWinRate(msg.winrate);
+      const sc = msg.score;
+      // Chinese rules (komi 7.5): use 子; Japanese rules (komi 6.5): use 目
+      const unit = (gameState && gameState.komi === 7.5) ? "子" : "目";
+      document.getElementById("info-score").textContent =
+        sc > 0.5 ? `黑领先 ${sc.toFixed(1)}${unit}` : sc < -0.5 ? `白领先 ${Math.abs(sc).toFixed(1)}${unit}` : "持平";
+      if (msg.ownership && msg.ownership.length > 0) {
+        const own = msg.ownership;
+        let bTerr = 0, wTerr = 0;
+        own.forEach(v => { if (v > 0.5) bTerr++; else if (v < -0.5) wTerr++; });
+        const diff = bTerr - wTerr;
+        document.getElementById("info-territory").textContent =
+          diff > 0 ? `黑多 ${diff} ${unit}` : diff < 0 ? `白多 ${Math.abs(diff)} ${unit}` : "均势";
+      } else {
+        document.getElementById("info-territory").textContent = "--";
+      }
+      setThinking(false);
+      if (!animFrameId) render();
+      break;
+    }
+
+    case "game_over": {
+      if (gameState) gameState.game_over = true;
+      isMyTurn = false;
+      setThinking(false); setButtons(false);
+      stopTimerTick();
+      clearCardTurnTimer();
+      const winnerName = msg.winner==="B"?"黑棋": msg.winner==="W"?"白棋":"平局";
+      const youWin = twoPlayerMode ? false : (msg.winner === myColor);
+      const titleText = twoPlayerMode
+        ? `${winnerName}胜！`
+        : (youWin ? "你赢了！" : msg.winner ? "AI 胜利" : "平局");
+      // Format score string: Chinese rules uses 子, Japanese uses 目
+      let scoreDisplay = msg.score || "—";
+      if (msg.score && gameState) {
+        const isChinese = gameState.komi === 7.5;
+        // KataGo returns e.g. "B+2.5" — append correct unit
+        const m = msg.score.match(/^([BW])\+(.+)$/);
+        if (m) {
+          const who = m[1] === "B" ? "黑" : "白";
+          scoreDisplay = `${who}胜${m[2]}${isChinese ? "子" : "目"}`;
+        }
+      }
+      showOverlay(titleText, reasonText(msg.reason), winnerName, scoreDisplay);
+      log(`${winnerName}胜 ${scoreDisplay} (${reasonText(msg.reason)})`);
+      break;
+    }
+
+    case "reconnected": {
+      twoPlayerMode = !!msg.two_player;
+      gameState = msg;
+      myColor  = msg.player_color;
+      aiColor  = msg.ai_color;
+      lastAiMove = null;
+      previousBoard = msg.board ? msg.board.map(row => [...row]) : null;
+      isMyTurn = twoPlayerMode ? !msg.game_over : (msg.current_player === myColor);
+      // Restore rogue state
+      activeRogueCard = msg.rogue_card || null;
+      rogueUses = msg.rogue_uses || {};
+      rogueSeals = msg.rogue_seal_points || [];
+      rogueSealing = false; puppetMode = false;
+      updateRogueBar();
+      syncCardTurnTimer();
+      // Restore ultimate state
+      ultimateMode = !!msg.ultimate;
+      ultimatePlayerCard = msg.ultimate_player_card || null;
+      ultimateAiCard = msg.ultimate_ai_card || null;
+      if (ultimateMode) updateUltimateBar();
+      resizeBoard(msg.size);
+      render();
+      setButtons(!msg.game_over);
+      updateUI();
+      log(`已恢复对局（第${msg.move_number}手）`);
+      if (msg.game_over) log("对局已结束");
+      break;
+    }
+
+    case "reconnect_failed":
+      log("暂无进行中的对局，请点击「开始对弈」开始");
+      break;
+
+    case "error":
+      log(`⚠ ${msg.message}`);
+      setThinking(false);
+      if (gameState && !gameState.game_over)
+        isMyTurn = (gameState.current_player === myColor);
+      break;
+
+    case "level_set":
+      log(`级别 → ${RANK_LABELS[msg.level]||msg.level}`);
+      if (gameState) gameState.level = msg.level;
+      updateUI();
+      break;
+
+    // ── Rogue mode messages ──────────────────────────────────────────────
+    case "rogue_offer":
+      showRogueCards(msg.cards);
+      break;
+
+    case "rogue_card_selected":
+      gameState = msg;
+      activeRogueCard = msg.card_id;
+      rogueUses = msg.rogue_uses || {};
+      rogueSeals = msg.rogue_seal_points || [];
+      document.getElementById("rogue-overlay").classList.remove("show");
+      updateRogueBar();
+      syncCardTurnTimer();
+      if (!animFrameId) render();
+      if (msg.waiting_seal) {
+        rogueSealing = true;
+        document.getElementById("seal-overlay").style.display = "block";
+      }
+      log(`🃏 已选择强化卡：${msg.icon} ${msg.name}`);
+      break;
+
+    case "rogue_seal_update":
+      document.getElementById("seal-hint").textContent =
+        `🚫 请在棋盘上点击封印点（剩余 ${msg.remaining} 个）`;
+      rogueSeals = msg.points;
+      if (!animFrameId) render();
+      break;
+
+    case "rogue_seal_done":
+      rogueSealing = false;
+      document.getElementById("seal-overlay").style.display = "none";
+      log("🚫 三道封印已设定！");
+      if (!animFrameId) render();
+      break;
+
+    case "rogue_event":
+      log(msg.msg);
+      break;
+
+    case "rogue_uses_update":
+      rogueUses = msg.uses || {};
+      updateRogueBar();
+      break;
+
+    // ── Ultimate mode messages ─────────────────────────────────────────────
+    case "ultimate_offer":
+      console.log("[Ultimate] Received ultimate_offer, cards count:", msg.cards?.length);
+      showUltimateCards(msg.cards);
+      break;
+
+    case "ultimate_cards_selected":
+      gameState = msg;
+      ultimateMode = true;
+      ultimatePlayerCard = msg.player_card;
+      ultimateAiCard = msg.ai_card;
+      ultimatePlayerName = msg.player_icon + " " + msg.player_name;
+      ultimateAiName = msg.ai_icon + " " + msg.ai_name;
+      document.getElementById("ultimate-overlay").classList.remove("show");
+      updateUltimateBar();
+      syncCardTurnTimer();
+      if (!animFrameId) render();
+      log(`\u{1F0CF} 你选择了 ${msg.player_icon} ${msg.player_name}`);
+      log(`\u{1F916} AI 选择了 ${msg.ai_icon} ${msg.ai_name}`);
+      log("20 手决胜开始！");
+      break;
+  }
+}
+
+function reasonText(r) {
+  return {resign:"认输",ai_resign:"AI认输",score:"计数",double_pass:"双方虚手",timeout:"超时",ultimate_20moves:"20手决胜"}[r] || r || "";
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+function updateUI() {
+  if (!gameState) return;
+  if (twoPlayerMode) {
+    document.getElementById("info-my-color").innerHTML = "双方（人）";
+  } else {
+    const colorDot = `<span class="my-color-badge" style="background:${myColor==='B'?'#111':'#eee'}"></span>`;
+    document.getElementById("info-my-color").innerHTML =
+      colorDot + (myColor==="B" ? "黑棋" : "白棋");
+  }
+  document.getElementById("info-move").textContent = gameState.move_number || 0;
+  const cp = gameState.current_player;
+  if (twoPlayerMode) {
+    document.getElementById("info-player").textContent = cp === "B" ? "黑棋落子" : "白棋落子";
+  } else {
+    document.getElementById("info-player").textContent =
+      cp === myColor ? (cp==="B"?"黑（我）":"白（我）") : (cp==="B"?"黑（AI）":"白（AI）");
+  }
+  if (cardTurnRemaining > 0 && isMyTurn) {
+    document.getElementById("info-player").textContent += ` ${cardTurnLabel}${cardTurnRemaining.toFixed(1)}s`;
+  }
+  document.getElementById("info-cap-b").textContent = gameState.captures?.B || 0;
+  document.getElementById("info-cap-w").textContent = gameState.captures?.W || 0;
+  document.getElementById("info-level").textContent =
+    twoPlayerMode ? "两人对局" : (RANK_LABELS[gameState.level] || gameState.level || "—");
+}
+
+function updateWinRate(wr) {
+  const rawBlack = Math.max(0, Math.min(100, wr * 100));
+  const rawWhite = 100 - rawBlack;
+  const b = rawBlack.toFixed(1);
+  const w = rawWhite.toFixed(1);
+  document.getElementById("wr-black").style.width = rawBlack + "%";
+  document.getElementById("wr-black-label").textContent = `黑 ${b}%`;
+  document.getElementById("wr-white-label").textContent = `白 ${w}%`;
+  // Score button only available when one side >= 80%
+  const btnScore = document.getElementById("btn-score");
+  if (btnScore && gameState && !gameState.game_over) {
+    const canScore = rawBlack >= 80 || rawWhite >= 80;
+    btnScore.disabled = !canScore;
+    btnScore.title = canScore ? "计算胜负" : "胜率需≥80%才可计算胜负";
+  }
+}
+
+function setThinking(v) {
+  document.getElementById("thinking-indicator").className = v ? "show" : "";
+  document.getElementById("thinking-indicator-panel").className = v ? "show" : "";
+}
+
+function setButtons(active) {
+  ["btn-pass","btn-undo","btn-resign"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.disabled = !active;
+  });
+  const btnUndo = document.getElementById("btn-undo");
+  if (btnUndo) {
+    if (gameState && gameState.rogue_undo_disabled) {
+      btnUndo.disabled = true;
+      btnUndo.title = "Undo disabled by current card";
+    } else if (active) {
+      btnUndo.title = "Undo";
+    }
+  }
+  // Score button: also gated by 80% winrate
+  const btnScore = document.getElementById("btn-score");
+  if (btnScore) {
+    if (!active) {
+      btnScore.disabled = true;
+    } else {
+      const wr = analysis ? analysis.winrate : 0.5;
+      const bPct = wr * 100;
+      btnScore.disabled = !(bPct >= 80 || (100 - bPct) >= 80);
+    }
+  }
+  const btnNew = document.getElementById("btn-new");
+  if (btnNew) {
+    if (active) {
+      btnNew.disabled = true;
+      btnNew.textContent = "对局进行中…";
+      btnNew.style.opacity = "0.5";
+      btnNew.style.cursor = "not-allowed";
+    } else {
+      btnNew.disabled = false;
+      btnNew.textContent = "确认开始";
+      btnNew.style.opacity = "";
+      btnNew.style.cursor = "";
+    }
+  }
+  const btnSetup = document.getElementById("btn-setup");
+  if (btnSetup) {
+    if (active) {
+      btnSetup.disabled = true;
+      btnSetup.style.opacity = "0.5";
+      btnSetup.style.cursor = "not-allowed";
+    } else {
+      btnSetup.disabled = false;
+      btnSetup.style.opacity = "";
+      btnSetup.style.cursor = "";
+    }
+  }
+}
+
+function log(msg) {
+  const el = document.getElementById("game-log");
+  const d = document.createElement("div");
+  d.textContent = msg;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+function showOverlay(title, sub, winner, score) {
+  document.getElementById("overlay-title").textContent   = title;
+  document.getElementById("overlay-msg").textContent     = sub;
+  document.getElementById("overlay-winner").textContent  = winner;
+  document.getElementById("overlay-score").textContent   = score;
+  document.getElementById("overlay").className           = "show";
+}
+
+function closeOverlay() {
+  document.getElementById("overlay").className = "";
+}
+
+function openSetupModal() {
+  document.getElementById("setup-modal").classList.add("show");
+}
+
+function closeSetupModal() {
+  document.getElementById("setup-modal").classList.remove("show");
+}
+
+function showConfirmModal(msg, onConfirm) {
+  document.getElementById("confirm-msg").textContent = msg;
+  const btnOk = document.getElementById("btn-confirm-ok");
+  btnOk.onclick = () => { closeConfirmModal(); onConfirm(); };
+  document.getElementById("confirm-modal").classList.add("show");
+}
+
+function closeConfirmModal() {
+  document.getElementById("confirm-modal").classList.remove("show");
+}
+
+function newGameFromOverlay() {
+  closeOverlay();
+  document.getElementById("btn-new").click();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EVENT HANDLERS
+// ═══════════════════════════════════════════════════════════════════════════════
+document.getElementById("btn-new").addEventListener("click", () => {
+  let playerColor = document.getElementById("sel-color").value;
+  let komi = parseFloat(document.getElementById("sel-komi").value);
+  const isTwoPlayer = (startMode === "two");
+
+  if (startMode === "guess") {
+    playerColor = Math.random() < 0.5 ? "B" : "W";
+    log(`猜先结果：你执${playerColor==="B"?"黑":"白"}棋`);
+  } else if (startMode === "give") {
+    playerColor = "B";
+    komi = 0;
+    log("让先：你执黑，贴目0");
+  } else if (isTwoPlayer) {
+    playerColor = "B";
+  }
+
+  // Read time settings
+  timerMode = document.getElementById("sel-time-mode").value;
+  mainTimeSetting = parseInt(document.getElementById("sel-main-time").value);
+  byoPeriodsSetting = parseInt(document.getElementById("sel-byo-periods").value);
+  byoTimeSetting = parseInt(document.getElementById("sel-byo-time").value);
+
+  twoPlayerMode = isTwoPlayer;
+  gameState = null;
+  analysis = { winrate: 0.5, score: 0, top_moves: [], ownership: [] };
+  lastAiMove = null;
+  previousBoard = null;
+  animations = [];
+  reviewMode = false; sgfLoadedMode = false;
+  document.getElementById("game-log").innerHTML = "";
+  document.getElementById("info-territory").textContent = "—";
+  
+  // reset toolbars
+  const mainBar = document.getElementById("main-toolbar");
+  if (mainBar) mainBar.style.display = "flex";
+  const revBar = document.getElementById("review-toolbar");
+  if (revBar) revBar.style.display = "none";
+  document.getElementById("review-info").textContent = "";
+
+  updateWinRate(0.5);
+  closeSetupModal();
+  setButtons(false);
+  stopTimerTick();
+
+  gameId = Math.random().toString(36).slice(2);
+  localStorage.setItem("goai_game_id", gameId);
+
+  resetRogueState();
+  intentionalClose = true;
+  if (ws) ws.close();
+
+  setTimeout(() => {
+    connect();
+    setTimeout(() => {
+      sendWS({
+        action: "new_game",
+        size:         parseInt(document.getElementById("sel-size").value),
+        komi:         komi,
+        handicap:     parseInt(document.getElementById("sel-handicap").value),
+        player_color: playerColor,
+        level:        document.getElementById("sel-level").value,
+        two_player:   isTwoPlayer,
+        rogue:        !!document.getElementById("chk-rogue").checked && !document.getElementById("chk-ultimate").checked,
+        ultimate:     !!document.getElementById("chk-ultimate").checked,
+      });
+    }, 400);
+  }, 200);
+});
+
+document.getElementById("btn-pass").addEventListener("click", () => {
+  if (!twoPlayerMode && !isMyTurn) return;
+  if (!gameState || gameState.game_over) return;
+  const passColor = twoPlayerMode ? gameState.current_player : myColor;
+  previousBoard = gameState.board.map(row => [...row]);
+  if (ultimateMode && ultimatePlayerCard === "quickthink" && gameState.ultimate_quickthink_active) {
+    sendWS({ action: "ultimate_quickthink_end" });
+    if (!twoPlayerMode) { isMyTurn = false; setThinking(true); }
+    log("快速思考结束，轮到 AI 读盘");
+    return;
+  }
+  sendWS({ action: "pass" });
+  if (!twoPlayerMode) { isMyTurn = false; setThinking(true); }
+  log(`${passColor==="B"?"黑棋":"白棋"} 虚手`);
+});
+
+document.getElementById("btn-undo").addEventListener("click", () => {
+  if (gameState && gameState.rogue_undo_disabled) {
+    log("当前卡牌效果禁用了悔棋");
+    return;
+  }
+  previousBoard = gameState ? gameState.board.map(row => [...row]) : null;
+  sendWS({ action: "undo" });
+  setThinking(false);
+  log("请求悔棋");
+});
+
+document.getElementById("btn-score").addEventListener("click", () => {
+  // Only allow scoring when one side has >= 80% winrate
+  const wr = analysis ? analysis.winrate : 0.5;
+  const blackPct = wr * 100;
+  if (blackPct < 80 && (100 - blackPct) < 80) {
+    log("⚠ 胜率未达80%，暂不可计算胜负");
+    return;
+  }
+  showConfirmModal("是否进行形势计算并申请终局？", () => {
+    sendWS({ action: "score" });
+    log("请求终局计分…");
+  });
+});
+
+document.getElementById("btn-resign").addEventListener("click", () => {
+  showConfirmModal("您确定要认输吗？", () => {
+    sendWS({ action: "resign" });
+    setButtons(false);
+    log("你认输了");
+  });
+});
+
+function toggleTerritory() {
+  document.getElementById("territory-toggle").click();
+}
+
+document.getElementById("hint-toggle").addEventListener("click", () => {
+  showHints = !showHints;
+  document.getElementById("hint-toggle").className = "toggle" + (showHints ? " on" : "");
+  if (showHints && gameState) sendWS({ action: "request_hint" });
+  render();
+});
+
+document.getElementById("territory-toggle").addEventListener("click", () => {
+  showTerritory = !showTerritory;
+  document.getElementById("territory-toggle").className = "toggle" + (showTerritory ? " on" : "");
+  render();
+});
+
+document.getElementById("move-number-toggle").addEventListener("click", () => {
+  showMoveNumbers = !showMoveNumbers;
+  document.getElementById("move-number-toggle").className = "toggle" + (showMoveNumbers ? " on" : "");
+  render();
+});
+
+document.getElementById("sel-level").addEventListener("change", e => {
+  if (gameState && !gameState.game_over)
+    sendWS({ action: "set_level", level: e.target.value });
+});
+
+// Sound toggle
+document.getElementById("sound-toggle").addEventListener("click", () => {
+  soundEnabled = !soundEnabled;
+  document.getElementById("sound-toggle").textContent = soundEnabled ? "🔊" : "🔇";
+  // Initialize audio context on first user interaction
+  if (soundEnabled) getAudioCtx();
+});
+
+// Review controls
+document.getElementById("btn-review-first").addEventListener("click", () => {
+  if (!reviewMode && gameState) enterReviewMode();
+  reviewGo(-1);
+});
+document.getElementById("btn-review-prev").addEventListener("click", () => {
+  if (!reviewMode && gameState) enterReviewMode();
+  reviewGo(reviewIndex - 1);
+});
+document.getElementById("btn-review-next").addEventListener("click", () => {
+  if (!reviewMode && gameState) enterReviewMode();
+  reviewGo(reviewIndex + 1);
+});
+document.getElementById("btn-review-last").addEventListener("click", () => {
+  if (!reviewMode && gameState) enterReviewMode();
+  reviewGo(reviewMoves.length - 1);
+});
+document.getElementById("btn-review-exit").addEventListener("click", () => {
+  exitReviewMode();
+});
+
+// Keyboard shortcuts for review
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") return;
+  if (e.key === "ArrowLeft") {
+    if (!reviewMode && gameState) enterReviewMode();
+    if (reviewMode) reviewGo(reviewIndex - 1);
+    e.preventDefault();
+  } else if (e.key === "ArrowRight") {
+    if (!reviewMode && gameState) enterReviewMode();
+    if (reviewMode) reviewGo(reviewIndex + 1);
+    e.preventDefault();
+  } else if (e.key === "Home") {
+    if (reviewMode) reviewGo(-1);
+    e.preventDefault();
+  } else if (e.key === "End") {
+    if (reviewMode) reviewGo(reviewMoves.length - 1);
+    e.preventDefault();
+  } else if (e.key === "Escape") {
+    if (reviewMode) exitReviewMode();
+  }
+});
+
+// SGF controls
+document.getElementById("btn-sgf-save").addEventListener("click", exportSgf);
+document.getElementById("btn-sgf-load").addEventListener("click", () => {
+  document.getElementById("sgf-file-input").click();
+});
+document.getElementById("sgf-file-input").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (file) loadSgfFile(file);
+  e.target.value = ""; // reset so same file can be loaded again
+});
+
+// Fine-tune controls
+document.getElementById("ft-up").addEventListener("click", () => { if(fineTunePos) { fineTunePos.y = Math.max(0, fineTunePos.y-1); render(); }});
+document.getElementById("ft-down").addEventListener("click", () => { if(fineTunePos) { fineTunePos.y = Math.min(boardSize-1, fineTunePos.y+1); render(); }});
+document.getElementById("ft-left").addEventListener("click", () => { if(fineTunePos) { fineTunePos.x = Math.max(0, fineTunePos.x-1); render(); }});
+document.getElementById("ft-right").addEventListener("click", () => { if(fineTunePos) { fineTunePos.x = Math.min(boardSize-1, fineTunePos.x+1); render(); }});
+document.getElementById("ft-ok").addEventListener("click", () => {
+  if(fineTunePos) commitPlay(fineTunePos.x, fineTunePos.y);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RANK SELECTOR (with GPU-based defaults and slow-rank warnings)
+// ═══════════════════════════════════════════════════════════════════════════════
+const RANK_ORDER = ["18k","17k","16k","15k","14k","13k","12k","11k","10k",
+  "9k","8k","7k","6k","5k","4k","3k","2k","1k",
+  "a1d","a2d","a3d","a4d","a5d","a6d","a7d","a8d","a9d",
+  "p1d","p2d","p3d","p4d","p5d","p6d","p7d","p8d","p9d"];
+
+const selLevel = document.getElementById("sel-level");
+RANK_GROUPS.forEach(r => {
+  if (r.separator) {
+    const opt = document.createElement("option");
+    opt.disabled = true;
+    opt.textContent = r.label;
+    opt.style.color = "#888";
+    selLevel.appendChild(opt);
+  } else {
+    const opt = document.createElement("option");
+    opt.value = r.id;
+    opt.textContent = r.label;
+    if (r.id === "a3d") opt.selected = true;
+    selLevel.appendChild(opt);
+  }
+});
+
+// Fetch GPU info and adjust rank selector
+(async function detectGPU() {
+  try {
+    const resp = await fetch("/gpu");
+    if (!resp.ok) return;
+    const gpu = await resp.json();
+
+    // Show GPU info near the rank selector
+    const gpuHint = document.createElement("div");
+    gpuHint.style.cssText = "font-size:11px;color:#aaa;margin-top:2px;padding:0 4px;";
+    if (gpu.cpu_mode) {
+      gpuHint.textContent = `🖥 CPU模式 — 级位流畅，段位推理较慢`;
+      gpuHint.style.color = "#ff9800";
+    } else {
+      gpuHint.textContent = `🖥 ${gpu.name} (${gpu.vram_mb}MB) — ${gpu.tier_label}显卡`;
+    }
+    selLevel.parentNode.appendChild(gpuHint);
+
+    // Set default rank based on GPU tier
+    if (gpu.default_rank) {
+      selLevel.value = gpu.default_rank;
+    }
+
+    // Mark slow ranks with warning
+    const slowIdx = RANK_ORDER.indexOf(gpu.slow_from);
+    if (slowIdx >= 0) {
+      for (const opt of selLevel.options) {
+        if (opt.disabled) continue;
+        const rIdx = RANK_ORDER.indexOf(opt.value);
+        if (rIdx >= slowIdx) {
+          opt.textContent = "⚠️ " + opt.textContent + " (推理较慢)";
+          opt.style.color = "#ff9800";
+        }
+      }
+    }
+  } catch(e) { /* GPU detection unavailable */ }
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════════
+function updateNetworkBadge(status) {
+  const badge = document.getElementById("network-badge");
+  if (!badge) return;
+  const local = status?.access_urls?.local?.[0] || `${location.protocol}//${location.host}`;
+  const lan = status?.access_urls?.lan?.[0];
+  badge.textContent = lan
+    ? ui(`本机：${local}  |  手机：${lan}`, `Local: ${local}  |  LAN: ${lan}`)
+    : ui(`本机：${local}`, `Local: ${local}`);
+  badge.title = lan
+    ? ui(`本机访问：${local}\n局域网访问：${status.access_urls.lan.join("\n")}`, `Local: ${local}\nLAN: ${status.access_urls.lan.join("\n")}`)
+    : ui(`本机访问：${local}`, `Local: ${local}`);
+}
+
+function reasonText(r) {
+  return currentLang === "en"
+    ? ({resign:"Resignation", ai_resign:"AI resigned", score:"Scoring", double_pass:"Double pass", timeout:"Timeout", ultimate_20moves:"20-move showdown"}[r] || r || "")
+    : ({resign:"认输", ai_resign:"AI认输", score:"计数", double_pass:"双方虚手", timeout:"超时", ultimate_20moves:"20手决胜"}[r] || r || "");
+}
+
+function updateUI() {
+  if (!gameState) return;
+  if (twoPlayerMode) {
+    document.getElementById("info-my-color").innerHTML = ui("双方（人）", "Human vs Human");
+  } else {
+    const colorDot = `<span class="my-color-badge" style="background:${myColor==='B'?'#111':'#eee'}"></span>`;
+    document.getElementById("info-my-color").innerHTML =
+      colorDot + (myColor==="B" ? ui("黑棋", "Black") : ui("白棋", "White"));
+  }
+  document.getElementById("info-move").textContent = gameState.move_number || 0;
+  const cp = gameState.current_player;
+  if (twoPlayerMode) {
+    document.getElementById("info-player").textContent = cp === "B" ? ui("黑棋落子", "Black to move") : ui("白棋落子", "White to move");
+  } else {
+    document.getElementById("info-player").textContent =
+      cp === myColor
+        ? (cp==="B" ? ui("黑（我）", "Black (You)") : ui("白（我）", "White (You)"))
+        : (cp==="B" ? ui("黑（AI）", "Black (AI)") : ui("白（AI）", "White (AI)"));
+  }
+  if (cardTurnRemaining > 0 && isMyTurn) {
+    document.getElementById("info-player").textContent += ` ${cardTurnLabel}${cardTurnRemaining.toFixed(1)}s`;
+  }
+  document.getElementById("info-cap-b").textContent = gameState.captures?.B || 0;
+  document.getElementById("info-cap-w").textContent = gameState.captures?.W || 0;
+  document.getElementById("info-level").textContent =
+    twoPlayerMode ? ui("两人对局", "Two Players") : (RANK_LABELS[gameState.level] || gameState.level || "—");
+}
+
+function updateWinRate(wr) {
+  const rawBlack = Math.max(0, Math.min(100, wr * 100));
+  const rawWhite = 100 - rawBlack;
+  const b = rawBlack.toFixed(1);
+  const w = rawWhite.toFixed(1);
+  document.getElementById("wr-black").style.width = rawBlack + "%";
+  document.getElementById("wr-black-label").textContent = `${ui("黑", "Black")} ${b}%`;
+  document.getElementById("wr-white-label").textContent = `${ui("白", "White")} ${w}%`;
+  const btnScore = document.getElementById("btn-score");
+  if (btnScore && gameState && !gameState.game_over) {
+    const canScore = rawBlack >= 80 || rawWhite >= 80;
+    btnScore.disabled = !canScore;
+    btnScore.title = canScore ? ui("计算胜负", "Score") : ui("胜率需≥80%才可计算胜负", "Win rate must reach 80% to score");
+  }
+}
+
+function setButtons(active) {
+  ["btn-pass","btn-undo","btn-resign"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.disabled = !active;
+  });
+  const btnUndo = document.getElementById("btn-undo");
+  if (btnUndo) {
+    if (gameState && gameState.rogue_undo_disabled) {
+      btnUndo.disabled = true;
+      btnUndo.title = ui("当前卡牌禁用悔棋", "Undo disabled by current card");
+    } else if (active) {
+      btnUndo.title = ui("悔棋", "Undo");
+    }
+  }
+  const btnScore = document.getElementById("btn-score");
+  if (btnScore) {
+    if (!active) {
+      btnScore.disabled = true;
+    } else {
+      const wr = analysis ? analysis.winrate : 0.5;
+      const bPct = wr * 100;
+      btnScore.disabled = !(bPct >= 80 || (100 - bPct) >= 80);
+    }
+  }
+  const btnNew = document.getElementById("btn-new");
+  if (btnNew) {
+    if (active) {
+      btnNew.disabled = true;
+      btnNew.textContent = ui("对局进行中…", "Game Active...");
+      btnNew.style.opacity = "0.5";
+      btnNew.style.cursor = "not-allowed";
+    } else {
+      btnNew.disabled = false;
+      btnNew.textContent = ui("确认开始", "Start");
+      btnNew.style.opacity = "";
+      btnNew.style.cursor = "";
+    }
+  }
+  const btnSetup = document.getElementById("btn-setup");
+  if (btnSetup) {
+    if (active) {
+      btnSetup.disabled = true;
+      btnSetup.style.opacity = "0.5";
+      btnSetup.style.cursor = "not-allowed";
+    } else {
+      btnSetup.disabled = false;
+      btnSetup.style.opacity = "";
+      btnSetup.style.cursor = "";
+    }
+  }
+}
+
+function setMode(mode) {
+  startMode = mode;
+  document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("mode-" + mode).classList.add("active");
+
+  const rowColor    = document.getElementById("row-color");
+  const rowHandicap = document.getElementById("row-handicap");
+  const hint        = document.getElementById("mode-hint");
+  const komiSel     = document.getElementById("sel-komi");
+  const rogueRow = document.getElementById("rogue-row");
+  const ultimateRow = document.getElementById("ultimate-row");
+
+  rowColor.style.display = "flex";
+  rowHandicap.style.display = "flex";
+  hint.style.display = "none";
+  rogueRow.style.display = "";
+  ultimateRow.style.display = "";
+
+  if (mode === "guess") {
+    rowColor.style.display = "none";
+    hint.style.display = "block";
+    hint.textContent = ui("猜先：随机决定执黑 / 执白", "Guess Color: randomly decide Black or White");
+  } else if (mode === "give") {
+    rowColor.style.display = "none";
+    rowHandicap.style.display = "none";
+    hint.style.display = "block";
+    hint.textContent = ui("让先：你执黑，AI执白，贴目自动设为 0", "Take Black: you play Black, AI plays White, komi is set to 0");
+    komiSel.value = "0";
+  } else if (mode === "two") {
+    rowColor.style.display = "none";
+    rowHandicap.style.display = "flex";
+    hint.style.display = "block";
+    hint.textContent = ui("两人对局：黑白双方均由人落子，可选择是否启用AI形势分析", "Two Players: both sides are human, optional AI analysis is still available");
+    rogueRow.style.display = "none";
+    ultimateRow.style.display = "none";
+    document.getElementById("chk-rogue").checked = false;
+    document.getElementById("chk-ultimate").checked = false;
+  }
+}
+
+function connect() {
+  const wsScheme = location.protocol === "https:" ? "wss" : "ws";
+  const wsUrl = `${wsScheme}://${location.host}/ws/${gameId}`;
+  ws = new WebSocket(wsUrl);
+  ws.onopen = () => {
+    document.getElementById("status-dot").className = "ready";
+    document.getElementById("status-text").textContent = ui("已连接", "Connected");
+    log(ui("已连接", "Connected"));
+    refreshNetworkInfo();
+    if (!gameState) sendWS({ action: "reconnect" });
+  };
+  ws.onclose = () => {
+    document.getElementById("status-dot").className = "";
+    if (intentionalClose) { intentionalClose = false; return; }
+    document.getElementById("status-text").textContent = ui("连接断开，重连中…", "Disconnected, reconnecting...");
+    setTimeout(connect, 2000);
+  };
+  ws.onmessage = e => handleMessage(JSON.parse(e.data));
+  ws.onerror   = () => { document.getElementById("status-text").textContent = ui("连接错误", "Connection error"); };
+}
+
+function initBoard() {
+  resizeBoard(boardSize || 19);
+  _boardCacheParams = "";
+  _offScreenBoard = null;
+  render();
+  ensureBoardReady(300);
+}
+
+// Primary init
+applyLanguage();
+initBoard();
+setMode(startMode);
+
+// Fallback: re-init after full page load if layout wasn't ready
+window.addEventListener("load", () => {
+  initBoard();
+});
+
+window.addEventListener("pageshow", () => {
+  ensureBoardReady(0);
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) ensureBoardReady(0);
+});
+
+if (typeof ResizeObserver !== "undefined" && boardContainer) {
+  const observer = new ResizeObserver(() => {
+    ensureBoardReady(0);
+  });
+  observer.observe(boardContainer);
+}
+
+window.addEventListener("resize", () => {
+  _boardCacheParams = "";
+  _offScreenBoard = null;
+  resizeBoard(reviewMode ? reviewBoardSize : boardSize);
+  render();
+  ensureBoardReady(100);
+});
+
+boardWatchdogTimer = window.setInterval(() => {
+  ensureBoardReady(0);
+}, 1500);
+
+refreshNetworkInfo();
+connect();
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Build outputs
+build/
+dist/
+
+# Logs and temp files
+*.log
+crash.log
+gtp_logs/
+*.sgf
+*.tmp
+katago_test_*.txt
+board_visibility_*.png
+board_*_check*.png
+
+# Windows / editor noise
+Thumbs.db
+desktop.ini
+
+# Installer and packaged outputs
+*.exe
+*.zip
+!katago/README.md
+
+# KataGo binaries, models, runtimes, tuning data
+katago/*
+!katago/README.md
+!katago/config.cfg
+!katago/config_cpu.cfg
+!katago/default_gtp.cfg
+
+# Local test artifacts
+_*.log
+_*.sgf
+
+# Keep docs and source
+!README.md
+!LICENSE
+!THIRD_PARTY_NOTICES.md
+!requirements.txt
+
+# Internal assistant notes
+CLAUDE.md
