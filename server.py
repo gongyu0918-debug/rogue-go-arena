@@ -42,7 +42,7 @@ USER_DATA_DIR = Path(os.environ.get("LOCALAPPDATA", str(BASE_DIR))) / "GoAI"
 USER_KATAGO_DIR = USER_DATA_DIR / "katago"
 USER_KATAGO_HOME = USER_KATAGO_DIR / "KataGoData"
 USER_RUNTIME_CONFIG_DIR = USER_KATAGO_DIR / "runtime"
-SERVER_REV = "20260329-card-text-fix"
+SERVER_REV = "20260329-rogue-two-player-ai"
 KATAGO_EXE = BASE_DIR / "katago" / "katago.exe"             # CUDA build (legacy/optional)
 KATAGO_CUDA_EXE = BASE_DIR / "katago" / "katago_cuda.exe"   # CUDA (downloaded upgrade)
 KATAGO_OPENCL_EXE = BASE_DIR / "katago" / "katago_opencl.exe"  # OpenCL (any GPU)
@@ -169,6 +169,24 @@ ROGUE_FEATURED_CARDS = {
     "quickthink",
     "foolish_wisdom",
 }
+
+TWO_PLAYER_ROGUE_POOL = [
+    "erosion",
+    "sprout",
+    "joseki_ocd",
+    "god_hand",
+    "sansan_trap",
+    "corner_helper",
+    "sanrensei",
+    "foolish_wisdom",
+]
+
+AI_ROGUE_POOL = [
+    "blackhole",
+    "golden_corner",
+    "fog",
+    "sansan_trap",
+]
 
 ULTIMATE_FEATURED_CARDS = {
     "joseki_burst",
@@ -370,11 +388,11 @@ ROGUE_CARDS = {
 }
 
 
-def pick_rogue_choices(n: int = 3) -> list[str]:
+def pick_rogue_choices(n: int = 3, pool: Optional[list[str]] = None) -> list[str]:
     """Pick n random unique card IDs."""
     import time
     rng = random.Random(time.time_ns())
-    keys = list(ROGUE_CARDS.keys())
+    keys = list(pool or ROGUE_CARDS.keys())
     rng.shuffle(keys)
     choices = keys[:n]
     if choices and not any(card in ROGUE_FEATURED_CARDS for card in choices):
@@ -391,6 +409,13 @@ def pick_rogue_choices(n: int = 3) -> list[str]:
         if card not in unique_choices:
             unique_choices.append(card)
     return unique_choices[:n]
+
+
+def pick_ai_rogue_card(exclude: Optional[list[str]] = None) -> str:
+    import time
+    rng = random.Random(time.time_ns())
+    pool = [k for k in AI_ROGUE_POOL if k not in (exclude or [])]
+    return rng.choice(pool or AI_ROGUE_POOL)
 
 
 # ─── Ultimate Rogue mode cards (大招模式) ────────────────────────────────────
@@ -1004,11 +1029,15 @@ class GoGame:
         self.passed = {"B": False, "W": False}
         self.territory = None
         # Rogue mode
+        self.rogue_enabled: bool = False
         self.rogue_card: Optional[str] = None
         self.rogue_uses: dict[str, int] = {}     # card_id → remaining uses
         self.rogue_seal_points: list[tuple] = []  # forbidden (x,y) for AI
         self.rogue_waiting_seal: bool = False      # waiting for seal point input
         self.rogue_skip_ai: bool = False           # twin star: skip next AI turn
+        self.ai_rogue_enabled: bool = False
+        self.ai_rogue_card: Optional[str] = None
+        self.ai_rogue_seal_points: list[tuple] = []
         # 定式强迫症: 8 random target points, player must hit 3 of them
         self.rogue_joseki_targets: list[tuple] = []
         self.rogue_joseki_hits: int = 0
@@ -1017,6 +1046,7 @@ class GoGame:
         self.rogue_godhand_trigger: list[tuple] = []
         self.rogue_godhand_done: bool = False
         self.rogue_sansan_trap_done: bool = False
+        self.ai_rogue_sansan_trap_done: bool = False
         self.rogue_corner_helper_done: bool = False
         self.rogue_sanrensei_done: bool = False
         self.rogue_quickthink_stage: int = 0
@@ -1116,9 +1146,13 @@ class GoGame:
             "moves_list": [[c, g] for c, g in self.moves],
             "level": self.level,
             "two_player": self.two_player,
+            "rogue_enabled": self.rogue_enabled,
             "rogue_card": self.rogue_card,
             "rogue_uses": self.rogue_uses,
             "rogue_seal_points": [[x, y] for x, y in self.rogue_seal_points],
+            "ai_rogue_enabled": self.ai_rogue_enabled,
+            "ai_rogue_card": self.ai_rogue_card,
+            "ai_rogue_seal_points": [[x, y] for x, y in self.ai_rogue_seal_points],
             "rogue_joseki_targets": [[x, y] for x, y in self.rogue_joseki_targets],
             "rogue_joseki_done": self.rogue_joseki_done,
             "rogue_undo_disabled": self.rogue_card == "no_regret",
@@ -1937,9 +1971,13 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     player_color = data.get("player_color", "B")
                     level = data.get("level", "a3d")
                     two_player = bool(data.get("two_player", False))
+                    rogue_enabled = bool(data.get("rogue", False))
+                    ai_rogue_enabled = bool(data.get("ai_rogue", False)) and rogue_enabled and not two_player
 
                     game = GoGame(size, komi, handicap, player_color, level,
                                   two_player)
+                    game.rogue_enabled = rogue_enabled
+                    game.ai_rogue_enabled = ai_rogue_enabled
                     active_games[game_id] = game
 
                     if engine.ready:
@@ -1984,8 +2022,9 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         # Game waits for player card selection
 
                     # ── Rogue mode: offer 3 cards before game starts ─────
-                    elif bool(data.get("rogue", False)) and not two_player and engine.ready:
-                        choices = pick_rogue_choices(3)
+                    elif rogue_enabled and (two_player or engine.ready):
+                        rogue_pool = TWO_PLAYER_ROGUE_POOL if two_player else None
+                        choices = pick_rogue_choices(3, pool=rogue_pool)
                         cards_data = []
                         for cid in choices:
                             c = ROGUE_CARDS[cid]
@@ -2111,6 +2150,15 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     x, y = int(data["x"]), int(data["y"])
                     gtp = coord_to_gtp(x, y, game.size)
 
+                    if game.board[y][x] != 0:
+                        await send_error("该位置已有棋子")
+                        continue
+
+                    player_forbidden = _get_ai_rogue_forbidden_points(game)
+                    if not game.two_player and (x, y) in player_forbidden:
+                        await send_error("这里已被 AI 的 Rogue 卡限制，当前不能落子")
+                        continue
+
                     if engine.ready:
                         resp = await run_in_executor(
                             engine.send_command, f"play {color} {gtp}")
@@ -2124,6 +2172,8 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     game.current_player = "W" if color == "B" else "B"
                     await _apply_player_rogue_move_effects(
                         game, send, x, y, color, captured)
+                    await _apply_ai_rogue_response_effects(
+                        game, send, x, y, color)
 
                     quickthink_bonus = False
                     if game.rogue_card == "quickthink" and not game.two_player:
@@ -2362,9 +2412,12 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     if card_id not in ROGUE_CARDS:
                         continue
                     await _activate_rogue_card(game, send, card_id)
+                    if game.ai_rogue_enabled and not game.two_player:
+                        ai_card_id = pick_ai_rogue_card(exclude=[card_id])
+                        await _activate_ai_rogue_card(game, send, ai_card_id)
                     # If not seal (which needs setup), start AI move
                     if card_id != "seal":
-                        if engine.ready and game.ai_color == game.current_player:
+                        if not game.two_player and engine.ready and game.ai_color == game.current_player:
                             await _ai_move(game, send)
                         if not game.game_over and engine.ready:
                             asyncio.create_task(do_analysis_bg(game))
@@ -2911,9 +2964,28 @@ def _player_non_pass_coords(game: GoGame, color: str, limit: Optional[int] = Non
     return coords
 
 
+def _get_ai_rogue_forbidden_points(game: GoGame) -> list[tuple[int, int]]:
+    card = game.ai_rogue_card
+    if card in {"blackhole", "golden_corner", "fog"}:
+        return list(game.ai_rogue_seal_points)
+    return []
+
+
+def _refresh_ai_rogue_player_turn(game: GoGame):
+    if game.two_player or not game.ai_rogue_enabled:
+        return
+    if game.ai_rogue_card == "fog":
+        if game.current_player == game.player_color:
+            rng = random.Random(time.time_ns())
+            game.ai_rogue_seal_points = _pick_fog_mask(game.size, rng)
+        else:
+            game.ai_rogue_seal_points = []
+
+
 def _prepare_player_turn_modifiers(game: GoGame):
     if game.two_player or game.current_player != game.player_color:
         return
+    _refresh_ai_rogue_player_turn(game)
     if game.rogue_card == "quickthink" and game.rogue_quickthink_stage == 0:
         game.rogue_quickthink_stage = 1
     if game.ultimate and game.ultimate_player_card == "quickthink" and not game.ultimate_quickthink_active:
@@ -3022,13 +3094,38 @@ async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
                    **game.to_state()})
 
 
+async def _activate_ai_rogue_card(game: GoGame, send_fn, card_id: str):
+    cdef = ROGUE_CARDS[card_id]
+    game.ai_rogue_enabled = True
+    game.ai_rogue_card = card_id
+    game.ai_rogue_seal_points = []
+    game.ai_rogue_sansan_trap_done = False
+
+    if card_id == "blackhole":
+        game.ai_rogue_seal_points = _get_blackhole_points(game.size)
+    elif card_id == "golden_corner":
+        corner = random.randint(0, 3)
+        game.ai_rogue_seal_points = _get_golden_corner_points(game.size, corner)
+    elif card_id == "fog":
+        _refresh_ai_rogue_player_turn(game)
+
+    await send_fn({
+        "type": "rogue_ai_selected",
+        "card_id": card_id,
+        "name": cdef["name"],
+        "icon": cdef["icon"],
+        **game.to_state(),
+    })
+
+
 async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                                            x: int, y: int,
                                            color: str, captured: int):
     """Apply player-side rogue effects after a successful move."""
     if game.rogue_card == "erosion" and captured > 0:
         shift = 2.0 * captured
-        if game.player_color == "B":
+        owner_color = color if game.two_player else game.player_color
+        if owner_color == "B":
             game.komi -= shift
         else:
             game.komi += shift
@@ -3037,9 +3134,9 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
         await send_fn({"type": "rogue_event",
                        "msg": f"蚕食触发：提掉 {captured} 子，当前贴目变为 {game.komi}"})
 
-    if game.rogue_card == "sprout" and not game.two_player:
-        p_moves = sum(1 for c, _ in game.moves if c == game.player_color)
-        if p_moves <= 1:
+    if game.rogue_card == "sprout":
+        color_moves = sum(1 for c, m in game.moves if c == color and m.upper() != "PASS")
+        if color_moves <= 1:
             adj = _adjacent_points(x, y, game.size)
             empty_adj = [(ax, ay) for ax, ay in adj if game.board[ay][ax] == 0]
             if empty_adj:
@@ -3056,8 +3153,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                                        "msg": f"萌芽触发：在 {b_gtp} 额外长出一颗己方棋子"})
 
     if (game.rogue_card == "joseki_ocd"
-            and not game.rogue_joseki_done
-            and not game.two_player):
+            and not game.rogue_joseki_done):
         if (x, y) in game.rogue_joseki_targets:
             game.rogue_joseki_hits += 1
             await send_fn({"type": "rogue_event",
@@ -3092,6 +3188,19 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
             await _sync_board_to_katago(game)
         await send_fn({"type": "rogue_event",
                        "msg": f"✨ 神之一手发动，在暗点周围爆发 {len(changed)} 颗同色棋"})
+
+    if (game.rogue_card == "sansan_trap"
+            and not game.rogue_sansan_trap_done
+            and (x, y) in _get_sansan_points(game.size)):
+        nearby = [(nx, ny) for nx, ny in _adjacent8_points(x, y, game.size) if game.board[ny][nx] == 0]
+        random.shuffle(nearby)
+        changed = _set_points_to_color(game, nearby[:3], color)
+        if changed:
+            game.rogue_sansan_trap_done = True
+            if engine.ready:
+                await _sync_board_to_katago(game)
+            await send_fn({"type": "rogue_event",
+                           "msg": f"△ 三三是陷阱发动，在 {coord_to_gtp(x, y, game.size)} 周围反打 {len(changed)} 子"})
 
     if game.rogue_card == "corner_helper" and not game.rogue_corner_helper_done:
         corner = _find_corner_with_min_stones(game, color, 5, 2)
@@ -3165,6 +3274,31 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
             await send_fn({"type": "rogue_event",
                            "msg": f"让子任务奖励触发：每满 {ROGUE_HANDICAP_BONUS_INTERVAL} 手获得一次奖励，"
                                   f"当前进度 {game.rogue_handicap_bonuses}/{ROGUE_HANDICAP_MAX_BONUSES}，AI 将虚手一次"})
+
+
+async def _apply_ai_rogue_response_effects(game: GoGame, send_fn,
+                                           x: int, y: int,
+                                           color: str):
+    if game.two_player or not game.ai_rogue_enabled:
+        return
+    if game.ai_rogue_card == "sansan_trap" and not game.ai_rogue_sansan_trap_done:
+        coord = (x, y)
+        if coord in _get_sansan_points(game.size):
+            nearby = [
+                (nx, ny)
+                for nx, ny in _adjacent8_points(coord[0], coord[1], game.size)
+                if game.board[ny][nx] == 0
+            ]
+            random.shuffle(nearby)
+            changed = _set_points_to_color(game, nearby[:3], game.ai_color)
+            if changed:
+                game.ai_rogue_sansan_trap_done = True
+                if engine.ready:
+                    await _sync_board_to_katago(game)
+                await send_fn({
+                    "type": "rogue_event",
+                    "msg": f"三三是陷阱发动，在 {coord_to_gtp(coord[0], coord[1], game.size)} 周围反打 {len(changed)} 子"
+                })
 
 
 def _sync_board_to_katago_locked(game: GoGame):

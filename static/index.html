@@ -631,6 +631,7 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   <div id="board-container">
     <div id="rogue-bar">
       <span class="rb-badge" id="rogue-badge"></span>
+      <span class="rb-badge" id="rogue-ai-badge" style="display:none;color:#ff9b9b;border-left:1px solid rgba(255,255,255,.15);padding-left:8px;margin-left:2px;"></span>
       <button id="rb-puppet" style="display:none" disabled>🎭 傀儡术</button>
       <button id="rb-twin" style="display:none" disabled>⚡ 连击</button>
       <button id="rb-exchange" style="display:none" disabled>🔄 挪移</button>
@@ -905,6 +906,13 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
         <span style="color:#888;font-size:.75rem;">（开局三选一强化卡）</span>
       </label>
     </div>
+    <div class="form-row" id="ai-rogue-row" style="margin-top:4px; display:none;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <input type="checkbox" id="chk-ai-rogue" style="width:16px;height:16px;accent-color:#66aaff;">
+        <span style="color:#66aaff;font-weight:700;">AI Rogue 卡</span>
+        <span style="color:#888;font-size:.75rem;">（仅单人，AI 使用受限卡池）</span>
+      </label>
+    </div>
     <div class="form-row" id="ultimate-row" style="margin-top:4px;">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
         <input type="checkbox" id="chk-ultimate" style="width:16px;height:16px;accent-color:#ff4444;">
@@ -1061,6 +1069,8 @@ const ULTIMATE_CARD_I18N = {
 
 let rogueOfferCards = [];
 let ultimateOfferCards = [];
+let activeAiRogueCard = null;
+let aiRogueSeals = [];
 
 function setLanguage(lang) {
   currentLang = lang === "en" ? "en" : "zh";
@@ -1334,6 +1344,9 @@ function applyLanguage() {
   const rogueSpans = document.querySelectorAll("#rogue-row span");
   if (rogueSpans[0]) rogueSpans[0].textContent = "Rogue Mode";
   if (rogueSpans[1]) rogueSpans[1].textContent = ui("（开局三选一强化卡）", "(pick 1 of 3 opening cards)");
+  const aiRogueSpans = document.querySelectorAll("#ai-rogue-row span");
+  if (aiRogueSpans[0]) aiRogueSpans[0].textContent = ui("AI Rogue 卡", "AI Rogue Cards");
+  if (aiRogueSpans[1]) aiRogueSpans[1].textContent = ui("（仅单人，AI 使用受限卡池）", "(single-player only, limited AI pool)");
   const ultSpans = document.querySelectorAll("#ultimate-row span");
   if (ultSpans[0]) ultSpans[0].textContent = ui("大招模式", "Ultimate Mode");
   if (ultSpans[1]) ultSpans[1].textContent = ui("（双方各选超强卡，20手决胜）", "(both sides choose an overpowered card, 20 moves to decide)");
@@ -1364,6 +1377,7 @@ function applyLanguage() {
   if (activeRogueCard) updateRogueBar();
   if (ultimateMode) updateUltimateBar();
   if (gameState) updateUI();
+  updateVariantOptionRows();
 }
 
 // Review mode state
@@ -2055,9 +2069,20 @@ function setMode(mode) {
 // Mutual exclusion: rogue vs ultimate checkboxes
 document.getElementById("chk-rogue").addEventListener("change", (e) => {
   if (e.target.checked) document.getElementById("chk-ultimate").checked = false;
+  updateVariantOptionRows();
 });
 document.getElementById("chk-ultimate").addEventListener("change", (e) => {
-  if (e.target.checked) document.getElementById("chk-rogue").checked = false;
+  if (e.target.checked) {
+    document.getElementById("chk-rogue").checked = false;
+    document.getElementById("chk-ai-rogue").checked = false;
+  }
+  updateVariantOptionRows();
+});
+document.getElementById("chk-ai-rogue").addEventListener("change", () => {
+  if (!document.getElementById("chk-rogue").checked) {
+    document.getElementById("chk-ai-rogue").checked = false;
+  }
+  updateVariantOptionRows();
 });
 
 // Time control UI
@@ -2645,6 +2670,12 @@ let hoverXY = null;
 // ═══════════════════════════════════════════════════════════════════════════════
 function showRogueCards(cards) {
   rogueOfferCards = Array.isArray(cards) ? cards.map(c => ({ ...c })) : [];
+  const rogueSub = document.querySelector("#rogue-overlay p");
+  if (rogueSub) {
+    rogueSub.textContent = twoPlayerMode
+      ? ui("请选择一张共享规则卡", "Choose one shared rule card")
+      : ui("请选择一张强化卡", "Choose one card");
+  }
   const container = document.getElementById("rogue-cards");
   container.innerHTML = "";
   rogueOfferCards.forEach(c0 => {
@@ -2662,10 +2693,18 @@ function showRogueCards(cards) {
 
 function updateRogueBar() {
   const bar = document.getElementById("rogue-bar");
-  if (!activeRogueCard) { bar.style.display = "none"; return; }
+  if (!activeRogueCard && !activeAiRogueCard) { bar.style.display = "none"; return; }
   bar.style.display = "flex";
   const badge = document.getElementById("rogue-badge");
-  badge.textContent = getRogueCardName(activeRogueCard);
+  const aiBadge = document.getElementById("rogue-ai-badge");
+  badge.textContent = activeRogueCard ? getRogueCardName(activeRogueCard) : ui("无玩家卡", "No Player Card");
+  if (activeAiRogueCard) {
+    aiBadge.style.display = "";
+    aiBadge.textContent = ui(`AI: ${getRogueCardName(activeAiRogueCard)}`, `AI: ${getRogueCardName(activeAiRogueCard)}`);
+  } else {
+    aiBadge.style.display = "none";
+    aiBadge.textContent = "";
+  }
 
   // Active-use buttons
   const btnPuppet = document.getElementById("rb-puppet");
@@ -2698,9 +2737,11 @@ function updateRogueBar() {
 
 function resetRogueState() {
   activeRogueCard = null;
+  activeAiRogueCard = null;
   rogueUses = {};
   rogueSealing = false;
   rogueSeals = [];
+  aiRogueSeals = [];
   puppetMode = false;
   document.getElementById("rogue-bar").style.display = "none";
   document.getElementById("rogue-overlay").classList.remove("show");
@@ -2853,6 +2894,30 @@ function drawRogueMarks() {
       ctx.beginPath();
       ctx.arc(px, py, CELL * 0.2, 0, Math.PI * 2);
       ctx.fill();
+    });
+  }
+  if (aiRogueSeals.length) {
+    const isAiBlackhole = activeAiRogueCard === "blackhole";
+    const isAiGolden = activeAiRogueCard === "golden_corner";
+    const isAiFog = activeAiRogueCard === "fog";
+    aiRogueSeals.forEach(([sx, sy]) => {
+      const px = PAD + sx * CELL;
+      const py = PAD + sy * CELL;
+      if (isAiBlackhole) {
+        ctx.fillStyle = "rgba(180, 40, 60, 0.20)";
+        ctx.fillRect(px - CELL/2, py - CELL/2, CELL, CELL);
+      } else if (isAiGolden) {
+        ctx.fillStyle = "rgba(220, 80, 80, 0.18)";
+        ctx.fillRect(px - CELL/2, py - CELL/2, CELL, CELL);
+      } else if (isAiFog) {
+        ctx.fillStyle = "rgba(180, 90, 120, 0.22)";
+        ctx.fillRect(px - CELL/2, py - CELL/2, CELL, CELL);
+      }
+      ctx.fillStyle = "rgba(255, 190, 190, 0.92)";
+      ctx.font = `${CELL * 0.28}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("!", px, py);
     });
   }
   ctx.restore();
@@ -3126,6 +3191,8 @@ function handleMessage(msg) {
       const oldBoard = previousBoard || (gameState ? gameState.board : null);
       gameState = msg;
       isMyTurn = twoPlayerMode ? !msg.game_over : (msg.current_player === myColor);
+      activeAiRogueCard = msg.ai_rogue_card || activeAiRogueCard || null;
+      aiRogueSeals = msg.ai_rogue_seal_points || [];
 
       // Detect new stone and captures for animation
       if (oldBoard) {
@@ -3245,6 +3312,8 @@ function handleMessage(msg) {
       activeRogueCard = msg.rogue_card || null;
       rogueUses = msg.rogue_uses || {};
       rogueSeals = msg.rogue_seal_points || [];
+      activeAiRogueCard = msg.ai_rogue_card || null;
+      aiRogueSeals = msg.ai_rogue_seal_points || [];
       rogueSealing = false; puppetMode = false;
       updateRogueBar();
       syncCardTurnTimer();
@@ -3289,6 +3358,8 @@ function handleMessage(msg) {
       activeRogueCard = msg.card_id;
       rogueUses = msg.rogue_uses || {};
       rogueSeals = msg.rogue_seal_points || [];
+      activeAiRogueCard = msg.ai_rogue_card || activeAiRogueCard || null;
+      aiRogueSeals = msg.ai_rogue_seal_points || aiRogueSeals || [];
       document.getElementById("rogue-overlay").classList.remove("show");
       updateRogueBar();
       syncCardTurnTimer();
@@ -3298,6 +3369,15 @@ function handleMessage(msg) {
         document.getElementById("seal-overlay").style.display = "block";
       }
       log(ui(`🃏 已选择强化卡：${msg.icon} ${getRogueCardName(msg.card_id)}`, `🃏 Card selected: ${msg.icon} ${getRogueCardName(msg.card_id)}`));
+      break;
+
+    case "rogue_ai_selected":
+      gameState = msg;
+      activeAiRogueCard = msg.card_id;
+      aiRogueSeals = msg.ai_rogue_seal_points || [];
+      updateRogueBar();
+      if (!animFrameId) render();
+      log(ui(`🤖 AI 启用了 Rogue 卡：${msg.icon} ${getRogueCardName(msg.card_id)}`, `🤖 The AI equipped a Rogue card: ${msg.icon} ${getRogueCardName(msg.card_id)}`));
       break;
 
     case "rogue_seal_update":
@@ -3567,6 +3647,7 @@ document.getElementById("btn-new").addEventListener("click", () => {
         level:        document.getElementById("sel-level").value,
         two_player:   isTwoPlayer,
         rogue:        !!document.getElementById("chk-rogue").checked && !document.getElementById("chk-ultimate").checked,
+        ai_rogue:     !!document.getElementById("chk-ai-rogue").checked && !isTwoPlayer,
         ultimate:     !!document.getElementById("chk-ultimate").checked,
       });
     }, 400);
@@ -3806,6 +3887,27 @@ function updateNetworkBadge(status) {
     : ui(`本机访问：${local}`, `Local: ${local}`);
 }
 
+function updateVariantOptionRows() {
+  const rogueRow = document.getElementById("rogue-row");
+  const aiRogueRow = document.getElementById("ai-rogue-row");
+  const ultimateRow = document.getElementById("ultimate-row");
+  const isTwo = startMode === "two";
+  const rogueChecked = !!document.getElementById("chk-rogue")?.checked;
+  const ultimateChecked = !!document.getElementById("chk-ultimate")?.checked;
+  if (rogueRow) rogueRow.style.display = "";
+  if (ultimateRow) ultimateRow.style.display = isTwo ? "none" : "";
+  if (aiRogueRow) {
+    aiRogueRow.style.display = (!isTwo && rogueChecked && !ultimateChecked) ? "" : "none";
+  }
+  if (isTwo) {
+    document.getElementById("chk-ultimate").checked = false;
+    document.getElementById("chk-ai-rogue").checked = false;
+  }
+  if (!rogueChecked) {
+    document.getElementById("chk-ai-rogue").checked = false;
+  }
+}
+
 function reasonText(r) {
   return currentLang === "en"
     ? ({resign:"Resignation", ai_resign:"AI resigned", score:"Scoring", double_pass:"Double pass", timeout:"Timeout", ultimate_20moves:"20-move showdown"}[r] || r || "")
@@ -3917,14 +4019,11 @@ function setMode(mode) {
   const rowHandicap = document.getElementById("row-handicap");
   const hint        = document.getElementById("mode-hint");
   const komiSel     = document.getElementById("sel-komi");
-  const rogueRow = document.getElementById("rogue-row");
-  const ultimateRow = document.getElementById("ultimate-row");
 
   rowColor.style.display = "flex";
   rowHandicap.style.display = "flex";
   hint.style.display = "none";
-  rogueRow.style.display = "";
-  ultimateRow.style.display = "";
+  updateVariantOptionRows();
 
   if (mode === "guess") {
     rowColor.style.display = "none";
@@ -3940,12 +4039,10 @@ function setMode(mode) {
     rowColor.style.display = "none";
     rowHandicap.style.display = "flex";
     hint.style.display = "block";
-    hint.textContent = ui("两人对局：黑白双方均由人落子，可选择是否启用AI形势分析", "Two Players: both sides are human, optional AI analysis is still available");
-    rogueRow.style.display = "none";
-    ultimateRow.style.display = "none";
-    document.getElementById("chk-rogue").checked = false;
+    hint.textContent = ui("两人对局：黑白双方均由人落子，可启用共享 Rogue 规则卡；大招模式仍仅限单人对 AI", "Two Players: both sides are human, shared Rogue rule cards are available; Ultimate mode remains single-player only");
     document.getElementById("chk-ultimate").checked = false;
   }
+  updateVariantOptionRows();
 }
 
 function connect() {

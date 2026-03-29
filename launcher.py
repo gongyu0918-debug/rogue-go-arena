@@ -23,7 +23,7 @@ from tkinter import scrolledtext, messagebox
 from urllib.parse import urlencode
 
 SERVER_URL = "http://localhost:8000"
-EXPECTED_SERVER_REV = "20260329-card-text-fix"
+EXPECTED_SERVER_REV = "20260329-rogue-two-player-ai"
 KATAGO_REPO = "lightvector/KataGo"
 
 

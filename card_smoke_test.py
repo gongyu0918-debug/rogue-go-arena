@@ -591,6 +591,105 @@ async def smoke_foolish_wisdom_ultimate():
     assert "foolish_wisdom" not in s.AI_ULTIMATE_POOL
 
 
+async def smoke_two_player_rogue_shared_cards():
+    game = s.GoGame(size=9, komi=7.5, player_color="B", level="5k", two_player=True)
+    game.rogue_enabled = True
+    game.rogue_card = "sprout"
+    game.current_player = "B"
+    game.moves.append(("B", s.coord_to_gtp(4, 4, game.size)))
+    game.place_stone(4, 4, "B")
+    sent = []
+
+    async def send(payload):
+        sent.append(copy.deepcopy(payload))
+
+    old_engine = s.engine
+    try:
+        s.engine = DummyEngine()
+        await s._apply_player_rogue_move_effects(game, send, 4, 4, "B", 0)
+    finally:
+        s.engine = old_engine
+
+    black_stones = sum(1 for row in game.board for cell in row if cell == 1)
+    assert black_stones >= 2
+    assert any(msg.get("type") == "rogue_event" for msg in sent)
+
+    game = s.GoGame(size=9, komi=7.5, player_color="B", level="5k", two_player=True)
+    game.rogue_enabled = True
+    game.rogue_card = "sansan_trap"
+    game.current_player = "W"
+    game.moves.append(("W", s.coord_to_gtp(2, 2, game.size)))
+    game.place_stone(2, 2, "W")
+    sent = []
+
+    async def send_white(payload):
+        sent.append(copy.deepcopy(payload))
+
+    await s._apply_player_rogue_move_effects(game, send_white, 2, 2, "W", 0)
+    white_stones = sum(1 for row in game.board for cell in row if cell == 2)
+    assert white_stones >= 4
+    assert any(msg.get("type") == "rogue_event" for msg in sent)
+
+    choices = s.pick_rogue_choices(3, pool=s.TWO_PLAYER_ROGUE_POOL)
+    assert len(choices) == 3
+    assert all(card in s.TWO_PLAYER_ROGUE_POOL for card in choices)
+
+
+async def smoke_ai_rogue_support():
+    game = make_game()
+    game.rogue_enabled = True
+    game.ai_rogue_enabled = True
+    sent = []
+
+    async def send(payload):
+        sent.append(copy.deepcopy(payload))
+
+    await s._activate_ai_rogue_card(game, send, "golden_corner")
+    assert game.ai_rogue_card == "golden_corner"
+    assert len(game.ai_rogue_seal_points) == 16
+    assert any(msg.get("type") == "rogue_ai_selected" for msg in sent)
+
+    game = make_game()
+    game.rogue_enabled = True
+    game.ai_rogue_enabled = True
+    game.ai_rogue_card = "fog"
+    game.current_player = game.player_color
+    old_pick = s._pick_fog_mask
+    try:
+        s._pick_fog_mask = lambda _size, _rng: [(3, 3), (3, 4), (4, 3), (4, 4)]
+        s._refresh_ai_rogue_player_turn(game)
+    finally:
+        s._pick_fog_mask = old_pick
+    assert s._get_ai_rogue_forbidden_points(game) == [(3, 3), (3, 4), (4, 3), (4, 4)]
+    game.current_player = game.ai_color
+    s._refresh_ai_rogue_player_turn(game)
+    assert s._get_ai_rogue_forbidden_points(game) == []
+
+    game = make_game()
+    game.ai_rogue_enabled = True
+    game.ai_rogue_card = "sansan_trap"
+    game.moves.append(("B", s.coord_to_gtp(2, 2, game.size)))
+    game.place_stone(2, 2, "B")
+    sent = []
+
+    async def send_trap(payload):
+        sent.append(copy.deepcopy(payload))
+
+    old_sync = s._sync_board_to_katago
+    try:
+        async def fake_sync(_game):
+            return None
+
+        s._sync_board_to_katago = fake_sync
+        await s._apply_ai_rogue_response_effects(game, send_trap, 2, 2, "B")
+    finally:
+        s._sync_board_to_katago = old_sync
+
+    assert game.ai_rogue_sansan_trap_done is True
+    assert sum(1 for x, y in s._adjacent8_points(2, 2, game.size) if game.board[y][x] == 2) >= 3
+    assert any(msg.get("type") == "rogue_event" for msg in sent)
+
+
 async def smoke_seal_fallback():
     game = make_game()
     seed_board(game)
@@ -687,6 +786,8 @@ async def main():
         await smoke_fog_mask_refresh()
         await smoke_foolish_wisdom_rogue()
         await smoke_foolish_wisdom_ultimate()
+        await smoke_two_player_rogue_shared_cards()
+        await smoke_ai_rogue_support()
     finally:
         s.engine = old_engine
     print("card smoke test: OK")
