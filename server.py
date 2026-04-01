@@ -125,28 +125,39 @@ CPU_MAX_VISITS = 250      # Hard cap for older CPU mode (prefer stable replies o
 # a scripted auto-win. These are intentionally a bit generous to emphasize the
 # "fun modifier" feel over perfect balance.
 ROGUE_DICE_PASS_CHANCE = 0.14
-ROGUE_SLIP_CHANCE = 0.38
-ROGUE_MIRROR_CHANCE = 0.30
-ROGUE_NERF_FACTOR = 0.40
+ROGUE_SLIP_CHANCE = 0.20
+ROGUE_MIRROR_CHANCE = 0.24
+ROGUE_NERF_FACTOR = 0.12
+ROGUE_EROSION_SHIFT = 4.0
+ROGUE_TENGEN_AI_MOVES = 3
 ROGUE_FOG_MASK_RADIUS = 1
+ROGUE_FOG_AI_MOVES = 6
+ROGUE_BLACKHOLE_AI_MOVES = 10
+ROGUE_GOLDEN_CORNER_AI_MOVES = 10
 ROGUE_GRAVITY_AI_MOVES = 5
 ROGUE_LOWLINE_AI_MOVES = 6
-ROGUE_SHADOW_AI_MOVE_INDEXES = {1, 2, 3}
+ROGUE_SHADOW_AI_MOVE_INDEXES = {1, 2}
+ROGUE_SHADOW_CHANCE = 0.55
 ROGUE_SUBOPTIMAL_AI_MOVES = 10
-ROGUE_TIME_PRESS_MAX_TIME = 0.7
-ROGUE_TIME_PRESS_MAX_VISITS = 500
-ROGUE_FOOLISH_FILL_COUNT = 1
+ROGUE_TIME_PRESS_MAX_TIME = 0.06
+ROGUE_TIME_PRESS_MAX_VISITS = 40
+ROGUE_FOOLISH_FILL_COUNT = 2
 ULTIMATE_FOOLISH_FILL_COUNT = 20
 ULTIMATE_FOOLISH_CHAIN_DELAY = 1.0
 ROGUE_HANDICAP_REQUIRED_PASSES = 1
-ROGUE_HANDICAP_BONUS_INTERVAL = 4
-ROGUE_HANDICAP_MAX_BONUSES = 4
-ROGUE_JOSEKI_TARGET_COUNT = 7
+ROGUE_HANDICAP_BONUS_INTERVAL = 6
+ROGUE_HANDICAP_MAX_BONUSES = 3
+ROGUE_JOSEKI_TARGET_COUNT = 5
 ROGUE_JOSEKI_REQUIRED_HITS = 3
-ROGUE_GODHAND_FILL_COUNT = 5
-ROGUE_NO_REGRET_CHANCE = 0.14
-ROGUE_QUICKTHINK_FIRST_SECONDS = 3
-ROGUE_QUICKTHINK_SECOND_SECONDS = 2
+ROGUE_GODHAND_FILL_COUNT = 2
+ROGUE_GODHAND_RADIUS = 1
+ROGUE_CORNER_HELPER_STONES = 2
+ROGUE_SANRENSEI_REQUIRED_STARS = 2
+ROGUE_SANRENSEI_OPENING_MOVES = 4
+ROGUE_SANRENSEI_BONUS_STONES = 2
+ROGUE_NO_REGRET_CHANCE = 0.08
+ROGUE_QUICKTHINK_FIRST_SECONDS = 5
+ROGUE_QUICKTHINK_SECOND_SECONDS = 3
 
 # Ultimate mode tuning: prioritize spectacle and reliable payoff.
 ULTIMATE_CHAIN_EXTRA_TURN_CHANCE = 0.65
@@ -164,7 +175,7 @@ ULTIMATE_WALL_TRIGGER_CHANCE = 0.60
 ROGUE_LAST_STAND_THRESHOLD = 0.30
 ULTIMATE_LAST_STAND_THRESHOLD = 0.30
 ROGUE_LAST_STAND_CLEAR_COUNT = 1
-ROGUE_LAST_STAND_SPAWN_COUNT = 1
+ROGUE_LAST_STAND_SPAWN_COUNT = 2
 ULTIMATE_LAST_STAND_CLEAR_COUNT = 30
 ULTIMATE_LAST_STAND_SPAWN_COUNT = 30
 ULTIMATE_FIVE_IN_ROW_CLEAR_COUNT = 30
@@ -183,6 +194,60 @@ ROGUE_FEATURED_CARDS = {
     "capture_foul",
     "last_stand",
 }
+
+CHALLENGE_BETA_POOL = [
+    "dice",
+    "nerf",
+    "time_press",
+    "suboptimal",
+    "seal",
+    "blackhole",
+    "golden_corner",
+    "fog",
+    "sprout",
+    "joseki_ocd",
+    "corner_helper",
+    "sanrensei",
+    "foolish_wisdom",
+    "five_in_row",
+    "sansan_trap",
+    "god_hand",
+    "twin",
+    "exchange",
+    "capture_foul",
+    "last_stand",
+]
+
+CHALLENGE_BETA_HANDICAPS = {
+    1: 0,
+    2: 2,
+}
+
+CHALLENGE_CATEGORY_MAP = {
+    "sanrensei": "derivative",
+    "foolish_wisdom": "derivative",
+    "five_in_row": "derivative",
+    "sansan_trap": "trap",
+    "god_hand": "trap",
+    "blackhole": "zone",
+    "golden_corner": "zone",
+    "fog": "zone",
+    "seal": "zone",
+    "dice": "restriction",
+    "nerf": "restriction",
+    "time_press": "restriction",
+    "suboptimal": "restriction",
+    "twin": "active",
+    "exchange": "active",
+}
+
+CHALLENGE_STAGE_BIAS_WEIGHT = 2.6
+CHALLENGE_SET_MIN_COUNT = 2
+CHALLENGE_DERIVATIVE_BONUS_CHANCE = 0.50
+CHALLENGE_TRAP_EXTRA_TURN_CHANCE = 1.0
+CHALLENGE_ZONE_EXPAND_RADIUS = 1
+CHALLENGE_RESTRICTION_DECAY_CHANCE = 0.05
+CHALLENGE_ACTIVE_USE_BONUS = 1
 
 TWO_PLAYER_ROGUE_POOL = [
     "erosion",
@@ -230,10 +295,10 @@ ROGUE_CAPTURE_FOUL_THRESHOLD = 5
 ROGUE_CAPTURE_FOUL_KOMI_PENALTY = 1.5
 ULTIMATE_CAPTURE_FOUL_THRESHOLD = 5
 ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY = 50.0
-ROGUE_COACH_BASE_TURNS = 20
-ROGUE_COACH_BONUS_TURNS = 5
-ROGUE_COACH_BONUS_THRESHOLD = 0.40
-ROGUE_COACH_VISITS = 4000
+ROGUE_COACH_BASE_TURNS = 30
+ROGUE_COACH_BONUS_TURNS = 10
+ROGUE_COACH_BONUS_THRESHOLD = 0.50
+ROGUE_COACH_VISITS = 20000
 
 
 def get_game_visits(level: str, move_count: int = -1,
@@ -264,17 +329,17 @@ def get_game_visits(level: str, move_count: int = -1,
 ROGUE_CARDS = {
     "tengen": {
         "name": "天元",
-        "desc": "开局 2 手，AI 被天元与星位吸引",
+        "desc": "开局 3 手，AI 会优先靠近天元与星位落子",
         "icon": "◎",
     },
     "dice": {
         "name": "掷骰",
-        "desc": "AI 每手有 14% 概率直接跳过",
+        "desc": "AI 每手有 10% 概率直接跳过",
         "icon": "🎲",
     },
     "erosion": {
         "name": "蚕食",
-        "desc": "每提 1 子，贴目向有利方向偏移 2 目",
+        "desc": "每提 1 子，贴目向有利方向偏移 6 目",
         "icon": "🪲",
     },
     "puppet": {
@@ -285,28 +350,28 @@ ROGUE_CARDS = {
     },
     "seal": {
         "name": "封印术",
-        "desc": "指定 3 个禁区，AI 全局无法落子",
+        "desc": "指定 3 个禁区，AI 前 8 手无法落在这些点",
         "icon": "🔒",
     },
     "twin": {
         "name": "连击",
-        "desc": "一回合连落两手（限 1 次）",
+        "desc": "一回合连落两手（限 1 次，但更适合连续追击）",
         "icon": "⚡",
         "uses": 1,
     },
     "nerf": {
         "name": "弱化",
-        "desc": "AI 搜索算力直降 60%",
+        "desc": "AI 搜索算力大幅下降",
         "icon": "📉",
     },
     "komi_relief": {
         "name": "贴目减半",
-        "desc": "贴目从 7.5 直降至 2.5",
+        "desc": "贴目会朝你有利的方向调整 7 目",
         "icon": "⚖️",
     },
     "time_press": {
         "name": "限时压制",
-        "desc": "AI 每手最多思考 0.7 秒",
+        "desc": "AI 每手最多思考 0.08 秒",
         "icon": "⏱️",
     },
     "lowline": {
@@ -316,22 +381,22 @@ ROGUE_CARDS = {
     },
     "suboptimal": {
         "name": "次优之选",
-        "desc": "AI 前 10 手只能选第 3~5 优的点",
+        "desc": "AI 前 6 手会从次优点里挑着下",
         "icon": "🥈",
     },
     "mirror": {
         "name": "镜像",
-        "desc": "AI 有 30% 概率模仿你的上一手",
+        "desc": "AI 有 18% 概率模仿你的上一手",
         "icon": "🪞",
     },
     "slip": {
         "name": "手滑了",
-        "desc": "AI 有 38% 概率偏到目标旁边",
+        "desc": "AI 有 12% 概率手滑到相邻的直线点位",
         "icon": "🤏",
     },
     "blackhole": {
         "name": "黑洞",
-        "desc": "棋盘中心 13 路区域对 AI 完全禁入",
+        "desc": "棋盘中心 13 路区域对 AI 前 8 手禁入",
         "icon": "🕳️",
     },
     "exchange": {
@@ -342,7 +407,7 @@ ROGUE_CARDS = {
     },
     "fog": {
         "name": "战争迷雾",
-        "desc": "AI 每手前刷新一个 3×3 禁区遮罩",
+        "desc": "AI 前 4 手每手前会刷新一个 3×3 禁区遮罩",
         "icon": "🌫️",
     },
     "gravity": {
@@ -352,17 +417,17 @@ ROGUE_CARDS = {
     },
     "golden_corner": {
         "name": "黄金角",
-        "desc": "随机封锁一角 4×4 区域，AI 禁入",
+        "desc": "随机封锁一角 4×4 区域，AI 前 8 手禁入",
         "icon": "🏆",
     },
     "sansan": {
         "name": "三三开局",
-        "desc": "AI 先冲三三，之后回避角部 5×5",
+        "desc": "AI 前 2 手偏向三三，随后 2 手暂避角部 4×4",
         "icon": "◣",
     },
     "shadow": {
         "name": "影子",
-        "desc": "AI 前 3 手紧跟上一手的位置",
+        "desc": "AI 前 2 手有较高概率紧跟自己的上一手",
         "icon": "👤",
     },
     "sprout": {
@@ -372,17 +437,17 @@ ROGUE_CARDS = {
     },
     "joseki_ocd": {
         "name": "定式强迫症",
-        "desc": "开局亮出 7 个目标点，下中其中 3 个，剩下 4 个会自动补成你的棋子",
+        "desc": "开局亮出 4 个目标点，下中其中 3 个，剩下 1 个会自动补成你的棋子",
         "icon": "📐",
     },
     "handicap_quest": {
         "name": "让子任务",
-        "desc": "先虚手 1 次，之后每 4 手奖励 AI 虚手",
+        "desc": "先虚手 1 次，之后每 7 手奖励 AI 虚手，最多触发 2 次",
         "icon": "🎁",
     },
     "god_hand": {
         "name": "神之一手",
-        "desc": "踩中隐藏菱形区，5×5 内爆出 5 颗己棋",
+        "desc": "踩中隐藏菱形区，周围 3×3 内随机爆出 1 颗己棋，只会落在空点",
         "icon": "✨",
     },
     "sansan_trap": {
@@ -392,42 +457,42 @@ ROGUE_CARDS = {
     },
     "corner_helper": {
         "name": "守角辅助",
-        "desc": "任一角的 5×5 区域里有 2 颗己子时，就会在那个角再补 2 颗援军",
+        "desc": "任一角的 5×5 区域里有 2 颗己子时，就会在那个角补 1 颗援军",
         "icon": "🏯",
     },
     "sanrensei": {
         "name": "三连星",
-        "desc": "前 3 手全落星位，额外生成 3 颗己棋",
+        "desc": "前 5 手里只要有 2 手落在星位，就会额外生成 1 颗己棋",
         "icon": "⭐",
     },
     "no_regret": {
         "name": "永不悔棋",
-        "desc": "禁用悔棋，但每手 14% 概率白送一子",
+        "desc": "禁用悔棋，但每手 3% 概率白送一子",
         "icon": "🚫",
     },
     "quickthink": {
         "name": "快速思考",
-        "desc": "3 秒内落子可追加 2 秒连击窗口",
+        "desc": "5 秒内落子可追加 3 秒连击窗口",
         "icon": "⚡",
     },
     "foolish_wisdom": {
         "name": "大智若愚",
-        "desc": "摆出孤立愚形，5×5 内随机长出 1 颗己棋",
+        "desc": "摆出愚形，附近 5×5 内随机长出 1 颗己棋",
         "icon": "🧩",
     },
     "five_in_row": {
         "name": "五子连珠",
-        "desc": "这是五子棋，不是围棋。每当我方横、竖、斜正好连成 5 颗同色棋，就会在首尾各补 1 颗棋子",
+        "desc": "这是五子棋，不是围棋。每当我方横、竖、斜正好连成 5 颗同色棋，就会优先在首尾补子；若首尾被堵住，则改在两端附近补子",
         "icon": "🎯",
     },
     "coach_mode": {
         "name": "代练上号",
-        "desc": "主动技能：后 20 手由比对方段位更强的 AI 代打；若下完后胜率仍低于 40%，则额外再代打 5 手",
+        "desc": "主动技能：后 30 手由更强的 AI 代打；若下完后胜率仍低于 50%，则额外再代打 10 手",
         "icon": "🎓",
     },
     "capture_foul": {
         "name": "提子犯规",
-        "desc": "若对手单次或累计提子超过 5 颗，有 50% 概率触发“提子未放在棋盒”；每多 1 子概率再加 10%。若触发，则被惩罚方罚 1.5 目，随后概率重新计数，必须再提够 5 子后重新开始",
+        "desc": "若对手单次或累计提子超过 1 颗，有 70% 概率触发“提子未放在棋盒”；每多 1 子概率再加 15%。若触发，则被惩罚方罚 2 目，随后概率重新计数",
         "icon": "🧺",
     },
     "last_stand": {
@@ -435,6 +500,43 @@ ROGUE_CARDS = {
         "desc": "当我方胜率跌到 30% 以下时，仅触发 1 次：在上一手周围 3×3 内随机消掉 1 颗敌子，并随机补 1 颗己棋（不会落在禁着点）",
         "icon": "🫀",
     },
+}
+
+ROGUE_CARDS = {
+    "tengen": {"name": "天元", "desc": "开局 3 手，AI 会优先靠近天元与星位落子", "icon": "●"},
+    "dice": {"name": "掷骰", "desc": "AI 每手有 14% 概率直接虚手", "icon": "🎲"},
+    "erosion": {"name": "蚕食", "desc": "每提 1 子，贴目向有利方偏移 4 目", "icon": "🌑"},
+    "puppet": {"name": "傀儡术", "desc": "选定一点，强制 AI 在此落子（限 1 次）", "icon": "🎁", "uses": 1},
+    "seal": {"name": "封印术", "desc": "指定 3 个禁着点，AI 前 8 手都不能下在这些点", "icon": "🔀"},
+    "twin": {"name": "连击", "desc": "本回合可连续落两手（限 1 次）", "icon": "✦", "uses": 1},
+    "nerf": {"name": "弱化", "desc": "AI 搜索算力被压到很低，多数时候只能靠浅层判断", "icon": "📲"},
+    "komi_relief": {"name": "贴目减半", "desc": "贴目会朝你有利的方向调整 7 目", "icon": "✘️"},
+    "time_press": {"name": "限时压制", "desc": "AI 每手最多思考 0.06 秒，基本来不及算深", "icon": "⏱️"},
+    "lowline": {"name": "低空飞行", "desc": "AI 前 6 手偏向二三路低位", "icon": "🦊"},
+    "suboptimal": {"name": "次优之选", "desc": "AI 前 10 手更容易从后几名的候选点里随机挑一手", "icon": "🚍"},
+    "mirror": {"name": "镜像", "desc": "AI 有 24% 概率模仿你的上一手", "icon": "🪞"},
+    "slip": {"name": "手滑了", "desc": "AI 有 20% 概率手滑到相邻的点位", "icon": "😴"},
+    "blackhole": {"name": "黑洞", "desc": "棋盘中心 13 路区域对 AI 前 10 手禁入", "icon": "🕳️"},
+    "exchange": {"name": "乾坤挪移", "desc": "强制 AI 虚手，你继续行棋（限 1 次）", "icon": "📧", "uses": 1},
+    "fog": {"name": "战争迷雾", "desc": "AI 前 6 手每手前会刷新一个 3×3 禁区遮罩", "icon": "🌫️"},
+    "gravity": {"name": "星位引力", "desc": "AI 前 5 手被星位磁场牵引", "icon": "🌠"},
+    "golden_corner": {"name": "黄金角", "desc": "随机封锁一角 4×4 区域，AI 前 10 手禁入", "icon": "🥇"},
+    "sansan": {"name": "三三开局", "desc": "开局前 2 手强制 AI 去抢四个三三点中的任意点，之后 2 手暂时避开角上 4×4 区域", "icon": "◣"},
+    "shadow": {"name": "影子", "desc": "AI 前 2 手有较高概率紧跟自己的上一手", "icon": "👁"},
+    "sprout": {"name": "萌芽", "desc": "每次提子后，都会在附近自动长出 1 颗己棋", "icon": "🌱"},
+    "joseki_ocd": {"name": "定式强迫症", "desc": "开局亮出 5 个目标点，只要下中 3 个，剩下的 2 个会自动补成你的棋子", "icon": "📻"},
+    "handicap_quest": {"name": "让子任务", "desc": "先虚手 1 次，之后每满 6 手奖励 AI 虚手一次，最多触发 3 次", "icon": "🎵"},
+    "god_hand": {"name": "神之一手", "desc": "踩中隐藏菱形区，周围 3×3 内随机爆出 2 颗己棋，只会落在空点", "icon": "✨"},
+    "sansan_trap": {"name": "三三陷阱", "desc": "只要对手的第 1 手正好落在四个三三点之一，就会在那手棋周围反生 3 颗我方棋", "icon": "🪤"},
+    "corner_helper": {"name": "守角辅助", "desc": "任一角的 5×5 区域里有 2 颗己子时，就会在那个角补 2 颗援军", "icon": "🏯"},
+    "sanrensei": {"name": "三连星", "desc": "前 4 手里只要有 2 手落在星位，就会额外生成 2 颗己棋", "icon": "⭐"},
+    "no_regret": {"name": "永不悔棋", "desc": "禁用悔棋，但每手 8% 概率白送一子", "icon": "🚫"},
+    "quickthink": {"name": "快速思考", "desc": "5 秒内落子可追加 3 秒连击窗口", "icon": "⚡"},
+    "foolish_wisdom": {"name": "大智若愚", "desc": "摆出愚形，附近 5×5 内随机长出 2 颗己棋", "icon": "🧠"},
+    "five_in_row": {"name": "五子连珠", "desc": "这是五子棋，不是围棋。每当我方横、竖、斜正好连成 5 颗同色棋，就会优先在首尾补子；若首尾被堵住，则改在两端附近补子", "icon": "🎯"},
+    "coach_mode": {"name": "代练上号", "desc": "主动技能：后 30 手由更强的 AI 代打；若下完后胜率仍低于 50%，则额外再代打 10 手", "icon": "🎗"},
+    "capture_foul": {"name": "提子犯规", "desc": "若对手单次或累计提子超过 5 颗，有 50% 概率触发“提子未放在棋盒”；每多 1 子概率再加 10%。若触发，则被惩罚方罚 1.5 目，随后概率重新计数", "icon": "🧺"},
+    "last_stand": {"name": "起死回生", "desc": "当我方胜率跌到 30% 以下时，仅触发 1 次：在上一手周围 3×3 内随机消掉 1 颗敌子，并随机补 2 颗己棋（不会落在禁着点）", "icon": "🫀"},
 }
 
 
@@ -459,6 +561,75 @@ def pick_rogue_choices(n: int = 3, pool: Optional[list[str]] = None) -> list[str
         if card not in unique_choices:
             unique_choices.append(card)
     return unique_choices[:n]
+
+
+def _challenge_card_category(card_id: str) -> Optional[str]:
+    return CHALLENGE_CATEGORY_MAP.get(card_id)
+
+
+def _challenge_category_counts_from_cards(cards: list[str]) -> dict[str, int]:
+    counts = {
+        "derivative": 0,
+        "trap": 0,
+        "zone": 0,
+        "restriction": 0,
+        "active": 0,
+    }
+    for card_id in cards:
+        category = _challenge_card_category(card_id)
+        if category:
+            counts[category] += 1
+    return counts
+
+
+def _challenge_weighted_unique_sample(
+    pool: list[str],
+    n: int,
+    weights: dict[str, float],
+    rng: random.Random,
+) -> list[str]:
+    available = list(pool)
+    chosen: list[str] = []
+    while available and len(chosen) < n:
+        total = sum(max(0.01, weights.get(card_id, 1.0)) for card_id in available)
+        roll = rng.random() * total
+        upto = 0.0
+        picked = available[-1]
+        for card_id in available:
+            upto += max(0.01, weights.get(card_id, 1.0))
+            if upto >= roll:
+                picked = card_id
+                break
+        chosen.append(picked)
+        available.remove(picked)
+    return chosen
+
+
+def pick_challenge_beta_choices(
+    selected_cards: list[str],
+    n: int = 3,
+    pool: Optional[list[str]] = None,
+) -> list[str]:
+    import time
+
+    rng = random.Random(time.time_ns())
+    base_pool = [card_id for card_id in (pool or CHALLENGE_BETA_POOL) if card_id not in selected_cards]
+    if len(base_pool) <= n:
+        return base_pool[:n]
+
+    weights = {card_id: 1.0 for card_id in base_pool}
+    counts = _challenge_category_counts_from_cards(selected_cards)
+    for card_id in base_pool:
+        category = _challenge_card_category(card_id)
+        if category and counts.get(category, 0) > 0:
+            weights[card_id] += CHALLENGE_STAGE_BIAS_WEIGHT * counts[category]
+
+    choices = _challenge_weighted_unique_sample(base_pool, n, weights, rng)
+    if choices and not any(card in ROGUE_FEATURED_CARDS for card in choices):
+        featured_pool = [card for card in base_pool if card in ROGUE_FEATURED_CARDS]
+        if featured_pool:
+            choices[-1] = rng.choice(featured_pool)
+    return choices
 
 
 def pick_ai_rogue_card(exclude: Optional[list[str]] = None) -> str:
@@ -1125,6 +1296,21 @@ class GoGame:
         self.rogue_handicap_passes: int = 0       # passes completed (need 2)
         self.rogue_handicap_active: bool = False   # task completed, bonus active
         self.rogue_handicap_bonuses: int = 0       # bonus turns used (max 3)
+        self.challenge_beta: bool = False
+        self.challenge_stage: int = 0
+        self.challenge_cards: list[str] = []
+        self.challenge_offer_cards: list[str] = []
+        self.challenge_refreshes: int = 0
+        self.challenge_limits: dict[str, int] = {
+            "undo": 0,
+            "hint": 0,
+            "coach": 0,
+        }
+        self.challenge_usage: dict[str, int] = {
+            "undo": 0,
+            "hint": 0,
+            "coach": 0,
+        }
         # Ultimate rogue mode (大招模式)
         self.ultimate: bool = False
         self.ultimate_player_card: Optional[str] = None
@@ -1276,6 +1462,16 @@ class GoGame:
             ),
             "rogue_handicap_active": self.rogue_handicap_active,
             "rogue_handicap_passes": self.rogue_handicap_passes,
+            "challenge_beta": self.challenge_beta,
+            "challenge_stage": self.challenge_stage,
+            "challenge_cards": list(self.challenge_cards),
+            "challenge_refreshes": self.challenge_refreshes,
+            "challenge_limits": dict(self.challenge_limits),
+            "challenge_usage": dict(self.challenge_usage),
+            "challenge_remaining": {
+                key: max(0, self.challenge_limits.get(key, 0) - self.challenge_usage.get(key, 0))
+                for key in {"undo", "hint", "coach"}
+            },
             "ultimate": self.ultimate,
             "ultimate_player_card": self.ultimate_player_card,
             "ultimate_ai_card": self.ultimate_ai_card,
@@ -2128,6 +2324,20 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         two_player = False
                     rogue_enabled = bool(data.get("rogue", False))
                     ai_rogue_enabled = bool(data.get("ai_rogue", False)) and rogue_enabled and not two_player
+                    challenge_beta = bool(data.get("challenge_beta", False))
+                    challenge_stage = int(data.get("challenge_stage", 0) or 0)
+                    challenge_cards = [
+                        card_id for card_id in data.get("challenge_cards", [])
+                        if card_id in CHALLENGE_BETA_POOL
+                    ]
+                    challenge_limits = data.get("challenge_limits", {}) or {}
+                    challenge_refreshes = int(data.get("challenge_refreshes", 0) or 0)
+                    if challenge_beta:
+                        two_player = False
+                        ai_observer = False
+                        rogue_enabled = True
+                        ai_rogue_enabled = False
+                        handicap = CHALLENGE_BETA_HANDICAPS.get(challenge_stage, handicap)
                     ai_style = str(data.get("ai_style", "balanced"))
                     if ai_style not in AI_STYLE_OPTIONS:
                         ai_style = "balanced"
@@ -2138,6 +2348,16 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     game.ai_style = ai_style
                     game.rogue_enabled = rogue_enabled
                     game.ai_rogue_enabled = ai_rogue_enabled
+                    game.challenge_beta = challenge_beta
+                    game.challenge_stage = challenge_stage
+                    game.challenge_cards = challenge_cards
+                    game.challenge_refreshes = challenge_refreshes
+                    game.challenge_limits = {
+                        "undo": int(challenge_limits.get("undo", 0) or 0),
+                        "hint": int(challenge_limits.get("hint", 0) or 0),
+                        "coach": int(challenge_limits.get("coach", 0) or 0),
+                    }
+                    game.challenge_usage = {"undo": 0, "hint": 0, "coach": 0}
                     active_games[game_id] = game
 
                     if engine.ready:
@@ -2162,6 +2382,8 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                                     game.place_stone(coord[0], coord[1], "B")
                                     game.moves.append(("B", gtp))
                             game.current_player = "W"
+                    if challenge_beta and challenge_cards:
+                        await _apply_challenge_rogue_loadout(game, send)
                     game.reset_history()
 
                     await send({"type": "game_start", **game.to_state()})
@@ -2184,22 +2406,43 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
 
                     # ── Rogue mode: offer 3 cards before game starts ─────
                     elif rogue_enabled and (two_player or engine.ready):
-                        rogue_pool = TWO_PLAYER_ROGUE_POOL if two_player else None
-                        choices = pick_rogue_choices(3, pool=rogue_pool)
-                        cards_data = []
-                        for cid in choices:
-                            c = ROGUE_CARDS[cid]
-                            cards_data.append({
-                                "id": cid, "name": c["name"],
-                                "desc": c["desc"], "icon": c["icon"],
+                        should_offer_rogue = True
+                        if challenge_beta and len(challenge_cards) >= max(1, challenge_stage):
+                            should_offer_rogue = False
+                        if should_offer_rogue:
+                            if challenge_beta:
+                                rogue_pool = [card_id for card_id in CHALLENGE_BETA_POOL if card_id not in challenge_cards]
+                                choices = pick_challenge_beta_choices(challenge_cards, 3, pool=rogue_pool)
+                            else:
+                                rogue_pool = TWO_PLAYER_ROGUE_POOL if two_player else None
+                                choices = pick_rogue_choices(3, pool=rogue_pool)
+                            game.challenge_offer_cards = choices if challenge_beta else []
+                            cards_data = []
+                            for cid in choices:
+                                c = ROGUE_CARDS[cid]
+                                cards_data.append({
+                                    "id": cid, "name": c["name"],
+                                    "desc": c["desc"], "icon": c["icon"],
+                                })
+                            await send({
+                                "type": "rogue_offer",
+                                "cards": cards_data,
+                                "challenge_beta": challenge_beta,
+                                "challenge_stage": challenge_stage,
+                                "refresh_remaining": challenge_refreshes,
                             })
-                        await send({"type": "rogue_offer", "cards": cards_data})
-                        # Game waits for card selection before AI moves
+                            # Game waits for card selection before AI moves
+                        else:
+                            if ai_observer and engine.ready:
+                                asyncio.create_task(_run_ai_observer_loop(game, send))
+                            elif not two_player and engine.ready:
+                                if game.ai_color == game.current_player:
+                                    await _ai_move(game, send)
                     else:
                         if ai_observer and engine.ready:
                             asyncio.create_task(_run_ai_observer_loop(game, send))
                         elif not two_player and engine.ready:
-                            if game.ai_color == game.current_player and handicap == 0:
+                            if game.ai_color == game.current_player:
                                 await _ai_move(game, send)
 
                     if not game.game_over and engine.ready:
@@ -2468,6 +2711,12 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         await send_error("这张卡会禁用悔棋")
                         continue
 
+                    if game.challenge_beta:
+                        if _challenge_remaining(game, "undo") <= 0:
+                            await send_error("测试版闯关：悔棋次数已用完")
+                            continue
+                        game.challenge_usage["undo"] += 1
+
                     undo_count = 1 if game.two_player else (
                         2 if len(game.moves) >= 2 else 1)
                     if not game.undo_history(undo_count):
@@ -2505,6 +2754,12 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         game = active_games.get(game_id)
                     if not game or game.game_over or not engine.ready:
                         continue
+                    if game.challenge_beta:
+                        if _challenge_remaining(game, "hint") <= 0:
+                            await send_error("测试版闯关：推荐点次数已用完")
+                            continue
+                        game.challenge_usage["hint"] += 1
+                        await send({"type": "game_state", **game.to_state()})
                     analysis = await do_analysis(game)
                     await send({"type": "analysis", **analysis})
 
@@ -2576,8 +2831,23 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     card_id = data.get("card_id", "")
                     if card_id not in ROGUE_CARDS:
                         continue
-                    await _activate_rogue_card(game, send, card_id)
-                    if game.ai_rogue_enabled and not game.two_player:
+                    if game.challenge_beta:
+                        if card_id in game.challenge_cards or card_id not in game.challenge_offer_cards:
+                            continue
+                        game.challenge_cards.append(card_id)
+                        game.challenge_offer_cards = []
+                        await _apply_challenge_rogue_loadout(game, send)
+                        await send({
+                            "type": "rogue_card_selected",
+                            "card_id": card_id,
+                            "name": ROGUE_CARDS[card_id]["name"],
+                            "icon": ROGUE_CARDS[card_id]["icon"],
+                            "waiting_seal": False,
+                            **game.to_state(),
+                        })
+                    else:
+                        await _activate_rogue_card(game, send, card_id)
+                    if game.ai_rogue_enabled and not game.two_player and not game.challenge_beta:
                         ai_card_id = pick_ai_rogue_card(exclude=[card_id])
                         await _activate_ai_rogue_card(game, send, ai_card_id)
                     game.reset_history()
@@ -2587,6 +2857,36 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                             await _ai_move(game, send)
                         if not game.game_over and engine.ready:
                             asyncio.create_task(do_analysis_bg(game))
+
+                elif action == "challenge_refresh_offer":
+                    if not game:
+                        game = active_games.get(game_id)
+                    if not game or not game.challenge_beta:
+                        continue
+                    if game.challenge_refreshes <= 0:
+                        await send_error("当前测试版闯关没有剩余刷新次数")
+                        continue
+                    pool = [card_id for card_id in CHALLENGE_BETA_POOL if card_id not in game.challenge_cards]
+                    if len(pool) < 3:
+                        await send_error("当前可刷新卡牌不足 3 张")
+                        continue
+                    game.challenge_refreshes -= 1
+                    choices = pick_challenge_beta_choices(game.challenge_cards, 3, pool=pool)
+                    game.challenge_offer_cards = choices
+                    cards_data = []
+                    for cid in choices:
+                        c = ROGUE_CARDS[cid]
+                        cards_data.append({
+                            "id": cid, "name": c["name"],
+                            "desc": c["desc"], "icon": c["icon"],
+                        })
+                    await send({
+                        "type": "rogue_offer",
+                        "cards": cards_data,
+                        "challenge_beta": True,
+                        "challenge_stage": game.challenge_stage,
+                        "refresh_remaining": game.challenge_refreshes,
+                    })
 
                 # ── rogue_seal_point ─────────────────────────────────────────
                 elif action == "rogue_seal_point":
@@ -2602,6 +2902,8 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                                            for px, py in game.rogue_seal_points],
                                 "remaining": 3 - len(game.rogue_seal_points)})
                     if len(game.rogue_seal_points) >= 3:
+                        if game.challenge_beta:
+                            game.rogue_seal_points = _challenge_zone_points(game, game.rogue_seal_points)
                         game.rogue_waiting_seal = False
                         game.reset_history()
                         await send({"type": "rogue_seal_done"})
@@ -2690,6 +2992,11 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         game = active_games.get(game_id)
                     if not game or game.game_over or not engine.ready:
                         continue
+                    if game.challenge_beta:
+                        if _challenge_remaining(game, "coach") <= 0:
+                            await send_error("娴嬭瘯鐗堥棷鍏筹細浠ｄ笅娆℃暟宸茬敤瀹?")
+                            continue
+                        game.challenge_usage["coach"] += 1
                     if game.rogue_card != "coach_mode" or game.rogue_uses.get("coach_mode", 0) <= 0:
                         await send_error("代练上号已经用完了")
                         continue
@@ -3259,18 +3566,18 @@ def _find_new_fool_shapes(
                 shape = _shape_key([(x, y), p1, p2])
                 if shape in seen_shapes or shape in found_keys:
                     continue
-                isolated = True
+                loosely_isolated = True
                 shape_set = set(shape)
                 for sx, sy in shape:
-                    for nx, ny in _adjacent8_points(sx, sy, game.size):
+                    for nx, ny in _adjacent_points(sx, sy, game.size):
                         if (nx, ny) in shape_set:
                             continue
                         if game.board[ny][nx] == cv:
-                            isolated = False
+                            loosely_isolated = False
                             break
-                    if not isolated:
+                    if not loosely_isolated:
                         break
-                if not isolated:
+                if not loosely_isolated:
                     continue
                 found.append(shape)
                 found_keys.add(shape)
@@ -3488,9 +3795,11 @@ async def _estimate_side_winrate(game: GoGame, color: str) -> float:
 
 
 async def _trigger_rogue_five_in_row(game: GoGame, send_fn, color: str):
+    current_lines = set(_find_exact_five_lines(game, color))
+    game.rogue_five_in_row_seen.intersection_update(current_lines)
     new_lines = [
         line
-        for line in _find_exact_five_lines(game, color)
+        for line in current_lines
         if line not in game.rogue_five_in_row_seen
     ]
     if not new_lines:
@@ -3498,14 +3807,29 @@ async def _trigger_rogue_five_in_row(game: GoGame, send_fn, color: str):
     endpoints = []
     for line in new_lines:
         game.rogue_five_in_row_seen.add(line)
+        sorted_line = sorted(line)
+        x1, y1 = sorted_line[0]
+        x2, y2 = sorted_line[1]
+        dx, dy = x2 - x1, y2 - y1
+        perp = (-dy, dx)
         start, end = _line_endpoints(line)
-        for point in (start, end):
+        for point, anchor in ((start, sorted_line[0]), (end, sorted_line[-1])):
             if not point:
                 continue
             x, y = point
             if 0 <= x < game.size and 0 <= y < game.size and game.board[y][x] == 0:
                 endpoints.append(point)
+                continue
+            ax, ay = anchor
+            for px, py in ((ax + perp[0], ay + perp[1]), (ax - perp[0], ay - perp[1])):
+                if 0 <= px < game.size and 0 <= py < game.size and game.board[py][px] == 0:
+                    endpoints.append((px, py))
+                    break
     changed = _spawn_bonus_points(game, endpoints, color)
+    if changed and _challenge_should_bonus_derivative(game):
+        extra_endpoints = [point for point in endpoints if point not in changed and game.board[point[1]][point[0]] == 0]
+        random.shuffle(extra_endpoints)
+        changed.extend(_spawn_bonus_points(game, extra_endpoints[:1], color))
     if changed:
         if engine.ready:
             await _sync_board_to_katago(game)
@@ -3674,6 +3998,112 @@ def _get_ai_rogue_forbidden_points(game: GoGame) -> list[tuple[int, int]]:
     return []
 
 
+def _rogue_card_ids(game: GoGame) -> list[str]:
+    cards: list[str] = []
+    for card_id in list(getattr(game, "challenge_cards", [])) + [game.rogue_card]:
+        if card_id and card_id not in cards:
+            cards.append(card_id)
+    return cards
+
+
+def _rogue_has(game: GoGame, card_id: str) -> bool:
+    return card_id in _rogue_card_ids(game)
+
+
+def _challenge_remaining(game: GoGame, key: str) -> int:
+    return max(0, game.challenge_limits.get(key, 0) - game.challenge_usage.get(key, 0))
+
+
+def _challenge_category_counts(game: GoGame) -> dict[str, int]:
+    return _challenge_category_counts_from_cards(list(getattr(game, "challenge_cards", [])))
+
+
+def _challenge_has_set(game: GoGame, category: str, need: int = CHALLENGE_SET_MIN_COUNT) -> bool:
+    if not getattr(game, "challenge_beta", False):
+        return False
+    return _challenge_category_counts(game).get(category, 0) >= need
+
+
+def _challenge_zone_points(game: GoGame, points: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    if not _challenge_has_set(game, "zone"):
+        return list(points)
+    expanded: set[tuple[int, int]] = set()
+    for px, py in points:
+        for dy in range(-CHALLENGE_ZONE_EXPAND_RADIUS, CHALLENGE_ZONE_EXPAND_RADIUS + 1):
+            for dx in range(-CHALLENGE_ZONE_EXPAND_RADIUS, CHALLENGE_ZONE_EXPAND_RADIUS + 1):
+                nx, ny = px + dx, py + dy
+                if 0 <= nx < game.size and 0 <= ny < game.size:
+                    expanded.add((nx, ny))
+    return sorted(expanded)
+
+
+def _challenge_active_use_bonus(game: GoGame, card_id: str) -> int:
+    if not _challenge_has_set(game, "active"):
+        return 0
+    return CHALLENGE_ACTIVE_USE_BONUS if _challenge_card_category(card_id) == "active" else 0
+
+
+def _challenge_should_bonus_derivative(game: GoGame) -> bool:
+    return _challenge_has_set(game, "derivative") and random.random() < CHALLENGE_DERIVATIVE_BONUS_CHANCE
+
+
+async def _challenge_apply_trap_bonus(game: GoGame, send_fn, source_name: str) -> None:
+    if not _challenge_has_set(game, "trap"):
+        return
+    if random.random() > CHALLENGE_TRAP_EXTRA_TURN_CHANCE:
+        return
+    game.rogue_skip_ai = True
+    await send_fn({
+        "type": "rogue_event",
+        "msg": f"陷阱套装触发：{source_name} 额外夺得一次落子权",
+    })
+
+
+def _weaken_rank_one_step(level: str) -> str:
+    try:
+        idx = _RANK_ORDER.index(level)
+    except ValueError:
+        return level
+    return _RANK_ORDER[max(0, idx - 1)]
+
+
+async def _challenge_maybe_reduce_ai_level(game: GoGame, send_fn) -> None:
+    if not _challenge_has_set(game, "restriction"):
+        return
+    if random.random() >= CHALLENGE_RESTRICTION_DECAY_CHANCE:
+        return
+    new_level = _weaken_rank_one_step(game.level)
+    if new_level == game.level:
+        return
+    game.level = new_level
+    if engine.ready:
+        visits = get_game_visits(game.level, len(game.moves), mode="rogue")
+        await run_in_executor(engine.set_visits, visits)
+    await send_fn({
+        "type": "rogue_event",
+        "msg": f"限制套装触发：AI 临时下调至 {RANK_LABELS.get(game.level, game.level)}",
+    })
+
+
+async def _challenge_emit_set_bonus_status(game: GoGame, send_fn) -> None:
+    if not getattr(game, "challenge_beta", False):
+        return
+    counts = _challenge_category_counts(game)
+    labels = {
+        "derivative": "衍生",
+        "trap": "陷阱",
+        "zone": "限位",
+        "restriction": "限制",
+        "active": "主动",
+    }
+    active = [labels[key] for key, count in counts.items() if count >= CHALLENGE_SET_MIN_COUNT]
+    if active:
+        await send_fn({
+            "type": "rogue_event",
+            "msg": f"闯关套装已激活：{' / '.join(active)}",
+        })
+
+
 def _refresh_ai_rogue_player_turn(game: GoGame):
     if game.two_player or not game.ai_rogue_enabled:
         return
@@ -3760,7 +4190,10 @@ async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
         game.rogue_uses[card_id] = cdef["uses"]
 
     if card_id == "komi_relief":
-        game.komi = max(0.5, game.komi - 5.0)
+        if game.player_color == "B":
+            game.komi = max(0.5, game.komi - 7.0)
+        else:
+            game.komi = game.komi + 7.0
         if engine.ready:
             await run_in_executor(engine.send_command, f"komi {game.komi}")
     elif card_id == "seal":
@@ -3828,12 +4261,74 @@ async def _activate_ai_rogue_card(game: GoGame, send_fn, card_id: str):
     })
 
 
+async def _apply_challenge_rogue_loadout(game: GoGame, send_fn):
+    cards = [card_id for card_id in game.challenge_cards if card_id in ROGUE_CARDS]
+    game.rogue_card = cards[-1] if cards else None
+    game.rogue_uses = {}
+    game.rogue_waiting_seal = False
+    game.rogue_skip_ai = False
+    game.rogue_joseki_targets = []
+    game.rogue_joseki_hits = 0
+    game.rogue_joseki_done = False
+    game.rogue_godhand_center = None
+    game.rogue_godhand_trigger = []
+    game.rogue_godhand_done = False
+    game.rogue_sansan_trap_done = False
+    game.rogue_corner_helper_done = False
+    game.rogue_sanrensei_done = False
+    game.rogue_five_in_row_seen = set()
+    game.rogue_last_stand_done = {"B": False, "W": False}
+    game.rogue_capture_foul_progress = {"B": 0, "W": 0}
+    game.rogue_coach_moves_left = 0
+    game.rogue_coach_bonus_checked = False
+    game.rogue_quickthink_stage = 0
+    game.rogue_fool_shapes = set()
+    game.rogue_handicap_passes = 0
+    game.rogue_handicap_active = False
+    game.rogue_handicap_bonuses = 0
+    game.rogue_seal_points = []
+    game.rogue_enabled = bool(cards)
+
+    for card_id in cards:
+        cdef = ROGUE_CARDS[card_id]
+        if "uses" in cdef:
+            game.rogue_uses[card_id] = cdef["uses"] + _challenge_active_use_bonus(game, card_id)
+        if card_id == "komi_relief":
+            if game.player_color == "B":
+                game.komi = max(0.5, game.komi - 7.0)
+            else:
+                game.komi = game.komi + 7.0
+        elif card_id == "blackhole":
+            game.rogue_seal_points.extend(_challenge_zone_points(game, _get_blackhole_points(game.size)))
+        elif card_id == "golden_corner":
+            corner = random.randint(0, 3)
+            game.rogue_seal_points.extend(_challenge_zone_points(game, _get_golden_corner_points(game.size, corner)))
+        elif card_id == "joseki_ocd" and not game.rogue_joseki_targets:
+            game.rogue_joseki_targets = _pick_joseki_targets(
+                game.size, ROGUE_JOSEKI_TARGET_COUNT
+            )
+        elif card_id == "god_hand" and not game.rogue_godhand_trigger:
+            rng = random.Random(time.time_ns())
+            game.rogue_godhand_center = _random_hidden_center(game.size, 2, rng)
+            game.rogue_godhand_trigger = _diamond_points(
+                game.rogue_godhand_center[0], game.rogue_godhand_center[1], 1, game.size
+            )
+        elif card_id == "quickthink" and game.current_player == game.player_color:
+            game.rogue_quickthink_stage = 1
+        elif card_id == "coach_mode":
+            game.rogue_uses["coach_mode"] = 1
+
+    if engine.ready:
+        await run_in_executor(engine.send_command, f"komi {game.komi}")
+    await _challenge_emit_set_bonus_status(game, send_fn)
+
+
 async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                                            x: int, y: int,
                                            color: str, captured: int):
     """Apply player-side rogue effects after a successful move."""
-    if game.rogue_card == "erosion" and captured > 0:
-        shift = 2.0 * captured
+    if _rogue_has(game, "erosion") and captured > 0:
+        shift = ROGUE_EROSION_SHIFT * captured
         owner_color = color if game.two_player else game.player_color
         if owner_color == "B":
             game.komi -= shift
@@ -3844,9 +4339,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
         await send_fn({"type": "rogue_event",
                        "msg": f"蚕食触发：提掉 {captured} 子，当前贴目变为 {game.komi}"})
 
-    if game.rogue_card == "sprout":
-        color_moves = sum(1 for c, m in game.moves if c == color and m.upper() != "PASS")
-        if color_moves <= 1:
+    if _rogue_has(game, "sprout") and captured > 0:
             adj = _adjacent_points(x, y, game.size)
             empty_adj = [(ax, ay) for ax, ay in adj if game.board[ay][ax] == 0]
             if empty_adj:
@@ -3858,7 +4351,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                     await send_fn({"type": "rogue_event",
                                    "msg": f"萌芽触发：在 {coord_to_gtp(bx, by, game.size)} 额外长出一颗己方棋子"})
 
-    if (game.rogue_card == "joseki_ocd"
+    if (_rogue_has(game, "joseki_ocd")
             and not game.rogue_joseki_done):
         if (x, y) in game.rogue_joseki_targets:
             game.rogue_joseki_hits += 1
@@ -3877,26 +4370,23 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
             await send_fn({"type": "rogue_event",
                            "msg": f"定式强迫症完成，自动补上 {len(changed)} 颗同色棋"})
 
-    if (game.rogue_card == "god_hand"
+    if (_rogue_has(game, "god_hand")
             and not game.rogue_godhand_done
             and (x, y) in game.rogue_godhand_trigger):
         game.rogue_godhand_done = True
         center = game.rogue_godhand_center or (x, y)
-        area = _diamond_points(center[0], center[1], 2, game.size)
-        enemy_first = [
-            (px, py) for px, py in area
-            if game.board[py][px] == (2 if color == "B" else 1)
-        ]
-        empty_then = [(px, py) for px, py in area if game.board[py][px] == 0]
-        targets = (enemy_first + empty_then)[:ROGUE_GODHAND_FILL_COUNT]
+        area = _get_square_points(center[0], center[1], ROGUE_GODHAND_RADIUS, game.size)
+        random.shuffle(area)
+        targets = [(px, py) for px, py in area if game.board[py][px] == 0][:ROGUE_GODHAND_FILL_COUNT]
         changed = _set_points_to_color(game, targets, color)
         if changed and engine.ready:
             await _sync_board_to_katago(game)
         await send_fn({"type": "rogue_event",
                        "msg": f"✨ 神之一手发动，在暗点周围爆发 {len(changed)} 颗同色棋"})
+        await _challenge_apply_trap_bonus(game, send_fn, "神之一手")
 
     if (game.two_player
-            and game.rogue_card == "sansan_trap"
+            and _rogue_has(game, "sansan_trap")
             and not game.rogue_sansan_trap_done
             and (x, y) in _get_sansan_points(game.size)):
         mover_opening = len(_player_non_pass_coords(game, color, limit=2)) == 1
@@ -3914,7 +4404,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
             await send_fn({"type": "rogue_event",
                            "msg": f"△ 三三陷阱发动，在 {coord_to_gtp(x, y, game.size)} 周围反打 {len(changed)} 子"})
 
-    if game.rogue_card == "corner_helper" and not game.rogue_corner_helper_done:
+    if _rogue_has(game, "corner_helper") and not game.rogue_corner_helper_done:
         corner = _find_corner_with_min_stones(game, color, 5, 2)
         if corner is not None:
             candidates = [
@@ -3923,7 +4413,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                 if game.board[py][px] == 0
             ]
             random.shuffle(candidates)
-            changed = _spawn_bonus_points(game, candidates[:2], color)
+            changed = _spawn_bonus_points(game, candidates[:ROGUE_CORNER_HELPER_STONES], color)
             if changed:
                 game.rogue_corner_helper_done = True
                 if engine.ready:
@@ -3931,20 +4421,25 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                 await send_fn({"type": "rogue_event",
                                "msg": f"🏯 守角辅助补强了 {len(changed)} 颗角部援军"})
 
-    if game.rogue_card == "sanrensei" and not game.rogue_sanrensei_done:
-        player_moves = _player_non_pass_coords(game, color, limit=3)
+    if _rogue_has(game, "sanrensei") and not game.rogue_sanrensei_done:
+        player_moves = _player_non_pass_coords(game, color, limit=ROGUE_SANRENSEI_OPENING_MOVES)
         star_set = set(_get_star_points(game.size))
-        if len(player_moves) >= 3 and all(pt in star_set for pt in player_moves[:3]):
+        star_count = sum(1 for pt in player_moves if pt in star_set)
+        if len(player_moves) >= ROGUE_SANRENSEI_REQUIRED_STARS and star_count >= ROGUE_SANRENSEI_REQUIRED_STARS:
             choices = [pt for pt in star_set if game.board[pt[1]][pt[0]] == 0]
             random.shuffle(choices)
-            changed = _spawn_bonus_points(game, choices[:3], color)
+            changed = _spawn_bonus_points(game, choices[:ROGUE_SANRENSEI_BONUS_STONES], color)
+            if changed and _challenge_should_bonus_derivative(game):
+                extra_pool = [pt for pt in star_set if game.board[pt[1]][pt[0]] == 0 and pt not in changed]
+                random.shuffle(extra_pool)
+                changed.extend(_spawn_bonus_points(game, extra_pool[:1], color))
             game.rogue_sanrensei_done = True
             if changed and engine.ready:
                 await _sync_board_to_katago(game)
             await send_fn({"type": "rogue_event",
                            "msg": f"✦ 三连星发动，额外点亮 {len(changed)} 个星位"})
 
-    if game.rogue_card == "no_regret" and random.random() < ROGUE_NO_REGRET_CHANCE:
+    if _rogue_has(game, "no_regret") and random.random() < ROGUE_NO_REGRET_CHANCE:
         bonus = await _pick_second_best_point(game, color)
         if bonus:
             changed = _spawn_bonus_points(game, [bonus], color)
@@ -3954,7 +4449,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                 await send_fn({"type": "rogue_event",
                                "msg": f"🚫 永不悔棋发动，在 {coord_to_gtp(bonus[0], bonus[1], game.size)} 补了一手"})
 
-    if game.rogue_card == "foolish_wisdom":
+    if _rogue_has(game, "foolish_wisdom"):
         new_shapes = _find_new_fool_shapes(game, color, game.rogue_fool_shapes)
         changed = []
         for shape in new_shapes:
@@ -3967,19 +4462,27 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
             ]
             random.shuffle(area)
             changed.extend(_spawn_bonus_points(game, area[:ROGUE_FOOLISH_FILL_COUNT], color))
+            if _challenge_should_bonus_derivative(game):
+                extra_area = [
+                    (px, py)
+                    for px, py in _get_square_points(cx, cy, 2, game.size)
+                    if game.board[py][px] == 0
+                ]
+                random.shuffle(extra_area)
+                changed.extend(_spawn_bonus_points(game, extra_area[:1], color))
         if changed and engine.ready:
             await _sync_board_to_katago(game)
         if new_shapes:
             await send_fn({"type": "rogue_event",
                            "msg": f"🪤 大智若愚发动，识别到 {len(new_shapes)} 个愚形，额外长出 {len(changed)} 颗己方棋子"})
 
-    if game.rogue_card == "five_in_row":
+    if _rogue_has(game, "five_in_row"):
         await _trigger_rogue_five_in_row(game, send_fn, color)
 
-    if game.rogue_card == "last_stand":
+    if _rogue_has(game, "last_stand"):
         await _trigger_rogue_last_stand(game, send_fn, color, (x, y))
 
-    if (game.rogue_card == "handicap_quest"
+    if (_rogue_has(game, "handicap_quest")
             and game.rogue_handicap_active
             and game.rogue_handicap_bonuses < ROGUE_HANDICAP_MAX_BONUSES
             and not game.two_player):
@@ -3992,6 +4495,8 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
             await send_fn({"type": "rogue_event",
                            "msg": f"让子任务奖励触发：每满 {ROGUE_HANDICAP_BONUS_INTERVAL} 手获得一次奖励，"
                                   f"当前进度 {game.rogue_handicap_bonuses}/{ROGUE_HANDICAP_MAX_BONUSES}，AI 将虚手一次"})
+
+    await _challenge_maybe_reduce_ai_level(game, send_fn)
 
 
 async def _apply_ai_rogue_response_effects(game: GoGame, send_fn,
@@ -4735,10 +5240,11 @@ async def _ai_move(game: GoGame, send_fn):
 
     color = game.ai_color
     card = game.rogue_card
+    rogue_cards = set(_rogue_card_ids(game))
     move_count = len(game.moves)
     ai_move_count = sum(1 for c, _ in game.moves if c == color)
 
-    if card == "dice" and random.random() < ROGUE_DICE_PASS_CHANCE:
+    if "dice" in rogue_cards and random.random() < ROGUE_DICE_PASS_CHANCE:
         await run_in_executor(engine.send_command, f"play {color} pass")
         game.moves.append((color, "pass"))
         game.passed[color] = True
@@ -4752,7 +5258,7 @@ async def _ai_move(game: GoGame, send_fn):
                         "msg": "掷骰触发，AI 这手选择虚手"})
         return
 
-    if card == "mirror" and random.random() < ROGUE_MIRROR_CHANCE and move_count > 0:
+    if "mirror" in rogue_cards and random.random() < ROGUE_MIRROR_CHANCE and move_count > 0:
         last_color, last_gtp = game.moves[-1]
         if last_color == game.player_color and last_gtp.upper() != "PASS":
             lc = gtp_to_coord(last_gtp, game.size)
@@ -4776,7 +5282,7 @@ async def _ai_move(game: GoGame, send_fn):
                                         "msg": f"镜像触发，AI 在对称点 {m_gtp} 落子"})
                         return
 
-    if card == "exchange" and game.rogue_skip_ai:
+    if "exchange" in rogue_cards and game.rogue_skip_ai:
         game.rogue_skip_ai = False
         await run_in_executor(engine.send_command, f"play {color} pass")
         game.moves.append((color, "pass"))
@@ -4791,10 +5297,10 @@ async def _ai_move(game: GoGame, send_fn):
                         "msg": "乾坤挪移生效，AI 本回合虚手并把回合交还给你"})
         return
 
-    _mode = "rogue" if card else "normal"
+    _mode = "rogue" if rogue_cards else "normal"
     visits = get_game_visits(game.level, move_count, mode=_mode)
 
-    if card == "nerf":
+    if "nerf" in rogue_cards:
         visits = max(100, int(visits * ROGUE_NERF_FACTOR))
 
     if move_count < OPENING_MOVE_THRESHOLD:
@@ -4804,18 +5310,20 @@ async def _ai_move(game: GoGame, send_fn):
     else:
         time_limit = 8.0
 
-    if card == "time_press":
+    if "time_press" in rogue_cards:
         time_limit = min(ROGUE_TIME_PRESS_MAX_TIME, time_limit)
         visits = min(visits, ROGUE_TIME_PRESS_MAX_VISITS)
 
-    if card == "fog":
+    if "fog" in rogue_cards and ai_move_count < ROGUE_FOG_AI_MOVES:
         rng = random.Random(time.time_ns())
-        game.rogue_seal_points = _pick_fog_mask(game.size, rng)
+        game.rogue_seal_points = _challenge_zone_points(game, _pick_fog_mask(game.size, rng))
         await send_fn({"type": "game_state", **game.to_state()})
         await send_fn({"type": "rogue_event",
-                       "msg": "🌫 战争迷雾刷新：高亮 3x3 区域本回合对 AI 禁止落子"})
+                       "msg": "🌫 战争迷雾刷新：高亮禁区本回合对 AI 禁止落子"})
+    elif "fog" in rogue_cards:
+        game.rogue_seal_points = []
 
-    if card == "tengen" and ai_move_count < 2:
+    if "tengen" in rogue_cards and ai_move_count < ROGUE_TENGEN_AI_MOVES:
         if ai_move_count == 0:
             c = game.size // 2
             target = (c, c)
@@ -4850,7 +5358,7 @@ async def _ai_move(game: GoGame, send_fn):
                         await send_fn({"type": "rogue_event", "msg": msg})
                     return
 
-    if card == "gravity" and ai_move_count < ROGUE_GRAVITY_AI_MOVES:
+    if "gravity" in rogue_cards and ai_move_count < ROGUE_GRAVITY_AI_MOVES:
         star_pts = _get_star_points(game.size)
         available = [(x, y) for x, y in star_pts if game.board[y][x] == 0]
         if available:
@@ -4861,7 +5369,7 @@ async def _ai_move(game: GoGame, send_fn):
                                       "引力触发，AI 被限制在星位附近落子")
                 return
 
-    if card == "lowline" and ai_move_count < ROGUE_LOWLINE_AI_MOVES:
+    if "lowline" in rogue_cards and ai_move_count < ROGUE_LOWLINE_AI_MOVES:
         allowed = [(x, y) for x in range(game.size) for y in range(game.size)
                    if _is_lowline(x, y, game.size) and game.board[y][x] == 0]
         if allowed:
@@ -4872,8 +5380,8 @@ async def _ai_move(game: GoGame, send_fn):
                                       "低空飞行触发，AI 继续在低线路落子")
                 return
 
-    if card == "sansan":
-        if ai_move_count < 4:
+    if "sansan" in rogue_cards:
+        if ai_move_count < 2:
             sansan_pts = _get_sansan_points(game.size)
             available = [(x, y) for x, y in sansan_pts if game.board[y][x] == 0]
             if available:
@@ -4883,20 +5391,24 @@ async def _ai_move(game: GoGame, send_fn):
                     await _finish_ai_move(game, send_fn, color, card, gtp_move,
                                           "三三开局触发，AI 优先抢角三三")
                     return
-        elif ai_move_count < 8:
+        elif ai_move_count < 4:
             corner_ban = []
-            for cy in (0, game.size - 5):
-                for cx in (0, game.size - 5):
-                    for dy in range(5):
-                        for dx in range(5):
+            for cy in (0, game.size - 4):
+                for cx in (0, game.size - 4):
+                    for dy in range(4):
+                        for dx in range(4):
                             corner_ban.append((cx + dx, cy + dy))
             gtp_move = await _ai_move_avoid_points(
                 game, color, visits, time_limit, corner_ban)
             await _finish_ai_move(game, send_fn, color, card, gtp_move,
-                                  "三三开局后半段生效，AI 暂时避开角部 5x5")
+                                  "三三开局后半段生效，AI 暂时避开角部 4x4")
             return
 
-    if card == "shadow" and ai_move_count in ROGUE_SHADOW_AI_MOVE_INDEXES:
+    if (
+        "shadow" in rogue_cards
+        and ai_move_count in ROGUE_SHADOW_AI_MOVE_INDEXES
+        and random.random() < ROGUE_SHADOW_CHANCE
+    ):
         prev_ai_gtp = None
         for mc, mg in reversed(game.moves):
             if mc == color and mg.upper() != "PASS":
@@ -4916,7 +5428,7 @@ async def _ai_move(game: GoGame, send_fn):
                                               "影子触发，AI 贴着自己的上一手继续下")
                         return
 
-    if card == "suboptimal" and ai_move_count < ROGUE_SUBOPTIMAL_AI_MOVES:
+    if "suboptimal" in rogue_cards and ai_move_count < ROGUE_SUBOPTIMAL_AI_MOVES:
         gtp_move = await _ai_move_suboptimal(game, color, visits, time_limit)
         if gtp_move:
             await _finish_ai_move(game, send_fn, color, card, gtp_move,
@@ -4924,13 +5436,13 @@ async def _ai_move(game: GoGame, send_fn):
             return
 
     forbidden = []
-    if card == "seal" and game.rogue_seal_points:
+    if "seal" in rogue_cards and game.rogue_seal_points and ai_move_count < 8:
         forbidden = game.rogue_seal_points
-    elif card == "fog" and game.rogue_seal_points:
+    elif "fog" in rogue_cards and game.rogue_seal_points and ai_move_count < ROGUE_FOG_AI_MOVES:
         forbidden = game.rogue_seal_points
-    elif card == "blackhole":
-        forbidden = _get_blackhole_points(game.size)
-    elif card == "golden_corner" and game.rogue_seal_points:
+    elif "blackhole" in rogue_cards and ai_move_count < ROGUE_BLACKHOLE_AI_MOVES:
+        forbidden = _challenge_zone_points(game, _get_blackhole_points(game.size))
+    elif "golden_corner" in rogue_cards and game.rogue_seal_points and ai_move_count < ROGUE_GOLDEN_CORNER_AI_MOVES:
         forbidden = game.rogue_seal_points
 
     if forbidden:
@@ -4938,7 +5450,7 @@ async def _ai_move(game: GoGame, send_fn):
             game, color, visits, time_limit, forbidden)
     else:
         gtp_move = None
-        if not card and game.ai_style != "balanced":
+        if not rogue_cards and game.ai_style != "balanced":
             try:
                 analysis = await do_analysis(game)
                 gtp_move = _choose_ai_style_move(game, color, analysis.get("top_moves", []), game.ai_style)
@@ -4973,7 +5485,7 @@ async def _ai_move(game: GoGame, send_fn):
             gtp_move = fallback_move
 
     if gtp_move.upper() == "RESIGN":
-        if card:
+        if rogue_cards:
             gtp_move = await _ai_move_no_resign(game, color)
         else:
             game.game_over = True
@@ -4984,13 +5496,13 @@ async def _ai_move(game: GoGame, send_fn):
 
     slip_msg = None
     needs_sync = False
-    if card == "slip" and gtp_move.upper() not in {"PASS", "RESIGN"} and random.random() < ROGUE_SLIP_CHANCE:
+    if "slip" in rogue_cards and gtp_move.upper() not in {"PASS", "RESIGN"} and random.random() < ROGUE_SLIP_CHANCE:
         original_gtp = gtp_move
         original_coord = gtp_to_coord(gtp_move, game.size)
         if original_coord:
             nearby = [
                 (nx, ny)
-                for nx, ny in _adjacent8_points(original_coord[0], original_coord[1], game.size)
+                for nx, ny in _adjacent_points(original_coord[0], original_coord[1], game.size)
                 if game.board[ny][nx] == 0
             ]
             if nearby:
@@ -5022,6 +5534,7 @@ async def _ai_move(game: GoGame, send_fn):
             extra_board_change = True
             await send_fn({"type": "rogue_event",
                            "msg": f"△ 三三陷阱发动，在 {coord_to_gtp(coord[0], coord[1], game.size)} 周围反打 {len(changed)} 子"})
+            await _challenge_apply_trap_bonus(game, send_fn, "三三陷阱")
 
     if needs_sync or extra_board_change:
         await _sync_board_to_katago(game)
@@ -5030,7 +5543,7 @@ async def _ai_move(game: GoGame, send_fn):
     _prepare_player_turn_modifiers(game)
 
     if card == "erosion" and captured > 0:
-        shift = 2.0 * captured
+        shift = ROGUE_EROSION_SHIFT * captured
         if game.ai_color == "W":
             game.komi += shift
         else:
@@ -5257,7 +5770,7 @@ async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
 
     # Erosion effect (applies even with other cards — only if card is erosion)
     if card == "erosion" and captured > 0:
-        shift = 2.0 * captured
+        shift = ROGUE_EROSION_SHIFT * captured
         if game.ai_color == "W":
             game.komi += shift
         else:
@@ -5355,7 +5868,7 @@ async def _run_coach_turn_if_needed(game: GoGame, send_fn):
         game.rogue_coach_bonus_checked = True
         if await _estimate_side_winrate(game, color) < ROGUE_COACH_BONUS_THRESHOLD:
             game.rogue_coach_moves_left += ROGUE_COACH_BONUS_TURNS
-            await send_fn({"type": "rogue_event", "msg": f"🎓 代练上号追加触发：胜率仍低于 40%，额外再代打 {ROGUE_COACH_BONUS_TURNS} 手"})
+            await send_fn({"type": "rogue_event", "msg": f"🎓 代练上号追加触发：胜率仍低于 50%，额外再代打 {ROGUE_COACH_BONUS_TURNS} 手"})
     if not game.game_over and engine.ready and game.current_player == game.ai_color:
         await _ai_move(game, send_fn)
 

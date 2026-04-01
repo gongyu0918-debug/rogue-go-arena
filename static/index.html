@@ -1385,6 +1385,7 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
         <div class="mode-btn" id="mode-guess"  onclick="setMode('guess')">猜先</div>
         <div class="mode-btn" id="mode-give"   onclick="setMode('give')">让先</div>
         <div class="mode-btn" id="mode-two"    onclick="setMode('two')">双人</div>
+        <div class="mode-btn" id="mode-challenge" onclick="setMode('challenge')">闯关β</div>
       </div>
     </div>
 
@@ -1518,6 +1519,9 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
     <h2 style="color:#f5dd93; text-align:center; margin-bottom:4px; font-size:1.24rem; letter-spacing:.06em;">Rogue 模式</h2>
     <p style="color:#97a3b1; text-align:center; margin-bottom:18px; font-size:.85rem; line-height:1.6;">从三张规则卡中选一张，让这一局从开盘开始就偏离常规。</p>
     <div id="rogue-cards" style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; align-items:stretch;"></div>
+    <div id="rogue-refresh-wrap" style="display:none; margin-top:14px; text-align:center;">
+      <button class="btn-secondary" id="rogue-refresh-btn" type="button">刷新一次卡牌</button>
+    </div>
   </div>
 </div>
 
@@ -1585,6 +1589,15 @@ let myColor = "B", aiColor = "W";
 let lastAiMove = null, isMyTurn = false;
 let startMode = "normal";
 let twoPlayerMode = false;
+let challengeSession = {
+  active: false,
+  stage: 1,
+  cards: [],
+  refreshes: 0,
+  limits: { undo: 3, hint: 10, coach: 3 },
+  remaining: { undo: 3, hint: 10, coach: 3 },
+  cleared: false,
+};
 let intentionalClose = false;
 let previousBoard = null; // for capture detection
 const urlLang = new URLSearchParams(location.search).get("lang");
@@ -1595,41 +1608,106 @@ function ui(zh, en) {
   return currentLang === "en" ? en : zh;
 }
 
+function resetChallengeSession() {
+  challengeSession = {
+    active: true,
+    stage: 1,
+    cards: [],
+    refreshes: 0,
+    limits: { undo: 3, hint: 10, coach: 3 },
+    remaining: { undo: 3, hint: 10, coach: 3 },
+    cleared: false,
+  };
+}
+
+function syncChallengeSessionFromState(state) {
+  if (!state || !state.challenge_beta) return;
+  challengeSession.active = true;
+  challengeSession.stage = state.challenge_stage || challengeSession.stage || 1;
+  challengeSession.cards = Array.isArray(state.challenge_cards) ? [...state.challenge_cards] : [...challengeSession.cards];
+  challengeSession.refreshes = Number.isFinite(state.challenge_refreshes) ? state.challenge_refreshes : challengeSession.refreshes;
+  if (state.challenge_limits) {
+    challengeSession.limits = {
+      undo: state.challenge_limits.undo ?? challengeSession.limits.undo,
+      hint: state.challenge_limits.hint ?? challengeSession.limits.hint,
+      coach: state.challenge_limits.coach ?? challengeSession.limits.coach,
+    };
+  }
+  if (state.challenge_remaining) {
+    challengeSession.remaining = {
+      undo: state.challenge_remaining.undo ?? challengeSession.remaining.undo,
+      hint: state.challenge_remaining.hint ?? challengeSession.remaining.hint,
+      coach: state.challenge_remaining.coach ?? challengeSession.remaining.coach,
+    };
+  } else {
+    challengeSession.remaining = {
+      undo: challengeSession.limits.undo,
+      hint: challengeSession.limits.hint,
+      coach: challengeSession.limits.coach,
+    };
+  }
+}
+
+function updateChallengeInfo() {
+  let row = document.getElementById("challenge-info-row");
+  let val = document.getElementById("challenge-info");
+  if (!row || !val) {
+    const moveInfo = document.getElementById("move-info");
+    if (!moveInfo) return;
+    row = document.createElement("div");
+    row.className = "info-row";
+    row.id = "challenge-info-row";
+    row.style.display = "none";
+    row.innerHTML = `<span>${ui("闯关进度", "Challenge")}</span><span class="info-val" id="challenge-info">—</span>`;
+    moveInfo.appendChild(row);
+    val = document.getElementById("challenge-info");
+  }
+  if (!(gameState?.challenge_beta || challengeSession.active)) {
+    row.style.display = "none";
+    return;
+  }
+  row.style.display = "";
+  val.textContent = ui(
+    `测试第${challengeSession.stage}关 | 卡牌${challengeSession.cards.length} | 悔棋${challengeSession.remaining.undo} 推荐${challengeSession.remaining.hint} 代下${challengeSession.remaining.coach} 刷新${challengeSession.refreshes}`,
+    `Beta S${challengeSession.stage} | Cards ${challengeSession.cards.length} | Undo ${challengeSession.remaining.undo} Hint ${challengeSession.remaining.hint} Coach ${challengeSession.remaining.coach} Refresh ${challengeSession.refreshes}`
+  );
+}
+
 const ROGUE_CARD_I18N = {
-  tengen: { name: "Tengen", desc: "The AI is drawn to the center and star points for its first 2 moves." },
+  tengen: { name: "Tengen", desc: "For its first 3 moves, the AI is pulled toward the center and star points." },
   dice: { name: "Dice Roll", desc: "Each AI move has a 14% chance of being skipped entirely." },
-  erosion: { name: "Erosion", desc: "Every capture shifts komi by 2 points in the captor's favor." },
+  erosion: { name: "Erosion", desc: "Every capture shifts komi by 4 points in the captor's favor." },
   puppet: { name: "Puppet", desc: "Choose a point \u2014 the AI is forced to play there (once per game)." },
-  seal: { name: "Seal", desc: "Mark 3 forbidden points the AI cannot touch all game." },
-  twin: { name: "Combo", desc: "Play two moves in a single turn (once per game)." },
-  nerf: { name: "Nerf", desc: "Slash the AI's search power by 60%." },
-  komi_relief: { name: "Komi Cut", desc: "Komi drops from 7.5 to 2.5." },
-  time_press: { name: "Time Crunch", desc: "The AI gets only 0.7 seconds per move." },
+  seal: { name: "Seal", desc: "Mark 3 forbidden points the AI cannot touch during its first 8 moves." },
+  twin: { name: "Combo", desc: "Play two moves in a single turn once per game for a local follow-up." },
+  nerf: { name: "Nerf", desc: "Crush the AI's search power so it often relies on shallow reading." },
+  komi_relief: { name: "Komi Cut", desc: "Komi shifts 7 points in your favor." },
+  time_press: { name: "Time Crunch", desc: "The AI gets only 0.06 seconds per move." },
   lowline: { name: "Low Sweep", desc: "The AI hugs the 2nd\u20133rd lines for 6 moves." },
-  suboptimal: { name: "Second Best", desc: "The AI picks its 3rd\u20135th best move for 10 turns." },
-  mirror: { name: "Mirror", desc: "30% chance the AI copies your last move symmetrically." },
-  slip: { name: "Butterfingers", desc: "38% chance the AI slips to an adjacent point." },
-  blackhole: { name: "Black Hole", desc: "The central 13-line zone is completely off-limits to the AI." },
+  suboptimal: { name: "Second Best", desc: "For its first 10 moves, the AI is much more likely to choose weaker backup options." },
+  mirror: { name: "Mirror", desc: "24% chance the AI copies your last move symmetrically." },
+  slip: { name: "Butterfingers", desc: "20% chance the AI slips to a straight-adjacent point." },
+  blackhole: { name: "Black Hole", desc: "The central 13-line zone is off-limits to the AI for its first 10 moves." },
   exchange: { name: "Turn Steal", desc: "Force the AI to pass \u2014 you keep playing (once per game)." },
-  fog: { name: "Fog of War", desc: "A drifting 3\u00d73 no-go zone blocks the AI before each move." },
+  fog: { name: "Fog of War", desc: "For the AI's first 6 moves, a drifting 3\u00d73 no-go zone blocks the area each turn." },
   gravity: { name: "Gravity Well", desc: "The AI is pulled toward star points for 5 moves." },
-  golden_corner: { name: "Golden Corner", desc: "A random 4\u00d74 corner is sealed \u2014 no AI entry." },
-  sansan: { name: "3-3 Rush", desc: "The AI rushes 3-3 corners, then avoids corner 5\u00d75 zones." },
-  shadow: { name: "Shadow", desc: "The AI's first 3 moves cling to its previous stone." },
+  golden_corner: { name: "Golden Corner", desc: "A random 4\u00d74 corner is sealed off from the AI for its first 10 moves." },
+  sansan: { name: "3-3 Rush", desc: "For its first 2 moves, the AI is forced to fight for one of the four 3-3 points, then avoids corner 4\u00d74 zones for 2 moves." },
+  shadow: { name: "Shadow", desc: "On its first 2 moves, the AI has a high chance to cling to its previous stone." },
   sprout: { name: "Sprout", desc: "Each capture spawns a bonus friendly stone nearby." },
-  joseki_ocd: { name: "Joseki OCD", desc: "7 target points appear. Place on any 3 of them to auto-fill the other 4 with your stones." },
-  handicap_quest: { name: "Handicap Quest", desc: "Pass once to start; every 4 moves forces the AI to pass." },
-  god_hand: { name: "Hand of God", desc: "Step on a hidden diamond zone \u2014 5 stones burst in the 5\u00d75 area." },
-  sansan_trap: { name: "3-3 Trap", desc: "If the AI opens at 3-3, you get 3 counter-stones nearby." },
+  joseki_ocd: { name: "Joseki OCD", desc: "5 target points appear. Hit any 3 of them to auto-fill the remaining 2 with your stones." },
+  handicap_quest: { name: "Handicap Quest", desc: "Pass once to start; after every 6 moves you force an AI pass, up to 3 times." },
+  god_hand: { name: "Hand of God", desc: "Step on a hidden diamond zone \u2014 2 friendly stones burst into nearby empty points inside a 3\u00d73 area." },
+  sansan_trap: { name: "3-3 Trap", desc: "If the opponent's very first move lands on any 3-3 point, you immediately gain 3 nearby counter-stones." },
   corner_helper: { name: "Corner Guard", desc: "If any corner's 5\u00d75 area has 2 of your stones, that corner gains 2 reinforcements." },
-  sanrensei: { name: "Three Stars", desc: "Play all 3 opening moves on star points to spawn 3 bonus stones." },
-  no_regret: { name: "No Regrets", desc: "Undo disabled \u2014 but each move has 14% chance to add a free stone." },
-  quickthink: { name: "Quick Think", desc: "Play within 3s to unlock a 2s bonus move window." },
-  foolish_wisdom: { name: "Wise Fool", desc: "Form an isolated ugly shape to sprout a bonus stone in the 5\u00d75 area." },
-  five_in_row: { name: "Five in a Row", desc: "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, one bonus stone appears at each end." },
-  coach_mode: { name: "Coach Login", desc: "Active: a stronger AI plays the next 20 turns for you. If your winrate stays below 40% after that, it plays 5 extra turns." },
-  capture_foul: { name: "Capture Foul", desc: "When the opponent captures over 5 stones, there is a 50% chance of a foul, plus 10% for each extra stone. On trigger, the offender loses 1.5 points, then the counter resets and must build back above 5 again." },
-  last_stand: { name: "Last Stand", desc: "Once per game, if your winrate drops below 30%, remove 1 enemy stone and add 1 friendly stone inside the last move's 3\u00d73 area without landing on forbidden points." },
+  sanrensei: { name: "Three Stars", desc: "If 2 of your first 4 moves land on star points, spawn 2 bonus stones." },
+  no_regret: { name: "No Regrets", desc: "Undo disabled \u2014 but each move has an 8% chance to add a free stone." },
+  quickthink: { name: "Quick Think", desc: "Play within 5s to unlock a 3s bonus move window." },
+  foolish_wisdom: { name: "Wise Fool", desc: "Form an ugly shape to sprout 2 bonus stones in the nearby 5\u00d75 area." },
+  five_in_row: { name: "Five in a Row", desc: "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, it tries to extend both ends; if an end is blocked, it adds a support stone near that end instead." },
+  coach_mode: { name: "Coach Login", desc: "Active: a stronger AI plays the next 30 turns for you. If your winrate stays below 50% after that, it plays 10 extra turns." },
+  capture_foul: { name: "Capture Foul", desc: "When the opponent captures over 5 stones, there is a 50% chance of a foul, plus 10% for each extra stone. On trigger, the offender loses 1.5 points and the counter resets." },
+  last_stand: { name: "Last Stand", desc: "Once per game, if your winrate drops below 30%, remove 1 enemy stone and add 2 friendly stones inside the last move's 3\u00d73 area without landing on forbidden points." },
 };
 
 const ULTIMATE_CARD_I18N = {
@@ -1901,6 +1979,8 @@ function applyLanguage() {
     ui("对手级别", "Opponent")
   ];
   infoLabels.forEach((el, idx) => { if (infoTexts[idx]) el.textContent = infoTexts[idx]; });
+  const challengeInfoLabel = document.querySelector("#challenge-info-row span:first-child");
+  if (challengeInfoLabel) challengeInfoLabel.textContent = ui("闯关进度", "Challenge");
 
   const overlayStats = document.querySelectorAll("#overlay .score-item .label");
   if (overlayStats[0]) overlayStats[0].textContent = ui("胜方", "Winner");
@@ -1936,8 +2016,6 @@ function applyLanguage() {
   if (confirmBtns[1]) confirmBtns[1].textContent = ui("确定", "Confirm");
   const rogueTitle = document.querySelector("#rogue-overlay h2");
   if (rogueTitle) rogueTitle.textContent = ui("Rogue 模式", "Rogue Mode");
-  const rogueSub = document.querySelector("#rogue-overlay p");
-  if (rogueSub) rogueSub.textContent = ui("请选择一张强化卡", "Choose one card");
   const ultTitle = document.querySelector("#ultimate-overlay h2");
   if (ultTitle) ultTitle.textContent = ui("大招模式", "Ultimate Mode");
   const ultSub = document.querySelector("#ultimate-overlay p");
@@ -3510,13 +3588,34 @@ let hoverXY = null;
 // ═══════════════════════════════════════════════════════════════════════════════
 // ROGUE MODE FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
-function showRogueCards(cards) {
+function showRogueCards(cards, meta = {}) {
   rogueOfferCards = Array.isArray(cards) ? cards.map(c => ({ ...c })) : [];
+  const inChallenge = !!meta.challenge_beta;
+  const stage = meta.challenge_stage || challengeSession.stage || 1;
+  const refreshRemaining = meta.refresh_remaining ?? challengeSession.refreshes ?? 0;
+  const rogueTitle = document.querySelector("#rogue-overlay h2");
   const rogueSub = document.querySelector("#rogue-overlay p");
+  const refreshWrap = document.getElementById("rogue-refresh-wrap");
+  const refreshBtn = document.getElementById("rogue-refresh-btn");
+  if (rogueTitle) {
+    rogueTitle.textContent = inChallenge
+      ? ui(`\u95ef\u5173\u6d4b\u8bd5 \u7b2c ${stage} \u5173`, `Challenge Beta - Stage ${stage}`)
+      : ui("Rogue ??", "Rogue Mode");
+  }
   if (rogueSub) {
-    rogueSub.textContent = twoPlayerMode
-      ? ui("请选择一张共享规则卡", "Choose one shared rule card")
-      : ui("请选择一张强化卡", "Choose one card");
+    rogueSub.textContent = inChallenge
+      ? ui(
+          `\u6d4b\u8bd5\u7248\u95ef\u5173\u9009\u5361\uff1a\u7b2c ${stage} \u5173\uff0c\u5269\u4f59\u5237\u65b0 ${refreshRemaining} \u6b21\u3002\u540c\u7c7b\u5361\u66f4\u5bb9\u6613\u8fde\u51fa\uff0c\u5e76\u4f1a\u6fc0\u6d3b\u95ef\u5173\u5957\u88c5\u6548\u679c\u3002`,
+          `Beta challenge pick: Stage ${stage}, ${refreshRemaining} refreshes left. Matching card families chain more often and unlock challenge set bonuses.`
+        )
+      : (twoPlayerMode
+        ? ui("\u8bf7\u9009\u62e9\u4e00\u5f20\u5171\u4eab\u89c4\u5219\u5361", "Choose one shared rule card")
+        : ui("\u8bf7\u9009\u62e9\u4e00\u5f20\u5f3a\u5316\u5361", "Choose one card"));
+  }
+  if (refreshWrap && refreshBtn) {
+    refreshWrap.style.display = inChallenge && refreshRemaining > 0 ? "" : "none";
+    refreshBtn.textContent = ui(`\u5237\u65b0\u5361\u724c (${refreshRemaining})`, `Refresh Cards (${refreshRemaining})`);
+    refreshBtn.onclick = () => sendWS({ action: "challenge_refresh_offer" });
   }
   const container = document.getElementById("rogue-cards");
   container.innerHTML = "";
@@ -4093,6 +4192,7 @@ function handleMessage(msg) {
     case "game_start": {
       twoPlayerMode = !!msg.two_player;
       gameState = msg;
+      syncChallengeSessionFromState(msg);
       myColor  = msg.player_color;
       aiColor  = msg.ai_color;
       lastAiMove = null;
@@ -4104,6 +4204,7 @@ function handleMessage(msg) {
       render();
       setButtons(!msg.ai_observer);
       updateUI();
+      updateChallengeInfo();
       updateWinRate(0.5);
       initTimers();
       if (timerMode !== "none") startTimerFor(msg.current_player);
@@ -4120,6 +4221,7 @@ function handleMessage(msg) {
     case "game_state": {
       const oldBoard = previousBoard || (gameState ? gameState.board : null);
       gameState = msg;
+      syncChallengeSessionFromState(msg);
       isMyTurn = twoPlayerMode ? !msg.game_over : (msg.current_player === myColor);
       activeAiRogueCard = msg.ai_rogue_card || activeAiRogueCard || null;
       aiRogueSeals = msg.ai_rogue_seal_points || [];
@@ -4144,6 +4246,7 @@ function handleMessage(msg) {
       // Sync ultimate bar
       if (ultimateMode) updateUltimateBar();
       syncCardTurnTimer();
+      updateChallengeInfo();
 
       // Timer: switch to next player
       if (timerMode !== "none" && !msg.game_over) {
@@ -4227,12 +4330,43 @@ function handleMessage(msg) {
       log(currentLang === "en"
         ? `${winnerName} wins ${scoreDisplay} (${reasonText(msg.reason)})`
         : `${winnerName}胜 ${scoreDisplay} (${reasonText(msg.reason)})`);
+      if (gameState?.challenge_beta) {
+        const currentStage = gameState.challenge_stage || challengeSession.stage || 1;
+        if (youWin && currentStage === 1) {
+          challengeSession.active = true;
+          challengeSession.stage = 2;
+          challengeSession.cards = Array.isArray(gameState.challenge_cards) ? [...gameState.challenge_cards] : [];
+          challengeSession.refreshes = (gameState.challenge_refreshes || 0) + 1;
+          challengeSession.limits = {
+            undo: (gameState.challenge_limits?.undo || challengeSession.limits.undo || 0) + 3,
+            hint: (gameState.challenge_limits?.hint || challengeSession.limits.hint || 0) + 10,
+            coach: (gameState.challenge_limits?.coach || challengeSession.limits.coach || 0) + 3,
+          };
+          challengeSession.remaining = { ...challengeSession.limits };
+          updateChallengeInfo();
+          setTimeout(() => {
+            showConfirmModal(
+              ui("\u5df2\u901a\u8fc7\u7b2c 1 \u5173\uff0c\u8fdb\u5165\u7b2c 2 \u5173\u6d4b\u8bd5\u3002\u4f60\u5c06\u6267\u767d\u5e76\u6309\u8ba9 2 \u5b50\u5f00\u5c40\uff0c\u540c\u65f6\u518d\u9009 1 \u5f20\u5361\u3002", "Stage 1 cleared. Start Stage 2 as White with a 2-stone handicap opening and one more card?"),
+              () => {
+                closeOverlay();
+                document.getElementById("btn-new").click();
+              }
+            );
+          }, 120);
+        } else if (youWin && currentStage >= 2) {
+          challengeSession.cleared = true;
+          challengeSession.active = true;
+          updateChallengeInfo();
+          log(ui("\u95ef\u5173\u6d4b\u8bd5\u7248\u524d\u4e24\u5173\u5df2\u901a\u5173\u3002", "Challenge beta cleared."));
+        }
+      }
       break;
     }
 
     case "reconnected": {
       twoPlayerMode = !!msg.two_player;
       gameState = msg;
+      syncChallengeSessionFromState(msg);
       myColor  = msg.player_color;
       aiColor  = msg.ai_color;
       lastAiMove = null;
@@ -4247,6 +4381,7 @@ function handleMessage(msg) {
       rogueSealing = false; puppetMode = false;
       updateRogueBar();
       syncCardTurnTimer();
+      updateChallengeInfo();
       // Restore ultimate state
       ultimateMode = !!msg.ultimate;
       ultimatePlayerCard = msg.ultimate_player_card || null;
@@ -4280,11 +4415,12 @@ function handleMessage(msg) {
 
     // ── Rogue mode messages ──────────────────────────────────────────────
     case "rogue_offer":
-      showRogueCards(msg.cards);
+      showRogueCards(msg.cards, msg);
       break;
 
     case "rogue_card_selected":
       gameState = msg;
+      syncChallengeSessionFromState(msg);
       activeRogueCard = msg.card_id;
       rogueUses = msg.rogue_uses || {};
       rogueSeals = msg.rogue_seal_points || [];
@@ -4537,6 +4673,11 @@ document.getElementById("btn-new").addEventListener("click", () => {
   let komi = parseFloat(document.getElementById("sel-komi").value);
   const isTwoPlayer = (startMode === "two");
   const isAiWatch = (startMode === "watch");
+  const isChallenge = (startMode === "challenge");
+
+  if (isChallenge && (!challengeSession.active || challengeSession.cleared)) {
+    resetChallengeSession();
+  }
 
   if (startMode === "guess") {
     playerColor = Math.random() < 0.5 ? "B" : "W";
@@ -4547,6 +4688,9 @@ document.getElementById("btn-new").addEventListener("click", () => {
     log(ui("让先：你执黑，贴目0", "Take Black: you play Black, komi is set to 0"));
   } else if (isTwoPlayer || isAiWatch) {
     playerColor = "B";
+  } else if (isChallenge) {
+    playerColor = "W";
+    komi = 7.5;
   }
 
   // Read time settings
@@ -4597,9 +4741,14 @@ document.getElementById("btn-new").addEventListener("click", () => {
         two_player:   isTwoPlayer,
         ai_observer:  isAiWatch,
         ai_style:     document.getElementById("sel-ai-style").value,
-        rogue:        !!document.getElementById("chk-rogue").checked && !document.getElementById("chk-ultimate").checked,
-        ai_rogue:     !!document.getElementById("chk-ai-rogue").checked && !isTwoPlayer,
-        ultimate:     !!document.getElementById("chk-ultimate").checked,
+        rogue:        isChallenge ? true : (!!document.getElementById("chk-rogue").checked && !document.getElementById("chk-ultimate").checked),
+        ai_rogue:     isChallenge ? false : (!!document.getElementById("chk-ai-rogue").checked && !isTwoPlayer),
+        ultimate:     isChallenge ? false : !!document.getElementById("chk-ultimate").checked,
+        challenge_beta: isChallenge,
+        challenge_stage: isChallenge ? challengeSession.stage : 0,
+        challenge_cards: isChallenge ? challengeSession.cards : [],
+        challenge_limits: isChallenge ? challengeSession.limits : null,
+        challenge_refreshes: isChallenge ? challengeSession.refreshes : 0,
       });
     }, 400);
   }, 200);
@@ -5007,6 +5156,18 @@ function setMode(mode) {
     hint.textContent = ui("学习：黑白双方都由 AI 对弈，你只负责旁观和复盘", "Study: both Black and White are played by AI while you spectate");
     document.getElementById("chk-ultimate").checked = false;
     document.getElementById("chk-rogue").checked = false;
+  } else if (mode === "challenge") {
+    rowColor.style.display = "none";
+    rowHandicap.style.display = "none";
+    if (rowStyle) rowStyle.style.display = "none";
+    hint.style.display = "block";
+    hint.textContent = ui(
+      "闯关测试版：玩家默认执白。第 1 关不让子并选 1 张卡，第 2 关按让 2 子模式开局并再叠加 1 张卡。",
+      "Challenge beta: you play White by default. Stage 1 starts even with 1 card, then Stage 2 uses a 2-stone handicap opening and adds a second card."
+    );
+    document.getElementById("chk-ultimate").checked = false;
+    document.getElementById("chk-rogue").checked = false;
+    document.getElementById("chk-ai-rogue").checked = false;
   }
   updateVariantOptionRows();
 }

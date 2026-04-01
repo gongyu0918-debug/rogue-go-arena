@@ -15,6 +15,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ultimate-games", type=int, default=1)
     parser.add_argument("--rogue-cards", nargs="*", default=None)
     parser.add_argument("--ultimate-cards", nargs="*", default=None)
+    parser.add_argument("--rogue-strategy", choices=["engine", "guided"], default="guided")
     return parser.parse_args()
 
 
@@ -28,16 +29,23 @@ import server as s  # noqa: E402
 
 DEFAULT_ROGUE_CARDS = [
     "dice",
+    "nerf",
+    "time_press",
+    "suboptimal",
     "fog",
-    "gravity",
-    "lowline",
-    "mirror",
-    "slip",
-    "shadow",
-    "joseki_ocd",
-    "handicap_quest",
     "seal",
-    "sansan",
+    "blackhole",
+    "golden_corner",
+    "joseki_ocd",
+    "corner_helper",
+    "sanrensei",
+    "foolish_wisdom",
+    "five_in_row",
+    "god_hand",
+    "sansan_trap",
+    "handicap_quest",
+    "capture_foul",
+    "last_stand",
 ]
 
 DEFAULT_ULTIMATE_CARDS = [
@@ -51,6 +59,38 @@ DEFAULT_ULTIMATE_CARDS = [
     "timewarp",
     "wall",
 ]
+
+ROGUE_INTENT_CARDS = {
+    "corner_helper",
+    "sanrensei",
+    "foolish_wisdom",
+    "five_in_row",
+    "joseki_ocd",
+    "last_stand",
+    "god_hand",
+    "sansan_trap",
+    "handicap_quest",
+}
+
+ROGUE_AI_WEAKENER_WEIGHTS = {
+    "dice": 0.58,
+    "nerf": 0.38,
+    "time_press": 0.32,
+    "suboptimal": 0.52,
+    "gravity": 0.72,
+    "lowline": 0.78,
+    "mirror": 0.82,
+    "slip": 0.74,
+    "shadow": 0.76,
+    "sansan": 0.72,
+    "fog": 0.68,
+    "blackhole": 0.74,
+    "golden_corner": 0.76,
+    "seal": 0.80,
+}
+
+ROGUE_TARGET_MIN = 5.0
+ROGUE_TARGET_MAX = 10.0
 
 
 def choose_backend() -> tuple[Path, Path, str]:
@@ -271,7 +311,55 @@ async def auto_setup_seal(game: s.GoGame):
     game.rogue_waiting_seal = False
 
 
-async def play_player_rogue_turn(game: s.GoGame):
+def guided_rogue_targets(
+    game: s.GoGame,
+    color: str,
+    card: str | None,
+    strategy: str = "guided",
+) -> list[tuple[int, int]] | None:
+    if strategy != "guided" or not card:
+        return None
+
+    if card == "joseki_ocd" and not game.rogue_joseki_done:
+        return list(game.rogue_joseki_targets)
+
+    if card == "sanrensei":
+        return list(s._get_star_points(game.size))
+
+    if card == "corner_helper":
+        return [(1, 1), (2, 1), (1, 2), (2, 2)]
+
+    if card == "foolish_wisdom":
+        c = game.size // 2
+        return [
+            (c, c),
+            (min(game.size - 1, c + 1), c),
+            (c, min(game.size - 1, c + 1)),
+            (min(game.size - 1, c + 2), c),
+            (c, max(0, c - 1)),
+        ]
+
+    if card == "five_in_row":
+        y = game.size // 2
+        start = max(0, (game.size // 2) - 2)
+        end = min(game.size, start + 5)
+        return [(x, y) for x in range(start, end)]
+
+    if card == "last_stand":
+        c = game.size // 2
+        return [(c, c), (max(0, c - 1), c), (c, max(0, c - 1))]
+
+    if card == "god_hand":
+        c = game.size // 2
+        return [(c, c), (c + 1, c), (c, c + 1), (max(0, c - 1), c), (c, max(0, c - 1))]
+
+    if card == "sansan_trap":
+        return [(2, 2), (game.size - 3, 2), (2, game.size - 3), (game.size - 3, game.size - 3)]
+
+    return None
+
+
+async def play_player_rogue_turn(game: s.GoGame, strategy: str = "guided"):
     color = game.player_color
     card = game.rogue_card
 
@@ -292,9 +380,7 @@ async def play_player_rogue_turn(game: s.GoGame):
         await s._ai_move(game, noop_send)
         return
 
-    prefer_targets = None
-    if card == "joseki_ocd" and not game.rogue_joseki_done:
-        prefer_targets = list(game.rogue_joseki_targets)
+    prefer_targets = guided_rogue_targets(game, color, card, strategy)
 
     visits = s.get_game_visits(game.level, len(game.moves), mode="rogue")
     gtp, coord = await choose_legal_player_move(game, color, visits, prefer_targets=prefer_targets)
@@ -317,7 +403,7 @@ async def play_player_rogue_turn(game: s.GoGame):
     await s._ai_move(game, noop_send)
 
 
-async def evaluate_rogue_card(card_id: str | None, player_color: str) -> dict:
+async def evaluate_rogue_card(card_id: str | None, player_color: str, strategy: str = "guided") -> dict:
     game = s.GoGame(
         size=ARGS.size,
         komi=7.5,
@@ -337,7 +423,7 @@ async def evaluate_rogue_card(card_id: str | None, player_color: str) -> dict:
         if game.current_player != game.player_color:
             await s._ai_move(game, noop_send)
         else:
-            await play_player_rogue_turn(game)
+            await play_player_rogue_turn(game, strategy)
 
     analysis = await analyze_top_moves(game, game.current_player, 500)
     black_score = float(analysis.get("score", 0.0))
@@ -455,31 +541,70 @@ async def evaluate_ultimate_card(card_id: str | None, player_color: str) -> dict
     }
 
 
+def avg_advantage(runs: list[dict]) -> float:
+    return round(sum(item["holder_advantage"] for item in runs) / len(runs), 2)
+
+
+def blend_rogue_layers(card_id: str, engine_avg: float, guided_avg: float) -> float:
+    if card_id in ROGUE_AI_WEAKENER_WEIGHTS:
+        return round(guided_avg * ROGUE_AI_WEAKENER_WEIGHTS[card_id], 2)
+    if card_id in ROGUE_INTENT_CARDS:
+        return round((engine_avg * 0.25) + (guided_avg * 0.75), 2)
+    return round((engine_avg * 0.65) + (guided_avg * 0.35), 2)
+
+
+def rogue_balance_verdict(score: float) -> str:
+    if score < ROGUE_TARGET_MIN:
+        return "buff"
+    if score > ROGUE_TARGET_MAX:
+        return "nerf"
+    return "ok"
+
+
 async def run_mode(mode: str):
     results = []
 
     if mode in {"rogue", "both"}:
         cards = ARGS.rogue_cards or DEFAULT_ROGUE_CARDS
-        baseline_runs = [
-            await evaluate_rogue_card(None, "B"),
-            await evaluate_rogue_card(None, "W"),
+        baseline_engine_runs = [
+            await evaluate_rogue_card(None, "B", "engine"),
+            await evaluate_rogue_card(None, "W", "engine"),
+        ]
+        baseline_guided_runs = [
+            await evaluate_rogue_card(None, "B", "guided"),
+            await evaluate_rogue_card(None, "W", "guided"),
         ]
         results.append({
             "mode": "rogue",
             "card": "baseline",
-            "runs": baseline_runs,
-            "avg_advantage": round(sum(item["holder_advantage"] for item in baseline_runs) / len(baseline_runs), 2),
+            "layers": {
+                "engine": {"runs": baseline_engine_runs, "avg_advantage": avg_advantage(baseline_engine_runs)},
+                "guided": {"runs": baseline_guided_runs, "avg_advantage": avg_advantage(baseline_guided_runs)},
+                "player_weighted": {"avg_advantage": avg_advantage(baseline_guided_runs)},
+            },
         })
         for card_id in cards:
-            runs = [
-                await evaluate_rogue_card(card_id, "B"),
-                await evaluate_rogue_card(card_id, "W"),
+            engine_runs = [
+                await evaluate_rogue_card(card_id, "B", "engine"),
+                await evaluate_rogue_card(card_id, "W", "engine"),
             ]
+            guided_runs = [
+                await evaluate_rogue_card(card_id, "B", "guided"),
+                await evaluate_rogue_card(card_id, "W", "guided"),
+            ]
+            engine_avg = avg_advantage(engine_runs)
+            guided_avg = avg_advantage(guided_runs)
+            blended = blend_rogue_layers(card_id, engine_avg, guided_avg)
             results.append({
                 "mode": "rogue",
                 "card": card_id,
-                "runs": runs,
-                "avg_advantage": round(sum(item["holder_advantage"] for item in runs) / len(runs), 2),
+                "target_band": [ROGUE_TARGET_MIN, ROGUE_TARGET_MAX],
+                "verdict": rogue_balance_verdict(blended),
+                "layers": {
+                    "engine": {"runs": engine_runs, "avg_advantage": engine_avg},
+                    "guided": {"runs": guided_runs, "avg_advantage": guided_avg},
+                    "player_weighted": {"avg_advantage": blended},
+                },
             })
 
     if mode in {"ultimate", "both"}:
@@ -492,7 +617,7 @@ async def run_mode(mode: str):
             "mode": "ultimate",
             "card": "baseline",
             "runs": baseline_runs,
-            "avg_advantage": round(sum(item["holder_advantage"] for item in baseline_runs) / len(baseline_runs), 2),
+            "avg_advantage": avg_advantage(baseline_runs),
         })
         for card_id in cards:
             runs = []
@@ -503,7 +628,7 @@ async def run_mode(mode: str):
                 "mode": "ultimate",
                 "card": card_id,
                 "runs": runs,
-                "avg_advantage": round(sum(item["holder_advantage"] for item in runs) / len(runs), 2),
+                "avg_advantage": avg_advantage(runs),
             })
 
     print(json.dumps(results, ensure_ascii=False, indent=2))

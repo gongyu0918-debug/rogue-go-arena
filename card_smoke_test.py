@@ -47,6 +47,9 @@ class DummyEngine:
         with self.command_lock:
             return self._send_command_locked(cmd, timeout)
 
+    def set_visits(self, visits):
+        self.current_visits = visits
+
     def analyze(self, color, visits, interval=50, duration=2.0, extra_args=None):
         lines = [
             "info move D4 visits 100 winrate 5200 scoreMean 1.0 pv D4",
@@ -265,7 +268,7 @@ async def smoke_new_rogue_cards():
 
     assert game.rogue_godhand_done is True
     assert synced["count"] == 1
-    assert sum(1 for x, y in s._diamond_points(4, 4, 2, game.size) if game.board[y][x] == 1) >= 5
+    assert sum(1 for x, y in s._get_square_points(4, 4, 1, game.size) if game.board[y][x] == 1) >= 1
 
     game = make_game()
     game.rogue_card = "corner_helper"
@@ -281,7 +284,7 @@ async def smoke_new_rogue_cards():
     finally:
         s._sync_board_to_katago = old_sync
     assert game.rogue_corner_helper_done is True
-    assert sum(1 for x, y in s._get_corner_helper_spawn_points(game.size, 0, 5) if game.board[y][x] == 1) >= 2
+    assert sum(1 for x, y in s._get_corner_helper_spawn_points(game.size, 0, 5) if game.board[y][x] == 1) >= 1
 
     game = make_game()
     game.rogue_card = "sanrensei"
@@ -769,8 +772,11 @@ async def smoke_two_player_rogue_shared_cards():
     game.rogue_enabled = True
     game.rogue_card = "sprout"
     game.current_player = "B"
+    game.board[4][4] = 1
+    game.board[4][3] = 2
+    game.board[3][4] = 2
+    game.board[5][4] = 2
     game.moves.append(("B", s.coord_to_gtp(4, 4, game.size)))
-    game.place_stone(4, 4, "B")
     sent = []
 
     async def send(payload):
@@ -779,7 +785,7 @@ async def smoke_two_player_rogue_shared_cards():
     old_engine = s.engine
     try:
         s.engine = DummyEngine()
-        await s._apply_player_rogue_move_effects(game, send, 4, 4, "B", 0)
+        await s._apply_player_rogue_move_effects(game, send, 4, 4, "B", 3)
     finally:
         s.engine = old_engine
 
@@ -1127,6 +1133,96 @@ async def smoke_ultimate_ai_effect_sync():
     assert sum(1 for row in game.board for cell in row if cell == 2) >= 2
 
 
+async def smoke_challenge_beta_set_bonuses():
+    game = make_game(size=9)
+    game.challenge_beta = True
+    game.challenge_cards = ["blackhole", "fog"]
+
+    async def send(_payload):
+        return None
+
+    await s._apply_challenge_rogue_loadout(game, send)
+    assert len(game.rogue_seal_points) > len(s._get_blackhole_points(game.size))
+
+    game = make_game(size=9)
+    game.challenge_beta = True
+    game.challenge_cards = ["twin", "exchange"]
+    await s._apply_challenge_rogue_loadout(game, send)
+    assert game.rogue_uses["twin"] == s.ROGUE_CARDS["twin"]["uses"] + 1
+    assert game.rogue_uses["exchange"] == s.ROGUE_CARDS["exchange"]["uses"] + 1
+
+    game = make_game(size=9)
+    game.challenge_beta = True
+    game.challenge_cards = ["sanrensei", "foolish_wisdom"]
+    game.rogue_enabled = True
+    game.rogue_card = "sanrensei"
+    game.moves = [("B", "C7"), ("W", "E5"), ("B", "E7"), ("W", "D5"), ("B", "G7")]
+    sent = []
+
+    async def send_derivative(payload):
+        sent.append(copy.deepcopy(payload))
+
+    old_random = s.random.random
+    old_sync = s._sync_board_to_katago
+    try:
+        s.random.random = lambda: 0.0
+
+        async def fake_sync(_game):
+            return None
+
+        s._sync_board_to_katago = fake_sync
+        before = sum(1 for row in game.board for cell in row if cell == 1)
+        await s._apply_player_rogue_move_effects(game, send_derivative, 6, 2, "B", 0)
+        after = sum(1 for row in game.board for cell in row if cell == 1)
+    finally:
+        s.random.random = old_random
+        s._sync_board_to_katago = old_sync
+
+    assert after - before >= 2
+
+    game = make_game(size=9)
+    game.challenge_beta = True
+    game.challenge_cards = ["god_hand", "sansan_trap"]
+    game.rogue_enabled = True
+    game.rogue_card = "god_hand"
+    game.rogue_godhand_center = (4, 4)
+    game.rogue_godhand_trigger = s._diamond_points(4, 4, 1, game.size)
+    old_random = s.random.random
+    old_sync = s._sync_board_to_katago
+    try:
+        s.random.random = lambda: 0.0
+
+        async def fake_sync(_game):
+            return None
+
+        s._sync_board_to_katago = fake_sync
+        await s._apply_player_rogue_move_effects(game, send, 4, 4, "B", 0)
+    finally:
+        s.random.random = old_random
+        s._sync_board_to_katago = old_sync
+
+    assert game.rogue_skip_ai is True
+
+    game = make_game(size=9)
+    game.challenge_beta = True
+    game.challenge_cards = ["dice", "nerf"]
+    game.level = "5k"
+    sent = []
+
+    async def send_restrict(payload):
+        sent.append(copy.deepcopy(payload))
+
+    old_random = s.random.random
+    try:
+        s.random.random = lambda: 0.0
+        await s._challenge_maybe_reduce_ai_level(game, send_restrict)
+    finally:
+        s.random.random = old_random
+
+    assert game.level == "6k"
+    assert any("限制套装触发" in msg.get("msg", "") for msg in sent)
+
+
 async def main():
     old_engine = s.engine
     try:
@@ -1143,6 +1239,7 @@ async def main():
         await smoke_new_ultimate_cards()
         await smoke_ultimate_turn_flow()
         await smoke_ultimate_ai_effect_sync()
+        await smoke_challenge_beta_set_bonuses()
         await smoke_quickthink_flow()
         await smoke_featured_pools()
         await smoke_suboptimal_extended()
