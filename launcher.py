@@ -196,7 +196,7 @@ class GoAILauncher:
 
         tk.Label(
             hdr,
-            text="GoAI 启动台",
+            text="GoAI 控制台",
             font=("Microsoft YaHei", 21, "bold"),
             fg=GOLD,
             bg=BG2,
@@ -251,7 +251,7 @@ class GoAILauncher:
 
         btn_font = ("Microsoft YaHei", 11, "bold")
         self._start_btn = tk.Button(
-            bf, text="▶ 启动对局服务", width=12, font=btn_font,
+            bf, text="启动服务", width=12, font=btn_font,
             fg=BG, bg=GOLD, activeforeground=BG, activebackground="#E5C158",
             relief="flat", borderwidth=0, cursor="hand2", pady=8,
             command=self._start_server
@@ -267,7 +267,7 @@ class GoAILauncher:
         self._stop_btn.pack(side="left", padx=(0, 10))
 
         self._open_btn = tk.Button(
-            bf, text="🌐 打开对弈界面", width=14, font=btn_font,
+            bf, text="打开对局", width=14, font=btn_font,
             fg=TEXT, bg=GREEN, activeforeground=TEXT, activebackground="#3CB371",
             relief="flat", borderwidth=0, cursor="hand2", state="disabled", pady=8,
             command=self._open_browser
@@ -280,7 +280,7 @@ class GoAILauncher:
         
         self._ai_enabled = tk.BooleanVar(value=True)
         self._ai_check = tk.Checkbutton(
-            mf, text="启动时加载 KataGo AI（取消勾选可进入纯双人对弈）",
+            mf, text="启动时加载 KataGo AI（老机器建议保持开启，纯双人时可关闭）",
             variable=self._ai_enabled, font=("Microsoft YaHei", 9),
             fg=TEXT, bg=BG, activeforeground=TEXT, activebackground=BG,
             selectcolor=BG3, cursor="hand2"
@@ -294,7 +294,7 @@ class GoAILauncher:
 
         sec_font = ("Microsoft YaHei", 9)
         self._stop_model_btn = tk.Button(
-            bf2, text="关闭/重启 AI", width=14, font=sec_font,
+            bf2, text="AI 开关", width=12, font=sec_font,
             fg=TEXT, bg=BG3, activeforeground=TEXT, activebackground="#3D3D3D",
             relief="flat", borderwidth=0, cursor="hand2", state="disabled", pady=5,
             command=self._toggle_model
@@ -303,7 +303,7 @@ class GoAILauncher:
         self._update_btn = None
 
         self._upgrade_btn = tk.Button(
-            bf2, text="⬆ 性能升级包", width=14, font=sec_font,
+            bf2, text="性能升级包", width=12, font=sec_font,
             fg="#000", bg=GOLD, activeforeground="#000", activebackground="#E5C040",
             relief="flat", borderwidth=0, cursor="hand2", pady=5,
             command=self._show_upgrade_dialog
@@ -311,7 +311,7 @@ class GoAILauncher:
         self._upgrade_btn.pack(side="left", padx=(0, 10))
 
         self._upgrade_hint = tk.Label(
-            bf2, text="按设备情况补装大模型或加速组件",
+            bf2, text="兼容性优先时建议保持默认，不强行升级",
             font=("Microsoft YaHei", 8), fg=MUTED, bg=BG)
         self._upgrade_hint.pack(side="left")
 
@@ -322,7 +322,7 @@ class GoAILauncher:
             self._upgrade_hint.config(text="大模型与 CUDA 升级已就绪")
 
         # ── Log Area ──
-        tk.Label(content, text="运行日志", font=("Microsoft YaHei", 9, "bold"), fg=GOLD, bg=BG).pack(anchor="w", pady=(8, 5))
+        tk.Label(content, text="运行面板", font=("Microsoft YaHei", 9, "bold"), fg=GOLD, bg=BG).pack(anchor="w", pady=(8, 5))
         
         if not _upgrade_installed():
             self._apply_upgrade_button_policy()
@@ -341,7 +341,7 @@ class GoAILauncher:
         ft.pack_propagate(False)
         
         tk.Label(
-            ft, text="GoAI © 2026 · Rogue Go Arena",
+            ft, text="GoAI © 2026 · Rogue Go Arena Launcher",
             font=("Microsoft YaHei", 8), fg=MUTED, bg=BG2,
         ).pack(side="left", padx=15, pady=9)
         

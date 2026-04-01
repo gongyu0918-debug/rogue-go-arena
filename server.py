@@ -179,6 +179,8 @@ ROGUE_FEATURED_CARDS = {
     "quickthink",
     "foolish_wisdom",
     "five_in_row",
+    "coach_mode",
+    "capture_foul",
     "last_stand",
 }
 
@@ -192,6 +194,7 @@ TWO_PLAYER_ROGUE_POOL = [
     "sanrensei",
     "foolish_wisdom",
     "five_in_row",
+    "capture_foul",
 ]
 
 AI_ROGUE_POOL = [
@@ -209,6 +212,7 @@ ULTIMATE_FEATURED_CARDS = {
     "quickthink",
     "foolish_wisdom",
     "five_in_row",
+    "capture_foul",
     "last_stand",
 }
 
@@ -219,6 +223,17 @@ MAX_MOVE_TIME = 12.0
 # so the response is nearly instant (neural net raw policy is already strong)
 OPENING_MOVE_THRESHOLD = 50   # first ~25 moves per side
 OPENING_MAX_VISITS = 500      # ~2-3s on most GPUs — still superhuman
+AI_STYLE_OPTIONS = {"balanced", "territory", "influence", "attack", "defense"}
+ROGUE_CAPTURE_FOUL_BASE = 0.50
+ROGUE_CAPTURE_FOUL_STEP = 0.10
+ROGUE_CAPTURE_FOUL_THRESHOLD = 5
+ROGUE_CAPTURE_FOUL_KOMI_PENALTY = 1.5
+ULTIMATE_CAPTURE_FOUL_THRESHOLD = 5
+ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY = 50.0
+ROGUE_COACH_BASE_TURNS = 20
+ROGUE_COACH_BONUS_TURNS = 5
+ROGUE_COACH_BONUS_THRESHOLD = 0.40
+ROGUE_COACH_VISITS = 4000
 
 
 def get_game_visits(level: str, move_count: int = -1,
@@ -405,6 +420,16 @@ ROGUE_CARDS = {
         "desc": "这是五子棋，不是围棋。每当我方横、竖、斜正好连成 5 颗同色棋，就会在首尾各补 1 颗棋子",
         "icon": "🎯",
     },
+    "coach_mode": {
+        "name": "代练上号",
+        "desc": "主动技能：后 20 手由比对方段位更强的 AI 代打；若下完后胜率仍低于 40%，则额外再代打 5 手",
+        "icon": "🎓",
+    },
+    "capture_foul": {
+        "name": "提子犯规",
+        "desc": "若对手单次或累计提子超过 5 颗，有 50% 概率触发“提子未放在棋盒”；每多 1 子概率再加 10%。若触发，则被惩罚方罚 1.5 目，随后概率重新计数，必须再提够 5 子后重新开始",
+        "icon": "🧺",
+    },
     "last_stand": {
         "name": "起死回生",
         "desc": "当我方胜率跌到 30% 以下时，仅触发 1 次：在上一手周围 3×3 内随机消掉 1 颗敌子，并随机补 1 颗己棋（不会落在禁着点）",
@@ -457,7 +482,7 @@ ULTIMATE_CARDS = {
     },
     "double": {
         "name": "双刀流",
-        "desc": "每回合固定连下 2 手",
+        "desc": "每回合固定连下 2 手，但整回合只计 1 手数",
         "icon": "⚔️",
     },
     "wildgrow": {
@@ -467,7 +492,7 @@ ULTIMATE_CARDS = {
     },
     "rejection": {
         "name": "排异反应",
-        "desc": "落点 3×3 内敌子被推开或摧毁",
+        "desc": "落点 5×5 内敌子被推开或摧毁",
         "icon": "💥",
     },
     "territory": {
@@ -547,7 +572,7 @@ ULTIMATE_CARDS = {
     },
     "quickthink": {
         "name": "极速风暴",
-        "desc": "5 秒内不限次数连续落子，结束后 AI 再读盘",
+        "desc": "5 秒内不限次数连续落子，结束后 AI 再读盘，整段只计 1 手数",
         "icon": "⚡",
     },
     "foolish_wisdom": {
@@ -559,6 +584,11 @@ ULTIMATE_CARDS = {
         "name": "五子连珠爆发",
         "desc": "这是五子棋，不是围棋。每当我方横、竖、斜正好连成 5 颗同色棋，就会随机清除对方 30 颗棋子，并在全盘随机补下 30 颗己棋；该效果可连锁触发",
         "icon": "🎯",
+    },
+    "capture_foul": {
+        "name": "提子犯规",
+        "desc": "若对手提子数量超过 5 颗，则 100% 触发“提子未放在棋盒”，被惩罚方立刻罚 50 目；每次触发后重新计数，之后仍可重复触发",
+        "icon": "🧺",
     },
     "last_stand": {
         "name": "起死回生",
@@ -1086,6 +1116,9 @@ class GoGame:
         self.rogue_sanrensei_done: bool = False
         self.rogue_five_in_row_seen: set[tuple[tuple[int, int], ...]] = set()
         self.rogue_last_stand_done: dict[str, bool] = {"B": False, "W": False}
+        self.rogue_capture_foul_progress: dict[str, int] = {"B": 0, "W": 0}
+        self.rogue_coach_moves_left: int = 0
+        self.rogue_coach_bonus_checked: bool = False
         self.rogue_quickthink_stage: int = 0
         self.rogue_fool_shapes: set[tuple[tuple[int, int], ...]] = set()
         # 让子棋任务: player passes 2 turns, then gets bonus turns
@@ -1110,10 +1143,14 @@ class GoGame:
         self.ultimate_sanrensei_done: bool = False
         self.ultimate_five_in_row_seen: set[tuple[tuple[int, int], ...]] = set()
         self.ultimate_last_stand_done: dict[str, bool] = {"B": False, "W": False}
+        self.ultimate_capture_foul_progress: dict[str, int] = {"B": 0, "W": 0}
         self.ultimate_quickthink_active: bool = False
         self.ultimate_quickthink_token: int = 0
+        self.ultimate_quickthink_turn_counted: bool = False
         self.ultimate_fool_shapes: set[tuple[tuple[int, int], ...]] = set()
         self.ultimate_shadow_clone_links: list[dict] = []
+        self.ai_observer: bool = False
+        self.ai_style: str = "balanced"
         self.last_analysis: dict = {"winrate": 0.5, "score": 0.0, "top_moves": [], "ownership": []}
         self._history: list[dict] = []
         self.reset_history()
@@ -1216,6 +1253,8 @@ class GoGame:
             "moves_list": [[c, g] for c, g in self.moves],
             "level": self.level,
             "two_player": self.two_player,
+            "ai_observer": self.ai_observer,
+            "ai_style": self.ai_style,
             "rogue_enabled": self.rogue_enabled,
             "rogue_card": self.rogue_card,
             "rogue_uses": self.rogue_uses,
@@ -1226,6 +1265,7 @@ class GoGame:
             "rogue_joseki_targets": [[x, y] for x, y in self.rogue_joseki_targets],
             "rogue_joseki_done": self.rogue_joseki_done,
             "rogue_undo_disabled": self.rogue_card == "no_regret",
+            "rogue_coach_moves_left": self.rogue_coach_moves_left,
             "rogue_quickthink_stage": self.rogue_quickthink_stage,
             "rogue_quickthink_seconds": (
                 ROGUE_QUICKTHINK_FIRST_SECONDS
@@ -1999,6 +2039,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                       "ownership": []}
             g.last_analysis = copy.deepcopy(result)
             return result
+        await _sync_board_to_katago(g)
         color = g.current_player
         analysis_visits = max(80, min(get_game_visits(g.level, len(g.moves)) // 2, 1000))
 
@@ -2082,11 +2123,19 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     player_color = data.get("player_color", "B")
                     level = data.get("level", "a3d")
                     two_player = bool(data.get("two_player", False))
+                    ai_observer = bool(data.get("ai_observer", False)) and not two_player
+                    if ai_observer:
+                        two_player = False
                     rogue_enabled = bool(data.get("rogue", False))
                     ai_rogue_enabled = bool(data.get("ai_rogue", False)) and rogue_enabled and not two_player
+                    ai_style = str(data.get("ai_style", "balanced"))
+                    if ai_style not in AI_STYLE_OPTIONS:
+                        ai_style = "balanced"
 
                     game = GoGame(size, komi, handicap, player_color, level,
                                   two_player)
+                    game.ai_observer = ai_observer
+                    game.ai_style = ai_style
                     game.rogue_enabled = rogue_enabled
                     game.ai_rogue_enabled = ai_rogue_enabled
                     active_games[game_id] = game
@@ -2147,7 +2196,9 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         await send({"type": "rogue_offer", "cards": cards_data})
                         # Game waits for card selection before AI moves
                     else:
-                        if not two_player and engine.ready:
+                        if ai_observer and engine.ready:
+                            asyncio.create_task(_run_ai_observer_loop(game, send))
+                        elif not two_player and engine.ready:
                             if game.ai_color == game.current_player and handicap == 0:
                                 await _ai_move(game, send)
 
@@ -2194,11 +2245,12 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                             continue
 
                         was_double_pending = game.ultimate_double_pending
-                        game.ultimate_move_count += 1
+                        _record_ultimate_player_action(game)
                         gtp = coord_to_gtp(x, y, game.size)
                         game.moves.append((color, gtp))
-                        game.place_stone(x, y, color)
+                        captured = game.place_stone(x, y, color)
                         game.passed[color] = False
+                        await _check_capture_foul(game, send, color, captured, ultimate=True)
 
                         p_card = game.ultimate_player_card
                         if p_card == "quickthink":
@@ -2208,7 +2260,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                             game.current_player = game.player_color
                             await send({"type": "game_state", **game.to_state()})
                             if game.ultimate_move_count >= 20:
-                                game.ultimate_quickthink_active = False
+                                _finish_ultimate_quickthink_turn(game)
                                 await _ultimate_force_score(game, send)
                             continue
 
@@ -2287,6 +2339,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     captured = game.place_stone(x, y, color)
                     game.passed[color] = False
                     game.current_player = "W" if color == "B" else "B"
+                    await _check_capture_foul(game, send, color, captured, ultimate=False)
                     await _apply_player_rogue_move_effects(
                         game, send, x, y, color, captured)
                     await _apply_ai_rogue_response_effects(
@@ -2344,7 +2397,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     # Ultimate mode pass
                     if game.ultimate and not game.two_player:
                         if game.ultimate_player_card == "quickthink" and game.ultimate_quickthink_active:
-                            game.ultimate_quickthink_active = False
+                            _finish_ultimate_quickthink_turn(game)
                             game.current_player = game.ai_color
                             game.push_history()
                             await send({"type": "game_state", **game.to_state()})
@@ -2355,11 +2408,12 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                             if not game.game_over and engine.ready:
                                 asyncio.create_task(do_analysis_bg(game))
                             continue
-                        game.ultimate_move_count += 1
+                        _record_ultimate_player_action(game)
                         game.moves.append((color, "pass"))
                         game.passed[color] = True
                         game.current_player = "W" if color == "B" else "B"
                         game.ultimate_double_pending = False
+                        _finish_ultimate_quickthink_turn(game)
                         game.push_history()
                         await send({"type": "game_state", **game.to_state()})
                         if game.ultimate_move_count >= 20:
@@ -2631,6 +2685,27 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                                 "uses": game.rogue_uses})
 
                 # ── ultimate_select_card ──────────────────────────────────────
+                elif action == "rogue_use_coach":
+                    if not game:
+                        game = active_games.get(game_id)
+                    if not game or game.game_over or not engine.ready:
+                        continue
+                    if game.rogue_card != "coach_mode" or game.rogue_uses.get("coach_mode", 0) <= 0:
+                        await send_error("代练上号已经用完了")
+                        continue
+                    if game.current_player != game.player_color:
+                        await send_error("还没轮到你")
+                        continue
+                    game.rogue_uses["coach_mode"] -= 1
+                    game.rogue_coach_moves_left = ROGUE_COACH_BASE_TURNS
+                    game.rogue_coach_bonus_checked = False
+                    await send({"type": "rogue_event", "msg": f"🎓 代练上号启动：接下来 {ROGUE_COACH_BASE_TURNS} 手将由更强 AI 代打"})
+                    await send({"type": "rogue_uses_update", "uses": game.rogue_uses})
+                    await send({"type": "game_state", **game.to_state()})
+                    await _run_coach_turn_if_needed(game, send)
+                    if not game.game_over and engine.ready:
+                        asyncio.create_task(do_analysis_bg(game))
+
                 elif action == "ultimate_select_card":
                     if not game:
                         game = active_games.get(game_id)
@@ -2650,7 +2725,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     game.ultimate_sanrensei_done = False
                     game.ultimate_five_in_row_seen = set()
                     game.ultimate_last_stand_done = {"B": False, "W": False}
-                    game.ultimate_quickthink_active = False
+                    _finish_ultimate_quickthink_turn(game)
                     game.ultimate_fool_shapes = set()
                     game.ultimate_shadow_clone_links = []
                     if card_id == "joseki_burst":
@@ -2700,7 +2775,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         continue
                     if game.ultimate_player_card != "quickthink" or not game.ultimate_quickthink_active:
                         continue
-                    game.ultimate_quickthink_active = False
+                    _finish_ultimate_quickthink_turn(game)
                     game.current_player = game.ai_color
                     await send({"type": "game_state", **game.to_state()})
                     if game.ultimate_move_count >= 20:
@@ -2947,6 +3022,121 @@ def _try_spawn_bonus_stone(game: GoGame, x: int, y: int, color: str) -> bool:
 def _spawn_bonus_points(game: GoGame, points: list[tuple[int, int]], color: str) -> list[tuple[int, int]]:
     """Spawn bonus stones as a stabilized batch without overwriting enemy stones."""
     return _apply_magic_points(game, points, color, overwrite_enemy=False)
+
+
+def _record_ultimate_turn(game: GoGame) -> None:
+    game.ultimate_move_count += 1
+
+
+def _record_ultimate_player_action(game: GoGame) -> None:
+    if game.ultimate_player_card == "quickthink" and game.ultimate_quickthink_active:
+        if not game.ultimate_quickthink_turn_counted:
+            _record_ultimate_turn(game)
+            game.ultimate_quickthink_turn_counted = True
+        return
+    if not game.ultimate_double_pending:
+        _record_ultimate_turn(game)
+
+
+def _finish_ultimate_quickthink_turn(game: GoGame) -> None:
+    game.ultimate_quickthink_active = False
+    game.ultimate_quickthink_turn_counted = False
+
+
+def _apply_score_penalty(game: GoGame, offender: str, amount: float) -> None:
+    if offender == "B":
+        game.komi += amount
+    else:
+        game.komi -= amount
+
+
+async def _check_capture_foul(game: GoGame, send_fn, offender: str, captured: int, *, ultimate: bool) -> None:
+    if captured <= 0:
+        return
+    if ultimate:
+        active = (
+            game.ultimate
+            and (game.ultimate_player_card == "capture_foul" or game.ultimate_ai_card == "capture_foul")
+        )
+        if not active:
+            return
+        progress = game.ultimate_capture_foul_progress
+        progress[offender] += captured
+        if progress[offender] < ULTIMATE_CAPTURE_FOUL_THRESHOLD:
+            return
+        _apply_score_penalty(game, offender, ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY)
+        progress[offender] = 0
+        await send_fn({
+            "type": "rogue_event",
+            "msg": f"🧺 提子犯规触发！{('黑棋' if offender == 'B' else '白棋')} 被罚 {ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY:.0f} 目",
+        })
+        if engine.ready:
+            await run_in_executor(engine.send_command, f"komi {game.komi}")
+        return
+
+    if game.rogue_card != "capture_foul":
+        return
+    progress = game.rogue_capture_foul_progress
+    progress[offender] += captured
+    if progress[offender] < ROGUE_CAPTURE_FOUL_THRESHOLD:
+        return
+    chance = min(1.0, ROGUE_CAPTURE_FOUL_BASE + max(0, progress[offender] - ROGUE_CAPTURE_FOUL_THRESHOLD) * ROGUE_CAPTURE_FOUL_STEP)
+    if random.random() > chance:
+        return
+    _apply_score_penalty(game, offender, ROGUE_CAPTURE_FOUL_KOMI_PENALTY)
+    progress[offender] = 0
+    await send_fn({
+        "type": "rogue_event",
+        "msg": f"🧺 提子犯规！{('黑棋' if offender == 'B' else '白棋')} 被罚 {ROGUE_CAPTURE_FOUL_KOMI_PENALTY:.1f} 目",
+    })
+    if engine.ready:
+        await run_in_executor(engine.send_command, f"komi {game.komi}")
+
+
+def _ai_style_target_score(game: GoGame, color: str, coord: tuple[int, int], style: str) -> float:
+    x, y = coord
+    center = (game.size - 1) / 2.0
+    edge_dist = min(x, y, game.size - 1 - x, game.size - 1 - y)
+    center_dist = abs(x - center) + abs(y - center)
+    own = 1 if color == "B" else 2
+    opp = 3 - own
+    own_adj = 0
+    opp_adj = 0
+    for nx, ny in game.neighbors(x, y):
+        cell = game.board[ny][nx]
+        if cell == own:
+            own_adj += 1
+        elif cell == opp:
+            opp_adj += 1
+    if style == "territory":
+        return -edge_dist * 3 + own_adj - opp_adj * 0.25
+    if style == "influence":
+        return -center_dist * 2 + opp_adj * 0.4
+    if style == "attack":
+        return opp_adj * 4 + own_adj * 0.5 - edge_dist * 0.3
+    if style == "defense":
+        return own_adj * 4 + opp_adj * 0.2 - center_dist * 0.2
+    return 0.0
+
+
+def _choose_ai_style_move(game: GoGame, color: str, top_moves: list[dict], style: str) -> Optional[str]:
+    if style not in AI_STYLE_OPTIONS or style == "balanced":
+        return None
+    best_move = None
+    best_score = None
+    for item in top_moves[:8]:
+        gtp = (item.get("move") or "").strip()
+        coord = gtp_to_coord(gtp, game.size)
+        if not coord:
+            continue
+        x, y = coord
+        if game.board[y][x] != 0:
+            continue
+        score = _ai_style_target_score(game, color, coord, style)
+        if best_score is None or score > best_score:
+            best_score = score
+            best_move = gtp
+    return best_move
 
 
 def _collect_joseki_burst_points(
@@ -3508,7 +3698,7 @@ def _prepare_player_turn_modifiers(game: GoGame):
 
 def _clear_player_turn_modifiers(game: GoGame):
     game.rogue_quickthink_stage = 0
-    game.ultimate_quickthink_active = False
+    _finish_ultimate_quickthink_turn(game)
 
 
 async def _pick_second_best_point(game: GoGame, color: str) -> Optional[tuple[int, int]]:
@@ -3557,6 +3747,9 @@ async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
     game.rogue_sanrensei_done = False
     game.rogue_five_in_row_seen = set()
     game.rogue_last_stand_done = {"B": False, "W": False}
+    game.rogue_capture_foul_progress = {"B": 0, "W": 0}
+    game.rogue_coach_moves_left = 0
+    game.rogue_coach_bonus_checked = False
     game.rogue_quickthink_stage = 0
     game.rogue_fool_shapes = set()
     if card_id != "seal":
@@ -3600,6 +3793,8 @@ async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
             game.rogue_godhand_center[0], game.rogue_godhand_center[1], 1, game.size)
     elif card_id == "quickthink" and game.current_player == game.player_color:
         game.rogue_quickthink_stage = 1
+    elif card_id == "coach_mode":
+        game.rogue_uses["coach_mode"] = 1
 
     await send_fn({"type": "rogue_card_selected",
                    "card_id": card_id,
@@ -3983,8 +4178,8 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
     elif card == "plague":
         # Convert ALL enemy stones in 3×3 area
         targets = []
-        for dy in range(-1, 2):
-            for dx in range(-1, 2):
+        for dy in range(-2, 3):
+            for dx in range(-2, 3):
                 nx, ny = x + dx, y + dy
                 if 0 <= nx < size and 0 <= ny < size and game.board[ny][nx] == ov:
                     targets.append((nx, ny))
@@ -4464,14 +4659,17 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
                 gtp_move = "pass"
                 coord = None
 
-    game.ultimate_move_count += 1
+    if allow_double_bonus:
+        _record_ultimate_turn(game)
     game.moves.append((color, gtp_move))
 
+    captured = 0
     if gtp_move.upper() != "PASS" and coord:
-        game.place_stone(coord[0], coord[1], color)
+        captured = game.place_stone(coord[0], coord[1], color)
         game.passed[color] = False
     else:
         game.passed[color] = True
+    await _check_capture_foul(game, send_fn, color, captured, ultimate=True)
 
     await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color,
                     "x": coord[0] if coord else None,
@@ -4532,6 +4730,8 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
 async def _ai_move(game: GoGame, send_fn):
     if game.game_over or not engine.ready:
         return
+
+    await _sync_board_to_katago(game)
 
     color = game.ai_color
     card = game.rogue_card
@@ -4737,26 +4937,34 @@ async def _ai_move(game: GoGame, send_fn):
         gtp_move = await _ai_move_avoid_points(
             game, color, visits, time_limit, forbidden)
     else:
-        def _genmove_atomic():
-            with engine.command_lock:
-                mv = 10000000 if visits == 0 else visits
-                engine._send_command_locked(f"kata-set-param maxVisits {mv}")
-                engine.current_visits = visits
-                engine._send_command_locked(
-                    f"kata-set-param maxTime {time_limit}")
-                resp = engine._send_command_locked(
-                    f"genmove {color}",
-                    timeout=max(60, time_limit + 15))
-                engine._send_command_locked("kata-set-param maxTime -1")
-                return resp
+        gtp_move = None
+        if not card and game.ai_style != "balanced":
+            try:
+                analysis = await do_analysis(game)
+                gtp_move = _choose_ai_style_move(game, color, analysis.get("top_moves", []), game.ai_style)
+            except Exception:
+                gtp_move = None
+        if not gtp_move:
+            def _genmove_atomic():
+                with engine.command_lock:
+                    mv = 10000000 if visits == 0 else visits
+                    engine._send_command_locked(f"kata-set-param maxVisits {mv}")
+                    engine.current_visits = visits
+                    engine._send_command_locked(
+                        f"kata-set-param maxTime {time_limit}")
+                    resp = engine._send_command_locked(
+                        f"genmove {color}",
+                        timeout=max(60, time_limit + 15))
+                    engine._send_command_locked("kata-set-param maxTime -1")
+                    return resp
 
-        resp = await run_in_executor(_genmove_atomic)
-        if game.game_over:
-            return
-        if "?" in resp:
-            print(f"[AI] genmove returned error: {resp}")
-            return
-        gtp_move = resp.replace("=", "").strip()
+            resp = await run_in_executor(_genmove_atomic)
+            if game.game_over:
+                return
+            if "?" in resp:
+                print(f"[AI] genmove returned error: {resp}")
+                return
+            gtp_move = resp.replace("=", "").strip()
 
     if _is_suspicious_ai_pass(game, gtp_move, color):
         fallback_move = await _pick_nonpass_fallback_move(game, color, visits)
@@ -4853,6 +5061,7 @@ async def _ai_move(game: GoGame, send_fn):
                     "y": coord[1] if coord else None})
     if slip_msg:
         await send_fn({"type": "rogue_event", "msg": slip_msg})
+    await _run_coach_turn_if_needed(game, send_fn)
 
 
 async def _ai_move_avoid_points(game, color, visits, time_limit, forbidden):
@@ -5042,6 +5251,7 @@ async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
         game.passed[color] = False
     else:
         game.passed[color] = True
+    await _check_capture_foul(game, send_fn, color, captured, ultimate=False)
 
     game.current_player = game.player_color
 
@@ -5076,6 +5286,112 @@ async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
                     "y": coord[1] if coord else None})
     if rogue_msg:
         await send_fn({"type": "rogue_event", "msg": rogue_msg})
+    await _run_coach_turn_if_needed(game, send_fn)
+
+
+async def _generate_ai_style_move(game: GoGame, color: str, visits: int, time_limit: float) -> str:
+    await _sync_board_to_katago(game)
+    chosen = None
+    if game.ai_style != "balanced":
+        try:
+            analysis = await do_analysis(game)
+            chosen = _choose_ai_style_move(game, color, analysis.get("top_moves", []), game.ai_style)
+        except Exception:
+            chosen = None
+    if chosen:
+        await run_in_executor(engine.send_command, f"play {color} {chosen}")
+        return chosen
+
+    def _genmove_atomic():
+        with engine.command_lock:
+            mv = 10000000 if visits == 0 else visits
+            engine._send_command_locked(f"kata-set-param maxVisits {mv}")
+            engine.current_visits = visits
+            engine._send_command_locked(f"kata-set-param maxTime {time_limit}")
+            resp = engine._send_command_locked(f"genmove {color}", timeout=max(60, time_limit + 15))
+            engine._send_command_locked("kata-set-param maxTime -1")
+            return resp
+
+    resp = await run_in_executor(_genmove_atomic)
+    return resp.replace("=", "").strip()
+
+
+async def _run_coach_turn_if_needed(game: GoGame, send_fn):
+    if (
+        game.game_over
+        or game.two_player
+        or game.current_player != game.player_color
+        or game.rogue_card != "coach_mode"
+        or game.rogue_coach_moves_left <= 0
+        or not engine.ready
+    ):
+        return
+
+    color = game.player_color
+    visits = max(ROGUE_COACH_VISITS, get_game_visits(game.level, len(game.moves), mode="rogue"))
+    time_limit = min(MAX_MOVE_TIME, 8.0)
+    gtp_move = await _generate_ai_style_move(game, color, visits, time_limit)
+    if gtp_move.upper() == "RESIGN":
+        gtp_move = "pass"
+    coord = gtp_to_coord(gtp_move, game.size)
+    captured = 0
+    game.moves.append((color, gtp_move))
+    if gtp_move.upper() != "PASS" and coord:
+        captured = game.place_stone(coord[0], coord[1], color)
+        game.passed[color] = False
+    else:
+        game.passed[color] = True
+    game.current_player = game.ai_color
+    game.rogue_coach_moves_left = max(0, game.rogue_coach_moves_left - 1)
+    await _check_capture_foul(game, send_fn, color, captured, ultimate=False)
+    if coord:
+        await _apply_player_rogue_move_effects(game, send_fn, coord[0], coord[1], color, captured)
+        await _apply_ai_rogue_response_effects(game, send_fn, coord[0], coord[1], color)
+    game.push_history()
+    await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color, "x": coord[0] if coord else None, "y": coord[1] if coord else None})
+    await send_fn({"type": "rogue_event", "msg": f"🎓 代练上号：强化 AI 接管了一手，剩余 {game.rogue_coach_moves_left} 手"})
+    await send_fn({"type": "game_state", **game.to_state()})
+    if game.rogue_coach_moves_left == 0 and not game.rogue_coach_bonus_checked:
+        game.rogue_coach_bonus_checked = True
+        if await _estimate_side_winrate(game, color) < ROGUE_COACH_BONUS_THRESHOLD:
+            game.rogue_coach_moves_left += ROGUE_COACH_BONUS_TURNS
+            await send_fn({"type": "rogue_event", "msg": f"🎓 代练上号追加触发：胜率仍低于 40%，额外再代打 {ROGUE_COACH_BONUS_TURNS} 手"})
+    if not game.game_over and engine.ready and game.current_player == game.ai_color:
+        await _ai_move(game, send_fn)
+
+
+async def _run_ai_observer_loop(game: GoGame, send_fn):
+    while not game.game_over and game.ai_observer and engine.ready:
+        await _sync_board_to_katago(game)
+        color = game.current_player
+        visits = get_game_visits(game.level, len(game.moves))
+        time_limit = 4.0 if len(game.moves) < OPENING_MOVE_THRESHOLD else 8.0
+        gtp_move = await _generate_ai_style_move(game, color, visits, time_limit)
+        if _is_suspicious_ai_pass(game, gtp_move, color):
+            fallback_move = await _pick_nonpass_fallback_move(game, color, visits)
+            if fallback_move:
+                gtp_move = fallback_move
+        coord = gtp_to_coord(gtp_move, game.size)
+        captured = 0
+        game.moves.append((color, gtp_move))
+        if gtp_move.upper() != "PASS" and coord:
+            captured = game.place_stone(coord[0], coord[1], color)
+            game.passed[color] = False
+        else:
+            game.passed[color] = True
+        await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color, "x": coord[0] if coord else None, "y": coord[1] if coord else None})
+        game.current_player = "W" if color == "B" else "B"
+        game.push_history()
+        await send_fn({"type": "game_state", **game.to_state()})
+        if game.passed["B"] and game.passed["W"]:
+            resp_score = await run_in_executor(engine.send_command, "final_score")
+            score_str = resp_score.replace("=", "").strip()
+            winner = "B" if score_str.startswith("B") else "W"
+            game.game_over = True
+            game.winner = winner
+            await send_fn({"type": "game_over", "winner": winner, "score": score_str, "reason": "double_pass"})
+            break
+        await asyncio.sleep(0.35)
 
 
 if __name__ == "__main__":

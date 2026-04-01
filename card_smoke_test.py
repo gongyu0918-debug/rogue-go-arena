@@ -237,7 +237,7 @@ async def smoke_slip_card():
 
     ai_move = next(msg for msg in sent if msg.get("type") == "ai_move")
     assert ai_move["gtp"] != "E5"
-    assert synced["count"] == 1
+    assert synced["count"] == 2
     assert any(msg.get("type") == "rogue_event" for msg in sent)
 
 

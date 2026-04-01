@@ -851,9 +851,10 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 .rogue-card .rc-name { color: #f5dd93; font-weight: 700; font-size: 1rem; margin-bottom: 8px; }
 .rogue-card .rc-desc { color: #afbac8; font-size: .78rem; line-height: 1.5; }
 /* Rogue ability bar */
-#rogue-bar { display:none; position:absolute; top:4px; right:4px; z-index:40;
-  background:rgba(15,15,20,0.85); border:1px solid rgba(212,175,55,0.3);
-  border-radius:8px; padding:4px 8px; backdrop-filter:blur(4px); }
+#rogue-bar { display:none; position:absolute; bottom:12px; left:12px; z-index:40;
+  background:rgba(15,15,20,0.9); border:1px solid rgba(212,175,55,0.32);
+  border-radius:14px; padding:8px 10px; backdrop-filter:blur(10px);
+  box-shadow:0 12px 28px rgba(0,0,0,.28); }
 #rogue-bar .rb-badge { color:#d4af37; font-size:.75rem; font-weight:600; }
 #rogue-bar button { background:none; border:1px solid rgba(212,175,55,0.4);
   color:#d4af37; border-radius:6px; padding:3px 8px; font-size:.72rem;
@@ -888,11 +889,12 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 .ultimate-card .rc-name { color: #ff9d92; font-weight: 700; font-size: 1rem; margin-bottom: 8px; }
 .ultimate-card .rc-desc { color: #ffc0b7; font-size: .78rem; line-height: 1.5; }
 #ultimate-bar {
-  display:none; position:absolute; top:4px; left:4px; right:4px; z-index:40;
-  background:rgba(40,5,5,0.9); border:1px solid rgba(255,68,68,0.4);
-  border-radius:8px; padding:5px 10px; backdrop-filter:blur(4px);
+  display:none; position:absolute; bottom:12px; right:12px; z-index:40;
+  background:rgba(40,5,5,0.92); border:1px solid rgba(255,68,68,0.4);
+  border-radius:14px; padding:8px 12px; backdrop-filter:blur(10px);
   font-size:.75rem; color:#ffaaaa;
-  display:none; justify-content:space-between; align-items:center;
+  justify-content:space-between; align-items:center;
+  box-shadow:0 12px 28px rgba(0,0,0,.3);
 }
 #ultimate-bar .ub-player { color:#ff6666; font-weight:700; }
 #ultimate-bar .ub-ai { color:#66aaff; font-weight:700; }
@@ -1181,6 +1183,7 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
       <button id="rb-twin" style="display:none" disabled>⚡ 连击</button>
       <button id="rb-exchange" style="display:none" disabled>🔄 挪移</button>
     </div>
+      <button id="rb-coach" style="display:none" disabled>🎓 代练上号</button>
     <div id="ultimate-bar">
       <span class="ub-player" id="ub-player-card"></span>
       <span class="ub-moves" id="ub-moves"></span>
@@ -1265,7 +1268,7 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
     <div class="panel-card">
       <h3>辅助分析</h3>
       <div class="toggle-row">
-        <div class="toggle on" id="hint-toggle"></div>
+        <div class="toggle" id="hint-toggle"></div>
         <span class="toggle-label">显示推荐落点</span>
       </div>
       <div class="toggle-row">
@@ -1355,6 +1358,7 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
     <div class="form-row"><label>开局</label>
       <div class="mode-row" style="flex:1; margin:0">
         <div class="mode-btn active" id="mode-normal" onclick="setMode('normal')">正常对局</div>
+        <div class="mode-btn" id="mode-watch"  onclick="setMode('watch')">AI 观战</div>
         <div class="mode-btn" id="mode-guess"  onclick="setMode('guess')">猜先</div>
         <div class="mode-btn" id="mode-give"   onclick="setMode('give')">让先</div>
         <div class="mode-btn" id="mode-two"    onclick="setMode('two')">两人对局</div>
@@ -1405,6 +1409,16 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
     <div class="form-row">
       <label>对手</label>
       <select id="sel-level"></select>
+    </div>
+    <div class="form-row" id="row-style">
+      <label>AI风格</label>
+      <select id="sel-ai-style">
+        <option value="balanced" selected>均衡</option>
+        <option value="territory">注重实地</option>
+        <option value="influence">注重外势</option>
+        <option value="attack">注重进攻</option>
+        <option value="defense">注重防守</option>
+      </select>
     </div>
 
     <!-- Time Control -->
@@ -1540,7 +1554,7 @@ const COLS = "ABCDEFGHJKLMNOPQRST";
 // ═══════════════════════════════════════════════════════════════════════════════
 let ws = null, gameState = null;
 let analysis = { winrate: 0.5, score: 0, top_moves: [], ownership: [] };
-let showHints = true, showTerritory = true, showMoveNumbers = false;
+let showHints = false, showTerritory = true, showMoveNumbers = false;
 let boardSize = 19, CELL = 32, PAD;
 let gameId = localStorage.getItem("goai_game_id") || Math.random().toString(36).slice(2);
 localStorage.setItem("goai_game_id", gameId);
@@ -1590,15 +1604,17 @@ const ROGUE_CARD_I18N = {
   quickthink: { name: "Quick Think", desc: "Play within 3s to unlock a 2s bonus move window." },
   foolish_wisdom: { name: "Wise Fool", desc: "Form an isolated ugly shape to sprout a bonus stone in the 5\u00d75 area." },
   five_in_row: { name: "Five in a Row", desc: "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, one bonus stone appears at each end." },
+  coach_mode: { name: "Coach Login", desc: "Active: a stronger AI plays the next 20 turns for you. If your winrate stays below 40% after that, it plays 5 extra turns." },
+  capture_foul: { name: "Capture Foul", desc: "When the opponent captures over 5 stones, there is a 50% chance of a foul, plus 10% for each extra stone. On trigger, the offender loses 1.5 points, then the counter resets and must build back above 5 again." },
   last_stand: { name: "Last Stand", desc: "Once per game, if your winrate drops below 30%, remove 1 enemy stone and add 1 friendly stone inside the last move's 3\u00d73 area without landing on forbidden points." },
 };
 
 const ULTIMATE_CARD_I18N = {
   chain: { name: "Chain Strike", desc: "Every move has a 65% chance to grant an extra turn." },
   proliferate: { name: "Infinite Bloom", desc: "After you play, 5 same-color stones bloom in a 5\u00d75 zone." },
-  double: { name: "Dual Blades", desc: "Every turn is automatically a 2-move combo." },
+  double: { name: "Dual Blades", desc: "Every turn becomes a 2-move combo, but the whole burst only counts as 1 move." },
   wildgrow: { name: "Wild Growth", desc: "4 of your stones spread outward into empty space." },
-  rejection: { name: "Repulsion", desc: "Enemy stones in the 3\u00d73 zone are pushed away or destroyed." },
+  rejection: { name: "Repulsion", desc: "Enemy stones in the 5\u00d75 zone are pushed away or destroyed." },
   territory: { name: "Absolute Zone", desc: "Create a 4-step forbidden barrier around your move." },
   shadow_clone: { name: "Shadow Clone", desc: "Create a mirrored stone now. One turn later, the original point and mirror point are forced into a full line even if either endpoint was removed." },
   plague: { name: "Plague", desc: "Convert every enemy stone in the 3\u00d73 area to your color." },
@@ -1614,9 +1630,10 @@ const ULTIMATE_CARD_I18N = {
   god_hand: { name: "Hand of God", desc: "Trigger the hidden diamond \u2014 wipe enemies and flood the board with 50 stones." },
   corner_helper: { name: "Corner Fortress", desc: "Each corner can trigger once. If a corner's 5\u00d75 area has 2 of your stones, that corner's 8\u00d78 boundary is filled and enemies inside are cleared." },
   sanrensei: { name: "Star Ignition", desc: "Play your first 3 moves on star points to ignite star-point influence across the board." },
-  quickthink: { name: "Speed Storm", desc: "Place unlimited stones for 5 seconds \u2014 then the AI reads the board." },
+  quickthink: { name: "Speed Storm", desc: "Place unlimited stones for 5 seconds \u2014 then the AI reads the board. The whole burst counts as 1 move." },
   foolish_wisdom: { name: "Fool's Chain", desc: "Ugly-shape chain reaction spawns up to 20 stones until it stops." },
   five_in_row: { name: "Five in a Row Burst", desc: "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, remove 30 enemy stones and drop 30 friendly stones across the board. This effect can chain." },
+  capture_foul: { name: "Capture Foul", desc: "Whenever the opponent captures more than 5 stones, the foul triggers with 100% certainty. The offender immediately loses 50 points, then the counter resets and can trigger again." },
   last_stand: { name: "Last Stand", desc: "If your winrate drops below 30%, clear 30 enemy stones and add 30 friendly stones across the entire board." },
 };
 
@@ -1651,7 +1668,7 @@ function getRogueCardName(cardId) {
       shadow: "影子", sprout: "萌芽", joseki_ocd: "定式强迫症", handicap_quest: "让子任务",
       god_hand: "神之一手", corner_helper: "守角辅助", sanrensei: "三连星",
       no_regret: "永不悔棋", quickthink: "快速思考", foolish_wisdom: "大智若愚",
-      five_in_row: "五子连珠", last_stand: "起死回生",
+      five_in_row: "五子连珠", coach_mode: "代练上号", capture_foul: "提子犯规", last_stand: "起死回生",
     }[cardId] || cardId);
 }
 
@@ -1665,7 +1682,7 @@ function getUltimateCardName(cardId) {
       blackout: "天崩地裂", magnet: "磁力吸附", necro: "亡灵召唤", wall: "万里长城",
       joseki_burst: "定式爆发", god_hand: "神之一手", corner_helper: "守角要塞",
       sanrensei: "三连星爆发", quickthink: "极速风暴", foolish_wisdom: "愚形连锁",
-      five_in_row: "五子连珠爆发", last_stand: "起死回生",
+      five_in_row: "五子连珠爆发", capture_foul: "提子犯规", last_stand: "起死回生",
     }[cardId] || cardId);
 }
 
@@ -3516,10 +3533,13 @@ function updateRogueBar() {
   const btnPuppet = document.getElementById("rb-puppet");
   const btnTwin = document.getElementById("rb-twin");
   const btnExchange = document.getElementById("rb-exchange");
+  const btnCoach = document.getElementById("rb-coach");
+  if (btnCoach && btnCoach.parentElement?.id !== "rogue-bar") bar.appendChild(btnCoach);
 
   btnPuppet.style.display = "none";
   btnTwin.style.display = "none";
   btnExchange.style.display = "none";
+  if (btnCoach) btnCoach.style.display = "none";
 
   if (activeRogueCard === "puppet") {
     btnPuppet.style.display = "";
@@ -3538,6 +3558,12 @@ function updateRogueBar() {
     const left = rogueUses.exchange || 0;
     btnExchange.textContent = `🔄 ${ui("挪移", "Swap")} (${left})`;
     btnExchange.disabled = left <= 0;
+  }
+  if (activeRogueCard === "coach_mode" && btnCoach) {
+    btnCoach.style.display = "";
+    const left = rogueUses.coach_mode || 0;
+    btnCoach.textContent = `🎓 ${ui("代练上号", "Coach")} (${left})`;
+    btnCoach.disabled = left <= 0;
   }
 }
 
@@ -3616,6 +3642,7 @@ const ULTIMATE_NAMES = {
   quickthink: "极速风暴",
   foolish_wisdom: "愚形连锁",
   five_in_row: "五子连珠爆发",
+  capture_foul: "提子犯规",
   last_stand: "起死回生",
 };
 
@@ -3754,6 +3781,11 @@ document.getElementById("rb-exchange").addEventListener("click", () => {
   if (!activeRogueCard || activeRogueCard !== "exchange") return;
   if ((rogueUses.exchange || 0) <= 0) return;
   sendWS({ action: "rogue_use_exchange" });
+});
+document.getElementById("rb-coach").addEventListener("click", () => {
+  if (!activeRogueCard || activeRogueCard !== "coach_mode") return;
+  if ((rogueUses.coach_mode || 0) <= 0) return;
+  sendWS({ action: "rogue_use_coach" });
 });
 
 function render() {
@@ -3980,11 +4012,11 @@ function handleMessage(msg) {
       lastAiMove = null;
       previousBoard = null;
       analysis = { winrate: 0.5, score: 0, top_moves: [], ownership: [] };
-      isMyTurn = twoPlayerMode ? true : (msg.current_player === myColor);
+      isMyTurn = msg.ai_observer ? false : (twoPlayerMode ? true : (msg.current_player === myColor));
       reviewMode = false; sgfLoadedMode = false;
       resizeBoard(msg.size);
       render();
-      setButtons(true);
+      setButtons(!msg.ai_observer);
       updateUI();
       updateWinRate(0.5);
       initTimers();
@@ -4280,6 +4312,9 @@ function updateUI() {
 }
 
 function updateWinRate(wr) {
+  const wrap = document.getElementById("winrate-bar-wrap");
+  if (wrap) wrap.style.display = showHints ? "" : "none";
+  if (!showHints) return;
   const rawBlack = Math.max(0, Math.min(100, wr * 100));
   const rawWhite = 100 - rawBlack;
   const b = rawBlack.toFixed(1);
@@ -4294,6 +4329,11 @@ function updateWinRate(wr) {
     btnScore.disabled = !canScore;
     btnScore.title = canScore ? "计算胜负" : "胜率需≥80%才可计算胜负";
   }
+}
+
+function refreshHintVisibility() {
+  const wrap = document.getElementById("winrate-bar-wrap");
+  if (wrap) wrap.style.display = showHints ? "" : "none";
 }
 
 function setThinking(v) {
@@ -4410,6 +4450,7 @@ document.getElementById("btn-new").addEventListener("click", () => {
   let playerColor = document.getElementById("sel-color").value;
   let komi = parseFloat(document.getElementById("sel-komi").value);
   const isTwoPlayer = (startMode === "two");
+  const isAiWatch = (startMode === "watch");
 
   if (startMode === "guess") {
     playerColor = Math.random() < 0.5 ? "B" : "W";
@@ -4418,7 +4459,7 @@ document.getElementById("btn-new").addEventListener("click", () => {
     playerColor = "B";
     komi = 0;
     log(ui("让先：你执黑，贴目0", "Take Black: you play Black, komi is set to 0"));
-  } else if (isTwoPlayer) {
+  } else if (isTwoPlayer || isAiWatch) {
     playerColor = "B";
   }
 
@@ -4468,6 +4509,8 @@ document.getElementById("btn-new").addEventListener("click", () => {
         player_color: playerColor,
         level:        document.getElementById("sel-level").value,
         two_player:   isTwoPlayer,
+        ai_observer:  isAiWatch,
+        ai_style:     document.getElementById("sel-ai-style").value,
         rogue:        !!document.getElementById("chk-rogue").checked && !document.getElementById("chk-ultimate").checked,
         ai_rogue:     !!document.getElementById("chk-ai-rogue").checked && !isTwoPlayer,
         ultimate:     !!document.getElementById("chk-ultimate").checked,
@@ -4536,6 +4579,7 @@ function toggleTerritory() {
 document.getElementById("hint-toggle").addEventListener("click", () => {
   showHints = !showHints;
   document.getElementById("hint-toggle").className = "toggle" + (showHints ? " on" : "");
+  refreshHintVisibility();
   if (showHints && gameState) sendWS({ action: "request_hint" });
   render();
 });
@@ -4713,17 +4757,21 @@ function updateVariantOptionRows() {
   const rogueRow = document.getElementById("rogue-row");
   const aiRogueRow = document.getElementById("ai-rogue-row");
   const ultimateRow = document.getElementById("ultimate-row");
+  const styleRow = document.getElementById("row-style");
   const isTwo = startMode === "two";
+  const isWatch = startMode === "watch";
   const rogueChecked = !!document.getElementById("chk-rogue")?.checked;
   const ultimateChecked = !!document.getElementById("chk-ultimate")?.checked;
-  if (rogueRow) rogueRow.style.display = "";
-  if (ultimateRow) ultimateRow.style.display = isTwo ? "none" : "";
+  if (rogueRow) rogueRow.style.display = isWatch ? "none" : "";
+  if (ultimateRow) ultimateRow.style.display = (isTwo || isWatch) ? "none" : "";
+  if (styleRow) styleRow.style.display = isTwo ? "none" : "";
   if (aiRogueRow) {
-    aiRogueRow.style.display = (!isTwo && rogueChecked && !ultimateChecked) ? "" : "none";
+    aiRogueRow.style.display = (!isTwo && !isWatch && rogueChecked && !ultimateChecked) ? "" : "none";
   }
-  if (isTwo) {
+  if (isTwo || isWatch) {
     document.getElementById("chk-ultimate").checked = false;
     document.getElementById("chk-ai-rogue").checked = false;
+    if (isWatch) document.getElementById("chk-rogue").checked = false;
   }
   if (!rogueChecked) {
     document.getElementById("chk-ai-rogue").checked = false;
@@ -4841,9 +4889,11 @@ function setMode(mode) {
   const rowHandicap = document.getElementById("row-handicap");
   const hint        = document.getElementById("mode-hint");
   const komiSel     = document.getElementById("sel-komi");
+  const rowStyle    = document.getElementById("row-style");
 
   rowColor.style.display = "flex";
   rowHandicap.style.display = "flex";
+  if (rowStyle) rowStyle.style.display = "flex";
   hint.style.display = "none";
   updateVariantOptionRows();
 
@@ -4863,6 +4913,14 @@ function setMode(mode) {
     hint.style.display = "block";
     hint.textContent = ui("两人对局：黑白双方均由人落子，可启用共享 Rogue 规则卡；大招模式仍仅限单人对 AI", "Two Players: both sides are human, shared Rogue rule cards are available; Ultimate mode remains single-player only");
     document.getElementById("chk-ultimate").checked = false;
+  } else if (mode === "watch") {
+    rowColor.style.display = "none";
+    rowHandicap.style.display = "none";
+    if (rowStyle) rowStyle.style.display = "flex";
+    hint.style.display = "block";
+    hint.textContent = ui("AI 观战：黑白双方都由 AI 对弈，你只负责旁观和复盘", "AI Watch: both Black and White are played by AI while you spectate");
+    document.getElementById("chk-ultimate").checked = false;
+    document.getElementById("chk-rogue").checked = false;
   }
   updateVariantOptionRows();
 }
@@ -4898,6 +4956,7 @@ function initBoard() {
 
 // Primary init
 applyLanguage();
+refreshHintVisibility();
 attachButtonRipples();
 initBoard();
 setMode(startMode);
