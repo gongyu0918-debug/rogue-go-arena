@@ -5250,10 +5250,10 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
                 gtp_move = "pass"
                 coord = None
 
-    # Ko guard: if the AI move violates ko, force a pass
+    # Ko guard: if the AI move violates ko, play elsewhere (ko threat)
     if gtp_move.upper() != "PASS" and coord and game.is_ko(coord[0], coord[1], color):
-        gtp_move = "pass"
-        coord = None
+        gtp_move = await _ai_retry_avoiding_ko(game, color)
+        coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
 
     if allow_double_bonus:
         _record_ultimate_turn(game)
@@ -5611,11 +5611,11 @@ async def _ai_move(game: GoGame, send_fn):
                 needs_sync = True
                 slip_msg = f"手滑了触发，AI 原本想下 {original_gtp}，结果滑到 {gtp_move}"
 
-    # Ko guard: if the AI move violates ko, force a pass
+    # Ko guard: if the AI move violates ko, play elsewhere (ko threat)
     if gtp_move.upper() not in ("PASS", "RESIGN"):
         _pre_coord = gtp_to_coord(gtp_move, game.size)
         if _pre_coord and game.is_ko(_pre_coord[0], _pre_coord[1], color):
-            gtp_move = "pass"
+            gtp_move = await _ai_retry_avoiding_ko(game, color)
             slip_msg = None
 
     game.moves.append((color, gtp_move))
@@ -5847,6 +5847,57 @@ async def _ai_move_no_resign(game, color: str) -> str:
     return await run_in_executor(_retry)
 
 
+async def _ai_retry_avoiding_ko(game, color):
+    """When AI's genmove landed on a ko point, undo and pick a different move.
+
+    Retries ``genmove`` with progressively lower visits (more randomisation).
+    If all retries still hit the ko point, falls back to a random legal
+    non-ko point.  Only passes as an absolute last resort.
+    """
+
+    def _retry():
+        with engine.command_lock:
+            # Undo the ko-violating genmove that KataGo already played
+            engine._send_command_locked("undo")
+
+            for attempt in range(5):
+                v = max(50, 800 // (2 + attempt))
+                engine._send_command_locked(f"kata-set-param maxVisits {v}")
+                engine._send_command_locked(
+                    f"kata-set-param maxTime 3")
+                resp = engine._send_command_locked(
+                    f"genmove {color}", timeout=10)
+                engine._send_command_locked("kata-set-param maxTime -1")
+                m = resp.replace("=", "").strip()
+                if m.upper() in ("PASS", "RESIGN"):
+                    return m
+                c = gtp_to_coord(m, game.size)
+                if not c or not game.is_ko(c[0], c[1], color):
+                    return m
+                # Still hitting ko — undo and try again
+                engine._send_command_locked("undo")
+
+            # All retries failed — pick a random legal non-ko point
+            empties = [
+                (x, y)
+                for y in range(game.size) for x in range(game.size)
+                if game.board[y][x] == 0
+                and not game.is_ko(x, y, color)
+            ]
+            random.shuffle(empties)
+            for ax, ay in empties:
+                gtp = coord_to_gtp(ax, ay, game.size)
+                r = engine._send_command_locked(f"play {color} {gtp}")
+                if "?" not in r:
+                    return gtp
+
+            # Absolute last resort — pass
+            engine._send_command_locked(f"play {color} pass")
+            return "pass"
+
+    return await run_in_executor(_retry)
+
+
 async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
     """Finalize a rogue-forced AI move: update game state and send messages."""
     if game.game_over:
@@ -5863,10 +5914,10 @@ async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
             return
 
     coord = gtp_to_coord(gtp_move, game.size)
-    # Ko guard: if the AI move violates ko, force a pass
+    # Ko guard: if the AI move violates ko, play elsewhere (ko threat)
     if coord and gtp_move.upper() != "PASS" and game.is_ko(coord[0], coord[1], color):
-        gtp_move = "pass"
-        coord = None
+        gtp_move = await _ai_retry_avoiding_ko(game, color)
+        coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
 
     game.moves.append((color, gtp_move))
     captured = 0
@@ -5959,10 +6010,10 @@ async def _run_coach_turn_if_needed(game: GoGame, send_fn):
     if gtp_move.upper() == "RESIGN":
         gtp_move = "pass"
     coord = gtp_to_coord(gtp_move, game.size)
-    # Ko guard
+    # Ko guard: play elsewhere instead of passing
     if coord and gtp_move.upper() != "PASS" and game.is_ko(coord[0], coord[1], color):
-        gtp_move = "pass"
-        coord = None
+        gtp_move = await _ai_retry_avoiding_ko(game, color)
+        coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
     captured = 0
     game.moves.append((color, gtp_move))
     if gtp_move.upper() != "PASS" and coord:
