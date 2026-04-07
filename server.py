@@ -124,40 +124,41 @@ CPU_MAX_VISITS = 250      # Hard cap for older CPU mode (prefer stable replies o
 # Rogue mode tuning: keep the cards impactful without turning every game into
 # a scripted auto-win. These are intentionally a bit generous to emphasize the
 # "fun modifier" feel over perfect balance.
-ROGUE_DICE_PASS_CHANCE = 0.06
-ROGUE_SLIP_CHANCE = 0.10
-ROGUE_MIRROR_CHANCE = 0.08
-ROGUE_NERF_FACTOR = 0.12
+ROGUE_DICE_PASS_CHANCE = 0.15       # buffed: 6% → 15% per AI turn
+ROGUE_SLIP_CHANCE = 0.18            # buffed: 10% → 18%
+ROGUE_MIRROR_CHANCE = 0.18          # buffed: 8% → 18%
+ROGUE_NERF_FACTOR = 0.25            # buffed: 12% → 25% of visits (less extreme nerf noise)
 ROGUE_EROSION_SHIFT = 4.0
-ROGUE_TENGEN_AI_MOVES = 3
+ROGUE_TENGEN_AI_MOVES = 5           # buffed: 3 → 5 moves forced near tengen/star
 ROGUE_FOG_MASK_RADIUS = 1
-ROGUE_FOG_AI_MOVES = 6
-ROGUE_BLACKHOLE_AI_MOVES = 999
-ROGUE_GOLDEN_CORNER_AI_MOVES = 12
-ROGUE_GRAVITY_AI_MOVES = 5
-ROGUE_LOWLINE_AI_MOVES = 6
-ROGUE_SHADOW_AI_MOVE_INDEXES = {1, 2}
-ROGUE_SHADOW_CHANCE = 0.55
-ROGUE_SUBOPTIMAL_AI_MOVES = 10
-ROGUE_TIME_PRESS_MAX_TIME = 0.06
-ROGUE_TIME_PRESS_MAX_VISITS = 40
+ROGUE_FOG_AI_MOVES = 10             # buffed: 6 → 10 moves with 3×3 mask
+ROGUE_FOG_POST_MASK_POINTS = 2      # new: after mask phase, ban 2 points per turn (was 1)
+ROGUE_BLACKHOLE_AI_MOVES = 60       # slightly toned down: entire game → first 60 AI moves
+ROGUE_GOLDEN_CORNER_AI_MOVES = 15   # buffed: 12 → 15 moves
+ROGUE_GRAVITY_AI_MOVES = 7          # buffed: 5 → 7 moves
+ROGUE_LOWLINE_AI_MOVES = 8          # buffed: 6 → 8 moves
+ROGUE_SHADOW_AI_MOVE_INDEXES = {1, 2, 3}  # buffed: {1,2} → {1,2,3}
+ROGUE_SHADOW_CHANCE = 0.70          # buffed: 55% → 70%
+ROGUE_SUBOPTIMAL_AI_MOVES = 14      # buffed: 10 → 14 moves
+ROGUE_TIME_PRESS_MAX_TIME = 0.35    # buffed: 0.06s → 0.35s (AI gets some think time)
+ROGUE_TIME_PRESS_MAX_VISITS = 100   # buffed: 40 → 100 visits
 ROGUE_FOOLISH_FILL_COUNT = 2
 ULTIMATE_FOOLISH_FILL_COUNT = 20
 ULTIMATE_FOOLISH_CHAIN_DELAY = 1.0
 ROGUE_HANDICAP_REQUIRED_PASSES = 1
-ROGUE_HANDICAP_BONUS_INTERVAL = 10
+ROGUE_HANDICAP_BONUS_INTERVAL = 8   # buffed: 10 → 8 (AI pass bonus triggers more often)
 ROGUE_HANDICAP_MAX_BONUSES = 2
 ROGUE_JOSEKI_TARGET_COUNT = 5
 ROGUE_JOSEKI_REQUIRED_HITS = 3
-ROGUE_GODHAND_FILL_COUNT = 2
+ROGUE_GODHAND_FILL_COUNT = 3        # buffed: 2 → 3 bonus stones per trigger
 ROGUE_GODHAND_RADIUS = 1
 ROGUE_CORNER_HELPER_STONES = 2
 ROGUE_SANRENSEI_REQUIRED_STARS = 2
 ROGUE_SANRENSEI_OPENING_MOVES = 2
 ROGUE_SANRENSEI_BONUS_STONES = 1
-ROGUE_NO_REGRET_CHANCE = 0.08
-ROGUE_QUICKTHINK_FIRST_SECONDS = 3
-ROGUE_QUICKTHINK_SECOND_SECONDS = 1
+ROGUE_NO_REGRET_CHANCE = 0.10       # buffed: 8% → 10% free stone per turn
+ROGUE_QUICKTHINK_FIRST_SECONDS = 4  # buffed: 3s → 4s first window
+ROGUE_QUICKTHINK_SECOND_SECONDS = 2 # buffed: 1s → 2s second window
 
 # Ultimate mode tuning: prioritize spectacle and reliable payoff.
 ULTIMATE_CHAIN_EXTRA_TURN_CHANCE = 0.65
@@ -503,39 +504,39 @@ ROGUE_CARDS = {
 }
 
 ROGUE_CARDS = {
-    "tengen": {"name": "天元", "desc": "开局 3 手，AI 会优先靠近天元与星位落子", "icon": "●"},
-    "dice": {"name": "掷骰", "desc": "AI 每手有 6% 概率直接虚手", "icon": "🎲"},
+    "tengen": {"name": "天元", "desc": "开局 5 手，AI 会优先靠近天元与星位落子", "icon": "●"},
+    "dice": {"name": "掷骰", "desc": "AI 每手有 15% 概率直接虚手", "icon": "🎲"},
     "erosion": {"name": "蚕食", "desc": "每提 1 子，贴目向有利方偏移 4 目", "icon": "🌑"},
     "puppet": {"name": "傀儡术", "desc": "选定一点，强制 AI 在此落子（限 1 次）", "icon": "🎁", "uses": 1},
     "seal": {"name": "封印术", "desc": "指定 3 个禁着点，整局 AI 都不能下在这些点", "icon": "🔀"},
     "twin": {"name": "连击", "desc": "本回合可连续落两手（限 1 次）", "icon": "✦", "uses": 1},
-    "nerf": {"name": "弱化", "desc": "AI 搜索算力被压到很低，多数时候只能靠浅层判断", "icon": "📲"},
+    "nerf": {"name": "弱化", "desc": "AI 搜索算力被削减至约 25%，判断力明显下降", "icon": "📲"},
     "komi_relief": {"name": "贴目减半", "desc": "贴目会朝你有利的方向调整 7 目", "icon": "✘️"},
-    "time_press": {"name": "限时压制", "desc": "AI 每手最多思考 0.06 秒，基本来不及算深", "icon": "⏱️"},
-    "lowline": {"name": "低空飞行", "desc": "AI 前 6 手偏向二三路低位", "icon": "🦊"},
-    "suboptimal": {"name": "次优之选", "desc": "AI 前 10 手更容易从后几名的候选点里随机挑一手", "icon": "🚍"},
-    "mirror": {"name": "镜像", "desc": "AI 有 8% 概率按棋盘对称位置镜像模仿你的上一手", "icon": "🪞"},
-    "slip": {"name": "手滑了", "desc": "AI 有 10% 概率手滑到相邻的点位", "icon": "😴"},
-    "blackhole": {"name": "黑洞", "desc": "棋盘中心 13 路区域对 AI 整局禁入", "icon": "🕳️"},
+    "time_press": {"name": "限时压制", "desc": "AI 每手最多思考 0.35 秒，算力大幅受限", "icon": "⏱️"},
+    "lowline": {"name": "低空飞行", "desc": "AI 前 8 手偏向二三路低位", "icon": "🦊"},
+    "suboptimal": {"name": "次优之选", "desc": "AI 前 14 手更容易从后几名的候选点里随机挑一手", "icon": "🚍"},
+    "mirror": {"name": "镜像", "desc": "AI 有 18% 概率按棋盘对称位置镜像模仿你的上一手", "icon": "🪞"},
+    "slip": {"name": "手滑了", "desc": "AI 有 18% 概率手滑到相邻的点位", "icon": "😴"},
+    "blackhole": {"name": "黑洞", "desc": "棋盘中心 13 子区域对 AI 前 60 手禁入", "icon": "🕳️"},
     "exchange": {"name": "乾坤挪移", "desc": "强制 AI 虚手，你继续行棋（限 1 次）", "icon": "📧", "uses": 1},
-    "fog": {"name": "战争迷雾", "desc": "AI 前 6 手每手前会刷新一个 3×3 禁区遮罩；之后每回合随机生成 1 个禁着点", "icon": "🌫️"},
-    "gravity": {"name": "星位引力", "desc": "AI 前 5 手被星位磁场牵引", "icon": "🌠"},
-    "golden_corner": {"name": "黄金角", "desc": "随机封锁一角 5×5 区域，AI 前 12 手禁入", "icon": "🥇"},
+    "fog": {"name": "战争迷雾", "desc": "AI 前 10 手每手前会刷新一个 3×3 禁区遮罩；之后每回合随机封锁 2 个 AI 禁着点", "icon": "🌫️"},
+    "gravity": {"name": "星位引力", "desc": "AI 前 7 手被星位磁场牵引", "icon": "🌠"},
+    "golden_corner": {"name": "黄金角", "desc": "随机封锁一角 5×5 区域，AI 前 15 手禁入", "icon": "🥇"},
     "sansan": {"name": "三三开局", "desc": "强制 AI 在开局前 2 手去抢四个三三点中的位置，也就是开局硬走三三；之后 2 手暂时避开角上 4×4 区域", "icon": "◣"},
-    "shadow": {"name": "影子", "desc": "AI 前 2 手有较高概率紧跟自己的上一手", "icon": "👁"},
+    "shadow": {"name": "影子", "desc": "AI 前 3 手有 70% 概率紧跟自己的上一手", "icon": "👁"},
     "sprout": {"name": "萌芽", "desc": "每次提子后，都会在附近自动长出 1 颗己棋", "icon": "🌱"},
     "joseki_ocd": {"name": "定式强迫症", "desc": "开局亮出 5 个目标点，只要下中 3 个，剩下的 2 个会自动补成你的棋子", "icon": "📻"},
-    "handicap_quest": {"name": "让子任务", "desc": "先虚手 1 次，之后每满 10 手奖励 AI 虚手一次，最多触发 2 次", "icon": "🎵"},
-    "god_hand": {"name": "神之一手", "desc": "踩中隐藏菱形区，周围 3×3 内随机爆出 2 颗己棋，只会落在空点", "icon": "✨"},
+    "handicap_quest": {"name": "让子任务", "desc": "先虚手 1 次，之后每满 8 手奖励 AI 虚手一次，最多触发 2 次", "icon": "🎵"},
+    "god_hand": {"name": "神之一手", "desc": "踩中隐藏菱形区，周围 3×3 内随机爆出 3 颗己棋，只会落在空点", "icon": "✨"},
     "sansan_trap": {"name": "三三陷阱", "desc": "只有对手第 1 手正好下在四个三三点之一时才会触发，并在那手棋周围反生 3 颗我方棋", "icon": "🪤"},
     "corner_helper": {"name": "守角辅助", "desc": "任一角的 5×5 区域里有 2 颗己子时，就会在那个角补 2 颗援军", "icon": "🏯"},
     "sanrensei": {"name": "三连星", "desc": "若你前 2 手都落在星位，会自动补出第 3 颗星位棋，凑成三连星", "icon": "⭐"},
-    "no_regret": {"name": "永不悔棋", "desc": "禁用悔棋，但每手 8% 概率白送一子", "icon": "🚫"},
-    "quickthink": {"name": "快速思考", "desc": "3 秒内落子可追加 1 秒连击窗口；选中后禁用推荐点位与悔棋", "icon": "⚡"},
+    "no_regret": {"name": "永不悔棋", "desc": "禁用悔棋，但每手 10% 概率白送一子", "icon": "🚫"},
+    "quickthink": {"name": "快速思考", "desc": "4 秒内落子可追加 2 秒连击窗口；选中后禁用推荐点位与悔棋", "icon": "⚡"},
     "foolish_wisdom": {"name": "大智若愚", "desc": "摆出愚形，附近 5×5 内随机长出 2 颗己棋", "icon": "🧠"},
     "five_in_row": {"name": "五子连珠", "desc": "这是五子棋，不是围棋。每当我方横、竖、斜正好连成 5 颗同色棋，就会优先在首尾补子；若首尾被堵住，则改在两端附近补子", "icon": "🎯"},
     "coach_mode": {"name": "代练上号", "desc": "主动技能：后 30 手由更强的 AI 代打；若下完后胜率仍低于 50%，则额外再代打 10 手", "icon": "🎗"},
-    "capture_foul": {"name": "提子犯规", "desc": "若对手单次或累计提子超过 5 颗，有 50% 概率触发“提子未放在棋盒”；每多 1 子概率再加 10%。若触发，则被惩罚方罚 1.5 目，随后概率重新计数", "icon": "🧺"},
+    "capture_foul": {"name": "提子犯规", "desc": "若对手单次或累计提子超过 5 颗，有 50% 概率触发\u201c提子未放在棋盒\u201d；每多 1 子概率再加 10%。若触发，则被惩罚方罚 1.5 目，随后概率重新计数", "icon": "🧺"},
     "last_stand": {"name": "起死回生", "desc": "当我方胜率跌到 30% 以下时，仅触发 1 次：在上一手周围 3×3 内随机消掉 1 颗敌子，并随机补 2 颗己棋（不会落在禁着点）", "icon": "🫀"},
 }
 
@@ -4192,7 +4193,11 @@ def _refresh_ai_rogue_player_turn(game: GoGame):
             if player_move_count < ROGUE_FOG_AI_MOVES:
                 game.ai_rogue_seal_points = _pick_fog_mask(game.size, rng)
             else:
-                game.ai_rogue_seal_points = _pick_fog_point(game, rng)
+                fog_pts: list[tuple[int, int]] = []
+                for _ in range(ROGUE_FOG_POST_MASK_POINTS):
+                    fog_pts.extend(_pick_fog_point(game, rng))
+                seen: set[tuple[int, int]] = set()
+                game.ai_rogue_seal_points = [p for p in fog_pts if not (p in seen or seen.add(p))]
         else:
             game.ai_rogue_seal_points = []
 
@@ -5417,8 +5422,14 @@ async def _ai_move(game: GoGame, send_fn):
             game.rogue_seal_points = _challenge_zone_points(game, _pick_fog_mask(game.size, rng))
             fog_msg = "🌫 战争迷雾刷新：3×3 禁区本回合对 AI 禁止落子"
         else:
-            game.rogue_seal_points = _challenge_zone_points(game, _pick_fog_point(game, rng))
-            fog_msg = "🌫 战争迷雾残留：本回合随机封锁 1 个 AI 禁着点"
+            fog_pts: list[tuple[int, int]] = []
+            for _ in range(ROGUE_FOG_POST_MASK_POINTS):
+                fog_pts.extend(_challenge_zone_points(game, _pick_fog_point(game, rng)))
+            # deduplicate while preserving order
+            seen: set[tuple[int, int]] = set()
+            unique_fog_pts = [p for p in fog_pts if not (p in seen or seen.add(p))]
+            game.rogue_seal_points = unique_fog_pts
+            fog_msg = f"🌫 战争迷雾残留：本回合随机封锁 {ROGUE_FOG_POST_MASK_POINTS} 个 AI 禁着点"
         await send_fn({"type": "game_state", **game.to_state()})
         if game.rogue_seal_points:
             await send_fn({"type": "rogue_event", "msg": fog_msg})
