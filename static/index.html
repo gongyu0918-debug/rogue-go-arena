@@ -868,9 +868,39 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   line-height: 1.45;
   white-space: nowrap;
 }
+#setup-modal .setup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 10px;
+}
+#setup-modal .setup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px 14px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.06);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+    linear-gradient(180deg, #131923, #0f141c);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+}
+#setup-modal .setup-field label {
+  min-width: 0;
+  color: #aeb9c7;
+  font-size: .76rem;
+  letter-spacing: .08em;
+}
+#setup-modal .setup-field select {
+  min-width: 0;
+}
 @media (max-width: 720px) {
   #setup-modal .setup-subtitle {
     white-space: normal;
+  }
+  #setup-modal .setup-grid {
+    grid-template-columns: 1fr;
   }
 }
 .modal-close {
@@ -1449,13 +1479,38 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 
     <div id="mode-hint" style="font-size:.75rem;color:#888;margin-bottom:7px;display:none"></div>
 
-    <div class="form-row">
-      <label>棋盘</label>
-      <select id="sel-size">
-        <option value="19" selected>19×19 标准</option>
-        <option value="13">13×13</option>
-        <option value="9">9×9</option>
-      </select>
+    <div class="setup-grid">
+      <div class="setup-field">
+        <label>棋盘</label>
+        <select id="sel-size">
+          <option value="19" selected>19×19 标准</option>
+          <option value="13">13×13</option>
+          <option value="9">9×9</option>
+        </select>
+      </div>
+      <div class="setup-field">
+        <label>贴目</label>
+        <select id="sel-komi">
+          <option value="7.5" selected>7.5（中国规则）</option>
+          <option value="6.5">6.5（日韩规则）</option>
+          <option value="0.5">0.5</option>
+          <option value="0">0（让先/让子棋）</option>
+        </select>
+      </div>
+      <div class="setup-field">
+        <label>对手</label>
+        <select id="sel-level"></select>
+      </div>
+      <div class="setup-field" id="row-style">
+        <label>AI风格</label>
+        <select id="sel-ai-style">
+          <option value="balanced" selected>均衡</option>
+          <option value="territory">注重实地</option>
+          <option value="influence">注重外势</option>
+          <option value="attack">注重进攻</option>
+          <option value="defense">注重防守</option>
+        </select>
+      </div>
     </div>
     <div class="form-row" id="row-handicap">
       <label>让子</label>
@@ -1471,30 +1526,6 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
         <option value="9">让9子</option>
       </select>
     </div>
-    <div class="form-row">
-      <label>贴目</label>
-      <select id="sel-komi">
-        <option value="7.5" selected>7.5（中国规则）</option>
-        <option value="6.5">6.5（日韩规则）</option>
-        <option value="0.5">0.5</option>
-        <option value="0">0（让先/让子棋）</option>
-      </select>
-    </div>
-    <div class="form-row">
-      <label>对手</label>
-      <select id="sel-level"></select>
-    </div>
-    <div class="form-row" id="row-style">
-      <label>AI风格</label>
-      <select id="sel-ai-style">
-        <option value="balanced" selected>均衡</option>
-        <option value="territory">注重实地</option>
-        <option value="influence">注重外势</option>
-        <option value="attack">注重进攻</option>
-        <option value="defense">注重防守</option>
-      </select>
-    </div>
-
     <!-- Time Control -->
     <div class="divider" style="margin:12px 0;"></div>
     <div class="form-row">
