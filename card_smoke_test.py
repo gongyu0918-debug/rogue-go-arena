@@ -274,6 +274,8 @@ async def smoke_new_rogue_cards():
     game.rogue_card = "corner_helper"
     game.board[0][0] = 1
     game.board[1][1] = 1
+    game.board[0][1] = 1
+    game.board[1][0] = 1
     old_sync = s._sync_board_to_katago
     try:
         async def fake_sync(_game):
@@ -283,7 +285,7 @@ async def smoke_new_rogue_cards():
         await s._apply_player_rogue_move_effects(game, send, 1, 1, "B", 0)
     finally:
         s._sync_board_to_katago = old_sync
-    assert game.rogue_corner_helper_done is True
+    assert len(game.rogue_corner_helper_done) == 1
     assert sum(1 for x, y in s._get_corner_helper_spawn_points(game.size, 0, 5) if game.board[y][x] == 1) >= 1
 
     game = make_game()
@@ -908,7 +910,7 @@ async def smoke_ai_rogue_support():
 
     await s._activate_ai_rogue_card(game, send, "golden_corner")
     assert game.ai_rogue_card == "golden_corner"
-    assert len(game.ai_rogue_seal_points) == 25
+    assert len(game.ai_rogue_seal_points) == 16
     assert any(msg.get("type") == "rogue_ai_selected" for msg in sent)
 
     game = make_game()
@@ -1306,6 +1308,45 @@ async def smoke_challenge_beta_set_bonuses():
     assert any("限制套装触发" in msg.get("msg", "") for msg in sent)
 
 
+async def smoke_corner_helper_can_trigger_per_corner():
+    game = make_game(size=9)
+    game.rogue_enabled = True
+    game.rogue_card = "corner_helper"
+    sent = []
+
+    async def send(payload):
+        sent.append(copy.deepcopy(payload))
+
+    old_sync = s._sync_board_to_katago
+    try:
+        async def fake_sync(_game):
+            return None
+
+        s._sync_board_to_katago = fake_sync
+
+        game.board[0][0] = 1
+        game.board[1][1] = 1
+        game.board[0][1] = 1
+        game.board[1][0] = 1
+        await s._apply_player_rogue_move_effects(game, send, 0, 0, "B", 0)
+        first_done = set(game.rogue_corner_helper_done)
+        first_count = sum(1 for row in game.board for cell in row if cell == 1)
+
+        game.board[0][8] = 1
+        game.board[1][7] = 1
+        game.board[0][7] = 1
+        game.board[1][8] = 1
+        await s._apply_player_rogue_move_effects(game, send, 8, 0, "B", 0)
+        second_done = set(game.rogue_corner_helper_done)
+        second_count = sum(1 for row in game.board for cell in row if cell == 1)
+    finally:
+        s._sync_board_to_katago = old_sync
+
+    assert len(first_done) == 1
+    assert len(second_done) == 2
+    assert second_count > first_count
+
+
 async def main():
     old_engine = s.engine
     try:
@@ -1323,6 +1364,7 @@ async def main():
         await smoke_ultimate_turn_flow()
         await smoke_ultimate_ai_effect_sync()
         await smoke_challenge_beta_set_bonuses()
+        await smoke_corner_helper_can_trigger_per_corner()
         await smoke_quickthink_flow()
         await smoke_featured_pools()
         await smoke_suboptimal_extended()

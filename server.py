@@ -124,41 +124,51 @@ CPU_MAX_VISITS = 250      # Hard cap for older CPU mode (prefer stable replies o
 # Rogue mode tuning: keep the cards impactful without turning every game into
 # a scripted auto-win. These are intentionally a bit generous to emphasize the
 # "fun modifier" feel over perfect balance.
-ROGUE_DICE_PASS_CHANCE = 0.15       # buffed: 6% → 15% per AI turn
-ROGUE_SLIP_CHANCE = 0.18            # buffed: 10% → 18%
-ROGUE_MIRROR_CHANCE = 0.18          # buffed: 8% → 18%
-ROGUE_NERF_FACTOR = 0.25            # buffed: 12% → 25% of visits (less extreme nerf noise)
+ROGUE_DICE_PASS_CHANCE = 0.08       # trimmed: still noticeable, but no longer dominates long games
+ROGUE_SLIP_CHANCE = 0.10            # trimmed: enough to feel annoying without warping whole games
+ROGUE_MIRROR_CHANCE = 0.10          # trimmed: mirrored imitation should be spicy, not constant
+ROGUE_NERF_FACTOR = 0.05            # stronger again after player-weighted testing showed it felt too light
+ROGUE_NERF_BACKUP_CHANCE = 0.60
+ROGUE_NERF_BACKUP_AI_MOVES = 12
 ROGUE_EROSION_SHIFT = 4.0
 ROGUE_TENGEN_AI_MOVES = 5           # buffed: 3 → 5 moves forced near tengen/star
 ROGUE_FOG_MASK_RADIUS = 1
-ROGUE_FOG_AI_MOVES = 10             # buffed: 6 → 10 moves with 3×3 mask
-ROGUE_FOG_POST_MASK_POINTS = 2      # new: after mask phase, ban 2 points per turn (was 1)
-ROGUE_BLACKHOLE_AI_MOVES = 60       # slightly toned down: entire game → first 60 AI moves
-ROGUE_GOLDEN_CORNER_AI_MOVES = 15   # buffed: 12 → 15 moves
+ROGUE_FOG_AI_MOVES = 11             # buffed: 6 → 10 moves with 3×3 mask
+ROGUE_FOG_POST_MASK_POINTS = 2      # after mask phase, ban 2 points per turn
+ROGUE_BLACKHOLE_AI_MOVES = 6       # still lasts well into the middlegame, but no longer smothers the whole game
+ROGUE_GOLDEN_CORNER_AI_MOVES = 10
+ROGUE_GOLDEN_CORNER_SPAN = 4
 ROGUE_GRAVITY_AI_MOVES = 7          # buffed: 5 → 7 moves
 ROGUE_LOWLINE_AI_MOVES = 8          # buffed: 6 → 8 moves
 ROGUE_SHADOW_AI_MOVE_INDEXES = {1, 2, 3}  # buffed: {1,2} → {1,2,3}
 ROGUE_SHADOW_CHANCE = 0.70          # buffed: 55% → 70%
-ROGUE_SUBOPTIMAL_AI_MOVES = 14      # buffed: 10 → 14 moves
-ROGUE_TIME_PRESS_MAX_TIME = 0.35    # buffed: 0.06s → 0.35s (AI gets some think time)
-ROGUE_TIME_PRESS_MAX_VISITS = 100   # buffed: 40 → 100 visits
+ROGUE_SUBOPTIMAL_AI_MOVES = 8
+ROGUE_TIME_PRESS_MAX_TIME = 0.10
+ROGUE_TIME_PRESS_MAX_VISITS = 20
+ROGUE_TIME_PRESS_BACKUP_CHANCE = 0.60
+ROGUE_TIME_PRESS_BACKUP_AI_MOVES = 12
 ROGUE_FOOLISH_FILL_COUNT = 2
 ULTIMATE_FOOLISH_FILL_COUNT = 20
 ULTIMATE_FOOLISH_CHAIN_DELAY = 1.0
 ROGUE_HANDICAP_REQUIRED_PASSES = 1
-ROGUE_HANDICAP_BONUS_INTERVAL = 8   # buffed: 10 → 8 (AI pass bonus triggers more often)
-ROGUE_HANDICAP_MAX_BONUSES = 2
-ROGUE_JOSEKI_TARGET_COUNT = 5
-ROGUE_JOSEKI_REQUIRED_HITS = 3
-ROGUE_GODHAND_FILL_COUNT = 3        # buffed: 2 → 3 bonus stones per trigger
+ROGUE_HANDICAP_BONUS_INTERVAL = 8
+ROGUE_HANDICAP_MAX_BONUSES = 3
+ROGUE_JOSEKI_TARGET_COUNT = 7
+ROGUE_JOSEKI_REQUIRED_HITS = 6
+ROGUE_GODHAND_FILL_COUNT = 2        # buffed: 2 → 3 bonus stones per trigger
 ROGUE_GODHAND_RADIUS = 1
-ROGUE_CORNER_HELPER_STONES = 2
+ROGUE_CORNER_HELPER_TRIGGER_STONES = 4
+ROGUE_CORNER_HELPER_STONES = 1
 ROGUE_SANRENSEI_REQUIRED_STARS = 2
 ROGUE_SANRENSEI_OPENING_MOVES = 2
 ROGUE_SANRENSEI_BONUS_STONES = 1
+ROGUE_SANRENSEI_SUPPORT_STONES = 1
 ROGUE_NO_REGRET_CHANCE = 0.10       # buffed: 8% → 10% free stone per turn
 ROGUE_QUICKTHINK_FIRST_SECONDS = 4  # buffed: 3s → 4s first window
 ROGUE_QUICKTHINK_SECOND_SECONDS = 2 # buffed: 1s → 2s second window
+ROGUE_SANSAN_TRAP_STONES = 8
+ROGUE_SEAL_POINT_COUNT = 4
+ROGUE_FIVE_IN_ROW_SUPPORT_STONES = 4
 
 # Ultimate mode tuning: prioritize spectacle and reliable payoff.
 ULTIMATE_CHAIN_EXTRA_TURN_CHANCE = 0.65
@@ -173,10 +183,10 @@ ULTIMATE_JOSEKI_BONUS_STONES = 50
 ULTIMATE_GODHAND_FILL_COUNT = 50
 ULTIMATE_QUICKTHINK_SECONDS = 5
 ULTIMATE_WALL_TRIGGER_CHANCE = 0.60
-ROGUE_LAST_STAND_THRESHOLD = 0.30
+ROGUE_LAST_STAND_THRESHOLD = 0.26
 ULTIMATE_LAST_STAND_THRESHOLD = 0.30
 ROGUE_LAST_STAND_CLEAR_COUNT = 1
-ROGUE_LAST_STAND_SPAWN_COUNT = 2
+ROGUE_LAST_STAND_SPAWN_COUNT = 1
 ULTIMATE_LAST_STAND_CLEAR_COUNT = 30
 ULTIMATE_LAST_STAND_SPAWN_COUNT = 30
 ULTIMATE_FIVE_IN_ROW_CLEAR_COUNT = 30
@@ -290,10 +300,10 @@ MAX_MOVE_TIME = 12.0
 OPENING_MOVE_THRESHOLD = 50   # first ~25 moves per side
 OPENING_MAX_VISITS = 500      # ~2-3s on most GPUs — still superhuman
 AI_STYLE_OPTIONS = {"balanced", "territory", "influence", "attack", "defense"}
-ROGUE_CAPTURE_FOUL_BASE = 0.50
-ROGUE_CAPTURE_FOUL_STEP = 0.10
-ROGUE_CAPTURE_FOUL_THRESHOLD = 5
-ROGUE_CAPTURE_FOUL_KOMI_PENALTY = 1.5
+ROGUE_CAPTURE_FOUL_BASE = 1.00
+ROGUE_CAPTURE_FOUL_STEP = 0.00
+ROGUE_CAPTURE_FOUL_THRESHOLD = 4
+ROGUE_CAPTURE_FOUL_KOMI_PENALTY = 4.0
 ULTIMATE_CAPTURE_FOUL_THRESHOLD = 5
 ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY = 50.0
 ROGUE_COACH_BASE_TURNS = 30
@@ -504,42 +514,41 @@ ROGUE_CARDS = {
 }
 
 ROGUE_CARDS = {
-    "tengen": {"name": "天元", "desc": "开局 5 手，AI 会优先靠近天元与星位落子", "icon": "●"},
-    "dice": {"name": "掷骰", "desc": "AI 每手有 15% 概率直接虚手", "icon": "🎲"},
+    "tengen": {"name": "天元", "desc": "开局 5 手，AI 会优先靠近天元与星位落子", "icon": "◎"},
+    "dice": {"name": "掷骰", "desc": "AI 每手有 8% 概率直接虚手", "icon": "🎉"},
     "erosion": {"name": "蚕食", "desc": "每提 1 子，贴目向有利方偏移 4 目", "icon": "🌑"},
     "puppet": {"name": "傀儡术", "desc": "选定一点，强制 AI 在此落子（限 1 次）", "icon": "🎁", "uses": 1},
-    "seal": {"name": "封印术", "desc": "指定 3 个禁着点，整局 AI 都不能下在这些点", "icon": "🔀"},
+    "seal": {"name": "封印术", "desc": "指定 4 个禁着点，整局 AI 都不能下在这些点", "icon": "🔀"},
     "twin": {"name": "连击", "desc": "本回合可连续落两手（限 1 次）", "icon": "✦", "uses": 1},
-    "nerf": {"name": "弱化", "desc": "AI 搜索算力被削减至约 25%，判断力明显下降", "icon": "📲"},
+    "nerf": {"name": "弱化", "desc": "AI 大约下降 8 段，搜索算力只剩约 5%，前 12 手更容易误选备选点", "icon": "📲"},
     "komi_relief": {"name": "贴目减半", "desc": "贴目会朝你有利的方向调整 7 目", "icon": "✘️"},
-    "time_press": {"name": "限时压制", "desc": "AI 每手最多思考 0.35 秒，算力大幅受限", "icon": "⏱️"},
+    "time_press": {"name": "限时压制", "desc": "AI 大约下降 5 段，且每手最多思考 0.10 秒，前 12 手更容易仓促误判", "icon": "⏱️"},
     "lowline": {"name": "低空飞行", "desc": "AI 前 8 手偏向二三路低位", "icon": "🦊"},
-    "suboptimal": {"name": "次优之选", "desc": "AI 前 14 手更容易从后几名的候选点里随机挑一手", "icon": "🚍"},
-    "mirror": {"name": "镜像", "desc": "AI 有 18% 概率按棋盘对称位置镜像模仿你的上一手", "icon": "🪞"},
-    "slip": {"name": "手滑了", "desc": "AI 有 18% 概率手滑到相邻的点位", "icon": "😴"},
-    "blackhole": {"name": "黑洞", "desc": "棋盘中心 13 子区域对 AI 前 60 手禁入", "icon": "🕳️"},
-    "exchange": {"name": "乾坤挪移", "desc": "强制 AI 虚手，你继续行棋（限 1 次）", "icon": "📧", "uses": 1},
-    "fog": {"name": "战争迷雾", "desc": "AI 前 10 手每手前会刷新一个 3×3 禁区遮罩；之后每回合随机封锁 2 个 AI 禁着点", "icon": "🌫️"},
-    "gravity": {"name": "星位引力", "desc": "AI 前 7 手被星位磁场牵引", "icon": "🌠"},
-    "golden_corner": {"name": "黄金角", "desc": "随机封锁一角 5×5 区域，AI 前 15 手禁入", "icon": "🥇"},
-    "sansan": {"name": "三三开局", "desc": "强制 AI 在开局前 2 手去抢四个三三点中的位置，也就是开局硬走三三；之后 2 手暂时避开角上 4×4 区域", "icon": "◣"},
+    "suboptimal": {"name": "次优之选", "desc": "AI 前 8 手更容易从后几名的候选点里随机挑一手", "icon": "🚍"},
+    "mirror": {"name": "镜像", "desc": "AI 有 10% 概率按棋盘对称位置镜像模仿你的上一手", "icon": "🪞"},
+    "slip": {"name": "手滑了", "desc": "AI 有 10% 概率手滑到相邻的点位", "icon": "😾"},
+    "blackhole": {"name": "黑洞", "desc": "棋盘中心 13 子区域对 AI 前 6 手禁入", "icon": "🕳️"},
+    "exchange": {"name": "乾坤挪移", "desc": "强制 AI 虚手，你继续行棋（限 1 次）", "icon": "🔄", "uses": 1},
+    "fog": {"name": "战争迷雾", "desc": "AI 前 11 手每手前会刷新一个 3×3 禁区遮罩；之后每回合随机封锁 2 个 AI 禁着点", "icon": "🌫️"},
+    "gravity": {"name": "星位引力", "desc": "AI 前 7 手被星位磁场牵引", "icon": "🌃"},
+    "golden_corner": {"name": "黄金角", "desc": "随机封锁一角 4×4 区域，AI 前 10 手禁入", "icon": "🪙"},
+    "sansan": {"name": "三三开局", "desc": "强制 AI 在开局前 2 手去抢四个三三点中的位置，也就是开局硬走三三；之后 2 手暂时避开角上 4×4 区域", "icon": "◎"},
     "shadow": {"name": "影子", "desc": "AI 前 3 手有 70% 概率紧跟自己的上一手", "icon": "👁"},
     "sprout": {"name": "萌芽", "desc": "每次提子后，都会在附近自动长出 1 颗己棋", "icon": "🌱"},
-    "joseki_ocd": {"name": "定式强迫症", "desc": "开局亮出 5 个目标点，只要下中 3 个，剩下的 2 个会自动补成你的棋子", "icon": "📻"},
-    "handicap_quest": {"name": "让子任务", "desc": "先虚手 1 次，之后每满 8 手奖励 AI 虚手一次，最多触发 2 次", "icon": "🎵"},
-    "god_hand": {"name": "神之一手", "desc": "踩中隐藏菱形区，周围 3×3 内随机爆出 3 颗己棋，只会落在空点", "icon": "✨"},
-    "sansan_trap": {"name": "三三陷阱", "desc": "只有对手第 1 手正好下在四个三三点之一时才会触发，并在那手棋周围反生 3 颗我方棋", "icon": "🪤"},
-    "corner_helper": {"name": "守角辅助", "desc": "任一角的 5×5 区域里有 2 颗己子时，就会在那个角补 2 颗援军", "icon": "🏯"},
-    "sanrensei": {"name": "三连星", "desc": "若你前 2 手都落在星位，会自动补出第 3 颗星位棋，凑成三连星", "icon": "⭐"},
+    "joseki_ocd": {"name": "定式强迫症", "desc": "开局亮出 7 个目标点，只要下中 6 个，剩下的 1 个会自动补成你的棋子", "icon": "📻"},
+    "handicap_quest": {"name": "让子任务", "desc": "先虚手 1 次，之后每满 8 手奖励 AI 虚手一次，最多触发 3 次", "icon": "🎵"},
+    "god_hand": {"name": "神之一手", "desc": "踩中隐藏菱形区，周围 3×3 内随机爆出 2 颗己棋，只会落在空点", "icon": "✨"},
+    "sansan_trap": {"name": "三三陷阱", "desc": "只有对手第 1 手正好下在四个三三点之一时才会触发，并在那手棋周围反生 8 颗我方棋", "icon": "🪤"},
+    "corner_helper": {"name": "守角辅助", "desc": "每个角各算一次：任一角的 5×5 区域里有 4 颗己子时，就会在那个角补 1 颗援军", "icon": "🏯"},
+    "sanrensei": {"name": "三连星", "desc": "若你前 2 手都落在星位，会自动补出第 3 颗星位棋，并再长出 1 颗援军", "icon": "⭐"},
     "no_regret": {"name": "永不悔棋", "desc": "禁用悔棋，但每手 10% 概率白送一子", "icon": "🚫"},
     "quickthink": {"name": "快速思考", "desc": "4 秒内落子可追加 2 秒连击窗口；选中后禁用推荐点位与悔棋", "icon": "⚡"},
     "foolish_wisdom": {"name": "大智若愚", "desc": "摆出愚形，附近 5×5 内随机长出 2 颗己棋", "icon": "🧠"},
-    "five_in_row": {"name": "五子连珠", "desc": "这是五子棋，不是围棋。每当我方横、竖、斜正好连成 5 颗同色棋，就会优先在首尾补子；若首尾被堵住，则改在两端附近补子", "icon": "🎯"},
+    "five_in_row": {"name": "五子连珠", "desc": "这是五子棋，不是围棋。每当我方横、竖、斜正好连成 5 颗同色棋，就会优先在首尾补子；若首尾被堵住，则改在两端附近补子，并在连线附近再补 4 颗援军", "icon": "🎯"},
     "coach_mode": {"name": "代练上号", "desc": "主动技能：后 30 手由更强的 AI 代打；若下完后胜率仍低于 50%，则额外再代打 10 手", "icon": "🎗"},
-    "capture_foul": {"name": "提子犯规", "desc": "若对手单次或累计提子超过 5 颗，有 50% 概率触发\u201c提子未放在棋盒\u201d；每多 1 子概率再加 10%。若触发，则被惩罚方罚 1.5 目，随后概率重新计数", "icon": "🧺"},
-    "last_stand": {"name": "起死回生", "desc": "当我方胜率跌到 30% 以下时，仅触发 1 次：在上一手周围 3×3 内随机消掉 1 颗敌子，并随机补 2 颗己棋（不会落在禁着点）", "icon": "🫀"},
+    "capture_foul": {"name": "提子犯规", "desc": "若对手单次或累计提子达到 4 颗，就会触发“提子未放在棋盒”，被惩罚方罚 4 目，随后重新计数", "icon": "🧺"},
+    "last_stand": {"name": "起死回生", "desc": "当我方胜率跌到 26% 以下时，仅触发 1 次：在上一手周围 3×3 内随机消掉 1 颗敌子，并随机补 1 颗己棋（不会落在禁着点）", "icon": "🫀"},
 }
-
 
 def pick_rogue_choices(n: int = 3, pool: Optional[list[str]] = None) -> list[str]:
     """Pick n random unique card IDs."""
@@ -1280,7 +1289,7 @@ class GoGame:
         self.rogue_godhand_done: bool = False
         self.rogue_sansan_trap_done: bool = False
         self.ai_rogue_sansan_trap_done: bool = False
-        self.rogue_corner_helper_done: bool = False
+        self.rogue_corner_helper_done: set[int] = set()
         self.rogue_sanrensei_done: bool = False
         self.rogue_five_in_row_seen: set[tuple[tuple[int, int], ...]] = set()
         self.rogue_last_stand_done: dict[str, bool] = {"B": False, "W": False}
@@ -1290,7 +1299,7 @@ class GoGame:
         self.rogue_quickthink_stage: int = 0
         self.rogue_fool_shapes: set[tuple[tuple[int, int], ...]] = set()
         # 让子棋任务: player passes 2 turns, then gets bonus turns
-        self.rogue_handicap_passes: int = 0       # passes completed (need 2)
+        self.rogue_handicap_passes: int = 0       # passes completed
         self.rogue_handicap_active: bool = False   # task completed, bonus active
         self.rogue_handicap_bonuses: int = 0       # bonus turns used (max 3)
         self.challenge_beta: bool = False
@@ -2984,8 +2993,8 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     await send({"type": "rogue_seal_update",
                                 "points": [[px, py]
                                            for px, py in game.rogue_seal_points],
-                                "remaining": 3 - len(game.rogue_seal_points)})
-                    if len(game.rogue_seal_points) >= 3:
+                                "remaining": ROGUE_SEAL_POINT_COUNT - len(game.rogue_seal_points)})
+                    if len(game.rogue_seal_points) >= ROGUE_SEAL_POINT_COUNT:
                         if game.challenge_beta:
                             game.rogue_seal_points = _challenge_zone_points(game, game.rogue_seal_points)
                         game.rogue_waiting_seal = False
@@ -3756,9 +3765,18 @@ def _get_corner_boundary_points(size: int, corner: int, span: int) -> list[tuple
     return pts
 
 
-def _find_corner_with_min_stones(game: GoGame, color: str, span: int, count: int) -> Optional[int]:
+def _find_corner_with_min_stones(
+    game: GoGame,
+    color: str,
+    span: int,
+    count: int,
+    exclude: Optional[list[int]] = None,
+) -> Optional[int]:
     cv = 1 if color == "B" else 2
+    excluded = set(exclude or [])
     for corner in range(4):
+        if corner in excluded:
+            continue
         own = sum(
             1
             for x, y in _get_corner_square_points(game.size, corner, span)
@@ -3947,6 +3965,15 @@ async def _trigger_rogue_five_in_row(game: GoGame, send_fn, color: str):
                     endpoints.append((px, py))
                     break
     changed = _spawn_bonus_points(game, endpoints, color)
+    if changed:
+        support_pool = []
+        for line in new_lines:
+            for px, py in line:
+                for nx, ny in _adjacent8_points(px, py, game.size):
+                    if game.board[ny][nx] == 0 and (nx, ny) not in support_pool:
+                        support_pool.append((nx, ny))
+        random.shuffle(support_pool)
+        changed.extend(_spawn_bonus_points(game, support_pool[:ROGUE_FIVE_IN_ROW_SUPPORT_STONES], color))
     if changed and _challenge_should_bonus_derivative(game):
         extra_endpoints = [point for point in endpoints if point not in changed and game.board[point[1]][point[0]] == 0]
         random.shuffle(extra_endpoints)
@@ -4182,12 +4209,16 @@ async def _challenge_apply_trap_bonus(game: GoGame, send_fn, source_name: str) -
     })
 
 
-def _weaken_rank_one_step(level: str) -> str:
+def _weaken_rank(level: str, steps: int = 1) -> str:
     try:
         idx = _RANK_ORDER.index(level)
     except ValueError:
         return level
-    return _RANK_ORDER[max(0, idx - 1)]
+    return _RANK_ORDER[max(0, idx - steps)]
+
+
+def _weaken_rank_one_step(level: str) -> str:
+    return _weaken_rank(level, 1)
 
 
 async def _challenge_maybe_reduce_ai_level(game: GoGame, send_fn) -> None:
@@ -4304,7 +4335,7 @@ async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
     game.rogue_godhand_trigger = []
     game.rogue_godhand_done = False
     game.rogue_sansan_trap_done = False
-    game.rogue_corner_helper_done = False
+    game.rogue_corner_helper_done = set()
     game.rogue_sanrensei_done = False
     game.rogue_five_in_row_seen = set()
     game.rogue_last_stand_done = {"B": False, "W": False}
@@ -4333,10 +4364,10 @@ async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
         game.rogue_seal_points = _get_blackhole_points(game.size)
     elif card_id == "golden_corner":
         corner = random.randint(0, 3)
-        game.rogue_seal_points = _get_golden_corner_points(game.size, corner)
+        game.rogue_seal_points = _get_golden_corner_points(game.size, corner, ROGUE_GOLDEN_CORNER_SPAN)
         corner_names = ["左上角", "右上角", "左下角", "右下角"]
         await send_fn({"type": "rogue_event",
-                       "msg": f"黄金角已封锁 {corner_names[corner]} 的 5x5 区域"})
+                       "msg": f"黄金角已封锁 {corner_names[corner]} 的 {ROGUE_GOLDEN_CORNER_SPAN}x{ROGUE_GOLDEN_CORNER_SPAN} 区域"})
     elif card_id == "joseki_ocd":
         game.rogue_joseki_targets = _pick_joseki_targets(
             game.size, ROGUE_JOSEKI_TARGET_COUNT)
@@ -4379,7 +4410,7 @@ async def _activate_ai_rogue_card(game: GoGame, send_fn, card_id: str):
         game.ai_rogue_seal_points = _get_blackhole_points(game.size)
     elif card_id == "golden_corner":
         corner = random.randint(0, 3)
-        game.ai_rogue_seal_points = _get_golden_corner_points(game.size, corner)
+        game.ai_rogue_seal_points = _get_golden_corner_points(game.size, corner, ROGUE_GOLDEN_CORNER_SPAN)
     elif card_id == "fog":
         _refresh_ai_rogue_player_turn(game)
 
@@ -4405,7 +4436,7 @@ async def _apply_challenge_rogue_loadout(game: GoGame, send_fn):
     game.rogue_godhand_trigger = []
     game.rogue_godhand_done = False
     game.rogue_sansan_trap_done = False
-    game.rogue_corner_helper_done = False
+    game.rogue_corner_helper_done = set()
     game.rogue_sanrensei_done = False
     game.rogue_five_in_row_seen = set()
     game.rogue_last_stand_done = {"B": False, "W": False}
@@ -4433,7 +4464,7 @@ async def _apply_challenge_rogue_loadout(game: GoGame, send_fn):
             game.rogue_seal_points.extend(_challenge_zone_points(game, _get_blackhole_points(game.size)))
         elif card_id == "golden_corner":
             corner = random.randint(0, 3)
-            game.rogue_seal_points.extend(_challenge_zone_points(game, _get_golden_corner_points(game.size, corner)))
+            game.rogue_seal_points.extend(_challenge_zone_points(game, _get_golden_corner_points(game.size, corner, ROGUE_GOLDEN_CORNER_SPAN)))
         elif card_id == "joseki_ocd" and not game.rogue_joseki_targets:
             game.rogue_joseki_targets = _pick_joseki_targets(
                 game.size, ROGUE_JOSEKI_TARGET_COUNT
@@ -4527,7 +4558,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
             trigger_color = "W" if color == "B" else "B"
             nearby = [(nx, ny) for nx, ny in _adjacent8_points(x, y, game.size) if game.board[ny][nx] == 0]
         random.shuffle(nearby)
-        changed = _spawn_bonus_points(game, nearby[:3], trigger_color) if nearby else []
+        changed = _spawn_bonus_points(game, nearby[:ROGUE_SANSAN_TRAP_STONES], trigger_color) if nearby else []
         if changed:
             game.rogue_sansan_trap_done = True
             if engine.ready:
@@ -4535,8 +4566,14 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
             await send_fn({"type": "rogue_event",
                            "msg": f"△ 三三陷阱发动，在 {coord_to_gtp(x, y, game.size)} 周围反打 {len(changed)} 子"})
 
-    if _rogue_has(game, "corner_helper") and not game.rogue_corner_helper_done:
-        corner = _find_corner_with_min_stones(game, color, 5, 2)
+    if _rogue_has(game, "corner_helper"):
+        corner = _find_corner_with_min_stones(
+            game,
+            color,
+            5,
+            ROGUE_CORNER_HELPER_TRIGGER_STONES,
+            exclude=list(game.rogue_corner_helper_done),
+        )
         if corner is not None:
             candidates = [
                 (px, py)
@@ -4546,7 +4583,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
             random.shuffle(candidates)
             changed = _spawn_bonus_points(game, candidates[:ROGUE_CORNER_HELPER_STONES], color)
             if changed:
-                game.rogue_corner_helper_done = True
+                game.rogue_corner_helper_done.add(corner)
                 if engine.ready:
                     await _sync_board_to_katago(game)
                 await send_fn({"type": "rogue_event",
@@ -4562,6 +4599,14 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                 choices.extend([pt for pt in star_set if game.board[pt[1]][pt[0]] == 0 and pt not in choices])
             random.shuffle(choices)
             changed = _spawn_bonus_points(game, choices[:ROGUE_SANRENSEI_BONUS_STONES], color)
+            support_pool = []
+            for sx, sy in (first_moves + changed):
+                for px, py in _adjacent8_points(sx, sy, game.size):
+                    if game.board[py][px] == 0 and (px, py) not in support_pool:
+                        support_pool.append((px, py))
+            random.shuffle(support_pool)
+            if support_pool:
+                changed.extend(_spawn_bonus_points(game, support_pool[:ROGUE_SANRENSEI_SUPPORT_STONES], color))
             if changed and _challenge_should_bonus_derivative(game):
                 extra_pool = [pt for pt in star_set if game.board[pt[1]][pt[0]] == 0 and pt not in changed]
                 random.shuffle(extra_pool)
@@ -5444,10 +5489,15 @@ async def _ai_move(game: GoGame, send_fn):
         return
 
     _mode = "rogue" if rogue_cards else "normal"
-    visits = get_game_visits(game.level, move_count, mode=_mode)
+    effective_level = game.level
+    if "nerf" in rogue_cards:
+        effective_level = _weaken_rank(effective_level, 8)
+    if "time_press" in rogue_cards:
+        effective_level = _weaken_rank(effective_level, 5)
+    visits = get_game_visits(effective_level, move_count, mode=_mode)
 
     if "nerf" in rogue_cards:
-        visits = max(100, int(visits * ROGUE_NERF_FACTOR))
+        visits = max(30, int(visits * ROGUE_NERF_FACTOR))
 
     if move_count < OPENING_MOVE_THRESHOLD:
         time_limit = min(3.0, MAX_MOVE_TIME)
@@ -5582,6 +5632,24 @@ async def _ai_move(game: GoGame, send_fn):
                                               gtp_move,
                                               "影子触发，AI 贴着自己的上一手继续下")
                         return
+
+    if ("nerf" in rogue_cards
+            and ai_move_count < ROGUE_NERF_BACKUP_AI_MOVES
+            and random.random() < ROGUE_NERF_BACKUP_CHANCE):
+        gtp_move = await _ai_move_suboptimal(game, color, visits, time_limit, start_idx=1, end_idx=5)
+        if gtp_move:
+            await _finish_ai_move(game, send_fn, color, card, gtp_move,
+                                  "弱化触发，AI 在多个备选点里误选了一手")
+            return
+
+    if ("time_press" in rogue_cards
+            and ai_move_count < ROGUE_TIME_PRESS_BACKUP_AI_MOVES
+            and random.random() < ROGUE_TIME_PRESS_BACKUP_CHANCE):
+        gtp_move = await _ai_move_suboptimal(game, color, visits, time_limit, start_idx=1, end_idx=4)
+        if gtp_move:
+            await _finish_ai_move(game, send_fn, color, card, gtp_move,
+                                  "限时压制触发，AI 仓促落在了备选点上")
+            return
 
     if "suboptimal" in rogue_cards and ai_move_count < ROGUE_SUBOPTIMAL_AI_MOVES:
         gtp_move = await _ai_move_suboptimal(game, color, visits, time_limit)
@@ -5846,8 +5914,8 @@ async def _ai_move_avoid_points_allow_only(game, color, visits, time_limit,
     return await run_in_executor(_pick)
 
 
-async def _ai_move_suboptimal(game, color, visits, time_limit):
-    """Use kata-analyze to pick the 3rd~5th best move instead of the best."""
+async def _ai_move_suboptimal(game, color, visits, time_limit, start_idx=2, end_idx=5):
+    """Use kata-analyze to pick from a weaker band of candidate moves."""
 
     def _analyze_pick():
         # analyze() takes command_lock internally, so don't hold it here
@@ -5859,11 +5927,10 @@ async def _ai_move_suboptimal(game, color, visits, time_limit):
             lines, [], game.size, to_move_color=color)
 
         top = result.get("top_moves", [])
-        if len(top) < 3:
+        if len(top) < end_idx:
             return None
 
-        # Pick randomly from positions 3~5 (0-indexed: 2~4)
-        candidates = top[2:5]
+        candidates = top[start_idx:end_idx]
         pick = random.choice(candidates)
         gtp = pick.get("move") or pick.get("gtp")
         if not gtp:

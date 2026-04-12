@@ -12,6 +12,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--size", type=int, default=9)
     parser.add_argument("--level", default="5k")
     parser.add_argument("--rogue-plies", type=int, default=24)
+    parser.add_argument("--rogue-games", type=int, default=1)
     parser.add_argument("--ultimate-games", type=int, default=1)
     parser.add_argument("--rogue-cards", nargs="*", default=None)
     parser.add_argument("--ultimate-cards", nargs="*", default=None)
@@ -75,7 +76,7 @@ ROGUE_INTENT_CARDS = {
 ROGUE_AI_WEAKENER_WEIGHTS = {
     "dice": 0.58,
     "nerf": 0.38,
-    "time_press": 0.32,
+    "time_press": 0.45,
     "suboptimal": 0.52,
     "gravity": 0.72,
     "lowline": 0.78,
@@ -566,14 +567,12 @@ async def run_mode(mode: str):
 
     if mode in {"rogue", "both"}:
         cards = ARGS.rogue_cards or DEFAULT_ROGUE_CARDS
-        baseline_engine_runs = [
-            await evaluate_rogue_card(None, "B", "engine"),
-            await evaluate_rogue_card(None, "W", "engine"),
-        ]
-        baseline_guided_runs = [
-            await evaluate_rogue_card(None, "B", "guided"),
-            await evaluate_rogue_card(None, "W", "guided"),
-        ]
+        baseline_engine_runs = []
+        baseline_guided_runs = []
+        for color in ("B", "W"):
+            for _ in range(ARGS.rogue_games):
+                baseline_engine_runs.append(await evaluate_rogue_card(None, color, "engine"))
+                baseline_guided_runs.append(await evaluate_rogue_card(None, color, "guided"))
         results.append({
             "mode": "rogue",
             "card": "baseline",
@@ -584,14 +583,12 @@ async def run_mode(mode: str):
             },
         })
         for card_id in cards:
-            engine_runs = [
-                await evaluate_rogue_card(card_id, "B", "engine"),
-                await evaluate_rogue_card(card_id, "W", "engine"),
-            ]
-            guided_runs = [
-                await evaluate_rogue_card(card_id, "B", "guided"),
-                await evaluate_rogue_card(card_id, "W", "guided"),
-            ]
+            engine_runs = []
+            guided_runs = []
+            for color in ("B", "W"):
+                for _ in range(ARGS.rogue_games):
+                    engine_runs.append(await evaluate_rogue_card(card_id, color, "engine"))
+                    guided_runs.append(await evaluate_rogue_card(card_id, color, "guided"))
             engine_avg = avg_advantage(engine_runs)
             guided_avg = avg_advantage(guided_runs)
             blended = blend_rogue_layers(card_id, engine_avg, guided_avg)

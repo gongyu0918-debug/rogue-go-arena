@@ -1619,7 +1619,7 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 <!-- Rogue Seal Selection Overlay -->
 <div id="seal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; z-index:80;
   background:rgba(212,175,55,0.12); padding:10px; text-align:center; pointer-events:none;">
-  <span style="color:#d4af37; font-weight:600; font-size:.95rem;" id="seal-hint">🚫 请在棋盘上点击 3 个封印点（剩余 3 个）</span>
+  <span style="color:#d4af37; font-weight:600; font-size:.95rem;" id="seal-hint">🚫 请在棋盘上点击 4 个封印点（剩余 4 个）</span>
 </div>
 
 <!-- Custom Confirm Modal Overlay -->
@@ -1756,39 +1756,39 @@ function updateChallengeInfo() {
 
 const ROGUE_CARD_I18N = {
   tengen: { name: "Tengen", desc: "For its first 3 moves, the AI is pulled toward the center and star points." },
-  dice: { name: "Dice Roll", desc: "Each AI move has a 6% chance of being skipped entirely." },
+  dice: { name: "Dice Roll", desc: "Each AI move has an 8% chance of being skipped entirely." },
   erosion: { name: "Erosion", desc: "Every capture shifts komi by 4 points in the captor's favor." },
   puppet: { name: "Puppet", desc: "Choose a point \u2014 the AI is forced to play there (once per game)." },
-  seal: { name: "Seal", desc: "Mark 3 forbidden points the AI cannot touch for the whole game." },
+  seal: { name: "Seal", desc: "Mark 4 forbidden points the AI cannot touch for the whole game." },
   twin: { name: "Combo", desc: "Play two moves in a single turn once per game for a local follow-up." },
-  nerf: { name: "Nerf", desc: "Crush the AI's search power so it often relies on shallow reading." },
+  nerf: { name: "Nerf", desc: "Drop the AI by about 8 ranks, crush its search power to roughly 5%, and make its first 12 moves much more likely to mis-pick backup options." },
   komi_relief: { name: "Komi Cut", desc: "Komi shifts 7 points in your favor." },
-  time_press: { name: "Time Crunch", desc: "The AI gets only 0.06 seconds per move." },
+  time_press: { name: "Time Crunch", desc: "Drop the AI by about 5 ranks, cap it at 0.10 seconds per move, and make its first 12 moves much more likely to misread under time pressure." },
   lowline: { name: "Low Sweep", desc: "The AI hugs the 2nd\u20133rd lines for 6 moves." },
-  suboptimal: { name: "Second Best", desc: "For its first 10 moves, the AI is much more likely to choose weaker backup options." },
-  mirror: { name: "Mirror", desc: "8% chance the AI mirrors your last move across the board." },
+  suboptimal: { name: "Second Best", desc: "For its first 8 moves, the AI is much more likely to choose weaker backup options." },
+  mirror: { name: "Mirror", desc: "10% chance the AI mirrors your last move across the board." },
   slip: { name: "Butterfingers", desc: "10% chance the AI slips to a straight-adjacent point." },
-  blackhole: { name: "Black Hole", desc: "The central 13-line zone is off-limits to the AI for the whole game." },
+  blackhole: { name: "Black Hole", desc: "The central 13-point zone is off-limits to the AI for its first 6 moves." },
   exchange: { name: "Turn Steal", desc: "Force the AI to pass \u2014 you keep playing (once per game)." },
-  fog: { name: "Fog of War", desc: "For the AI's first 6 moves, a drifting 3\u00d73 no-go zone appears. After that, each turn adds 1 random forbidden point." },
+  fog: { name: "Fog of War", desc: "For the AI's first 11 moves, a drifting 3\u00d73 no-go zone appears. After that, each turn blocks 2 random legal points." },
   gravity: { name: "Gravity Well", desc: "The AI is pulled toward star points for 5 moves." },
-  golden_corner: { name: "Golden Corner", desc: "A random 5\u00d75 corner is sealed off from the AI for its first 12 moves." },
+  golden_corner: { name: "Golden Corner", desc: "A random 4\u00d74 corner is sealed off from the AI for its first 10 moves." },
   sansan: { name: "3-3 Rush", desc: "For its first 2 moves, the AI is forced to open on the four 3-3 points, then avoids corner 4\u00d74 zones for 2 moves." },
   shadow: { name: "Shadow", desc: "On its first 2 moves, the AI has a high chance to cling to its previous stone." },
   sprout: { name: "Sprout", desc: "Each capture spawns a bonus friendly stone nearby." },
-  joseki_ocd: { name: "Joseki OCD", desc: "5 target points appear. Hit any 3 of them to auto-fill the remaining 2 with your stones." },
-  handicap_quest: { name: "Handicap Quest", desc: "Pass once to start; after every 10 moves you force an AI pass, up to 2 times." },
+  joseki_ocd: { name: "Joseki OCD", desc: "7 target points appear. Hit any 6 of them to auto-fill the remaining 1 with your stones." },
+  handicap_quest: { name: "Handicap Quest", desc: "Pass once to start; after every 8 moves you force an AI pass, up to 3 times." },
   god_hand: { name: "Hand of God", desc: "Step on a hidden diamond zone \u2014 2 friendly stones burst into nearby empty points inside a 3\u00d73 area." },
-  sansan_trap: { name: "3-3 Trap", desc: "Only if the opponent's very first move lands on any 3-3 point, you immediately gain 3 nearby counter-stones." },
-  corner_helper: { name: "Corner Guard", desc: "If any corner's 5\u00d75 area has 2 of your stones, that corner gains 2 reinforcements." },
-  sanrensei: { name: "Three Stars", desc: "If your first 2 moves both land on star points, the game auto-fills a 3rd star point stone." },
+  sansan_trap: { name: "3-3 Trap", desc: "Only if the opponent's very first move lands on any 3-3 point, you immediately gain 8 nearby counter-stones." },
+  corner_helper: { name: "Corner Guard", desc: "Each corner can trigger once. If any corner's 5\u00d75 area has 4 of your stones, that corner gains 1 reinforcement." },
+  sanrensei: { name: "Three Stars", desc: "If your first 2 moves both land on star points, the game auto-fills a 3rd star point stone and adds 1 nearby support stone." },
   no_regret: { name: "No Regrets", desc: "Undo disabled \u2014 but each move has an 8% chance to add a free stone." },
   quickthink: { name: "Quick Think", desc: "Play within 3s to unlock a 1s bonus move window. Hints and undo are disabled while this card is active." },
   foolish_wisdom: { name: "Wise Fool", desc: "Form an ugly shape to sprout 2 bonus stones in the nearby 5\u00d75 area." },
-  five_in_row: { name: "Five in a Row", desc: "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, it tries to extend both ends; if an end is blocked, it adds a support stone near that end instead." },
+  five_in_row: { name: "Five in a Row", desc: "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, it extends the ends if possible; blocked ends become nearby support stones, plus 4 extra support stones near the line." },
   coach_mode: { name: "Coach Login", desc: "Active: a stronger AI plays the next 30 turns for you. If your winrate stays below 50% after that, it plays 10 extra turns." },
-  capture_foul: { name: "Capture Foul", desc: "When the opponent captures over 5 stones, there is a 50% chance of a foul, plus 10% for each extra stone. On trigger, the offender loses 1.5 points and the counter resets." },
-  last_stand: { name: "Last Stand", desc: "Once per game, if your winrate drops below 30%, remove 1 enemy stone and add 2 friendly stones inside the last move's 3\u00d73 area without landing on forbidden points." },
+  capture_foul: { name: "Capture Foul", desc: "When the opponent's single capture or running capture total reaches 4 stones, a foul triggers automatically. The offender loses 4 points, then the counter resets." },
+  last_stand: { name: "Last Stand", desc: "Once per game, if your winrate drops below 26%, remove 1 enemy stone and add 1 friendly stone inside the last move's 3\u00d73 area without landing on forbidden points." },
 };
 
 const ULTIMATE_CARD_I18N = {
@@ -4566,7 +4566,7 @@ function handleMessage(msg) {
     case "rogue_seal_done":
       rogueSealing = false;
       document.getElementById("seal-overlay").style.display = "none";
-      log(ui("🚫 三道封印已设定！", "🚫 Three seals are now in place!"));
+      log(ui("🚫 四道封印已设定！", "🚫 Four seals are now in place!"));
       if (!animFrameId) render();
       break;
 
