@@ -8,7 +8,6 @@ import json
 import random
 import subprocess
 import threading
-import queue
 import re
 import socket
 import time
@@ -22,6 +21,118 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 import uvicorn
+from app.config.gameplay import (
+    AI_STYLE_OPTIONS,
+    CHALLENGE_ACTIVE_USE_BONUS,
+    CHALLENGE_DERIVATIVE_BONUS_CHANCE,
+    CHALLENGE_RESTRICTION_DECAY_CHANCE,
+    CHALLENGE_SET_MIN_COUNT,
+    CHALLENGE_STAGE_BIAS_WEIGHT,
+    CHALLENGE_TRAP_EXTRA_TURN_CHANCE,
+    CHALLENGE_ZONE_EXPAND_RADIUS,
+    CPU_MAX_VISITS,
+    MAX_GAME_VISITS,
+    MAX_MOVE_TIME,
+    OPENING_MAX_VISITS,
+    OPENING_MOVE_THRESHOLD,
+    RANK_LABELS,
+    RANK_VISITS,
+    ROGUE_BLACKHOLE_AI_MOVES,
+    ROGUE_CAPTURE_FOUL_BASE,
+    ROGUE_CAPTURE_FOUL_KOMI_PENALTY,
+    ROGUE_CAPTURE_FOUL_STEP,
+    ROGUE_CAPTURE_FOUL_THRESHOLD,
+    ROGUE_COACH_BASE_TURNS,
+    ROGUE_COACH_BONUS_THRESHOLD,
+    ROGUE_COACH_BONUS_TURNS,
+    ROGUE_COACH_VISITS,
+    ROGUE_CORNER_HELPER_STONES,
+    ROGUE_CORNER_HELPER_TRIGGER_STONES,
+    ROGUE_DICE_PASS_CHANCE,
+    ROGUE_EROSION_SHIFT,
+    ROGUE_FIVE_IN_ROW_SUPPORT_STONES,
+    ROGUE_FOG_AI_MOVES,
+    ROGUE_FOG_MASK_RADIUS,
+    ROGUE_FOG_POST_MASK_POINTS,
+    ROGUE_FOOLISH_FILL_COUNT,
+    ROGUE_GODHAND_FILL_COUNT,
+    ROGUE_GODHAND_RADIUS,
+    ROGUE_GOLDEN_CORNER_AI_MOVES,
+    ROGUE_GOLDEN_CORNER_SPAN,
+    ROGUE_GRAVITY_AI_MOVES,
+    ROGUE_HANDICAP_BONUS_INTERVAL,
+    ROGUE_HANDICAP_MAX_BONUSES,
+    ROGUE_HANDICAP_REQUIRED_PASSES,
+    ROGUE_JOSEKI_REQUIRED_HITS,
+    ROGUE_JOSEKI_TARGET_COUNT,
+    ROGUE_LAST_STAND_CLEAR_COUNT,
+    ROGUE_LAST_STAND_SPAWN_COUNT,
+    ROGUE_LAST_STAND_THRESHOLD,
+    ROGUE_LOWLINE_AI_MOVES,
+    ROGUE_MAX_VISITS,
+    ROGUE_MIRROR_CHANCE,
+    ROGUE_NERF_BACKUP_AI_MOVES,
+    ROGUE_NERF_BACKUP_CHANCE,
+    ROGUE_NERF_FACTOR,
+    ROGUE_NO_REGRET_CHANCE,
+    ROGUE_QUICKTHINK_FIRST_SECONDS,
+    ROGUE_QUICKTHINK_SECOND_SECONDS,
+    ROGUE_SANSAN_TRAP_STONES,
+    ROGUE_SANRENSEI_BONUS_STONES,
+    ROGUE_SANRENSEI_OPENING_MOVES,
+    ROGUE_SANRENSEI_REQUIRED_STARS,
+    ROGUE_SANRENSEI_SUPPORT_STONES,
+    ROGUE_SEAL_POINT_COUNT,
+    ROGUE_SHADOW_AI_MOVE_INDEXES,
+    ROGUE_SHADOW_CHANCE,
+    ROGUE_SLIP_CHANCE,
+    ROGUE_SUBOPTIMAL_AI_MOVES,
+    ROGUE_TENGEN_AI_MOVES,
+    ROGUE_TIME_PRESS_BACKUP_AI_MOVES,
+    ROGUE_TIME_PRESS_BACKUP_CHANCE,
+    ROGUE_TIME_PRESS_MAX_TIME,
+    ROGUE_TIME_PRESS_MAX_VISITS,
+    ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY,
+    ULTIMATE_CAPTURE_FOUL_THRESHOLD,
+    ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
+    ULTIMATE_FIVE_IN_ROW_CLEAR_COUNT,
+    ULTIMATE_FIVE_IN_ROW_SPAWN_COUNT,
+    ULTIMATE_FOOLISH_CHAIN_DELAY,
+    ULTIMATE_FOOLISH_FILL_COUNT,
+    ULTIMATE_GODHAND_FILL_COUNT,
+    ULTIMATE_JOSEKI_BONUS_STONES,
+    ULTIMATE_JOSEKI_REQUIRED_HITS,
+    ULTIMATE_JOSEKI_TARGET_COUNT,
+    ULTIMATE_LAST_STAND_CLEAR_COUNT,
+    ULTIMATE_LAST_STAND_SPAWN_COUNT,
+    ULTIMATE_LAST_STAND_THRESHOLD,
+    ULTIMATE_MAX_VISITS,
+    ULTIMATE_METEOR_DESTROY_COUNT,
+    ULTIMATE_QUANTUM_PLACE_COUNT,
+    ULTIMATE_QUICKTHINK_SECONDS,
+    ULTIMATE_TERRITORY_RADIUS,
+    ULTIMATE_TIMEWARP_TRIGGER_CHANCE,
+    ULTIMATE_WALL_TRIGGER_CHANCE,
+    ULTIMATE_WILDGROW_MAX_GROWTH,
+)
+from app.config.gpu_tiers import (
+    GPU_TIER_PATTERNS as _GPU_TIER_PATTERNS,
+    GPU_TIERS as _GPU_TIERS,
+)
+from app.data.cards import (
+    AI_ROGUE_POOL,
+    AI_ULTIMATE_POOL,
+    CHALLENGE_BETA_HANDICAPS,
+    CHALLENGE_BETA_POOL,
+    CHALLENGE_CATEGORY_MAP,
+    ROGUE_CARDS,
+    ROGUE_FEATURED_CARDS,
+    TWO_PLAYER_ROGUE_POOL,
+    ULTIMATE_CARDS,
+    ULTIMATE_FEATURED_CARDS,
+)
+from app.runtime.engine import KataGoEngine
+from app.runtime.game_store import ActiveGameStore
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(line_buffering=True)
@@ -51,7 +162,6 @@ KATAGO_CPU_EXE = BASE_DIR / "katago" / "katago_cpu.exe"      # CPU (no GPU neede
 KATAGO_MODEL_LARGE = BASE_DIR / "katago" / "model_large.bin.gz"  # Upgraded large model (b28/b40)
 KATAGO_MODEL = BASE_DIR / "katago" / "model.bin.gz"             # Default bundled model
 KATAGO_MODEL_SMALL = BASE_DIR / "katago" / "model_b18.bin.gz"   # Compact model (b18)
-USER_KATAGO_CUDA_EXE = USER_KATAGO_DIR / "katago_cuda.exe"
 USER_KATAGO_MODEL_LARGE = USER_KATAGO_DIR / "model_large.bin.gz"
 KATAGO_CONFIG = BASE_DIR / "katago" / "config.cfg"
 KATAGO_CPU_CONFIG = BASE_DIR / "katago" / "config_cpu.cfg"
@@ -87,230 +197,6 @@ def _runtime_config_path(source_config: Path) -> Path:
     runtime_path.write_text(content, encoding="utf-8")
     return runtime_path
 
-# ─── Rank tables ─────────────────────────────────────────────────────────────
-RANK_VISITS = {
-    "18k": 2,   "17k": 3,   "16k": 5,   "15k": 8,   "14k": 12,
-    "13k": 18,  "12k": 28,  "11k": 40,  "10k": 60,
-    "9k":  90,  "8k":  130, "7k":  180, "6k":  260,  "5k":  380,
-    "4k":  550, "3k":  800, "2k":  1100, "1k": 1500,
-    "a1d": 2200,  "a2d": 3500,  "a3d": 5500,  "a4d": 9000,
-    "a5d": 12000, "a6d": 15000, "a7d": 18000, "a8d": 20000,
-    "a9d": 22000,
-    "p1d": 24000, "p2d": 26000, "p3d": 28000,
-    "p4d": 30000, "p5d": 32000, "p6d": 34000,
-    "p7d": 36000, "p8d": 38000,
-    "p9d": 0,
-}
-
-RANK_LABELS = {
-    "18k": "18级", "17k": "17级", "16k": "16级", "15k": "15级",
-    "14k": "14级", "13k": "13级", "12k": "12级", "11k": "11级",
-    "10k": "10级", "9k": "9级", "8k": "8级", "7k": "7级",
-    "6k": "6级", "5k": "5级", "4k": "4级", "3k": "3级",
-    "2k": "2级", "1k": "1级",
-    "a1d": "业余1段", "a2d": "业余2段", "a3d": "业余3段",
-    "a4d": "业余4段", "a5d": "业余5段", "a6d": "业余6段",
-    "a7d": "业余7段", "a8d": "业余8段", "a9d": "业余9段",
-    "p1d": "职业一段", "p2d": "职业二段", "p3d": "职业三段",
-    "p4d": "职业四段", "p5d": "职业五段", "p6d": "职业六段",
-    "p7d": "职业七段", "p8d": "职业八段", "p9d": "职业九段",
-}
-
-MAX_GAME_VISITS = 20000   # Hard cap on visits per move
-ROGUE_MAX_VISITS = 800    # Cap for rogue mode (chaotic board, no need for deep search)
-ULTIMATE_MAX_VISITS = 400 # Cap for ultimate mode (20 moves, effects dominate)
-CPU_MAX_VISITS = 250      # Hard cap for older CPU mode (prefer stable replies over deep search)
-
-# Rogue mode tuning: keep the cards impactful without turning every game into
-# a scripted auto-win. These are intentionally a bit generous to emphasize the
-# "fun modifier" feel over perfect balance.
-ROGUE_DICE_PASS_CHANCE = 0.08       # trimmed: still noticeable, but no longer dominates long games
-ROGUE_SLIP_CHANCE = 0.10            # trimmed: enough to feel annoying without warping whole games
-ROGUE_MIRROR_CHANCE = 0.10          # trimmed: mirrored imitation should be spicy, not constant
-ROGUE_NERF_FACTOR = 0.05            # stronger again after player-weighted testing showed it felt too light
-ROGUE_NERF_BACKUP_CHANCE = 0.60
-ROGUE_NERF_BACKUP_AI_MOVES = 12
-ROGUE_EROSION_SHIFT = 4.0
-ROGUE_TENGEN_AI_MOVES = 5           # buffed: 3 → 5 moves forced near tengen/star
-ROGUE_FOG_MASK_RADIUS = 1
-ROGUE_FOG_AI_MOVES = 11             # buffed: 6 → 10 moves with 3×3 mask
-ROGUE_FOG_POST_MASK_POINTS = 2      # after mask phase, ban 2 points per turn
-ROGUE_BLACKHOLE_AI_MOVES = 6       # still lasts well into the middlegame, but no longer smothers the whole game
-ROGUE_GOLDEN_CORNER_AI_MOVES = 10
-ROGUE_GOLDEN_CORNER_SPAN = 4
-ROGUE_GRAVITY_AI_MOVES = 7          # buffed: 5 → 7 moves
-ROGUE_LOWLINE_AI_MOVES = 8          # buffed: 6 → 8 moves
-ROGUE_SHADOW_AI_MOVE_INDEXES = {1, 2, 3}  # buffed: {1,2} → {1,2,3}
-ROGUE_SHADOW_CHANCE = 0.70          # buffed: 55% → 70%
-ROGUE_SUBOPTIMAL_AI_MOVES = 8
-ROGUE_TIME_PRESS_MAX_TIME = 0.10
-ROGUE_TIME_PRESS_MAX_VISITS = 20
-ROGUE_TIME_PRESS_BACKUP_CHANCE = 0.60
-ROGUE_TIME_PRESS_BACKUP_AI_MOVES = 12
-ROGUE_FOOLISH_FILL_COUNT = 2
-ULTIMATE_FOOLISH_FILL_COUNT = 20
-ULTIMATE_FOOLISH_CHAIN_DELAY = 1.0
-ROGUE_HANDICAP_REQUIRED_PASSES = 1
-ROGUE_HANDICAP_BONUS_INTERVAL = 8
-ROGUE_HANDICAP_MAX_BONUSES = 3
-ROGUE_JOSEKI_TARGET_COUNT = 7
-ROGUE_JOSEKI_REQUIRED_HITS = 6
-ROGUE_GODHAND_FILL_COUNT = 2        # buffed: 2 → 3 bonus stones per trigger
-ROGUE_GODHAND_RADIUS = 1
-ROGUE_CORNER_HELPER_TRIGGER_STONES = 4
-ROGUE_CORNER_HELPER_STONES = 1
-ROGUE_SANRENSEI_REQUIRED_STARS = 2
-ROGUE_SANRENSEI_OPENING_MOVES = 2
-ROGUE_SANRENSEI_BONUS_STONES = 1
-ROGUE_SANRENSEI_SUPPORT_STONES = 1
-ROGUE_NO_REGRET_CHANCE = 0.10       # buffed: 8% → 10% free stone per turn
-ROGUE_QUICKTHINK_FIRST_SECONDS = 4  # buffed: 3s → 4s first window
-ROGUE_QUICKTHINK_SECOND_SECONDS = 2 # buffed: 1s → 2s second window
-ROGUE_SANSAN_TRAP_STONES = 8
-ROGUE_SEAL_POINT_COUNT = 4
-ROGUE_FIVE_IN_ROW_SUPPORT_STONES = 4
-
-# Ultimate mode tuning: prioritize spectacle and reliable payoff.
-ULTIMATE_CHAIN_EXTRA_TURN_CHANCE = 0.65
-ULTIMATE_WILDGROW_MAX_GROWTH = 4
-ULTIMATE_METEOR_DESTROY_COUNT = 5
-ULTIMATE_QUANTUM_PLACE_COUNT = 5
-ULTIMATE_TIMEWARP_TRIGGER_CHANCE = 0.85
-ULTIMATE_TERRITORY_RADIUS = 4
-ULTIMATE_JOSEKI_TARGET_COUNT = 7
-ULTIMATE_JOSEKI_REQUIRED_HITS = 3
-ULTIMATE_JOSEKI_BONUS_STONES = 50
-ULTIMATE_GODHAND_FILL_COUNT = 50
-ULTIMATE_QUICKTHINK_SECONDS = 5
-ULTIMATE_WALL_TRIGGER_CHANCE = 0.60
-ROGUE_LAST_STAND_THRESHOLD = 0.26
-ULTIMATE_LAST_STAND_THRESHOLD = 0.30
-ROGUE_LAST_STAND_CLEAR_COUNT = 1
-ROGUE_LAST_STAND_SPAWN_COUNT = 1
-ULTIMATE_LAST_STAND_CLEAR_COUNT = 30
-ULTIMATE_LAST_STAND_SPAWN_COUNT = 30
-ULTIMATE_FIVE_IN_ROW_CLEAR_COUNT = 30
-ULTIMATE_FIVE_IN_ROW_SPAWN_COUNT = 30
-
-ROGUE_FEATURED_CARDS = {
-    "god_hand",
-    "sansan_trap",
-    "corner_helper",
-    "sanrensei",
-    "no_regret",
-    "quickthink",
-    "foolish_wisdom",
-    "five_in_row",
-    "coach_mode",
-    "capture_foul",
-    "last_stand",
-}
-
-CHALLENGE_BETA_POOL = [
-    "dice",
-    "nerf",
-    "time_press",
-    "suboptimal",
-    "seal",
-    "blackhole",
-    "golden_corner",
-    "fog",
-    "sprout",
-    "joseki_ocd",
-    "corner_helper",
-    "sanrensei",
-    "foolish_wisdom",
-    "five_in_row",
-    "sansan_trap",
-    "god_hand",
-    "twin",
-    "exchange",
-    "capture_foul",
-    "last_stand",
-]
-
-CHALLENGE_BETA_HANDICAPS = {
-    1: 0,
-    2: 2,
-}
-
-CHALLENGE_CATEGORY_MAP = {
-    "sanrensei": "derivative",
-    "foolish_wisdom": "derivative",
-    "five_in_row": "derivative",
-    "sansan_trap": "trap",
-    "god_hand": "trap",
-    "blackhole": "zone",
-    "golden_corner": "zone",
-    "fog": "zone",
-    "seal": "zone",
-    "dice": "restriction",
-    "nerf": "restriction",
-    "time_press": "restriction",
-    "suboptimal": "restriction",
-    "twin": "active",
-    "exchange": "active",
-}
-
-CHALLENGE_STAGE_BIAS_WEIGHT = 2.6
-CHALLENGE_SET_MIN_COUNT = 2
-CHALLENGE_DERIVATIVE_BONUS_CHANCE = 0.50
-CHALLENGE_TRAP_EXTRA_TURN_CHANCE = 1.0
-CHALLENGE_ZONE_EXPAND_RADIUS = 1
-CHALLENGE_RESTRICTION_DECAY_CHANCE = 0.05
-CHALLENGE_ACTIVE_USE_BONUS = 1
-
-TWO_PLAYER_ROGUE_POOL = [
-    "erosion",
-    "sprout",
-    "joseki_ocd",
-    "god_hand",
-    "sansan_trap",
-    "corner_helper",
-    "sanrensei",
-    "foolish_wisdom",
-    "five_in_row",
-    "capture_foul",
-]
-
-AI_ROGUE_POOL = [
-    "blackhole",
-    "golden_corner",
-    "fog",
-    "sansan_trap",
-]
-
-ULTIMATE_FEATURED_CARDS = {
-    "joseki_burst",
-    "god_hand",
-    "corner_helper",
-    "sanrensei",
-    "quickthink",
-    "foolish_wisdom",
-    "five_in_row",
-    "capture_foul",
-    "last_stand",
-}
-
-# Maximum seconds KataGo may think per move (safety net)
-MAX_MOVE_TIME = 12.0
-
-# Opening phase: first N total moves (both sides) use a hard visit cap
-# so the response is nearly instant (neural net raw policy is already strong)
-OPENING_MOVE_THRESHOLD = 50   # first ~25 moves per side
-OPENING_MAX_VISITS = 500      # ~2-3s on most GPUs — still superhuman
-AI_STYLE_OPTIONS = {"balanced", "territory", "influence", "attack", "defense"}
-ROGUE_CAPTURE_FOUL_BASE = 1.00
-ROGUE_CAPTURE_FOUL_STEP = 0.00
-ROGUE_CAPTURE_FOUL_THRESHOLD = 4
-ROGUE_CAPTURE_FOUL_KOMI_PENALTY = 4.0
-ULTIMATE_CAPTURE_FOUL_THRESHOLD = 5
-ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY = 50.0
-ROGUE_COACH_BASE_TURNS = 30
-ROGUE_COACH_BONUS_TURNS = 10
-ROGUE_COACH_BONUS_THRESHOLD = 0.50
-ROGUE_COACH_VISITS = 20000
-
 
 def get_game_visits(level: str, move_count: int = -1,
                     mode: str = "normal") -> int:
@@ -335,220 +221,6 @@ def get_game_visits(level: str, move_count: int = -1,
         visits = OPENING_MAX_VISITS
     return visits
 
-
-# ─── Rogue mode cards ────────────────────────────────────────────────────────
-ROGUE_CARDS = {
-    "tengen": {
-        "name": "天元",
-        "desc": "开局 3 手，AI 会优先靠近天元与星位落子",
-        "icon": "◎",
-    },
-    "dice": {
-        "name": "掷骰",
-        "desc": "AI 每手有 10% 概率直接跳过",
-        "icon": "🎲",
-    },
-    "erosion": {
-        "name": "蚕食",
-        "desc": "每提 1 子，贴目向有利方向偏移 6 目",
-        "icon": "🪲",
-    },
-    "puppet": {
-        "name": "傀儡术",
-        "desc": "选定一点，强制 AI 在此落子（限 1 次）",
-        "icon": "🎭",
-        "uses": 1,
-    },
-    "seal": {
-        "name": "封印术",
-        "desc": "指定 3 个禁区，AI 前 8 手无法落在这些点",
-        "icon": "🔒",
-    },
-    "twin": {
-        "name": "连击",
-        "desc": "一回合连落两手（限 1 次，但更适合连续追击）",
-        "icon": "⚡",
-        "uses": 1,
-    },
-    "nerf": {
-        "name": "弱化",
-        "desc": "AI 搜索算力大幅下降",
-        "icon": "📉",
-    },
-    "komi_relief": {
-        "name": "贴目减半",
-        "desc": "贴目会朝你有利的方向调整 7 目",
-        "icon": "⚖️",
-    },
-    "time_press": {
-        "name": "限时压制",
-        "desc": "AI 每手最多思考 0.08 秒",
-        "icon": "⏱️",
-    },
-    "lowline": {
-        "name": "低空飞行",
-        "desc": "AI 前 6 手偏向二三路低位",
-        "icon": "🪁",
-    },
-    "suboptimal": {
-        "name": "次优之选",
-        "desc": "AI 前 6 手会从次优点里挑着下",
-        "icon": "🥈",
-    },
-    "mirror": {
-        "name": "镜像",
-        "desc": "AI 有 18% 概率模仿你的上一手",
-        "icon": "🪞",
-    },
-    "slip": {
-        "name": "手滑了",
-        "desc": "AI 有 12% 概率手滑到相邻的直线点位",
-        "icon": "🤏",
-    },
-    "blackhole": {
-        "name": "黑洞",
-        "desc": "棋盘中心 13 路区域对 AI 前 8 手禁入",
-        "icon": "🕳️",
-    },
-    "exchange": {
-        "name": "乾坤挪移",
-        "desc": "强制 AI 虚手，你继续行棋（限 1 次）",
-        "icon": "🔄",
-        "uses": 1,
-    },
-    "fog": {
-        "name": "战争迷雾",
-        "desc": "AI 前 4 手每手前会刷新一个 3×3 禁区遮罩",
-        "icon": "🌫️",
-    },
-    "gravity": {
-        "name": "星位引力",
-        "desc": "AI 前 5 手被星位磁场牵引",
-        "icon": "🧲",
-    },
-    "golden_corner": {
-        "name": "黄金角",
-        "desc": "随机封锁一角 4×4 区域，AI 前 8 手禁入",
-        "icon": "🏆",
-    },
-    "sansan": {
-        "name": "三三开局",
-        "desc": "AI 前 2 手偏向三三，随后 2 手暂避角部 4×4",
-        "icon": "◣",
-    },
-    "shadow": {
-        "name": "影子",
-        "desc": "AI 前 2 手有较高概率紧跟自己的上一手",
-        "icon": "👤",
-    },
-    "sprout": {
-        "name": "萌芽",
-        "desc": "每提 1 子，旁边自动长出 1 颗己棋",
-        "icon": "🌱",
-    },
-    "joseki_ocd": {
-        "name": "定式强迫症",
-        "desc": "开局亮出 4 个目标点，下中其中 3 个，剩下 1 个会自动补成你的棋子",
-        "icon": "📐",
-    },
-    "handicap_quest": {
-        "name": "让子任务",
-        "desc": "先虚手 1 次，之后每 7 手奖励 AI 虚手，最多触发 2 次",
-        "icon": "🎁",
-    },
-    "god_hand": {
-        "name": "神之一手",
-        "desc": "踩中隐藏菱形区，周围 3×3 内随机爆出 1 颗己棋，只会落在空点",
-        "icon": "✨",
-    },
-    "sansan_trap": {
-        "name": "三三陷阱",
-        "desc": "AI 开在三三？旁边立刻长出 3 颗反击棋",
-        "icon": "🪤",
-    },
-    "corner_helper": {
-        "name": "守角辅助",
-        "desc": "任一角的 5×5 区域里有 2 颗己子时，就会在那个角补 1 颗援军",
-        "icon": "🏯",
-    },
-    "sanrensei": {
-        "name": "三连星",
-        "desc": "前 5 手里只要有 2 手落在星位，就会额外生成 1 颗己棋",
-        "icon": "⭐",
-    },
-    "no_regret": {
-        "name": "永不悔棋",
-        "desc": "禁用悔棋，但每手 3% 概率白送一子",
-        "icon": "🚫",
-    },
-    "quickthink": {
-        "name": "快速思考",
-        "desc": "5 秒内落子可追加 3 秒连击窗口",
-        "icon": "⚡",
-    },
-    "foolish_wisdom": {
-        "name": "大智若愚",
-        "desc": "摆出愚形，附近 5×5 内随机长出 1 颗己棋",
-        "icon": "🧩",
-    },
-    "five_in_row": {
-        "name": "五子连珠",
-        "desc": "这是五子棋，不是围棋。每当我方横、竖、斜正好连成 5 颗同色棋，就会优先在首尾补子；若首尾被堵住，则改在两端附近补子",
-        "icon": "🎯",
-    },
-    "coach_mode": {
-        "name": "代练上号",
-        "desc": "主动技能：后 30 手由更强的 AI 代打；若下完后胜率仍低于 50%，则额外再代打 10 手",
-        "icon": "🎓",
-    },
-    "capture_foul": {
-        "name": "提子犯规",
-        "desc": "若对手单次或累计提子超过 1 颗，有 70% 概率触发“提子未放在棋盒”；每多 1 子概率再加 15%。若触发，则被惩罚方罚 2 目，随后概率重新计数",
-        "icon": "🧺",
-    },
-    "last_stand": {
-        "name": "起死回生",
-        "desc": "当我方胜率跌到 30% 以下时，仅触发 1 次：在上一手周围 3×3 内随机消掉 1 颗敌子，并随机补 1 颗己棋（不会落在禁着点）",
-        "icon": "🫀",
-    },
-}
-
-ROGUE_CARDS = {
-    "tengen": {"name": "天元", "desc": "开局 5 手，AI 会优先靠近天元与星位落子", "icon": "◎"},
-    "dice": {"name": "掷骰", "desc": "AI 每手有 8% 概率直接虚手", "icon": "🎉"},
-    "erosion": {"name": "蚕食", "desc": "每提 1 子，贴目向有利方偏移 4 目", "icon": "🌑"},
-    "puppet": {"name": "傀儡术", "desc": "选定一点，强制 AI 在此落子（限 1 次）", "icon": "🎁", "uses": 1},
-    "seal": {"name": "封印术", "desc": "指定 4 个禁着点，整局 AI 都不能下在这些点", "icon": "🔀"},
-    "twin": {"name": "连击", "desc": "本回合可连续落两手（限 1 次）", "icon": "✦", "uses": 1},
-    "nerf": {"name": "弱化", "desc": "AI 大约下降 8 段，搜索算力只剩约 5%，前 12 手更容易误选备选点", "icon": "📲"},
-    "komi_relief": {"name": "贴目减半", "desc": "贴目会朝你有利的方向调整 7 目", "icon": "✘️"},
-    "time_press": {"name": "限时压制", "desc": "AI 大约下降 5 段，且每手最多思考 0.10 秒，前 12 手更容易仓促误判", "icon": "⏱️"},
-    "lowline": {"name": "低空飞行", "desc": "AI 前 8 手偏向二三路低位", "icon": "🦊"},
-    "suboptimal": {"name": "次优之选", "desc": "AI 前 8 手更容易从后几名的候选点里随机挑一手", "icon": "🚍"},
-    "mirror": {"name": "镜像", "desc": "AI 有 10% 概率按棋盘对称位置镜像模仿你的上一手", "icon": "🪞"},
-    "slip": {"name": "手滑了", "desc": "AI 有 10% 概率手滑到相邻的点位", "icon": "😾"},
-    "blackhole": {"name": "黑洞", "desc": "棋盘中心 13 子区域对 AI 前 6 手禁入", "icon": "🕳️"},
-    "exchange": {"name": "乾坤挪移", "desc": "强制 AI 虚手，你继续行棋（限 1 次）", "icon": "🔄", "uses": 1},
-    "fog": {"name": "战争迷雾", "desc": "AI 前 11 手每手前会刷新一个 3×3 禁区遮罩；之后每回合随机封锁 2 个 AI 禁着点", "icon": "🌫️"},
-    "gravity": {"name": "星位引力", "desc": "AI 前 7 手被星位磁场牵引", "icon": "🌃"},
-    "golden_corner": {"name": "黄金角", "desc": "随机封锁一角 4×4 区域，AI 前 10 手禁入", "icon": "🪙"},
-    "sansan": {"name": "三三开局", "desc": "强制 AI 在开局前 2 手去抢四个三三点中的位置，也就是开局硬走三三；之后 2 手暂时避开角上 4×4 区域", "icon": "◎"},
-    "shadow": {"name": "影子", "desc": "AI 前 3 手有 70% 概率紧跟自己的上一手", "icon": "👁"},
-    "sprout": {"name": "萌芽", "desc": "每次提子后，都会在附近自动长出 1 颗己棋", "icon": "🌱"},
-    "joseki_ocd": {"name": "定式强迫症", "desc": "开局亮出 7 个目标点，只要下中 6 个，剩下的 1 个会自动补成你的棋子", "icon": "📻"},
-    "handicap_quest": {"name": "让子任务", "desc": "先虚手 1 次，之后每满 8 手奖励 AI 虚手一次，最多触发 3 次", "icon": "🎵"},
-    "god_hand": {"name": "神之一手", "desc": "踩中隐藏菱形区，周围 3×3 内随机爆出 2 颗己棋，只会落在空点", "icon": "✨"},
-    "sansan_trap": {"name": "三三陷阱", "desc": "只有对手第 1 手正好下在四个三三点之一时才会触发，并在那手棋周围反生 8 颗我方棋", "icon": "🪤"},
-    "corner_helper": {"name": "守角辅助", "desc": "每个角各算一次：任一角的 5×5 区域里有 4 颗己子时，就会在那个角补 1 颗援军", "icon": "🏯"},
-    "sanrensei": {"name": "三连星", "desc": "若你前 2 手都落在星位，会自动补出第 3 颗星位棋，并再长出 1 颗援军", "icon": "⭐"},
-    "no_regret": {"name": "永不悔棋", "desc": "禁用悔棋，但每手 10% 概率白送一子", "icon": "🚫"},
-    "quickthink": {"name": "快速思考", "desc": "4 秒内落子可追加 2 秒连击窗口；选中后禁用推荐点位与悔棋", "icon": "⚡"},
-    "foolish_wisdom": {"name": "大智若愚", "desc": "摆出愚形，附近 5×5 内随机长出 2 颗己棋", "icon": "🧠"},
-    "five_in_row": {"name": "五子连珠", "desc": "这是五子棋，不是围棋。每当我方横、竖、斜正好连成 5 颗同色棋，就会优先在首尾补子；若首尾被堵住，则改在两端附近补子，并在连线附近再补 4 颗援军", "icon": "🎯"},
-    "coach_mode": {"name": "代练上号", "desc": "主动技能：后 30 手由更强的 AI 代打；若下完后胜率仍低于 50%，则额外再代打 10 手", "icon": "🎗"},
-    "capture_foul": {"name": "提子犯规", "desc": "若对手单次或累计提子达到 4 颗，就会触发“提子未放在棋盒”，被惩罚方罚 4 目，随后重新计数", "icon": "🧺"},
-    "last_stand": {"name": "起死回生", "desc": "当我方胜率跌到 26% 以下时，仅触发 1 次：在上一手周围 3×3 内随机消掉 1 颗敌子，并随机补 1 颗己棋（不会落在禁着点）", "icon": "🫀"},
-}
 
 def pick_rogue_choices(n: int = 3, pool: Optional[list[str]] = None) -> list[str]:
     """Pick n random unique card IDs."""
@@ -647,141 +319,6 @@ def pick_ai_rogue_card(exclude: Optional[list[str]] = None) -> str:
     rng = random.Random(time.time_ns())
     pool = [k for k in AI_ROGUE_POOL if k not in (exclude or [])]
     return rng.choice(pool or AI_ROGUE_POOL)
-
-
-# ─── Ultimate Rogue mode cards (大招模式) ────────────────────────────────────
-ULTIMATE_CARDS = {
-    "chain": {
-        "name": "连珠棋",
-        "desc": "每手 65% 概率触发追加行动",
-        "icon": "🔥",
-    },
-    "proliferate": {
-        "name": "无限增殖",
-        "desc": "落子后 5×5 范围内爆出 5 颗同色棋",
-        "icon": "🌸",
-    },
-    "double": {
-        "name": "双刀流",
-        "desc": "每回合固定连下 2 手，但整回合只计 1 手数",
-        "icon": "⚔️",
-    },
-    "wildgrow": {
-        "name": "狂野生长",
-        "desc": "4 颗己子向四周蔓延扩张",
-        "icon": "🌿",
-    },
-    "rejection": {
-        "name": "排异反应",
-        "desc": "落点 5×5 内敌子被推开或摧毁",
-        "icon": "💥",
-    },
-    "territory": {
-        "name": "绝对领地",
-        "desc": "落点周围 4 格形成禁入结界",
-        "icon": "🛡️",
-    },
-    "shadow_clone": {
-        "name": "影分身",
-        "desc": "先生成一颗镜像棋；下一回合会按原落点和镜像点强制连成一整条线，就算两端棋子被提掉也照样连线",
-        "icon": "👥",
-    },
-    "plague": {
-        "name": "瘟疫",
-        "desc": "3×3 内所有敌子转化为己方",
-        "icon": "☣️",
-    },
-    "meteor": {
-        "name": "陨石雨",
-        "desc": "随机轰掉 5 颗对方棋子",
-        "icon": "☄️",
-    },
-    "quantum": {
-        "name": "量子纠缠",
-        "desc": "全盘随机位置生成 5 颗同色棋",
-        "icon": "🌀",
-    },
-    "devour": {
-        "name": "吞噬",
-        "desc": "5×5 范围内敌子全部清空",
-        "icon": "🦷",
-    },
-    "timewarp": {
-        "name": "时空裂缝",
-        "desc": "85% 概率抹去对手最近 2 手",
-        "icon": "🕰️",
-    },
-    "blackout": {
-        "name": "天崩地裂",
-        "desc": "十字方向清除所有敌子",
-        "icon": "🌋",
-    },
-    "magnet": {
-        "name": "磁力吸附",
-        "desc": "己方棋子飞速聚拢，碾碎路径上的敌子",
-        "icon": "🧲",
-    },
-    "necro": {
-        "name": "亡灵召唤",
-        "desc": "召唤 3 颗己棋 + 策反 2 颗敌棋",
-        "icon": "💀",
-    },
-    "wall": {
-        "name": "万里长城",
-        "desc": "有 60% 概率发动：整行或整列筑起一面不可逾越的棋墙",
-        "icon": "🧱",
-    },
-    "joseki_burst": {
-        "name": "定式爆发",
-        "desc": "命中定式后补满目标，并额外爆出 50 颗同色棋",
-        "icon": "📐",
-    },
-    "god_hand": {
-        "name": "神之一手",
-        "desc": "踩中 5×5 隐藏菱形，清空敌子并铺满 50 颗己棋",
-        "icon": "✨",
-    },
-    "corner_helper": {
-        "name": "守角要塞",
-        "desc": "四个角分别独立结算：某个角的 5×5 区域里有 2 颗己子时，就会封满该角 8×8 边界并清掉里面的敌子",
-        "icon": "🏯",
-    },
-    "sanrensei": {
-        "name": "三连星爆发",
-        "desc": "前 3 手全落星位，引爆全盘星位势力",
-        "icon": "⭐",
-    },
-    "quickthink": {
-        "name": "极速风暴",
-        "desc": "5 秒内不限次数连续落子，结束后 AI 再读盘，整段只计 1 手数",
-        "icon": "⚡",
-    },
-    "foolish_wisdom": {
-        "name": "愚形连锁",
-        "desc": "检测到愚形就连锁生成，最多铺满 20 颗己棋",
-        "icon": "🧩",
-    },
-    "five_in_row": {
-        "name": "五子连珠爆发",
-        "desc": "这是五子棋，不是围棋。每当我方横、竖、斜正好连成 5 颗同色棋，就会随机清除对方 30 颗棋子，并在全盘随机补下 30 颗己棋；该效果可连锁触发",
-        "icon": "🎯",
-    },
-    "capture_foul": {"name": "提子犯规", "desc": "若对手提子或技能消除棋子累计超过 5 颗，则 100% 触发\u201c提子未放在棋盒\u201d，被惩罚方立刻罚 50 目；每次触发后重新计数，之后仍可重复触发", "icon": "🧺"},
-    "last_stand": {
-        "name": "起死回生",
-        "desc": "当我方胜率跌到 30% 以下时：全盘随机清除对方 30 颗棋子，并随机补下 30 颗己棋",
-        "icon": "🫀",
-    },
-}
-
-
-# AI only gets simple brute-force cards (no turn manipulation or spatial mechanics)
-AI_ULTIMATE_POOL = [
-    "proliferate", "meteor", "quantum", "devour", "necro",
-    "wall", "blackout", "wildgrow", "plague",
-]
-
-
 def pick_ultimate_choices(n: int = 3, exclude: list = None) -> list[str]:
     """Pick n random unique ultimate card IDs, excluding given keys."""
     import time
@@ -862,392 +399,6 @@ def gtp_to_coord(gtp, size=19):
     return None
 
 
-# ─── KataGo engine ───────────────────────────────────────────────────────────
-class KataGoEngine:
-    def __init__(self):
-        self.process: Optional[subprocess.Popen] = None
-        self.response_queue = queue.Queue()
-        self.analysis_lines = []
-        self.ownership_data: list = []
-        self.analysis_lock = threading.Lock()
-        self.command_lock = threading.Lock()
-        self.is_analyzing = False
-        self.current_visits = 800
-        self.ready = False
-        self.stderr_lines = []
-        self.stderr_callback = None
-        self.last_stderr_time = 0.0
-
-    def start(self, exe=None, config=None, model=None,
-              startup_timeout: float = 120.0,
-              stall_timeout: float = 45.0,
-              stderr_callback=None):
-        _exe = exe or KATAGO_EXE
-        _cfg = config or KATAGO_CONFIG
-        _model = model or KATAGO_MODEL
-        if not Path(_exe).exists():
-            raise FileNotFoundError(f"KataGo not found: {_exe}")
-        if not Path(_model).exists():
-            raise FileNotFoundError(f"Model not found: {_model}")
-
-        # Reset state from any previous attempt
-        self.ready = False
-        self.stderr_lines = []
-        self.stderr_callback = stderr_callback
-        self.last_stderr_time = time.time()
-        self.process = None
-        while not self.response_queue.empty():
-            try:
-                self.response_queue.get_nowait()
-            except queue.Empty:
-                break
-
-        cmd = [str(_exe), "gtp",
-               "-model", str(_model),
-               "-config", str(_cfg)]
-        _ensure_user_katago_dirs()
-        try:
-            self.process = subprocess.Popen(
-                cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE, bufsize=0,
-                creationflags=0x08000000 if sys.platform == "win32" else 0,
-            )
-        except OSError as e:
-            raise RuntimeError(f"Failed to launch {_exe.name}: {e}") from e
-        threading.Thread(target=self._read_stdout, daemon=True).start()
-        threading.Thread(target=self._read_stderr, daemon=True).start()
-
-        # Wait for stderr "GTP ready" signal (up to 120s for OpenCL first-time tuning)
-        deadline = time.time() + startup_timeout
-        found_ready = False
-        last_progress_bucket = -1
-        while time.time() < deadline:
-            # Check if process crashed
-            if self.process.poll() is not None:
-                err = "\n".join(self.stderr_lines[-10:]) if self.stderr_lines else "no output"
-                raise RuntimeError(
-                    f"{Path(_exe).name} exited with code {self.process.returncode}: {err}")
-            for line in self.stderr_lines:
-                if "GTP ready" in line:
-                    found_ready = True
-                    break
-            if found_ready:
-                break
-            if (
-                stall_timeout > 0
-                and self.last_stderr_time
-                and time.time() - self.last_stderr_time > stall_timeout
-            ):
-                err = "\n".join(self.stderr_lines[-10:]) if self.stderr_lines else "no output"
-                self.stop()
-                raise RuntimeError(
-                    f"{Path(_exe).name} stalled for {int(stall_timeout)}s without new output: {err}"
-                )
-            elapsed = int(startup_timeout - max(0.0, deadline - time.time()))
-            progress_bucket = elapsed // 10
-            if (
-                self.stderr_callback
-                and elapsed >= 10
-                and progress_bucket > last_progress_bucket
-            ):
-                last_progress_bucket = progress_bucket
-                self.stderr_callback(
-                    f"{Path(_exe).name} 仍在初始化中，已等待 {elapsed}s"
-                )
-            time.sleep(0.3)
-
-        if not found_ready:
-            # Process still running but no GTP ready — kill and fail
-            err = "\n".join(self.stderr_lines[-10:]) if self.stderr_lines else "no output"
-            self.stop()
-            raise RuntimeError(
-                f"{Path(_exe).name} did not become ready within {int(startup_timeout)}s: {err}"
-            )
-
-        # Send a probe command to confirm GTP is responsive
-        try:
-            self.process.stdin.write(b"name\n")
-            self.process.stdin.flush()
-            resp = self.response_queue.get(timeout=10)
-            self.ready = True
-            log(f"[KataGo] Started: {resp}")
-        except queue.Empty:
-            log("[KataGo] Warning: no ready signal received, assuming OK")
-            self.ready = True
-
-    def _read_stdout(self):
-        current_response = []
-        for raw_line in self.process.stdout:
-            line = raw_line.decode("utf-8", errors="replace").rstrip("\n\r")
-            if self.is_analyzing and line.startswith("info "):
-                with self.analysis_lock:
-                    self.analysis_lines.append(line)
-            elif self.is_analyzing and line.startswith("ownership "):
-                vals = line.split()[1:]
-                try:
-                    with self.analysis_lock:
-                        self.ownership_data = [float(v) for v in vals]
-                except Exception:
-                    pass
-            else:
-                if line.startswith("=") or line.startswith("?"):
-                    current_response = [line]
-                elif line == "" and current_response:
-                    self.response_queue.put("\n".join(current_response))
-                    current_response = []
-                elif current_response:
-                    current_response.append(line)
-
-    def _read_stderr(self):
-        for raw_line in self.process.stderr:
-            line = raw_line.decode("utf-8", errors="replace").rstrip()
-            if not line:
-                continue
-            self.last_stderr_time = time.time()
-            self.stderr_lines.append(line)
-            self.stderr_lines = self.stderr_lines[-200:]
-            log(f"[KataGo stderr] {line}")
-            if self.stderr_callback:
-                try:
-                    self.stderr_callback(line)
-                except Exception:
-                    pass
-
-    def is_alive(self) -> bool:
-        return self.process is not None and self.process.poll() is None
-
-    def _drain_response_queue(self, wait: float = 0.0) -> int:
-        drained = 0
-        deadline = time.time() + wait
-        while True:
-            timeout = max(0.0, deadline - time.time())
-            try:
-                if wait > 0 and time.time() < deadline:
-                    self.response_queue.get(timeout=timeout)
-                else:
-                    self.response_queue.get_nowait()
-                drained += 1
-            except queue.Empty:
-                break
-        return drained
-
-    def _send_command_locked(self, cmd: str, timeout: float = 60.0) -> str:
-        if not self.process:
-            return "? not started"
-        if self.process.poll() is not None:
-            log(f"[KataGo] Process dead (exit {self.process.poll()}), disabling engine")
-            self.ready = False
-            return "? process dead"
-        try:
-            with self.analysis_lock:
-                self.is_analyzing = False
-            self.process.stdin.write((cmd + "\n").encode())
-            self.process.stdin.flush()
-        except (OSError, ValueError, BrokenPipeError) as e:
-            log(f"[KataGo] stdin write error: {e}, disabling engine")
-            self.ready = False
-            return "? write error"
-        try:
-            return self.response_queue.get(timeout=timeout)
-        except queue.Empty:
-            return "? timeout"
-
-    def send_command(self, cmd: str, timeout: float = 60.0) -> str:
-        with self.command_lock:
-            return self._send_command_locked(cmd, timeout)
-
-    def set_visits(self, visits: int):
-        self.current_visits = visits
-        max_visits = 10000000 if visits == 0 else visits
-        self.send_command(f"kata-set-param maxVisits {max_visits}")
-
-    def analyze(self, color: str, visits: int, interval: int = 50,
-                duration: float = 1.8, extra_args: Optional[list[str]] = None) -> tuple:
-        if not self.process or self.process.poll() is not None:
-            return [], []
-
-        with self.command_lock:
-            original_visits = self.current_visits
-            analysis_max_visits = 10000000 if visits == 0 else visits
-            self._drain_response_queue(wait=0.05)
-
-            if original_visits != visits:
-                self.current_visits = visits
-                resp = self._send_command_locked(
-                    f"kata-set-param maxVisits {analysis_max_visits}",
-                    timeout=10.0)
-                if resp.startswith("?"):
-                    log(f"[Analysis] set_visits failed: {resp}")
-
-            with self.analysis_lock:
-                self.analysis_lines = []
-                self.ownership_data = []
-                self.is_analyzing = True
-
-            cmd_parts = ["kata-analyze", color, str(interval)]
-            if extra_args:
-                cmd_parts.extend(extra_args)
-            cmd = " ".join(cmd_parts)
-            log(f"[Analysis] sending: {cmd}")
-            self.process.stdin.write((cmd + "\n").encode())
-            self.process.stdin.flush()
-
-            time.sleep(duration)
-
-            try:
-                self.process.stdin.write(b"stop\n")
-                self.process.stdin.flush()
-            except (OSError, ValueError, BrokenPipeError) as exc:
-                log(f"[Analysis] stop failed: {exc}")
-
-            time.sleep(0.25)
-            with self.analysis_lock:
-                self.is_analyzing = False
-                lines = list(self.analysis_lines)
-                ownership = list(self.ownership_data)
-
-            drained = self._drain_response_queue(wait=0.4)
-            if drained:
-                log(f"[Analysis] drained {drained} sync responses")
-
-            if original_visits != visits:
-                self.current_visits = original_visits
-                restore_max_visits = 10000000 if original_visits == 0 else original_visits
-                restore_resp = self._send_command_locked(
-                    f"kata-set-param maxVisits {restore_max_visits}",
-                    timeout=10.0)
-                if restore_resp.startswith("?"):
-                    log(f"[Analysis] restore visits failed: {restore_resp}")
-
-            log(f"[Analysis] collected {len(lines)} info lines, {len(ownership)} ownership vals")
-            return lines, ownership
-
-    def parse_analysis(self, lines: list, ownership: list,
-                       size: int = 19, to_move_color: str = "B") -> dict:
-        moves = []
-        root_winrate = 0.5
-        root_score = 0.0
-
-        latest_line = ""
-        for line in reversed(lines):
-            if line.startswith("info "):
-                latest_line = line
-                break
-
-        if not latest_line:
-            return {
-                "winrate": 0.5,
-                "score": 0.0,
-                "top_moves": [],
-                "ownership": ownership,
-                "analysis_color": to_move_color,
-            }
-
-        segments = [
-            segment.strip()
-            for segment in re.split(r"(?=info move )", latest_line)
-            if segment.strip().startswith("info move ")
-        ]
-
-        for segment in segments:
-            parts = segment.split()
-            fields = {}
-            i = 1
-            while i < len(parts) - 1:
-                key = parts[i]
-                if key == "pv":
-                    break
-                fields[key] = parts[i + 1]
-                i += 2
-
-            move_gtp = fields.get("move")
-            if not move_gtp:
-                continue
-            try:
-                visits = int(fields.get("visits", 0))
-                wr = float(fields.get("winrate", 0.5))
-                score_mean = float(fields.get("scoreMean", 0.0))
-                order = int(fields.get("order", 999))
-            except (ValueError, TypeError):
-                log(f"[Analysis] parse error for segment: {segment[:120]}")
-                continue
-
-            if order == 0:
-                root_winrate = wr
-                root_score = score_mean
-            if move_gtp.upper() != "PASS":
-                coord = gtp_to_coord(move_gtp, size)
-                if coord:
-                    moves.append({
-                        "x": coord[0], "y": coord[1],
-                        "winrate": round(wr, 3),
-                        "black_winrate": round(wr if to_move_color == "B" else 1.0 - wr, 3),
-                        "visits": visits,
-                        "gtp": move_gtp,
-                        "order": order,
-                    })
-
-        root_match = re.search(r"\brootInfo\b(.*?)(?=\bownership\b|\bownershipStdev\b|$)", latest_line)
-        if root_match:
-            root_fields = {}
-            root_parts = root_match.group(1).split()
-            i = 0
-            while i < len(root_parts) - 1:
-                root_fields[root_parts[i]] = root_parts[i + 1]
-                i += 2
-            try:
-                root_winrate = float(root_fields.get("winrate", root_winrate))
-                root_score = float(root_fields.get("scoreLead", root_fields.get("scoreMean", root_score)))
-            except (TypeError, ValueError):
-                pass
-
-        if not ownership:
-            ownership_match = re.search(r"\bownership\b(.*?)(?=\bownershipStdev\b|$)", latest_line)
-            if ownership_match:
-                vals = ownership_match.group(1).split()
-                expected = size * size
-                try:
-                    ownership = [float(v) for v in vals[:expected]]
-                except ValueError:
-                    ownership = []
-
-        if ownership and to_move_color == "W":
-            ownership = [-v for v in ownership]
-
-        moves.sort(key=lambda m: m["order"])
-        black_winrate = root_winrate if to_move_color == "B" else 1.0 - root_winrate
-        black_score = root_score if to_move_color == "B" else -root_score
-        return {
-            "winrate": round(black_winrate, 3),
-            "score": round(black_score, 1),
-            "top_moves": moves[:8],
-            "ownership": ownership,   # flat list, len = size*size
-            "analysis_color": to_move_color,
-        }
-
-    def stop(self):
-        if self.process:
-            try:
-                self.send_command("quit", timeout=3)
-            except Exception:
-                pass
-            try:
-                self.process.terminate()
-                self.process.wait(timeout=5)
-            except Exception:
-                try:
-                    self.process.kill()
-                except Exception:
-                    pass
-            self.process = None
-        self.ready = False
-        self.stderr_callback = None
-
-    def restart(self):
-        """Stop and re-start the engine."""
-        self.stop()
-        time.sleep(0.5)
-        self.start()
 
 
 # ─── Game state ──────────────────────────────────────────────────────────────
@@ -1255,6 +406,7 @@ class GoGame:
     def __init__(self, size: int = 19, komi: float = 7.5, handicap: int = 0,
                  player_color: str = "B", level: str = "a3d",
                  two_player: bool = False):
+        now = time.time()
         self.size = size
         self.komi = komi
         self.handicap = handicap
@@ -1350,8 +502,13 @@ class GoGame:
         self.last_analysis: dict = {"winrate": 0.5, "score": 0.0, "top_moves": [], "ownership": []}
         # Ko rule: (x, y, color_value) that is forbidden on the NEXT move
         self.ko_point: Optional[tuple[int, int, int]] = None
+        self.created_at: float = now
+        self.updated_at: float = now
         self._history: list[dict] = []
         self.reset_history()
+
+    def touch(self):
+        self.updated_at = time.time()
 
     # ─── Board logic ─────────────────────────────────────────────────────────
     def neighbors(self, x, y):
@@ -1452,7 +609,7 @@ class GoGame:
     def _snapshot_state(self) -> dict:
         return copy.deepcopy({
             k: v for k, v in self.__dict__.items()
-            if k != "_history"
+            if k not in {"_history", "created_at", "updated_at"}
         })
 
     def reset_history(self):
@@ -1469,8 +626,11 @@ class GoGame:
             history.pop()
             steps -= 1
         state = copy.deepcopy(history[-1])
+        created_at = getattr(self, "created_at", time.time())
         self.__dict__.clear()
         self.__dict__.update(state)
+        self.created_at = created_at
+        self.updated_at = time.time()
         self._history = history
         return True
 
@@ -1592,8 +752,18 @@ def generate_sgf(game: GoGame) -> str:
 
 # ─── FastAPI App ─────────────────────────────────────────────────────────────
 app = FastAPI()
-engine = KataGoEngine()
-active_games: dict[str, GoGame] = {}
+engine = KataGoEngine(
+    default_exe=KATAGO_EXE,
+    default_config=KATAGO_CONFIG,
+    default_model=KATAGO_MODEL,
+    log_fn=log,
+    ensure_dirs_fn=_ensure_user_katago_dirs,
+    coord_parser=gtp_to_coord,
+)
+ACTIVE_GAME_RETENTION_SECONDS = 24 * 60 * 60
+active_games: ActiveGameStore[GoGame] = ActiveGameStore(
+    retention_seconds=ACTIVE_GAME_RETENTION_SECONDS
+)
 ENGINE_STATE_LOCK = threading.Lock()
 ENGINE_START_THREAD: Optional[threading.Thread] = None
 ENGINE_START_TOKEN = 0
@@ -1656,91 +826,6 @@ def _select_model() -> Optional[Path]:
         if candidate.exists():
             return candidate
     return None
-
-
-def _build_engine_candidates() -> tuple[bool, list[dict]]:
-    has_gpu = _has_nvidia_gpu()
-    candidates = []
-    if has_gpu and KATAGO_CUDA_EXE.exists():
-        candidates.append({
-            "exe": KATAGO_CUDA_EXE,
-            "config": KATAGO_CONFIG,
-            "cpu_mode": False,
-            "label": "CUDA(升级包)",
-        })
-    if has_gpu and KATAGO_EXE.exists():
-        candidates.append({
-            "exe": KATAGO_EXE,
-            "config": KATAGO_CONFIG,
-            "cpu_mode": False,
-            "label": "CUDA",
-        })
-    if KATAGO_OPENCL_EXE.exists():
-        candidates.append({
-            "exe": KATAGO_OPENCL_EXE,
-            "config": KATAGO_CONFIG,
-            "cpu_mode": False,
-            "label": "OpenCL",
-        })
-    if KATAGO_CPU_EXE.exists():
-        candidates.append({
-            "exe": KATAGO_CPU_EXE,
-            "config": KATAGO_CPU_CONFIG if KATAGO_CPU_CONFIG.exists() else KATAGO_CONFIG,
-            "cpu_mode": True,
-            "label": "CPU",
-        })
-    return has_gpu, candidates
-
-
-def _build_engine_candidates() -> tuple[bool, list[dict]]:
-    has_gpu = _has_nvidia_gpu()
-    candidates = []
-    if has_gpu and USER_KATAGO_CUDA_EXE.exists():
-        candidates.append({
-            "exe": USER_KATAGO_CUDA_EXE,
-            "config": KATAGO_CONFIG,
-            "cpu_mode": False,
-            "label": "CUDA(升级包)",
-            "startup_timeout": 60.0,
-            "stall_timeout": 20.0,
-        })
-    if has_gpu and KATAGO_CUDA_EXE.exists():
-        candidates.append({
-            "exe": KATAGO_CUDA_EXE,
-            "config": KATAGO_CONFIG,
-            "cpu_mode": False,
-            "label": "CUDA(随包)",
-            "startup_timeout": 60.0,
-            "stall_timeout": 20.0,
-        })
-    if has_gpu and KATAGO_EXE.exists():
-        candidates.append({
-            "exe": KATAGO_EXE,
-            "config": KATAGO_CONFIG,
-            "cpu_mode": False,
-            "label": "CUDA",
-            "startup_timeout": 60.0,
-            "stall_timeout": 20.0,
-        })
-    if KATAGO_OPENCL_EXE.exists():
-        candidates.append({
-            "exe": KATAGO_OPENCL_EXE,
-            "config": KATAGO_CONFIG,
-            "cpu_mode": False,
-            "label": "OpenCL",
-            "startup_timeout": 150.0,
-            "stall_timeout": 45.0,
-        })
-    if KATAGO_CPU_EXE.exists():
-        candidates.append({
-            "exe": KATAGO_CPU_EXE,
-            "config": KATAGO_CPU_CONFIG if KATAGO_CPU_CONFIG.exists() else KATAGO_CONFIG,
-            "cpu_mode": True,
-            "label": "CPU",
-            "startup_timeout": 45.0,
-            "stall_timeout": 20.0,
-        })
-    return has_gpu, candidates
 
 
 def _available_models() -> list[Path]:
@@ -2175,30 +1260,6 @@ async def get_status():
 
 
 # ─── GPU detection ───────────────────────────────────────────────────────────
-# GPU tier mapping: determines default rank and slow-rank threshold
-# Tier 4 (high-end): RTX 3080+, 4070+, 5070+ → default a5d, slow at p1d
-# Tier 3 (mid):      RTX 2060-3070, GTX 1080Ti → default a3d, slow at a6d
-# Tier 2 (low):      GTX 1060-1070 → default a1d, slow at a3d
-# Tier 1 (very low): GT 1030, integrated, unknown → default 3k, slow at 1k
-
-_GPU_TIERS = {
-    # tier: (default_rank, slow_from_rank, label)
-    4: ("a5d", "p1d", "高端"),
-    3: ("a3d", "a6d", "中端"),
-    2: ("a1d", "a3d", "入门"),
-    1: ("3k",  "1k",  "低端"),
-}
-
-_GPU_TIER_PATTERNS = [
-    # (regex_pattern, tier) — matched against GPU name, first match wins
-    (r"RTX\s*50[789]0|RTX\s*5090|RTX\s*4090|RTX\s*4080|RTX\s*3090|A100|H100|A6000", 4),
-    (r"RTX\s*40[67]0|RTX\s*3080|RTX\s*3070|RTX\s*2080|RTX\s*2070|GTX\s*1080\s*Ti|RTX\s*A[45]000", 4),
-    (r"RTX\s*4060|RTX\s*4050|RTX\s*3060|RTX\s*3050|RTX\s*2060|RTX\s*2050|GTX\s*1080(?!\s*Ti)", 3),
-    (r"GTX\s*1070|GTX\s*1660|GTX\s*1650|RTX\s*A2000", 3),
-    (r"GTX\s*1060|GTX\s*1050|GTX\s*980|GTX\s*970|GTX\s*960|MX\s*[345]\d0", 2),
-    (r"GTX\s*950|GTX\s*750|GT\s*1030|GT\s*730|GT\s*710|MX\s*[12]\d0", 1),
-]
-
 _gpu_cache: dict = {}
 
 
@@ -2267,7 +1328,8 @@ async def get_gpu_info():
 
 @app.get("/sgf/{game_id}")
 async def export_sgf(game_id: str):
-    game = active_games.get(game_id)
+    active_games.prune()
+    game = active_games.get(game_id, touch=True)
     if not game:
         return Response(content="Game not found", status_code=404)
     sgf = generate_sgf(game)
@@ -2286,12 +1348,32 @@ async def run_in_executor(func, *args):
 @app.websocket("/ws/{game_id}")
 async def websocket_endpoint(websocket: WebSocket, game_id: str):
     await websocket.accept()
+    websocket_closed = False
 
     # Restore existing game if this gameId is already known
-    game: Optional[GoGame] = active_games.get(game_id)
+    active_games.prune()
+    game: Optional[GoGame] = active_games.get(game_id, touch=True)
 
     async def send(data: dict):
-        await websocket.send_text(json.dumps(data))
+        nonlocal websocket_closed
+        if websocket_closed:
+            raise WebSocketDisconnect(code=1006)
+        try:
+            await websocket.send_text(json.dumps(data))
+            active_games.touch(game_id)
+        except WebSocketDisconnect:
+            websocket_closed = True
+            raise
+        except RuntimeError as exc:
+            message = str(exc)
+            if (
+                "websocket.close" in message
+                or "WebSocket is not connected" in message
+                or "response already completed" in message
+            ):
+                websocket_closed = True
+                raise WebSocketDisconnect(code=1006) from exc
+            raise
 
     async def send_error(msg: str):
         await send({"type": "error", "message": msg})
@@ -2343,6 +1425,8 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
             if g.game_over or len(g.moves) != move_count_before:
                 return
             await send({"type": "analysis", **result})
+        except WebSocketDisconnect:
+            return
         except Exception as ex:
             print(f"[Analysis-bg] error: {ex}")
 
@@ -2353,7 +1437,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
             try:
                 # ── reconnect ────────────────────────────────────────────────
                 if action == "reconnect":
-                    saved = active_games.get(game_id)
+                    saved = active_games.get(game_id, touch=True)
                     if saved:
                         game = saved
                         await send({"type": "reconnected", **game.to_state()})
@@ -2380,6 +1464,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         )
                         continue
 
+                    active_games.prune()
                     size = int(data.get("size", 19))
                     komi = float(data.get("komi", 7.5))
                     handicap = int(data.get("handicap", 0))
@@ -2441,7 +1526,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         "coach": int(challenge_limits.get("coach", 0) or 0),
                     }
                     game.challenge_usage = {"undo": 0, "hint": 0, "coach": 0}
-                    active_games[game_id] = game
+                    active_games.set(game_id, game)
 
                     if engine.ready:
                         visits = get_game_visits(level, len(game.moves))
@@ -2534,7 +1619,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── play ──────────────────────────────────────────────────────
                 elif action == "play":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over:
                         await send_error("暂无进行中的对局")
                         continue
@@ -2740,7 +1825,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── pass ──────────────────────────────────────────────────────
                 elif action == "pass":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over:
                         continue
 
@@ -2818,7 +1903,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── undo ──────────────────────────────────────────────────────
                 elif action == "undo":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or not game.moves:
                         continue
                     if game.rogue_card in {"no_regret", "quickthink"}:
@@ -2849,7 +1934,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── resign ────────────────────────────────────────────────────
                 elif action == "resign":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game:
                         continue
                     game.game_over = True
@@ -2865,7 +1950,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── request_hint ──────────────────────────────────────────────
                 elif action == "request_hint":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over or not engine.ready:
                         continue
                     if _rogue_has(game, "quickthink"):
@@ -2883,7 +1968,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── set_level ─────────────────────────────────────────────────
                 elif action == "set_level":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game:
                         continue
                     level = data.get("level", "a3d")
@@ -2925,7 +2010,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── time_expired ─────────────────────────────────────────────
                 elif action == "time_expired":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over:
                         continue
                     loser = data.get("color", "B")
@@ -2942,7 +2027,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── rogue_select_card ─────────────────────────────────────────
                 elif action == "rogue_select_card":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game:
                         continue
                     card_id = data.get("card_id", "")
@@ -2977,7 +2062,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
 
                 elif action == "challenge_refresh_offer":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or not game.challenge_beta:
                         continue
                     if game.challenge_refreshes <= 0:
@@ -3008,7 +2093,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── rogue_seal_point ─────────────────────────────────────────
                 elif action == "rogue_seal_point":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or not game.rogue_waiting_seal:
                         continue
                     x, y = int(data["x"]), int(data["y"])
@@ -3032,7 +2117,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── rogue_use_puppet ─────────────────────────────────────────
                 elif action == "rogue_use_puppet":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over or not engine.ready:
                         continue
                     if game.rogue_card != "puppet" or \
@@ -3071,7 +2156,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── rogue_use_twin ───────────────────────────────────────────
                 elif action == "rogue_use_twin":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over:
                         continue
                     if game.rogue_card != "twin" or \
@@ -3089,7 +2174,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── rogue_use_exchange ───────────────────────────────────────
                 elif action == "rogue_use_exchange":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over:
                         continue
                     if game.rogue_card != "exchange" or \
@@ -3106,7 +2191,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── ultimate_select_card ──────────────────────────────────────
                 elif action == "rogue_use_coach":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over or not engine.ready:
                         continue
                     if game.challenge_beta:
@@ -3132,7 +2217,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
 
                 elif action == "ultimate_select_card":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or not game.ultimate:
                         continue
                     card_id = data.get("card_id", "")
@@ -3194,7 +2279,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
 
                 elif action == "ultimate_quickthink_end":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or not game.ultimate:
                         continue
                     if game.ultimate_player_card != "quickthink" or not game.ultimate_quickthink_active:
@@ -3212,7 +2297,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── score ─────────────────────────────────────────────────────
                 elif action == "score":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game:
                         continue
                     if engine.ready:
@@ -3233,6 +2318,8 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         "reason": "score",
                     })
 
+            except WebSocketDisconnect:
+                raise
             except Exception as e:
                 import traceback
                 print(f"[WS {game_id}] Action error ({action}): {e}")
@@ -6190,38 +5277,41 @@ async def _run_coach_turn_if_needed(game: GoGame, send_fn):
 
 
 async def _run_ai_observer_loop(game: GoGame, send_fn):
-    while not game.game_over and game.ai_observer and engine.ready:
-        await _sync_board_to_katago(game)
-        color = game.current_player
-        level = game.ai_level_black if color == "B" else game.ai_level_white
-        visits = get_game_visits(level, len(game.moves))
-        time_limit = 4.0 if len(game.moves) < OPENING_MOVE_THRESHOLD else 8.0
-        gtp_move = await _generate_ai_style_move(game, color, visits, time_limit)
-        if _is_suspicious_ai_pass(game, gtp_move, color):
-            fallback_move = await _pick_nonpass_fallback_move(game, color, visits)
-            if fallback_move:
-                gtp_move = fallback_move
-        coord = gtp_to_coord(gtp_move, game.size)
-        captured = 0
-        game.moves.append((color, gtp_move))
-        if gtp_move.upper() != "PASS" and coord:
-            captured = game.place_stone(coord[0], coord[1], color)
-            game.passed[color] = False
-        else:
-            game.passed[color] = True
-        await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color, "x": coord[0] if coord else None, "y": coord[1] if coord else None})
-        game.current_player = "W" if color == "B" else "B"
-        game.push_history()
-        await send_fn({"type": "game_state", **game.to_state()})
-        if game.passed["B"] and game.passed["W"]:
-            resp_score = await run_in_executor(engine.send_command, "final_score")
-            score_str = resp_score.replace("=", "").strip()
-            winner = "B" if score_str.startswith("B") else "W"
-            game.game_over = True
-            game.winner = winner
-            await send_fn({"type": "game_over", "winner": winner, "score": score_str, "reason": "double_pass"})
-            break
-        await asyncio.sleep(0.35)
+    try:
+        while not game.game_over and game.ai_observer and engine.ready:
+            await _sync_board_to_katago(game)
+            color = game.current_player
+            level = game.ai_level_black if color == "B" else game.ai_level_white
+            visits = get_game_visits(level, len(game.moves))
+            time_limit = 4.0 if len(game.moves) < OPENING_MOVE_THRESHOLD else 8.0
+            gtp_move = await _generate_ai_style_move(game, color, visits, time_limit)
+            if _is_suspicious_ai_pass(game, gtp_move, color):
+                fallback_move = await _pick_nonpass_fallback_move(game, color, visits)
+                if fallback_move:
+                    gtp_move = fallback_move
+            coord = gtp_to_coord(gtp_move, game.size)
+            captured = 0
+            game.moves.append((color, gtp_move))
+            if gtp_move.upper() != "PASS" and coord:
+                captured = game.place_stone(coord[0], coord[1], color)
+                game.passed[color] = False
+            else:
+                game.passed[color] = True
+            await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color, "x": coord[0] if coord else None, "y": coord[1] if coord else None})
+            game.current_player = "W" if color == "B" else "B"
+            game.push_history()
+            await send_fn({"type": "game_state", **game.to_state()})
+            if game.passed["B"] and game.passed["W"]:
+                resp_score = await run_in_executor(engine.send_command, "final_score")
+                score_str = resp_score.replace("=", "").strip()
+                winner = "B" if score_str.startswith("B") else "W"
+                game.game_over = True
+                game.winner = winner
+                await send_fn({"type": "game_over", "winner": winner, "score": score_str, "reason": "double_pass"})
+                break
+            await asyncio.sleep(0.35)
+    except WebSocketDisconnect:
+        return
 
 
 if __name__ == "__main__":
