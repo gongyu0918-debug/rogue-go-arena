@@ -8,7 +8,6 @@ import json
 import random
 import subprocess
 import threading
-import queue
 import re
 import socket
 import time
@@ -132,6 +131,8 @@ from app.data.cards import (
     ULTIMATE_CARDS,
     ULTIMATE_FEATURED_CARDS,
 )
+from app.runtime.engine import KataGoEngine
+from app.runtime.game_store import ActiveGameStore
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(line_buffering=True)
@@ -398,392 +399,6 @@ def gtp_to_coord(gtp, size=19):
     return None
 
 
-# ─── KataGo engine ───────────────────────────────────────────────────────────
-class KataGoEngine:
-    def __init__(self):
-        self.process: Optional[subprocess.Popen] = None
-        self.response_queue = queue.Queue()
-        self.analysis_lines = []
-        self.ownership_data: list = []
-        self.analysis_lock = threading.Lock()
-        self.command_lock = threading.Lock()
-        self.is_analyzing = False
-        self.current_visits = 800
-        self.ready = False
-        self.stderr_lines = []
-        self.stderr_callback = None
-        self.last_stderr_time = 0.0
-
-    def start(self, exe=None, config=None, model=None,
-              startup_timeout: float = 120.0,
-              stall_timeout: float = 45.0,
-              stderr_callback=None):
-        _exe = exe or KATAGO_EXE
-        _cfg = config or KATAGO_CONFIG
-        _model = model or KATAGO_MODEL
-        if not Path(_exe).exists():
-            raise FileNotFoundError(f"KataGo not found: {_exe}")
-        if not Path(_model).exists():
-            raise FileNotFoundError(f"Model not found: {_model}")
-
-        # Reset state from any previous attempt
-        self.ready = False
-        self.stderr_lines = []
-        self.stderr_callback = stderr_callback
-        self.last_stderr_time = time.time()
-        self.process = None
-        while not self.response_queue.empty():
-            try:
-                self.response_queue.get_nowait()
-            except queue.Empty:
-                break
-
-        cmd = [str(_exe), "gtp",
-               "-model", str(_model),
-               "-config", str(_cfg)]
-        _ensure_user_katago_dirs()
-        try:
-            self.process = subprocess.Popen(
-                cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE, bufsize=0,
-                creationflags=0x08000000 if sys.platform == "win32" else 0,
-            )
-        except OSError as e:
-            raise RuntimeError(f"Failed to launch {_exe.name}: {e}") from e
-        threading.Thread(target=self._read_stdout, daemon=True).start()
-        threading.Thread(target=self._read_stderr, daemon=True).start()
-
-        # Wait for stderr "GTP ready" signal (up to 120s for OpenCL first-time tuning)
-        deadline = time.time() + startup_timeout
-        found_ready = False
-        last_progress_bucket = -1
-        while time.time() < deadline:
-            # Check if process crashed
-            if self.process.poll() is not None:
-                err = "\n".join(self.stderr_lines[-10:]) if self.stderr_lines else "no output"
-                raise RuntimeError(
-                    f"{Path(_exe).name} exited with code {self.process.returncode}: {err}")
-            for line in self.stderr_lines:
-                if "GTP ready" in line:
-                    found_ready = True
-                    break
-            if found_ready:
-                break
-            if (
-                stall_timeout > 0
-                and self.last_stderr_time
-                and time.time() - self.last_stderr_time > stall_timeout
-            ):
-                err = "\n".join(self.stderr_lines[-10:]) if self.stderr_lines else "no output"
-                self.stop()
-                raise RuntimeError(
-                    f"{Path(_exe).name} stalled for {int(stall_timeout)}s without new output: {err}"
-                )
-            elapsed = int(startup_timeout - max(0.0, deadline - time.time()))
-            progress_bucket = elapsed // 10
-            if (
-                self.stderr_callback
-                and elapsed >= 10
-                and progress_bucket > last_progress_bucket
-            ):
-                last_progress_bucket = progress_bucket
-                self.stderr_callback(
-                    f"{Path(_exe).name} 仍在初始化中，已等待 {elapsed}s"
-                )
-            time.sleep(0.3)
-
-        if not found_ready:
-            # Process still running but no GTP ready — kill and fail
-            err = "\n".join(self.stderr_lines[-10:]) if self.stderr_lines else "no output"
-            self.stop()
-            raise RuntimeError(
-                f"{Path(_exe).name} did not become ready within {int(startup_timeout)}s: {err}"
-            )
-
-        # Send a probe command to confirm GTP is responsive
-        try:
-            self.process.stdin.write(b"name\n")
-            self.process.stdin.flush()
-            resp = self.response_queue.get(timeout=10)
-            self.ready = True
-            log(f"[KataGo] Started: {resp}")
-        except queue.Empty:
-            log("[KataGo] Warning: no ready signal received, assuming OK")
-            self.ready = True
-
-    def _read_stdout(self):
-        current_response = []
-        for raw_line in self.process.stdout:
-            line = raw_line.decode("utf-8", errors="replace").rstrip("\n\r")
-            if self.is_analyzing and line.startswith("info "):
-                with self.analysis_lock:
-                    self.analysis_lines.append(line)
-            elif self.is_analyzing and line.startswith("ownership "):
-                vals = line.split()[1:]
-                try:
-                    with self.analysis_lock:
-                        self.ownership_data = [float(v) for v in vals]
-                except Exception:
-                    pass
-            else:
-                if line.startswith("=") or line.startswith("?"):
-                    current_response = [line]
-                elif line == "" and current_response:
-                    self.response_queue.put("\n".join(current_response))
-                    current_response = []
-                elif current_response:
-                    current_response.append(line)
-
-    def _read_stderr(self):
-        for raw_line in self.process.stderr:
-            line = raw_line.decode("utf-8", errors="replace").rstrip()
-            if not line:
-                continue
-            self.last_stderr_time = time.time()
-            self.stderr_lines.append(line)
-            self.stderr_lines = self.stderr_lines[-200:]
-            log(f"[KataGo stderr] {line}")
-            if self.stderr_callback:
-                try:
-                    self.stderr_callback(line)
-                except Exception:
-                    pass
-
-    def is_alive(self) -> bool:
-        return self.process is not None and self.process.poll() is None
-
-    def _drain_response_queue(self, wait: float = 0.0) -> int:
-        drained = 0
-        deadline = time.time() + wait
-        while True:
-            timeout = max(0.0, deadline - time.time())
-            try:
-                if wait > 0 and time.time() < deadline:
-                    self.response_queue.get(timeout=timeout)
-                else:
-                    self.response_queue.get_nowait()
-                drained += 1
-            except queue.Empty:
-                break
-        return drained
-
-    def _send_command_locked(self, cmd: str, timeout: float = 60.0) -> str:
-        if not self.process:
-            return "? not started"
-        if self.process.poll() is not None:
-            log(f"[KataGo] Process dead (exit {self.process.poll()}), disabling engine")
-            self.ready = False
-            return "? process dead"
-        try:
-            with self.analysis_lock:
-                self.is_analyzing = False
-            self.process.stdin.write((cmd + "\n").encode())
-            self.process.stdin.flush()
-        except (OSError, ValueError, BrokenPipeError) as e:
-            log(f"[KataGo] stdin write error: {e}, disabling engine")
-            self.ready = False
-            return "? write error"
-        try:
-            return self.response_queue.get(timeout=timeout)
-        except queue.Empty:
-            return "? timeout"
-
-    def send_command(self, cmd: str, timeout: float = 60.0) -> str:
-        with self.command_lock:
-            return self._send_command_locked(cmd, timeout)
-
-    def set_visits(self, visits: int):
-        self.current_visits = visits
-        max_visits = 10000000 if visits == 0 else visits
-        self.send_command(f"kata-set-param maxVisits {max_visits}")
-
-    def analyze(self, color: str, visits: int, interval: int = 50,
-                duration: float = 1.8, extra_args: Optional[list[str]] = None) -> tuple:
-        if not self.process or self.process.poll() is not None:
-            return [], []
-
-        with self.command_lock:
-            original_visits = self.current_visits
-            analysis_max_visits = 10000000 if visits == 0 else visits
-            self._drain_response_queue(wait=0.05)
-
-            if original_visits != visits:
-                self.current_visits = visits
-                resp = self._send_command_locked(
-                    f"kata-set-param maxVisits {analysis_max_visits}",
-                    timeout=10.0)
-                if resp.startswith("?"):
-                    log(f"[Analysis] set_visits failed: {resp}")
-
-            with self.analysis_lock:
-                self.analysis_lines = []
-                self.ownership_data = []
-                self.is_analyzing = True
-
-            cmd_parts = ["kata-analyze", color, str(interval)]
-            if extra_args:
-                cmd_parts.extend(extra_args)
-            cmd = " ".join(cmd_parts)
-            log(f"[Analysis] sending: {cmd}")
-            self.process.stdin.write((cmd + "\n").encode())
-            self.process.stdin.flush()
-
-            time.sleep(duration)
-
-            try:
-                self.process.stdin.write(b"stop\n")
-                self.process.stdin.flush()
-            except (OSError, ValueError, BrokenPipeError) as exc:
-                log(f"[Analysis] stop failed: {exc}")
-
-            time.sleep(0.25)
-            with self.analysis_lock:
-                self.is_analyzing = False
-                lines = list(self.analysis_lines)
-                ownership = list(self.ownership_data)
-
-            drained = self._drain_response_queue(wait=0.4)
-            if drained:
-                log(f"[Analysis] drained {drained} sync responses")
-
-            if original_visits != visits:
-                self.current_visits = original_visits
-                restore_max_visits = 10000000 if original_visits == 0 else original_visits
-                restore_resp = self._send_command_locked(
-                    f"kata-set-param maxVisits {restore_max_visits}",
-                    timeout=10.0)
-                if restore_resp.startswith("?"):
-                    log(f"[Analysis] restore visits failed: {restore_resp}")
-
-            log(f"[Analysis] collected {len(lines)} info lines, {len(ownership)} ownership vals")
-            return lines, ownership
-
-    def parse_analysis(self, lines: list, ownership: list,
-                       size: int = 19, to_move_color: str = "B") -> dict:
-        moves = []
-        root_winrate = 0.5
-        root_score = 0.0
-
-        latest_line = ""
-        for line in reversed(lines):
-            if line.startswith("info "):
-                latest_line = line
-                break
-
-        if not latest_line:
-            return {
-                "winrate": 0.5,
-                "score": 0.0,
-                "top_moves": [],
-                "ownership": ownership,
-                "analysis_color": to_move_color,
-            }
-
-        segments = [
-            segment.strip()
-            for segment in re.split(r"(?=info move )", latest_line)
-            if segment.strip().startswith("info move ")
-        ]
-
-        for segment in segments:
-            parts = segment.split()
-            fields = {}
-            i = 1
-            while i < len(parts) - 1:
-                key = parts[i]
-                if key == "pv":
-                    break
-                fields[key] = parts[i + 1]
-                i += 2
-
-            move_gtp = fields.get("move")
-            if not move_gtp:
-                continue
-            try:
-                visits = int(fields.get("visits", 0))
-                wr = float(fields.get("winrate", 0.5))
-                score_mean = float(fields.get("scoreMean", 0.0))
-                order = int(fields.get("order", 999))
-            except (ValueError, TypeError):
-                log(f"[Analysis] parse error for segment: {segment[:120]}")
-                continue
-
-            if order == 0:
-                root_winrate = wr
-                root_score = score_mean
-            if move_gtp.upper() != "PASS":
-                coord = gtp_to_coord(move_gtp, size)
-                if coord:
-                    moves.append({
-                        "x": coord[0], "y": coord[1],
-                        "winrate": round(wr, 3),
-                        "black_winrate": round(wr if to_move_color == "B" else 1.0 - wr, 3),
-                        "visits": visits,
-                        "gtp": move_gtp,
-                        "order": order,
-                    })
-
-        root_match = re.search(r"\brootInfo\b(.*?)(?=\bownership\b|\bownershipStdev\b|$)", latest_line)
-        if root_match:
-            root_fields = {}
-            root_parts = root_match.group(1).split()
-            i = 0
-            while i < len(root_parts) - 1:
-                root_fields[root_parts[i]] = root_parts[i + 1]
-                i += 2
-            try:
-                root_winrate = float(root_fields.get("winrate", root_winrate))
-                root_score = float(root_fields.get("scoreLead", root_fields.get("scoreMean", root_score)))
-            except (TypeError, ValueError):
-                pass
-
-        if not ownership:
-            ownership_match = re.search(r"\bownership\b(.*?)(?=\bownershipStdev\b|$)", latest_line)
-            if ownership_match:
-                vals = ownership_match.group(1).split()
-                expected = size * size
-                try:
-                    ownership = [float(v) for v in vals[:expected]]
-                except ValueError:
-                    ownership = []
-
-        if ownership and to_move_color == "W":
-            ownership = [-v for v in ownership]
-
-        moves.sort(key=lambda m: m["order"])
-        black_winrate = root_winrate if to_move_color == "B" else 1.0 - root_winrate
-        black_score = root_score if to_move_color == "B" else -root_score
-        return {
-            "winrate": round(black_winrate, 3),
-            "score": round(black_score, 1),
-            "top_moves": moves[:8],
-            "ownership": ownership,   # flat list, len = size*size
-            "analysis_color": to_move_color,
-        }
-
-    def stop(self):
-        if self.process:
-            try:
-                self.send_command("quit", timeout=3)
-            except Exception:
-                pass
-            try:
-                self.process.terminate()
-                self.process.wait(timeout=5)
-            except Exception:
-                try:
-                    self.process.kill()
-                except Exception:
-                    pass
-            self.process = None
-        self.ready = False
-        self.stderr_callback = None
-
-    def restart(self):
-        """Stop and re-start the engine."""
-        self.stop()
-        time.sleep(0.5)
-        self.start()
 
 
 # ─── Game state ──────────────────────────────────────────────────────────────
@@ -1137,9 +752,18 @@ def generate_sgf(game: GoGame) -> str:
 
 # ─── FastAPI App ─────────────────────────────────────────────────────────────
 app = FastAPI()
-engine = KataGoEngine()
-active_games: dict[str, GoGame] = {}
+engine = KataGoEngine(
+    default_exe=KATAGO_EXE,
+    default_config=KATAGO_CONFIG,
+    default_model=KATAGO_MODEL,
+    log_fn=log,
+    ensure_dirs_fn=_ensure_user_katago_dirs,
+    coord_parser=gtp_to_coord,
+)
 ACTIVE_GAME_RETENTION_SECONDS = 24 * 60 * 60
+active_games: ActiveGameStore[GoGame] = ActiveGameStore(
+    retention_seconds=ACTIVE_GAME_RETENTION_SECONDS
+)
 ENGINE_STATE_LOCK = threading.Lock()
 ENGINE_START_THREAD: Optional[threading.Thread] = None
 ENGINE_START_TOKEN = 0
@@ -1166,22 +790,6 @@ def _engine_log(message: str):
             "message": stamped,
         })
     log(stamped)
-
-
-def _touch_game(game: Optional[GoGame]):
-    if game is not None:
-        game.touch()
-
-
-def _prune_active_games(now: Optional[float] = None):
-    current = time.time() if now is None else now
-    expired_ids = []
-    for game_id, game in list(active_games.items()):
-        updated_at = getattr(game, "updated_at", getattr(game, "created_at", current))
-        if current - updated_at > ACTIVE_GAME_RETENTION_SECONDS:
-            expired_ids.append(game_id)
-    for game_id in expired_ids:
-        active_games.pop(game_id, None)
 
 
 def _set_engine_state(**changes):
@@ -1720,11 +1328,10 @@ async def get_gpu_info():
 
 @app.get("/sgf/{game_id}")
 async def export_sgf(game_id: str):
-    _prune_active_games()
-    game = active_games.get(game_id)
+    active_games.prune()
+    game = active_games.get(game_id, touch=True)
     if not game:
         return Response(content="Game not found", status_code=404)
-    _touch_game(game)
     sgf = generate_sgf(game)
     return Response(
         content=sgf,
@@ -1744,9 +1351,8 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
     websocket_closed = False
 
     # Restore existing game if this gameId is already known
-    _prune_active_games()
-    game: Optional[GoGame] = active_games.get(game_id)
-    _touch_game(game)
+    active_games.prune()
+    game: Optional[GoGame] = active_games.get(game_id, touch=True)
 
     async def send(data: dict):
         nonlocal websocket_closed
@@ -1754,7 +1360,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
             raise WebSocketDisconnect(code=1006)
         try:
             await websocket.send_text(json.dumps(data))
-            _touch_game(game)
+            active_games.touch(game_id)
         except WebSocketDisconnect:
             websocket_closed = True
             raise
@@ -1831,7 +1437,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
             try:
                 # ── reconnect ────────────────────────────────────────────────
                 if action == "reconnect":
-                    saved = active_games.get(game_id)
+                    saved = active_games.get(game_id, touch=True)
                     if saved:
                         game = saved
                         await send({"type": "reconnected", **game.to_state()})
@@ -1858,7 +1464,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         )
                         continue
 
-                    _prune_active_games()
+                    active_games.prune()
                     size = int(data.get("size", 19))
                     komi = float(data.get("komi", 7.5))
                     handicap = int(data.get("handicap", 0))
@@ -1920,7 +1526,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         "coach": int(challenge_limits.get("coach", 0) or 0),
                     }
                     game.challenge_usage = {"undo": 0, "hint": 0, "coach": 0}
-                    active_games[game_id] = game
+                    active_games.set(game_id, game)
 
                     if engine.ready:
                         visits = get_game_visits(level, len(game.moves))
@@ -2013,7 +1619,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── play ──────────────────────────────────────────────────────
                 elif action == "play":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over:
                         await send_error("暂无进行中的对局")
                         continue
@@ -2219,7 +1825,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── pass ──────────────────────────────────────────────────────
                 elif action == "pass":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over:
                         continue
 
@@ -2297,7 +1903,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── undo ──────────────────────────────────────────────────────
                 elif action == "undo":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or not game.moves:
                         continue
                     if game.rogue_card in {"no_regret", "quickthink"}:
@@ -2328,7 +1934,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── resign ────────────────────────────────────────────────────
                 elif action == "resign":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game:
                         continue
                     game.game_over = True
@@ -2344,7 +1950,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── request_hint ──────────────────────────────────────────────
                 elif action == "request_hint":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over or not engine.ready:
                         continue
                     if _rogue_has(game, "quickthink"):
@@ -2362,7 +1968,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── set_level ─────────────────────────────────────────────────
                 elif action == "set_level":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game:
                         continue
                     level = data.get("level", "a3d")
@@ -2404,7 +2010,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── time_expired ─────────────────────────────────────────────
                 elif action == "time_expired":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over:
                         continue
                     loser = data.get("color", "B")
@@ -2421,7 +2027,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── rogue_select_card ─────────────────────────────────────────
                 elif action == "rogue_select_card":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game:
                         continue
                     card_id = data.get("card_id", "")
@@ -2456,7 +2062,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
 
                 elif action == "challenge_refresh_offer":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or not game.challenge_beta:
                         continue
                     if game.challenge_refreshes <= 0:
@@ -2487,7 +2093,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── rogue_seal_point ─────────────────────────────────────────
                 elif action == "rogue_seal_point":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or not game.rogue_waiting_seal:
                         continue
                     x, y = int(data["x"]), int(data["y"])
@@ -2511,7 +2117,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── rogue_use_puppet ─────────────────────────────────────────
                 elif action == "rogue_use_puppet":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over or not engine.ready:
                         continue
                     if game.rogue_card != "puppet" or \
@@ -2550,7 +2156,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── rogue_use_twin ───────────────────────────────────────────
                 elif action == "rogue_use_twin":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over:
                         continue
                     if game.rogue_card != "twin" or \
@@ -2568,7 +2174,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── rogue_use_exchange ───────────────────────────────────────
                 elif action == "rogue_use_exchange":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over:
                         continue
                     if game.rogue_card != "exchange" or \
@@ -2585,7 +2191,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── ultimate_select_card ──────────────────────────────────────
                 elif action == "rogue_use_coach":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or game.game_over or not engine.ready:
                         continue
                     if game.challenge_beta:
@@ -2611,7 +2217,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
 
                 elif action == "ultimate_select_card":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or not game.ultimate:
                         continue
                     card_id = data.get("card_id", "")
@@ -2673,7 +2279,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
 
                 elif action == "ultimate_quickthink_end":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game or not game.ultimate:
                         continue
                     if game.ultimate_player_card != "quickthink" or not game.ultimate_quickthink_active:
@@ -2691,7 +2297,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 # ── score ─────────────────────────────────────────────────────
                 elif action == "score":
                     if not game:
-                        game = active_games.get(game_id)
+                        game = active_games.get(game_id, touch=True)
                     if not game:
                         continue
                     if engine.ready:
@@ -5671,38 +5277,41 @@ async def _run_coach_turn_if_needed(game: GoGame, send_fn):
 
 
 async def _run_ai_observer_loop(game: GoGame, send_fn):
-    while not game.game_over and game.ai_observer and engine.ready:
-        await _sync_board_to_katago(game)
-        color = game.current_player
-        level = game.ai_level_black if color == "B" else game.ai_level_white
-        visits = get_game_visits(level, len(game.moves))
-        time_limit = 4.0 if len(game.moves) < OPENING_MOVE_THRESHOLD else 8.0
-        gtp_move = await _generate_ai_style_move(game, color, visits, time_limit)
-        if _is_suspicious_ai_pass(game, gtp_move, color):
-            fallback_move = await _pick_nonpass_fallback_move(game, color, visits)
-            if fallback_move:
-                gtp_move = fallback_move
-        coord = gtp_to_coord(gtp_move, game.size)
-        captured = 0
-        game.moves.append((color, gtp_move))
-        if gtp_move.upper() != "PASS" and coord:
-            captured = game.place_stone(coord[0], coord[1], color)
-            game.passed[color] = False
-        else:
-            game.passed[color] = True
-        await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color, "x": coord[0] if coord else None, "y": coord[1] if coord else None})
-        game.current_player = "W" if color == "B" else "B"
-        game.push_history()
-        await send_fn({"type": "game_state", **game.to_state()})
-        if game.passed["B"] and game.passed["W"]:
-            resp_score = await run_in_executor(engine.send_command, "final_score")
-            score_str = resp_score.replace("=", "").strip()
-            winner = "B" if score_str.startswith("B") else "W"
-            game.game_over = True
-            game.winner = winner
-            await send_fn({"type": "game_over", "winner": winner, "score": score_str, "reason": "double_pass"})
-            break
-        await asyncio.sleep(0.35)
+    try:
+        while not game.game_over and game.ai_observer and engine.ready:
+            await _sync_board_to_katago(game)
+            color = game.current_player
+            level = game.ai_level_black if color == "B" else game.ai_level_white
+            visits = get_game_visits(level, len(game.moves))
+            time_limit = 4.0 if len(game.moves) < OPENING_MOVE_THRESHOLD else 8.0
+            gtp_move = await _generate_ai_style_move(game, color, visits, time_limit)
+            if _is_suspicious_ai_pass(game, gtp_move, color):
+                fallback_move = await _pick_nonpass_fallback_move(game, color, visits)
+                if fallback_move:
+                    gtp_move = fallback_move
+            coord = gtp_to_coord(gtp_move, game.size)
+            captured = 0
+            game.moves.append((color, gtp_move))
+            if gtp_move.upper() != "PASS" and coord:
+                captured = game.place_stone(coord[0], coord[1], color)
+                game.passed[color] = False
+            else:
+                game.passed[color] = True
+            await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color, "x": coord[0] if coord else None, "y": coord[1] if coord else None})
+            game.current_player = "W" if color == "B" else "B"
+            game.push_history()
+            await send_fn({"type": "game_state", **game.to_state()})
+            if game.passed["B"] and game.passed["W"]:
+                resp_score = await run_in_executor(engine.send_command, "final_score")
+                score_str = resp_score.replace("=", "").strip()
+                winner = "B" if score_str.startswith("B") else "W"
+                game.game_over = True
+                game.winner = winner
+                await send_fn({"type": "game_over", "winner": winner, "score": score_str, "reason": "double_pass"})
+                break
+            await asyncio.sleep(0.35)
+    except WebSocketDisconnect:
+        return
 
 
 if __name__ == "__main__":
