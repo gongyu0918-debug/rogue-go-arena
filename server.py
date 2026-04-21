@@ -7,13 +7,11 @@ import copy
 import json
 import random
 import subprocess
-import threading
 import re
 import socket
 import time
 import os
 import sys
-from collections import deque
 from pathlib import Path
 from typing import Optional
 
@@ -133,6 +131,7 @@ from app.data.cards import (
 )
 from app.runtime.engine import KataGoEngine
 from app.runtime.game_store import ActiveGameStore
+from app.runtime.startup import EnginePaths, EngineStartupManager
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(line_buffering=True)
@@ -166,7 +165,6 @@ USER_KATAGO_MODEL_LARGE = USER_KATAGO_DIR / "model_large.bin.gz"
 KATAGO_CONFIG = BASE_DIR / "katago" / "config.cfg"
 KATAGO_CPU_CONFIG = BASE_DIR / "katago" / "config_cpu.cfg"
 STATIC_DIR = BASE_DIR / "static"
-CPU_MODE = False  # Set True at startup if using CPU engine
 SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 8000
 
@@ -214,7 +212,7 @@ def get_game_visits(level: str, move_count: int = -1,
     elif mode == "ultimate":
         visits = min(visits, ULTIMATE_MAX_VISITS)
     # CPU mode: hard cap to keep response time acceptable
-    if CPU_MODE:
+    if engine_runtime.cpu_mode:
         visits = min(visits, CPU_MAX_VISITS)
     # Opening speed: hard cap — NN raw policy already plays strong openings
     if 0 <= move_count < OPENING_MOVE_THRESHOLD and visits > OPENING_MAX_VISITS:
@@ -764,383 +762,36 @@ ACTIVE_GAME_RETENTION_SECONDS = 24 * 60 * 60
 active_games: ActiveGameStore[GoGame] = ActiveGameStore(
     retention_seconds=ACTIVE_GAME_RETENTION_SECONDS
 )
-ENGINE_STATE_LOCK = threading.Lock()
-ENGINE_START_THREAD: Optional[threading.Thread] = None
-ENGINE_START_TOKEN = 0
-ENGINE_EVENT_LOG = deque(maxlen=120)
-ENGINE_STATE = {
-    "phase": "disabled" if NO_KATAGO else "idle",
-    "message": "KataGo disabled" if NO_KATAGO else "KataGo not started yet",
-    "active_backend": None,
-    "active_backend_exe": None,
-    "active_model": None,
-    "last_error": None,
-    "attempts": [],
-    "candidates": [],
-    "nvidia_detected": False,
-    "updated_at": time.time(),
-}
-
-
-def _engine_log(message: str):
-    stamped = f"[Engine] {message}"
-    with ENGINE_STATE_LOCK:
-        ENGINE_EVENT_LOG.append({
-            "ts": time.strftime("%H:%M:%S"),
-            "message": stamped,
-        })
-    log(stamped)
-
-
-def _set_engine_state(**changes):
-    with ENGINE_STATE_LOCK:
-        ENGINE_STATE.update(changes)
-        ENGINE_STATE["updated_at"] = time.time()
-
-
-def _engine_state_snapshot() -> dict:
-    with ENGINE_STATE_LOCK:
-        snapshot = dict(ENGINE_STATE)
-        snapshot["attempts"] = [dict(item) for item in ENGINE_STATE.get("attempts", [])]
-        snapshot["candidates"] = list(ENGINE_STATE.get("candidates", []))
-        snapshot["log_tail"] = [dict(item) for item in ENGINE_EVENT_LOG]
-        snapshot["initializing"] = snapshot.get("phase") == "initializing"
-        snapshot["ready"] = snapshot.get("phase") == "ready"
-        return snapshot
-
-
-def _next_engine_token() -> int:
-    global ENGINE_START_TOKEN
-    with ENGINE_STATE_LOCK:
-        ENGINE_START_TOKEN += 1
-        return ENGINE_START_TOKEN
-
-
-def _engine_token_is_current(token: int) -> bool:
-    with ENGINE_STATE_LOCK:
-        return token == ENGINE_START_TOKEN
-
-
-def _select_model() -> Optional[Path]:
-    for candidate in (USER_KATAGO_MODEL_LARGE, KATAGO_MODEL_LARGE, KATAGO_MODEL, KATAGO_MODEL_SMALL):
-        if candidate.exists():
-            return candidate
-    return None
-
-
-def _available_models() -> list[Path]:
-    models = []
-    for candidate in (KATAGO_MODEL_LARGE, KATAGO_MODEL, KATAGO_MODEL_SMALL):
-        if candidate.exists():
-            models.append(candidate)
-    return models
-
-
-def _get_nvidia_driver_major() -> Optional[int]:
-    try:
-        out = subprocess.check_output(
-            ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
-            timeout=10,
-            creationflags=0x08000000 if sys.platform == "win32" else 0,
-        ).decode("utf-8", errors="replace").strip().splitlines()
-        if not out:
-            return None
-        first = out[0].strip()
-        major = first.split(".")[0]
-        return int(major)
-    except Exception:
-        return None
-
-
-def _cuda_backend_supported() -> bool:
-    if not _has_nvidia_gpu():
-        return False
-    major = _get_nvidia_driver_major()
-    if major is None or major < 528:
-        return False
-    # Prefer CUDA only when the packaged runtime is actually present.
-    cuda_runtime_ready = all(path.exists() for path in (
-        BASE_DIR / "katago" / "cublas64_12.dll",
-        BASE_DIR / "katago" / "cudart64_12.dll",
-    )) and any((BASE_DIR / "katago" / name).exists() for name in ("cudnn64_9.dll", "cudnn64_8.dll"))
-    return cuda_runtime_ready
-
-
-def _build_engine_candidates() -> tuple[bool, list[dict]]:
-    has_gpu = _has_nvidia_gpu()
-    cuda_ok = _cuda_backend_supported()
-    candidates = []
-    if cuda_ok and KATAGO_CUDA_EXE.exists():
-        candidates.append({
-            "exe": KATAGO_CUDA_EXE,
-            "config": KATAGO_CONFIG,
-            "cpu_mode": False,
-            "label": "CUDA(升级包)",
-            "startup_timeout": 60.0,
-            "stall_timeout": 20.0,
-        })
-    if cuda_ok and KATAGO_EXE.exists():
-        candidates.append({
-            "exe": KATAGO_EXE,
-            "config": KATAGO_CONFIG,
-            "cpu_mode": False,
-            "label": "CUDA",
-            "startup_timeout": 60.0,
-            "stall_timeout": 20.0,
-        })
-    if KATAGO_OPENCL_EXE.exists():
-        candidates.append({
-            "exe": KATAGO_OPENCL_EXE,
-            "config": KATAGO_CONFIG,
-            "cpu_mode": False,
-            "label": "OpenCL",
-            "startup_timeout": 150.0,
-            "stall_timeout": 45.0,
-        })
-    if KATAGO_CPU_EXE.exists():
-        candidates.append({
-            "exe": KATAGO_CPU_EXE,
-            "config": KATAGO_CPU_CONFIG if KATAGO_CPU_CONFIG.exists() else KATAGO_CONFIG,
-            "cpu_mode": True,
-            "label": "CPU",
-            "startup_timeout": 45.0,
-            "stall_timeout": 20.0,
-        })
-    return has_gpu, candidates
-
-
-def _engine_progress_callback(label: str, token: int, line: str):
-    if not _engine_token_is_current(token):
-        return
-    lower_line = line.lower()
-    if "gtp ready" in lower_line:
-        _set_engine_state(message=f"{label} 引擎已返回 GTP ready")
-        return
-    if "opencl" in lower_line or "tuning" in lower_line:
-        _set_engine_state(message=f"{label} 初始化中: {line[:180]}")
-        return
-    if "cuda" in lower_line or "cudnn" in lower_line:
-        _set_engine_state(message=f"{label} 初始化中: {line[:180]}")
-        return
-
-
-def _run_engine_startup(trigger: str, token: int):
-    global CPU_MODE, ENGINE_START_THREAD
-    try:
-        if NO_KATAGO:
-            _set_engine_state(
-                phase="disabled",
-                message="KataGo disabled by --no-katago",
-                active_backend=None,
-                active_backend_exe=None,
-                active_model=None,
-                last_error=None,
-                attempts=[],
-                candidates=[],
-                nvidia_detected=False,
-            )
-            _engine_log(f"{trigger}: KataGo disabled, skip startup")
-            return
-
-        models = _available_models()
-        if not models:
-            CPU_MODE = False
-            _set_engine_state(
-                phase="failed",
-                message="未找到 KataGo 模型，当前仅支持纯对弈",
-                active_backend=None,
-                active_backend_exe=None,
-                active_model=None,
-                last_error="No KataGo model found",
-                attempts=[],
-                candidates=[],
-                nvidia_detected=False,
-            )
-            _engine_log(f"{trigger}: no model found")
-            return
-
-        has_gpu, candidates = _build_engine_candidates()
-        if not candidates:
-            CPU_MODE = False
-            _set_engine_state(
-                phase="failed",
-                message="未找到任何 KataGo 引擎，当前仅支持纯对弈",
-                active_backend=None,
-                active_backend_exe=None,
-                active_model=models[0].name,
-                last_error="No KataGo engine found",
-                attempts=[],
-                candidates=[],
-                nvidia_detected=has_gpu,
-            )
-            _engine_log(f"{trigger}: no engine found")
-            return
-
-        attempts = []
-        _set_engine_state(
-            phase="initializing",
-            message=f"正在准备模型 {models[0].name}",
-            active_backend=None,
-            active_backend_exe=None,
-            active_model=models[0].name,
-            last_error=None,
-            attempts=attempts,
-            candidates=[f"{item['label']} + {model.name}" for item in candidates for model in models],
-            nvidia_detected=has_gpu,
-        )
-        _engine_log(f"{trigger}: available models {', '.join(model.name for model in models)}")
-
-        total_attempts = len(candidates) * len(models)
-        current_attempt = 0
-        for candidate in candidates:
-            for model in models:
-                current_attempt += 1
-                if not _engine_token_is_current(token):
-                    _engine_log(f"{trigger}: startup cancelled before {candidate['label']}")
-                    return
-
-                exe = candidate["exe"]
-                cfg = candidate["config"]
-                is_cpu = candidate["cpu_mode"]
-                label = candidate["label"]
-                attempt = {
-                    "label": f"{label} + {model.name}",
-                    "exe": exe.name,
-                    "config": cfg.name,
-                    "model": model.name,
-                    "status": "starting",
-                }
-                attempts.append(attempt)
-                _set_engine_state(
-                    phase="initializing",
-                    message=f"尝试启动 {label} + {model.name} ({current_attempt}/{total_attempts})",
-                    active_backend=label,
-                    active_backend_exe=exe.name,
-                    active_model=model.name,
-                    last_error=None,
-                    attempts=attempts,
-                    nvidia_detected=has_gpu,
-                )
-                _engine_log(f"Trying {label}: {exe.name} with {model.name}")
-                try:
-                    engine.start(
-                        exe,
-                        cfg,
-                        model,
-                        startup_timeout=float(candidate.get("startup_timeout", 120.0)),
-                        stall_timeout=float(candidate.get("stall_timeout", 45.0)),
-                        stderr_callback=lambda line, current_label=label: _engine_progress_callback(
-                            current_label, token, line
-                        ),
-                    )
-                    if not _engine_token_is_current(token):
-                        engine.stop()
-                        _engine_log(f"{trigger}: startup cancelled after {label} became ready")
-                        return
-                    attempt["status"] = "ready"
-                    CPU_MODE = is_cpu
-                    _set_engine_state(
-                        phase="ready",
-                        message=f"{label} 引擎已就绪",
-                        active_backend=label,
-                        active_backend_exe=exe.name,
-                        active_model=model.name,
-                        last_error=None,
-                        attempts=attempts,
-                        nvidia_detected=has_gpu,
-                    )
-                    _engine_log(f"{label} ready with model {model.name}")
-                    return
-                except Exception as exc:
-                    attempt["status"] = "failed"
-                    attempt["error"] = str(exc)
-                    CPU_MODE = False
-                    _engine_log(f"{label} with {model.name} failed: {exc}")
-                    engine.stop()
-                    if not _engine_token_is_current(token):
-                        _engine_log(f"{trigger}: startup cancelled after {label} failure")
-                        return
-                    has_more = current_attempt < total_attempts
-                    _set_engine_state(
-                        phase="initializing" if has_more else "failed",
-                        message=(
-                            f"{label} + {model.name} 启动失败，正在尝试下一个组合"
-                            if has_more else
-                            "所有引擎启动失败，当前仅支持纯对弈"
-                        ),
-                        active_backend=label,
-                        active_backend_exe=exe.name,
-                        active_model=model.name,
-                        last_error=str(exc),
-                        attempts=attempts,
-                        nvidia_detected=has_gpu,
-                    )
-
-        CPU_MODE = False
-        _set_engine_state(
-            phase="failed",
-            message="所有引擎启动失败，当前仅支持纯对弈",
-            last_error=ENGINE_STATE.get("last_error"),
-            attempts=attempts,
-            nvidia_detected=has_gpu,
-        )
-    finally:
-        with ENGINE_STATE_LOCK:
-            if ENGINE_START_THREAD is threading.current_thread():
-                ENGINE_START_THREAD = None
-
-
-def _start_engine_background(trigger: str, force_restart: bool = False) -> tuple[bool, str]:
-    global ENGINE_START_THREAD, CPU_MODE
-    if force_restart:
-        CPU_MODE = False
-        engine.stop()
-
-    with ENGINE_STATE_LOCK:
-        if ENGINE_START_THREAD and ENGINE_START_THREAD.is_alive():
-            return False, "KataGo is already initializing"
-
-    token = _next_engine_token()
-    thread = threading.Thread(
-        target=_run_engine_startup,
-        args=(trigger, token),
-        daemon=True,
-    )
-    with ENGINE_STATE_LOCK:
-        ENGINE_START_THREAD = thread
-    thread.start()
-    return True, "started"
-
-
-def _has_nvidia_gpu() -> bool:
-    """Check if an NVIDIA GPU is available via nvidia-smi."""
-    try:
-        subprocess.check_output(
-            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
-            timeout=10,
-            creationflags=0x08000000 if sys.platform == "win32" else 0,
-        )
-        return True
-    except Exception:
-        return False
+engine_runtime = EngineStartupManager(
+    engine,
+    paths=EnginePaths(
+        base_dir=BASE_DIR,
+        cuda_exe=KATAGO_CUDA_EXE,
+        legacy_exe=KATAGO_EXE,
+        opencl_exe=KATAGO_OPENCL_EXE,
+        cpu_exe=KATAGO_CPU_EXE,
+        config=KATAGO_CONFIG,
+        cpu_config=KATAGO_CPU_CONFIG,
+        model_large=KATAGO_MODEL_LARGE,
+        model_default=KATAGO_MODEL,
+        model_small=KATAGO_MODEL_SMALL,
+        user_model_large=USER_KATAGO_MODEL_LARGE,
+    ),
+    no_katago=NO_KATAGO,
+    log_fn=log,
+)
+_engine_log = engine_runtime.log_event
+_engine_state_snapshot = engine_runtime.snapshot
 
 
 @app.on_event("startup")
 async def startup():
-    if NO_KATAGO:
-        log("[Server] KataGo disabled (--no-katago). Free-play mode.")
-        return
-
-    started, reason = _start_engine_background("startup")
-    if started:
-        log("[Server] KataGo initialization scheduled in background")
-    else:
-        log(f"[Server] KataGo background init skipped: {reason}")
+    engine_runtime.handle_app_startup()
 
 
 @app.on_event("shutdown")
 async def shutdown():
-    engine.stop()
+    engine_runtime.handle_app_shutdown()
 
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR), check_dir=False),
@@ -1178,62 +829,20 @@ async def get_ranks():
 @app.post("/stop_katago")
 async def stop_katago():
     """Stop the KataGo engine while keeping the server running."""
-    snapshot = _engine_state_snapshot()
-    if snapshot.get("phase") not in {"ready", "initializing"} and not engine.ready:
-        return {"ok": False, "error": "KataGo is not running"}
-    try:
-        _next_engine_token()
-        await run_in_executor(engine.stop)
-        _set_engine_state(
-            phase="stopped",
-            message="KataGo 已停止，当前为纯对弈模式",
-            active_backend=None,
-            active_backend_exe=None,
-            last_error=None,
-        )
-        log("[Server] KataGo engine stopped via API")
-        return {"ok": True}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
+    return await run_in_executor(engine_runtime.stop_via_api)
 
 
 @app.post("/restart_katago")
 async def restart_katago():
     """Restart the KataGo engine."""
-    if NO_KATAGO:
-        return {"ok": False, "error": "KataGo is disabled (--no-katago)"}
-    model = _select_model()
-    _, candidates = _build_engine_candidates()
-    if not model:
-        return {"ok": False, "error": "KataGo model not found"}
-    if not candidates:
-        return {"ok": False, "error": "KataGo engine not found"}
-    started, reason = _start_engine_background("api_restart", force_restart=True)
-    snapshot = _engine_state_snapshot()
-    if started:
-        log("[Server] KataGo restart scheduled in background")
-        return {
-            "ok": True,
-            "phase": snapshot.get("phase"),
-            "message": snapshot.get("message"),
-        }
-    return {
-        "ok": False,
-        "error": reason,
-        "phase": snapshot.get("phase"),
-        "message": snapshot.get("message"),
-    }
+    return engine_runtime.restart_via_api()
 
 
 @app.get("/status")
 async def get_status():
     snapshot = _engine_state_snapshot()
-    model_exists = any(path.exists() for path in (
-        KATAGO_MODEL_LARGE, KATAGO_MODEL, KATAGO_MODEL_SMALL,
-    ))
-    exe_exists = any(path.exists() for path in (
-        KATAGO_CUDA_EXE, KATAGO_EXE, KATAGO_OPENCL_EXE, KATAGO_CPU_EXE,
-    ))
+    model_exists = engine_runtime.has_model_files()
+    exe_exists = engine_runtime.has_engine_binaries()
     return {
         "server_rev": SERVER_REV,
         "host": SERVER_HOST,
@@ -1243,7 +852,7 @@ async def get_status():
         "katago_exe": exe_exists,
         "katago_model": model_exists,
         "no_katago": NO_KATAGO,
-        "cpu_mode": CPU_MODE,
+        "cpu_mode": engine_runtime.cpu_mode,
         "static_ready": (STATIC_DIR / "index.html").exists(),
         "engine_phase": snapshot.get("phase"),
         "engine_message": snapshot.get("message"),
@@ -1317,9 +926,9 @@ _RANK_ORDER = list(RANK_VISITS.keys())
 @app.get("/gpu")
 async def get_gpu_info():
     info = await run_in_executor(_detect_gpu)
-    info["cpu_mode"] = CPU_MODE
+    info["cpu_mode"] = engine_runtime.cpu_mode
     info["large_model"] = KATAGO_MODEL_LARGE.exists()
-    if CPU_MODE:
+    if engine_runtime.cpu_mode:
         info["default_rank"] = "5k"
         info["slow_from"] = "1k"
         info["tier_label"] = "CPU模式"
