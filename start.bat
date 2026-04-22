@@ -1,38 +1,66 @@
 @echo off
 chcp 65001 >nul
-title GoAI - 围棋AI (KataGo + RTX 5090)
+setlocal
+title GoAI - 围棋AI
 
 cd /d "%~dp0"
 
 echo ============================================================
-echo   GoAI 围棋 AI — KataGo v1.16.4 + RTX 5090 (OpenCL)
+echo   GoAI 围棋 AI — 当前源码启动器
 echo ============================================================
 echo.
 
-if not exist "katago\katago.exe" (
-    echo [!] KataGo 未安装，运行安装程序...
-    python setup.py
-    if not exist "katago\katago.exe" (
-        echo [错误] 安装失败
-        pause & exit /b 1
-    )
-)
+set "ENGINE_OPENCL=katago\katago_opencl.exe"
+set "ENGINE_CPU=katago\katago_cpu.exe"
+set "MODEL_FILE=katago\model.bin.gz"
+set "SERVER_EXE=GoAI_Server\GoAI_Server.exe"
 
-if not exist "katago\model.bin.gz" (
-    echo [!] 模型不存在，运行安装程序...
+if not exist "%MODEL_FILE%" (
+    echo [!] 模型不存在，正在运行 setup.py ...
     python setup.py
 )
 
-echo 启动 GoAI 服务器...
-echo KataGo 初始化约需 5-10 秒（首次运行后更快）
-echo.
-echo 浏览器将在初始化完成后自动打开
+if not exist "%ENGINE_OPENCL%" if not exist "%ENGINE_CPU%" (
+    echo [!] KataGo 引擎不存在，正在运行 setup.py ...
+    python setup.py
+)
+
+if not exist "%MODEL_FILE%" (
+    echo [错误] model.bin.gz 仍不存在，无法启动
+    pause
+    exit /b 1
+)
+
+if not exist "%ENGINE_OPENCL%" if not exist "%ENGINE_CPU%" (
+    echo [错误] OpenCL / CPU 引擎仍不存在，无法启动
+    pause
+    exit /b 1
+)
+
+echo 启动 GoAI 服务...
+if exist "%SERVER_EXE%" (
+    echo [i] 使用已打包服务端: %SERVER_EXE%
+) else (
+    echo [i] 使用 Python 源码服务端: server.py
+)
+echo [i] 浏览器会在服务响应后自动打开
 echo ============================================================
 echo.
 
-REM Open browser after KataGo initializes (delay 12s)
-start /b cmd /c "timeout /t 12 >nul && start http://localhost:8000"
+start "" powershell -NoProfile -WindowStyle Hidden -Command ^
+  "$deadline=(Get-Date).AddMinutes(2);" ^
+  "while((Get-Date) -lt $deadline){" ^
+  "  try {" ^
+  "    $resp = Invoke-RestMethod -Uri 'http://127.0.0.1:8000/status' -TimeoutSec 2;" ^
+  "    if ($resp) { Start-Process 'http://localhost:8000'; break }" ^
+  "  } catch {}" ^
+  "  Start-Sleep -Seconds 2" ^
+  "}"
 
-python server.py
+if exist "%SERVER_EXE%" (
+    "%SERVER_EXE%"
+) else (
+    python server.py
+)
 
 pause

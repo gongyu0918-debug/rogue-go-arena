@@ -1,9 +1,20 @@
 ; GoAI Installer - Inno Setup Script
 
 #define MyAppName "GoAI"
-#define MyAppVersion "1.0"
 #define MyAppPublisher "GoAI"
 #define MyAppExeName "GoAI.exe"
+#ifndef MyAppVersion
+  #define MyAppVersion GetDateTimeString('yyyy.mm.dd', '-', ':')
+#endif
+#ifndef RepoRoot
+  #define RepoRoot SourcePath
+#endif
+#ifndef DistDir
+  #define DistDir AddBackslash(RepoRoot) + "dist"
+#endif
+#ifndef ReleaseDir
+  #define ReleaseDir AddBackslash(RepoRoot) + "release"
+#endif
 
 [Setup]
 AppId={{B8F3A2E1-5C7D-4E9A-B6D0-1F2A3C4D5E6F}
@@ -13,9 +24,9 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={localappdata}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
-OutputDir=C:\Users\admin\Desktop
-OutputBaseFilename=GoAI_Setup
-SetupIconFile=C:\Users\admin\Desktop\GoAI\goai.ico
+OutputDir={#ReleaseDir}
+OutputBaseFilename=GoAI_Setup_{#MyAppVersion}
+SetupIconFile={#RepoRoot}\goai.ico
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -23,30 +34,33 @@ PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 
 [Languages]
-Name: "chinesesimplified"; MessagesFile: "C:\Users\admin\GoAI\ChineseSimplified.isl"
+Name: "chinesesimplified"; MessagesFile: "{#RepoRoot}\ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-Source: "C:\Users\admin\Desktop\GoAI\GoAI.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\admin\Desktop\GoAI\GoAI_Server\*"; DestDir: "{app}\GoAI_Server"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\admin\Desktop\GoAI\static\*"; DestDir: "{app}\static"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\admin\Desktop\GoAI\katago\*"; DestDir: "{app}\katago"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\admin\Desktop\GoAI\server.py"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\admin\Desktop\GoAI\goai.ico"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\admin\Desktop\GoAI\goai.png"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\admin\Desktop\GoAI\README.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
+Source: "{#DistDir}\GoAI.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#DistDir}\GoAI_Server\*"; DestDir: "{app}\GoAI_Server"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#RepoRoot}\app\*"; DestDir: "{app}\app"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#RepoRoot}\static\*"; DestDir: "{app}\static"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#RepoRoot}\katago\*"; DestDir: "{app}\katago"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#RepoRoot}\server.py"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RepoRoot}\goai.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RepoRoot}\goai.png"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RepoRoot}\README.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
+Source: "{#RepoRoot}\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RepoRoot}\THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\goai.ico"
-Name: "{group}\使用说明"; Filename: "{app}\README.txt"
+Name: "{group}\使用说明"; Filename: "{app}\README.md"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\goai.ico"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\README.txt"; Description: "查看使用说明"; Flags: nowait postinstall shellexec skipifsilent unchecked
+Filename: "{app}\README.md"; Description: "查看使用说明"; Flags: nowait postinstall shellexec skipifsilent unchecked
 Filename: "{app}\{#MyAppExeName}"; Description: "启动 GoAI"; Flags: nowait postinstall skipifsilent
 
 [Code]
@@ -54,6 +68,90 @@ var
   GpuDetected: Boolean;
   GpuName: String;
   DriverVersion: String;
+  DriverVersionRaw: String;
+
+function GetPowerShellPath(): String;
+begin
+  if IsWin64 then
+    Result := ExpandConstant('{sysnative}\WindowsPowerShell\v1.0\powershell.exe')
+  else
+    Result := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+  if not FileExists(Result) then
+    Result := 'powershell.exe';
+end;
+
+function DigitsOnly(const Value: String): String;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 1 to Length(Value) do
+  begin
+    if (Value[I] >= '0') and (Value[I] <= '9') then
+      Result := Result + Value[I];
+  end;
+end;
+
+function NormalizeNvidiaDriverVersion(const RawVersion: String): String;
+var
+  Digits: String;
+  Tail: String;
+begin
+  Result := Trim(RawVersion);
+  Digits := DigitsOnly(Result);
+  if Length(Digits) >= 5 then
+  begin
+    Tail := Copy(Digits, Length(Digits) - 4, 5);
+    Result := IntToStr(StrToIntDef(Copy(Tail, 1, 3), 0)) + '.' + Copy(Tail, 4, 2);
+  end;
+end;
+
+function RunPowerShellCapture(const Command: String; const TmpFile: String): Boolean;
+var
+  ResultCode: Integer;
+  ShellCmd: String;
+begin
+  DeleteFile(TmpFile);
+  ShellCmd :=
+    '/C ""' + GetPowerShellPath() + '" -NoProfile -ExecutionPolicy Bypass -Command "' +
+    Command + '" > "' + TmpFile + '" 2>nul"';
+  Result := Exec(ExpandConstant('{cmd}'), ShellCmd, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
+    and (ResultCode = 0)
+    and FileExists(TmpFile);
+end;
+
+function RunGpuDetectViaPowerShell(): Boolean;
+var
+  TmpFile: String;
+  Lines: TArrayOfString;
+  Line: String;
+  PipePos: Integer;
+begin
+  Result := False;
+  TmpFile := ExpandConstant('{tmp}\goai_gpu_ps.txt');
+  if not RunPowerShellCapture(
+    '$gpu = Get-CimInstance Win32_VideoController | Where-Object { $_.Name -match ''NVIDIA'' } | ' +
+    'Select-Object -First 1 Name,DriverVersion; ' +
+    'if ($gpu) { Write-Output ($gpu.Name + ''|'' + $gpu.DriverVersion) }',
+    TmpFile
+  ) then
+    Exit;
+
+  if LoadStringsFromFile(TmpFile, Lines) and (GetArrayLength(Lines) > 0) then
+  begin
+    Line := Trim(Lines[0]);
+    PipePos := Pos('|', Line);
+    if PipePos > 0 then
+    begin
+      GpuName := Trim(Copy(Line, 1, PipePos - 1));
+      DriverVersionRaw := Trim(Copy(Line, PipePos + 1, Length(Line)));
+      DriverVersion := NormalizeNvidiaDriverVersion(DriverVersionRaw);
+      GpuDetected := (GpuName <> '');
+      Result := GpuDetected;
+    end;
+  end;
+  DeleteFile(TmpFile);
+end;
 
 function RunNvidiaSmi(): Boolean;
 var
@@ -68,9 +166,12 @@ begin
   GpuDetected := False;
   GpuName := '';
   DriverVersion := '';
+  DriverVersionRaw := '';
   TmpFile := ExpandConstant('{tmp}\goai_gpu.txt');
 
-  NvSmiPath := ExpandConstant('{sysnative}\nvidia-smi.exe');
+  NvSmiPath := ExpandConstant('{commonpf}\NVIDIA Corporation\NVSMI\nvidia-smi.exe');
+  if not FileExists(NvSmiPath) then
+    NvSmiPath := ExpandConstant('{sysnative}\nvidia-smi.exe');
   if not FileExists(NvSmiPath) then
     NvSmiPath := ExpandConstant('{sys}\nvidia-smi.exe');
   if not FileExists(NvSmiPath) then
@@ -92,6 +193,7 @@ begin
           begin
             GpuName := Trim(Copy(Line, 1, CommaPos - 1));
             DriverVersion := Trim(Copy(Line, CommaPos + 1, Length(Line)));
+            DriverVersionRaw := DriverVersion;
           end else
             GpuName := Line;
           GpuDetected := True;
@@ -123,7 +225,8 @@ var
   DriverMajor: Integer;
 begin
   Result := True;
-  RunNvidiaSmi();
+  if not RunNvidiaSmi() then
+    RunGpuDetectViaPowerShell();
 
   if WizardSilent then
     Exit;

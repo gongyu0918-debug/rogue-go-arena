@@ -241,6 +241,9 @@ class EngineStartupManager:
     def _progress_callback(self, label: str, token: int, line: str) -> None:
         if not self._token_is_current(token):
             return
+        with self._state_lock:
+            if self._state.get("phase") != "initializing":
+                return
         lower_line = line.lower()
         if "gtp ready" in lower_line:
             self._set_state(message=f"{label} 引擎已返回 GTP ready")

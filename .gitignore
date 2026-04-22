@@ -36,6 +36,7 @@ katago/*
 # Local test artifacts
 _*.log
 _*.sgf
+output/
 
 # Keep docs and source
 !README.md

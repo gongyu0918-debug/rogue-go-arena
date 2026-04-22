@@ -2,6 +2,7 @@
 GoAI Launcher - Control panel for the KataGo Go AI server.
 """
 import csv
+import glob
 import io
 import json
 import os
@@ -26,6 +27,7 @@ from urllib.parse import urlencode
 SERVER_URL = "http://localhost:8000"
 EXPECTED_SERVER_REV = "20260413-ui-review-release"
 KATAGO_REPO = "lightvector/KataGo"
+CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 
 def _launcher_dir() -> str:
@@ -87,6 +89,10 @@ SERVER_SCRIPT = os.path.join(BASE_DIR, "server.py")
 PYTHON = _python_command()
 USER_DATA_DIR = os.path.join(os.environ.get("LOCALAPPDATA", BASE_DIR), "GoAI")
 USER_KATAGO_DIR = os.path.join(USER_DATA_DIR, "katago")
+
+
+def _creationflags_no_window() -> int:
+    return CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
 
 
 def _ensure_user_katago_dir():
@@ -503,25 +509,158 @@ class GoAILauncher:
             )
 
     @staticmethod
-    def _detect_nvidia_gpu():
-        """Detect NVIDIA GPU via nvidia-smi. Returns (name, vram_mb, driver_version) or (None,0,None)."""
-        try:
-            out = subprocess.check_output(
-                ["nvidia-smi",
-                 "--query-gpu=name,memory.total,driver_version",
-                 "--format=csv,noheader,nounits"],
-                timeout=10,
-                creationflags=0x08000000,  # CREATE_NO_WINDOW
-            ).decode("utf-8", errors="replace").strip()
-            if out:
-                parts = out.split("\n")[0].split(",")
-                name = parts[0].strip()
-                vram = int(float(parts[1].strip())) if len(parts) > 1 else 0
-                driver = parts[2].strip() if len(parts) > 2 else None
-                return name, vram, driver
-        except Exception:
-            pass
+    def _resolve_nvidia_smi():
+        candidates = []
+        which_path = shutil.which("nvidia-smi")
+        if which_path:
+            candidates.append(which_path)
+
+        program_w6432 = os.environ.get("ProgramW6432") or os.environ.get("ProgramFiles")
+        if program_w6432:
+            candidates.append(
+                os.path.join(program_w6432, "NVIDIA Corporation", "NVSMI", "nvidia-smi.exe")
+            )
+
+        system_root = os.environ.get("SystemRoot", r"C:\Windows")
+        candidates.extend(
+            [
+                os.path.join(system_root, "System32", "nvidia-smi.exe"),
+                os.path.join(system_root, "Sysnative", "nvidia-smi.exe"),
+            ]
+        )
+
+        driver_store = os.path.join(system_root, "System32", "DriverStore", "FileRepository")
+        if os.path.isdir(driver_store):
+            candidates.extend(
+                glob.glob(os.path.join(driver_store, "nv*_amd64*", "nvidia-smi.exe"))
+            )
+
+        seen = set()
+        for path in candidates:
+            if not path:
+                continue
+            norm = os.path.normcase(os.path.abspath(path))
+            if norm in seen:
+                continue
+            seen.add(norm)
+            if os.path.exists(path):
+                return path
+        return None
+
+    @staticmethod
+    def _normalize_nvidia_driver_version(raw_version: str | None):
+        raw = (raw_version or "").strip()
+        if not raw:
+            return None
+        digits = "".join(ch for ch in raw if ch.isdigit())
+        if len(digits) >= 5:
+            tail = digits[-5:]
+            return f"{int(tail[:-2])}.{tail[-2:]}"
+        return raw
+
+    @classmethod
+    def _detect_nvidia_gpu_via_cim(cls):
+        commands = [
+            [
+                "powershell",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                (
+                    "$gpu = Get-CimInstance Win32_VideoController | "
+                    "Where-Object { $_.Name -match 'NVIDIA' } | "
+                    "Select-Object -First 1 Name, AdapterRAM, DriverVersion | "
+                    "ConvertTo-Json -Compress"
+                ),
+            ],
+            [
+                "powershell",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                (
+                    "Get-CimInstance Win32_VideoController | "
+                    "Where-Object { $_.Name -match 'NVIDIA' } | "
+                    "Select-Object -First 1 Name, AdapterRAM, DriverVersion"
+                ),
+            ],
+        ]
+        for cmd in commands:
+            try:
+                out = subprocess.check_output(
+                    cmd,
+                    timeout=10,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    creationflags=_creationflags_no_window(),
+                ).strip()
+            except Exception:
+                continue
+            if not out:
+                continue
+            if out.startswith("{"):
+                try:
+                    data = json.loads(out)
+                except json.JSONDecodeError:
+                    data = {}
+                name = (data.get("Name") or "").strip()
+                vram_raw = data.get("AdapterRAM")
+                driver = cls._normalize_nvidia_driver_version(data.get("DriverVersion"))
+                try:
+                    vram = int(vram_raw or 0) // (1024 * 1024)
+                except Exception:
+                    vram = 0
+                if name:
+                    return name, max(0, vram), driver
+                continue
+
+            lines = [line.strip() for line in out.splitlines() if line.strip()]
+            if len(lines) >= 2 and lines[0].startswith("Name"):
+                name = lines[1]
+                driver = None
+                for line in lines[2:]:
+                    if re.match(r"^\d+\.\d+\.\d+\.\d+$", line):
+                        driver = cls._normalize_nvidia_driver_version(line)
+                        break
+                if name:
+                    return name, 0, driver
         return None, 0, None
+
+    @staticmethod
+    def _detect_nvidia_gpu():
+        """Detect NVIDIA GPU reliably on Windows.
+
+        Prefer nvidia-smi when available to get the public driver version and VRAM.
+        Fall back to Win32_VideoController when nvidia-smi is missing from PATH.
+        """
+        smi_path = GoAILauncher._resolve_nvidia_smi()
+        if smi_path:
+            try:
+                out = subprocess.check_output(
+                    [
+                        smi_path,
+                        "--query-gpu=name,memory.total,driver_version",
+                        "--format=csv,noheader,nounits",
+                    ],
+                    timeout=10,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    creationflags=_creationflags_no_window(),
+                ).strip()
+                if out:
+                    parts = out.splitlines()[0].split(",")
+                    name = parts[0].strip()
+                    vram = int(float(parts[1].strip())) if len(parts) > 1 else 0
+                    driver = parts[2].strip() if len(parts) > 2 else None
+                    return name, vram, driver
+            except Exception:
+                pass
+
+        return GoAILauncher._detect_nvidia_gpu_via_cim()
 
     @staticmethod
     def _classify_gpu(name: str, vram: int):
