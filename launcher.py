@@ -150,16 +150,33 @@ if not os.path.exists(_SERVER_EXE):
     _SERVER_EXE = os.path.join(BASE_DIR, "GoAI_Server.exe")
 USE_SERVER_EXE = os.path.exists(_SERVER_EXE)
 
-# ── Modern Premium Theme Colors ──
-BG = "#151515"       # Deep dark background
-BG2 = "#1E1E1E"      # Secondary dark
-BG3 = "#2A2A2A"      # Interactive element dark
-GOLD = "#D4AF37"     # Premium gold
-GREEN = "#2E8B57"    # Sea green for ready state
-RED = "#C62828"      # Deep red for errors/stop
-TEXT = "#F0F0F0"     # Off-white text
-MUTED = "#888888"    # Muted grey
-ACCENT = "#8B5A2B"   # Wood-like accent
+# ── Launcher Theme ──────────────────────────────────────────────────────────
+WINDOW_WIDTH = 720
+WINDOW_HEIGHT = 640
+BG = "#0C1116"
+BG2 = "#10171E"
+BG3 = "#1A232C"
+PANEL = "#0E151B"
+PANEL_ALT = "#121B23"
+BORDER = "#27414C"
+GOLD = "#D7B35C"
+GREEN = "#2E8B70"
+RED = "#B75A58"
+PLUM = "#6F54B8"
+TEXT = "#F3EFE7"
+MUTED = "#9FAAB3"
+ACCENT = "#6FD7D1"
+LOG_BG = "#071017"
+LOG_TEXT = "#92DED6"
+
+BUTTON_STYLES = {
+    "primary": {"bg": GOLD, "fg": "#16110A", "activebackground": "#E4C46D"},
+    "success": {"bg": GREEN, "fg": TEXT, "activebackground": "#39A383"},
+    "danger": {"bg": RED, "fg": TEXT, "activebackground": "#C66967"},
+    "neutral": {"bg": BG3, "fg": TEXT, "activebackground": "#26323D"},
+    "plum": {"bg": PLUM, "fg": TEXT, "activebackground": "#7D62C9"},
+    "disabled": {"bg": "#2A333A", "fg": "#73818A", "activebackground": "#2A333A"},
+}
 
 
 
@@ -171,12 +188,21 @@ class GoAILauncher:
         self._server_log_tail = deque(maxlen=30)
         self._status_monitor_stop = threading.Event()
         self._last_engine_signature = None
+        self._log_visible = False
+        self._background_photo = None
 
         self.root = tk.Tk()
-        self.root.title("GoAI 围棋AI桌面端")
-        self.root.geometry("560x640")
+        self.root.title("GoAI 启动器")
+        self.root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self.root.resizable(False, False)
         self.root.configure(bg=BG)
+
+        self._status_var = tk.StringVar(value="服务器未启")
+        self._status_hint_var = tk.StringVar(value="启动后会自动打开浏览器")
+        self._mode_var = tk.StringVar(value="等待启动")
+        self._engine_var = tk.StringVar(value="尚未探测到引擎状态")
+        self._address_var = tk.StringVar(value="http://localhost:8000")
+        self._log_caption_var = tk.StringVar(value="日志默认隐藏，不打扰首屏")
 
         ico = os.path.join(BASE_DIR, "goai.ico")
         if os.path.exists(ico):
@@ -191,47 +217,131 @@ class GoAILauncher:
         # Run environment checks after UI is ready
         self.root.after(200, self._check_environment)
 
+    def _make_card(self, parent, *, bg=PANEL):
+        return tk.Frame(
+            parent,
+            bg=bg,
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=BORDER,
+            highlightcolor=BORDER,
+        )
+
+    def _apply_button_style(self, button: tk.Widget, variant: str, *, text: str | None = None, state: str | None = None):
+        style = BUTTON_STYLES.get(variant, BUTTON_STYLES["neutral"])
+        button.configure(
+            bg=style["bg"],
+            fg=style["fg"],
+            activebackground=style["activebackground"],
+            activeforeground=style["fg"],
+            disabledforeground=BUTTON_STYLES["disabled"]["fg"],
+            highlightbackground=style["bg"],
+        )
+        if text is not None:
+            button.configure(text=text)
+        if state is not None:
+            button.configure(state=state)
+
+    def _make_button(
+        self,
+        parent,
+        *,
+        text: str,
+        command,
+        variant: str = "neutral",
+        width: int | None = 12,
+        font_size: int = 10,
+    ):
+        button_kwargs = {
+            "parent": parent,
+            "text": text,
+            "font": ("Microsoft YaHei", font_size, "bold"),
+            "relief": "flat",
+            "borderwidth": 0,
+            "cursor": "hand2",
+            "padx": 10,
+            "pady": 9,
+            "command": command,
+        }
+        if width is not None:
+            button_kwargs["width"] = width
+        button = tk.Button(
+            button_kwargs.pop("parent"),
+            **button_kwargs,
+        )
+        self._apply_button_style(button, variant)
+        return button
+
+    def _set_log_visibility(self, visible: bool):
+        self._log_visible = visible
+        if visible:
+            self._summary_card.place_forget()
+            self._log_panel.place(x=28, y=386, width=664, height=214)
+            if not self._log_body.winfo_manager():
+                self._log_body.pack(fill="both", expand=True, padx=14, pady=(0, 14))
+            self._log_caption_var.set("日志已展开，适合排查启动或引擎问题")
+            self._apply_button_style(self._log_toggle_btn, "neutral", text="隐藏日志")
+        else:
+            if self._log_body.winfo_manager():
+                self._log_body.pack_forget()
+            self._summary_card.place(x=28, y=386, width=664, height=140)
+            self._log_panel.place(x=28, y=546, width=664, height=54)
+            self._log_caption_var.set("日志默认隐藏，不打扰首屏")
+            self._apply_button_style(self._log_toggle_btn, "neutral", text="展开日志")
+
+    def _toggle_log_panel(self):
+        self._set_log_visibility(not self._log_visible)
+
     def _build_ui(self):
-        # ── Header Area ──
-        hdr = tk.Frame(self.root, bg=BG2, height=90)
-        hdr.pack(fill="x")
-        hdr.pack_propagate(False)
+        bg_art = os.path.join(BASE_DIR, "launcher_bg_app.png")
+        if os.path.exists(bg_art):
+            try:
+                self._background_photo = tk.PhotoImage(file=bg_art)
+                tk.Label(
+                    self.root,
+                    image=self._background_photo,
+                    bd=0,
+                    highlightthickness=0,
+                ).place(x=0, y=0, width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
+            except Exception:
+                pass
 
-        # A subtle gold accent line at the bottom of header
-        tk.Frame(hdr, bg=GOLD, height=2).pack(side="bottom", fill="x")
+        hero = self._make_card(self.root)
+        hero.place(x=28, y=24, width=664, height=178)
 
         tk.Label(
-            hdr,
-            text="GoAI 控制台",
-            font=("Microsoft YaHei", 21, "bold"),
-            fg=GOLD,
-            bg=BG2,
-        ).place(relx=0.5, rely=0.36, anchor="center")
+            hero,
+            text="GOAI LAUNCHER",
+            font=("Consolas", 10, "bold"),
+            fg=ACCENT,
+            bg=PANEL,
+        ).place(x=24, y=18)
         tk.Label(
-            hdr,
-            text="围棋 Rogue 对弈场 · 统一服务、局域网访问与 AI 启停",
+            hero,
+            text="围棋对弈场",
+            font=("Microsoft YaHei", 27, "bold"),
+            fg=TEXT,
+            bg=PANEL,
+        ).place(x=22, y=40)
+        tk.Label(
+            hero,
+            textvariable=self._status_hint_var,
             font=("Microsoft YaHei", 9),
             fg=MUTED,
-            bg=BG2,
-        ).place(relx=0.5, rely=0.72, anchor="center")
+            bg=PANEL,
+        ).place(x=24, y=86)
 
-        # ── Main Content Container ──
-        content = tk.Frame(self.root, bg=BG, padx=30, pady=15)
-        content.pack(fill="both", expand=True)
-
-        # ── Status Row ──
-        sf = tk.Frame(content, bg=BG)
-        sf.pack(fill="x", pady=(0, 15))
-        
-        # Status indicator
-        status_box = tk.Frame(sf, bg=BG3, padx=12, pady=6)
-        status_box.pack(side="left")
-
-        self._dot_canvas = tk.Canvas(status_box, width=14, height=14, bg=BG3, highlightthickness=0)
+        status_box = tk.Frame(hero, bg=BG3, padx=12, pady=7)
+        status_box.place(x=24, y=116)
+        self._dot_canvas = tk.Canvas(
+            status_box,
+            width=14,
+            height=14,
+            bg=BG3,
+            highlightthickness=0,
+        )
         self._dot_canvas.pack(side="left", padx=(0, 6))
         self._dot = self._dot_canvas.create_oval(2, 2, 12, 12, fill=RED, outline="")
-
-        self._status_var = tk.StringVar(value="服务器未启")
         tk.Label(
             status_box,
             textvariable=self._status_var,
@@ -240,112 +350,267 @@ class GoAILauncher:
             bg=BG3,
         ).pack(side="left")
 
-        # ── Primary Actions ──
-        bf = tk.Frame(content, bg=BG)
-        bf.pack(fill="x", pady=5)
+        info_box = tk.Frame(hero, bg=PANEL)
+        info_box.place(x=412, y=26, width=220, height=84)
+        tk.Label(
+            info_box,
+            text="入口地址",
+            font=("Microsoft YaHei", 9, "bold"),
+            fg=GOLD,
+            bg=PANEL,
+        ).pack(anchor="w")
+        tk.Label(
+            info_box,
+            textvariable=self._address_var,
+            font=("Consolas", 10),
+            fg=TEXT,
+            bg=PANEL,
+        ).pack(anchor="w", pady=(2, 8))
+        tk.Label(
+            info_box,
+            text="引擎摘要",
+            font=("Microsoft YaHei", 9, "bold"),
+            fg=GOLD,
+            bg=PANEL,
+        ).pack(anchor="w")
+        tk.Label(
+            info_box,
+            textvariable=self._engine_var,
+            font=("Microsoft YaHei", 9),
+            fg=MUTED,
+            bg=PANEL,
+            wraplength=220,
+            justify="left",
+        ).pack(anchor="w", pady=(2, 0))
 
-        btn_font = ("Microsoft YaHei", 11, "bold")
-        self._start_btn = tk.Button(
-            bf, text="启动服务", width=12, font=btn_font,
-            fg=BG, bg=GOLD, activeforeground=BG, activebackground="#E5C158",
-            relief="flat", borderwidth=0, cursor="hand2", pady=8,
-            command=self._start_server
+        action_row = tk.Frame(hero, bg=PANEL)
+        action_row.place(x=320, y=116, width=314, height=42)
+        for col in range(3):
+            action_row.grid_columnconfigure(col, weight=1, uniform="hero-actions")
+
+        self._start_btn = self._make_button(
+            action_row,
+            text="启动服务",
+            command=self._start_server,
+            variant="primary",
+            width=None,
+            font_size=10,
         )
-        self._start_btn.pack(side="left", padx=(0, 10))
-
-        self._stop_btn = tk.Button(
-            bf, text="■ 停止服务", width=12, font=btn_font,
-            fg=TEXT, bg=RED, activeforeground=TEXT, activebackground="#D32F2F",
-            relief="flat", borderwidth=0, cursor="hand2", state="disabled", pady=8,
-            command=self._stop_server
+        self._start_btn.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
+        self._stop_btn = self._make_button(
+            action_row,
+            text="停止服务",
+            command=self._stop_server,
+            variant="danger",
+            width=None,
+            font_size=10,
         )
-        self._stop_btn.pack(side="left", padx=(0, 10))
-
-        self._open_btn = tk.Button(
-            bf, text="打开对局", width=14, font=btn_font,
-            fg=TEXT, bg=GREEN, activeforeground=TEXT, activebackground="#3CB371",
-            relief="flat", borderwidth=0, cursor="hand2", state="disabled", pady=8,
-            command=self._open_browser
+        self._stop_btn.grid(row=0, column=1, sticky="nsew", padx=3)
+        self._stop_btn.configure(state="disabled")
+        self._open_btn = self._make_button(
+            action_row,
+            text="进入对局",
+            command=self._open_browser,
+            variant="success",
+            width=None,
+            font_size=10,
         )
-        self._open_btn.pack(side="left")
+        self._open_btn.grid(row=0, column=2, sticky="nsew", padx=(6, 0))
+        self._open_btn.configure(state="disabled")
 
-        # ── Settings ──
-        mf = tk.Frame(content, bg=BG, pady=10)
-        mf.pack(fill="x")
-        
+        controls = self._make_card(self.root, bg=PANEL_ALT)
+        controls.place(x=28, y=220, width=664, height=148)
+
+        tk.Label(
+            controls,
+            text="启动偏好",
+            font=("Microsoft YaHei", 12, "bold"),
+            fg=TEXT,
+            bg=PANEL_ALT,
+        ).place(x=22, y=18)
+        tk.Label(
+            controls,
+            text="保留核心控制，把更多信息折进日志和状态摘要里。",
+            font=("Microsoft YaHei", 9),
+            fg=MUTED,
+            bg=PANEL_ALT,
+        ).place(x=22, y=44)
+
         self._ai_enabled = tk.BooleanVar(value=True)
         self._ai_check = tk.Checkbutton(
-            mf, text="启动时加载 KataGo AI（纯双人时可关闭）",
-            variable=self._ai_enabled, font=("Microsoft YaHei", 9),
-            fg=TEXT, bg=BG, activeforeground=TEXT, activebackground=BG,
-            selectcolor=BG3, cursor="hand2"
+            controls,
+            text="启动时加载 KataGo AI",
+            variable=self._ai_enabled,
+            font=("Microsoft YaHei", 10, "bold"),
+            fg=TEXT,
+            bg=BG3,
+            activeforeground=TEXT,
+            activebackground=BG3,
+            disabledforeground=BUTTON_STYLES["disabled"]["fg"],
+            selectcolor=GREEN,
+            indicatoron=False,
+            relief="flat",
+            borderwidth=0,
+            cursor="hand2",
+            padx=14,
+            pady=8,
+            width=20,
+            anchor="w",
         )
-        self._ai_check.pack(anchor="w")
+        self._ai_check.place(x=22, y=78, width=214, height=38)
 
-        # ── Utility Actions ──
-        bf2 = tk.Frame(content, bg=BG)
-        bf2.pack(fill="x", pady=(0, 15))
+        tk.Label(
+            controls,
+            text="纯双人对局时可以关闭 AI，以更快进入棋盘。",
+            font=("Microsoft YaHei", 8),
+            fg=MUTED,
+            bg=PANEL_ALT,
+        ).place(x=24, y=122)
+
+        action_strip = tk.Frame(controls, bg=PANEL_ALT)
+        action_strip.place(x=276, y=78, width=366, height=38)
         self._model_running = True
-
-        sec_font = ("Microsoft YaHei", 9)
-        self._stop_model_btn = tk.Button(
-            bf2, text="AI 开关", width=12, font=sec_font,
-            fg=TEXT, bg=BG3, activeforeground=TEXT, activebackground="#3D3D3D",
-            relief="flat", borderwidth=0, cursor="hand2", state="disabled", pady=5,
-            command=self._toggle_model
+        self._stop_model_btn = self._make_button(
+            action_strip,
+            text="AI 开关",
+            command=self._toggle_model,
+            variant="plum",
+            width=10,
+            font_size=10,
         )
         self._stop_model_btn.pack(side="left", padx=(0, 10))
+        self._stop_model_btn.configure(state="disabled")
         self._update_btn = None
 
-        self._upgrade_btn = tk.Button(
-            bf2, text="性能升级包", width=12, font=sec_font,
-            fg="#000", bg=GOLD, activeforeground="#000", activebackground="#E5C040",
-            relief="flat", borderwidth=0, cursor="hand2", pady=5,
-            command=self._show_upgrade_dialog
+        self._upgrade_btn = self._make_button(
+            action_strip,
+            text="性能升级包",
+            command=self._show_upgrade_dialog,
+            variant="primary",
+            width=12,
+            font_size=10,
         )
-        self._upgrade_btn.pack(side="left", padx=(0, 10))
-
+        self._upgrade_btn.pack(side="left")
         self._upgrade_hint = tk.Label(
-            bf2, text="兼容性优先时建议保持默认，不强行升级",
-            font=("Microsoft YaHei", 8), fg=MUTED, bg=BG)
-        self._upgrade_hint.pack(side="left")
+            controls,
+            text="兼容性优先时建议保持默认，不强行升级",
+            font=("Microsoft YaHei", 8),
+            fg=MUTED,
+            bg=PANEL_ALT,
+            wraplength=360,
+            justify="left",
+        )
+        self._upgrade_hint.place(x=278, y=122)
 
-        # Check if large model already present → hide upgrade button
         if _upgrade_installed():
-            self._upgrade_btn.config(text="✓ 已安装升级包", state="disabled",
-                                      bg=BG3, fg=MUTED)
+            self._apply_button_style(self._upgrade_btn, "neutral", text="✓ 已安装升级包", state="disabled")
             self._upgrade_hint.config(text="大模型与 CUDA 升级已就绪")
-
-        # ── Log Area ──
-        tk.Label(content, text="运行面板", font=("Microsoft YaHei", 9, "bold"), fg=GOLD, bg=BG).pack(anchor="w", pady=(8, 5))
-        
-        if not _upgrade_installed():
+        else:
+            self._apply_button_style(self._upgrade_btn, "primary")
             self._apply_upgrade_button_policy()
 
+        self._summary_card = self._make_card(self.root)
+        self._summary_card.place(x=28, y=386, width=664, height=140)
+        tk.Label(
+            self._summary_card,
+            text="快速概览",
+            font=("Microsoft YaHei", 12, "bold"),
+            fg=TEXT,
+            bg=PANEL,
+        ).pack(anchor="w", padx=22, pady=(16, 6))
+
+        summary_body = tk.Frame(self._summary_card, bg=PANEL)
+        summary_body.pack(fill="both", expand=True, padx=22, pady=(0, 14))
+
+        def add_row(label_text: str, variable: tk.StringVar):
+            row = tk.Frame(summary_body, bg=PANEL)
+            row.pack(fill="x", pady=4)
+            tk.Label(
+                row,
+                text=label_text,
+                font=("Microsoft YaHei", 9, "bold"),
+                fg=GOLD,
+                bg=PANEL,
+                width=9,
+                anchor="w",
+            ).pack(side="left")
+            tk.Label(
+                row,
+                textvariable=variable,
+                font=("Microsoft YaHei", 9),
+                fg=MUTED,
+                bg=PANEL,
+                wraplength=500,
+                justify="left",
+                anchor="w",
+            ).pack(side="left", fill="x", expand=True)
+
+        add_row("当前模式", self._mode_var)
+        add_row("引擎状态", self._engine_var)
+        add_row("本机入口", self._address_var)
+
+        self._log_panel = self._make_card(self.root, bg=PANEL_ALT)
+        log_header = tk.Frame(self._log_panel, bg=PANEL_ALT)
+        log_header.pack(fill="x", padx=14, pady=10)
+        tk.Label(
+            log_header,
+            text="运行日志",
+            font=("Microsoft YaHei", 10, "bold"),
+            fg=TEXT,
+            bg=PANEL_ALT,
+        ).pack(side="left")
+        tk.Label(
+            log_header,
+            textvariable=self._log_caption_var,
+            font=("Microsoft YaHei", 8),
+            fg=MUTED,
+            bg=PANEL_ALT,
+        ).pack(side="left", padx=(10, 0))
+        self._log_toggle_btn = self._make_button(
+            log_header,
+            text="展开日志",
+            command=self._toggle_log_panel,
+            variant="neutral",
+            width=9,
+            font_size=9,
+        )
+        self._log_toggle_btn.pack(side="right")
+
+        self._log_body = tk.Frame(self._log_panel, bg=PANEL_ALT)
         self._log = scrolledtext.ScrolledText(
-            content, font=("Consolas", 9), bg="#000000", fg="#4CAF50",
-            insertbackground="#4CAF50", relief="flat", wrap="word",
-            state="disabled", selectbackground="#1f6feb", borderwidth=0,
-            padx=10, pady=10
+            self._log_body,
+            font=("Consolas", 9),
+            bg=LOG_BG,
+            fg=LOG_TEXT,
+            insertbackground=LOG_TEXT,
+            relief="flat",
+            wrap="word",
+            state="disabled",
+            selectbackground="#144A56",
+            borderwidth=0,
+            padx=10,
+            pady=10,
         )
         self._log.pack(fill="both", expand=True)
 
-        # ── Footer ──
-        ft = tk.Frame(self.root, bg=BG2, height=36)
-        ft.pack(fill="x", side="bottom")
-        ft.pack_propagate(False)
-        
         tk.Label(
-            ft, text="GoAI © 2026 · Rogue Go Arena Launcher",
-            font=("Microsoft YaHei", 8), fg=MUTED, bg=BG2,
-        ).pack(side="left", padx=15, pady=9)
-        
-        tk.Button(
-            ft, text="退出程​​序", font=("Microsoft YaHei", 9),
-            fg=MUTED, bg=BG2, activeforeground=TEXT, activebackground=BG2,
-            relief="flat", borderwidth=0, cursor="hand2",
-            command=self._on_close
-        ).pack(side="right", padx=15, pady=6)
+            self.root,
+            text="GoAI © 2026 · 桌面启动器",
+            font=("Microsoft YaHei", 8),
+            fg="#D7D0C4",
+            bg=BG,
+        ).place(x=30, y=612)
+        self._quit_btn = self._make_button(
+            self.root,
+            text="退出",
+            command=self._on_close,
+            variant="neutral",
+            width=7,
+            font_size=9,
+        )
+        self._quit_btn.place(x=618, y=606, width=74, height=30)
+
+        self._set_log_visibility(False)
 
     def _log_msg(self, msg: str, color: str = "#58a6ff"):
         self._server_log_tail.append(msg)
@@ -429,10 +694,24 @@ class GoAILauncher:
             self._log_msg(f"✓ 升级大模型: 已缓存 ({sz:.0f}MB)", GREEN)
             self._log_msg(f"  待激活文件: {katago_model_large_user}", MUTED)
 
+        env_parts = []
+        if has_opencl_engine:
+            env_parts.append("OpenCL")
+        if has_cuda_engine:
+            env_parts.append("CUDA")
+        if os.path.exists(katago_cpu):
+            env_parts.append("CPU")
+        if os.path.exists(katago_model):
+            env_parts.append("model.bin.gz")
+        env_summary = " / ".join(env_parts) if env_parts else "未检测到本地引擎资源"
+        self._call_in_ui(lambda: self._engine_var.set(env_summary))
+
         # 3. Check NVIDIA GPU and driver
         gpu_name, gpu_vram, driver_ver = self._detect_nvidia_gpu()
         if gpu_name:
             self._log_msg(f"✓ NVIDIA 显卡: {gpu_name} ({gpu_vram}MB 显存)", GREEN)
+            gpu_note = gpu_name if not driver_ver else f"{gpu_name} · 驱动 {driver_ver}"
+            self._call_in_ui(lambda note=gpu_note: self._status_hint_var.set(note))
 
             # Check driver version for CUDA 12 compatibility
             if driver_ver:
@@ -465,6 +744,7 @@ class GoAILauncher:
             if os.path.exists(katago_cpu):
                 self._log_msg("  将使用 CPU 引擎运行 (级位对弈流畅，段位较慢)", "#58a6ff")
                 self._log_msg("  Rogue/大招模式已优化，CPU 也能流畅运行", GREEN)
+                self._call_in_ui(lambda: self._status_hint_var.set("未检测到 NVIDIA 显卡，将优先使用 CPU / OpenCL"))
             else:
                 self._log_msg("  未找到 CPU 引擎，可取消勾选 AI 进入纯对弈模式", GOLD)
 
@@ -823,31 +1103,29 @@ class GoAILauncher:
         policy = self._get_upgrade_policy()
         self._upgrade_policy = policy
         if policy["allowed"]:
-            self._upgrade_btn.config(state="normal", text="⬆ 性能升级包", cursor="hand2")
+            self._apply_button_style(self._upgrade_btn, "primary", text="性能升级包", state="normal")
+            self._upgrade_btn.config(cursor="hand2")
         else:
-            self._upgrade_btn.config(
-                state="disabled",
-                text="性能升级不可用",
-                bg=BG3,
-                fg=MUTED,
-                activeforeground=MUTED,
-                activebackground=BG3,
-                cursor="arrow",
-            )
+            self._apply_button_style(self._upgrade_btn, "disabled", text="升级不可用", state="disabled")
+            self._upgrade_btn.config(cursor="arrow")
             self._upgrade_hint.config(text="当前设备建议继续使用默认轻量模式，更稳妥")
 
     def _set_status(self, running: bool, text: str):
         def _do():
             self._dot_canvas.itemconfig(self._dot, fill=GREEN if running else RED)
             self._status_var.set(text)
+            self._mode_var.set(text)
             self._start_btn.config(state="disabled" if running else "normal")
             self._ai_check.config(state="disabled" if running else "normal")
             self._stop_btn.config(state="normal" if running else "disabled")
             self._open_btn.config(state="normal" if running else "disabled")
             if running:
-                self._stop_model_btn.config(state="normal")
+                if self._model_running:
+                    self._apply_button_style(self._stop_model_btn, "plum", text="关闭模型", state="normal")
+                else:
+                    self._apply_button_style(self._stop_model_btn, "success", text="启动模型", state="normal")
             else:
-                self._stop_model_btn.config(state="disabled")
+                self._apply_button_style(self._stop_model_btn, "disabled", state="disabled")
         self._call_in_ui(_do)
 
     def _refresh_model_btn_state(self):
@@ -860,17 +1138,11 @@ class GoAILauncher:
                 self._model_running = katago_ready
                 def _update():
                     if phase == "initializing":
-                        self._stop_model_btn.config(
-                            text="模型初始化中", bg=BG3,
-                            activebackground=BG3, state="disabled")
+                        self._apply_button_style(self._stop_model_btn, "disabled", text="模型初始化中", state="disabled")
                     elif katago_ready:
-                        self._stop_model_btn.config(
-                            text="关闭模型", bg="#8e44ad",
-                            activebackground="#9b59b6", state="normal")
+                        self._apply_button_style(self._stop_model_btn, "plum", text="关闭模型", state="normal")
                     else:
-                        self._stop_model_btn.config(
-                            text="启动模型", bg="#27ae60",
-                            activebackground="#2ecc71", state="normal")
+                        self._apply_button_style(self._stop_model_btn, "success", text="启动模型", state="normal")
                 self._call_in_ui(_update)
             except Exception:
                 pass
@@ -1037,17 +1309,29 @@ class GoAILauncher:
         if phase == "ready":
             label = backend or ("CPU" if status.get("cpu_mode") else "KataGo")
             model_suffix = f" / {model}" if model else ""
-            self._set_status(True, f"运行中 - {label}{model_suffix}")
+            self._set_status(True, "运行中")
             self._model_running = True
+            self._call_in_ui(lambda: self._engine_var.set(f"{label}{model_suffix}"))
         elif phase == "initializing":
             label = backend or "KataGo"
-            self._set_status(True, f"运行中，{label} 初始化中...")
+            self._set_status(True, "启动中")
             self._model_running = False
+            self._call_in_ui(lambda: self._engine_var.set(message or f"{label} 初始化中"))
         elif phase in {"failed", "stopped"} or status.get("no_katago"):
-            self._set_status(True, "运行中（纯对弈模式）")
+            self._set_status(True, "运行中")
             self._model_running = False
+            self._call_in_ui(lambda: self._engine_var.set(message or "纯对弈模式"))
         else:
-            self._set_status(True, "运行中 - http://localhost:8000")
+            self._set_status(True, "运行中")
+
+        local_urls = (status.get("access_urls") or {}).get("local") or [SERVER_URL]
+        self._call_in_ui(lambda: self._address_var.set(local_urls[0]))
+        if phase == "ready":
+            self._call_in_ui(lambda: self._status_hint_var.set("浏览器入口已可用，可直接进入对局"))
+        elif phase == "initializing":
+            self._call_in_ui(lambda: self._status_hint_var.set("KataGo 正在初始化，首次启动会稍慢一些"))
+        elif phase in {"failed", "stopped"}:
+            self._call_in_ui(lambda: self._status_hint_var.set("当前可继续使用纯对弈模式"))
 
         if emit_log and signature != self._last_engine_signature:
             if phase == "initializing":
@@ -1070,17 +1354,11 @@ class GoAILauncher:
 
         def _update_model_button():
             if phase == "initializing":
-                self._stop_model_btn.config(
-                    text="模型初始化中", bg=BG3,
-                    activebackground=BG3, state="disabled")
+                self._apply_button_style(self._stop_model_btn, "disabled", text="模型初始化中", state="disabled")
             elif phase == "ready":
-                self._stop_model_btn.config(
-                    text="关闭模型", bg="#8e44ad",
-                    activebackground="#9b59b6", state="normal")
+                self._apply_button_style(self._stop_model_btn, "plum", text="关闭模型", state="normal")
             else:
-                self._stop_model_btn.config(
-                    text="启动模型", bg="#27ae60",
-                    activebackground="#2ecc71", state="normal")
+                self._apply_button_style(self._stop_model_btn, "success", text="启动模型", state="normal")
 
         self._call_in_ui(_update_model_button)
 
@@ -1234,7 +1512,7 @@ class GoAILauncher:
 
     def _toggle_model(self):
         """Toggle the KataGo engine on/off via the server's API."""
-        self._stop_model_btn.config(state="disabled")
+        self._apply_button_style(self._stop_model_btn, "disabled", state="disabled")
 
         if self._model_running:
             # ── Stop model ──
@@ -1249,16 +1527,26 @@ class GoAILauncher:
                         self._model_running = False
                         self._log_msg("已关闭 KataGo 模型，仅支持双人对局", GOLD)
                         self._call_in_ui(lambda: (
-                            self._stop_model_btn.config(
-                                text="启动模型", bg="#27ae60",
-                                activebackground="#2ecc71", state="normal"),
+                            self._apply_button_style(self._stop_model_btn, "success", text="启动模型", state="normal"),
                         ))
                     else:
                         self._log_msg(f"关闭模型失败: {result.get('error', '未知错误')}", RED)
-                        self._call_in_ui(lambda: self._stop_model_btn.config(state="normal"))
+                        self._call_in_ui(
+                            lambda: self._apply_button_style(
+                                self._stop_model_btn,
+                                "plum" if self._model_running else "success",
+                                state="normal",
+                            )
+                        )
                 except Exception as e:
                     self._log_msg(f"关闭模型请求失败: {e}", RED)
-                    self._call_in_ui(lambda: self._stop_model_btn.config(state="normal"))
+                    self._call_in_ui(
+                        lambda: self._apply_button_style(
+                            self._stop_model_btn,
+                            "plum" if self._model_running else "success",
+                            state="normal",
+                        )
+                    )
             threading.Thread(target=_do_stop, daemon=True).start()
         else:
             # ── Start model ──
@@ -1274,16 +1562,26 @@ class GoAILauncher:
                         self._model_running = True
                         self._log_msg("KataGo 模型已启动", GREEN)
                         self._call_in_ui(lambda: (
-                            self._stop_model_btn.config(
-                                text="关闭模型", bg="#8e44ad",
-                                activebackground="#9b59b6", state="normal"),
+                            self._apply_button_style(self._stop_model_btn, "plum", text="关闭模型", state="normal"),
                         ))
                     else:
                         self._log_msg(f"启动模型失败: {result.get('error', '未知错误')}", RED)
-                        self._call_in_ui(lambda: self._stop_model_btn.config(state="normal"))
+                        self._call_in_ui(
+                            lambda: self._apply_button_style(
+                                self._stop_model_btn,
+                                "success" if not self._model_running else "plum",
+                                state="normal",
+                            )
+                        )
                 except Exception as e:
                     self._log_msg(f"启动模型请求失败: {e}", RED)
-                    self._call_in_ui(lambda: self._stop_model_btn.config(state="normal"))
+                    self._call_in_ui(
+                        lambda: self._apply_button_style(
+                            self._stop_model_btn,
+                            "success" if not self._model_running else "plum",
+                            state="normal",
+                        )
+                    )
             threading.Thread(target=_do_start, daemon=True).start()
 
     def _check_katago_update(self):
@@ -1630,7 +1928,7 @@ class GoAILauncher:
         want_cuda = self._upgrade_cuda_var.get()
         if not want_model and not want_cuda:
             return
-        self._upgrade_btn.config(state="disabled", text="下载中...", bg=BG3)
+        self._apply_button_style(self._upgrade_btn, "disabled", text="下载中...", state="disabled")
         threading.Thread(
             target=self._upgrade_worker,
             args=(want_model, want_cuda),
@@ -1743,12 +2041,14 @@ class GoAILauncher:
         if success:
             self._log_msg("━━━ 升级完成！重启服务后生效 ━━━", GOLD)
         fully_installed = _upgrade_installed()
-        self._call_in_ui(lambda: self._upgrade_btn.config(
-            text="✓ 已安装升级包" if fully_installed else "⬆ 性能升级包",
-            state="disabled" if fully_installed else "normal",
-            bg=BG3 if fully_installed else GOLD,
-            fg=MUTED if fully_installed else "#000",
-        ))
+        self._call_in_ui(
+            lambda: self._apply_button_style(
+                self._upgrade_btn,
+                "disabled" if fully_installed else "primary",
+                text="✓ 已安装升级包" if fully_installed else "性能升级包",
+                state="disabled" if fully_installed else "normal",
+            )
+        )
         if success:
             self._call_in_ui(lambda: self._upgrade_hint.config(
                 text=f"升级文件已安装到 {os.path.join(BASE_DIR, 'katago')}"))

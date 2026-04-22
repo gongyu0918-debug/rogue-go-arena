@@ -49,6 +49,7 @@ Source: "{#RepoRoot}\katago\*"; DestDir: "{app}\katago"; Flags: ignoreversion re
 Source: "{#RepoRoot}\server.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\goai.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\goai.png"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RepoRoot}\launcher_bg_app.png"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\README.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
 Source: "{#RepoRoot}\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
