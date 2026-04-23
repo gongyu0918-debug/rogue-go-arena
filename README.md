@@ -199,18 +199,9 @@ python server.py
 python launcher.py
 ```
 
-## Non-Commercial By Default
+## License
 
-The original code in this repository is available for:
-
-- non-commercial use
-- non-commercial modification
-- non-commercial redistribution
-- non-commercial sharing of source and packaged builds
-
-Commercial use is not automatically granted.
-
-If you want to use this project in a commercial product, paid service, paid deployment, or business setting, please contact the repository owner first.
+This repository is available under the MIT License.
 
 Please also read:
 

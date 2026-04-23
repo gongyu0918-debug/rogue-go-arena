@@ -21,7 +21,8 @@ AppId={{B8F3A2E1-5C7D-4E9A-B6D0-1F2A3C4D5E6F}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={localappdata}\{#MyAppName}
+DefaultDirName=F:\{#MyAppName}
+UsePreviousAppDir=no
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir={#ReleaseDir}
@@ -43,7 +44,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "{#DistDir}\GoAI.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#DistDir}\GoAI_Server\*"; DestDir: "{app}\GoAI_Server"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#RepoRoot}\app\*"; DestDir: "{app}\app"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#RepoRoot}\app\*"; DestDir: "{app}\app"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
 Source: "{#RepoRoot}\static\*"; DestDir: "{app}\static"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#RepoRoot}\katago\*"; DestDir: "{app}\katago"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#RepoRoot}\server.py"; DestDir: "{app}"; Flags: ignoreversion

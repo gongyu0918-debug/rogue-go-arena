@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>GoAI | Rogue Go Arena</title>
+<link rel="icon" type="image/png" href="assets/goai-favicon.png?v=20260423b">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -261,15 +262,26 @@ header h1 {
   flex: 0 1 700px;
   width: min(100%, 700px);
   min-width: 0;
-  padding: 0 0 12px;
+  padding: 0 0 22px;
   border-radius: 0;
   background: transparent;
   border: 0;
   box-shadow: none;
   animation: none;
+  z-index: 0;
 }
 #board-container::before {
-  display: none;
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -4px;
+  height: 28px;
+  background: radial-gradient(circle at center, rgba(0,0,0,.52), rgba(0,0,0,.2) 42%, transparent 74%);
+  filter: blur(16px);
+  opacity: .9;
+  pointer-events: none;
+  z-index: -1;
 }
 #board-container.board-intro {
   animation: driftFloat .7s cubic-bezier(.2,.82,.21,1) both;
@@ -288,7 +300,11 @@ header h1 {
   cursor: crosshair;
   border-radius: 0;
   border: 0;
-  box-shadow: 0 22px 46px rgba(0,0,0,.34);
+  box-shadow:
+    0 10px 0 rgba(120, 78, 26, .26),
+    0 28px 56px rgba(0,0,0,.42),
+    inset 0 1px 0 rgba(255, 242, 207, .18),
+    inset 0 -3px 0 rgba(104, 63, 16, .18);
   touch-action: none;
   max-width: 100%;
   height: auto;
@@ -332,6 +348,31 @@ header h1 {
   position: relative;
   overflow: hidden;
 }
+.toolbar-icon {
+  width: 42px;
+  height: 42px;
+  display: block;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 96%;
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+.toolbar-icon[data-icon="setup"] { background-image: url('assets/icons/toolbar-tech/setup.png?v=20260423c'); }
+.toolbar-icon[data-icon="pass"] { background-image: url('assets/icons/toolbar-tech/pass.png?v=20260423c'); }
+.toolbar-icon[data-icon="undo"] { background-image: url('assets/icons/toolbar-tech/undo.png?v=20260423c'); }
+.toolbar-icon[data-icon="score"] { background-image: url('assets/icons/toolbar-tech/score.png?v=20260423c'); }
+.toolbar-icon[data-icon="territory-on"] { background-image: url('assets/icons/toolbar-tech/territory-on.png?v=20260423c'); }
+.toolbar-icon[data-icon="territory-off"] { background-image: url('assets/icons/toolbar-tech/territory-off.png?v=20260423c'); }
+.toolbar-icon[data-icon="resign"] { background-image: url('assets/icons/toolbar-tech/resign.png?v=20260423c'); }
+.toolbar-icon[data-icon="wiki"] { background-image: url('assets/icons/toolbar-tech/wiki.png?v=20260423c'); }
+.toolbar-icon[data-icon="settings"] { background-image: url('assets/icons/toolbar-tech/settings.png?v=20260423c'); }
+.toolbar-icon[data-icon="sound-on"] { background-image: url('assets/icons/toolbar-tech/sound-on.png?v=20260423c'); }
+.toolbar-icon[data-icon="sound-off"] { background-image: url('assets/icons/toolbar-tech/sound-off.png?v=20260423c'); }
+.toolbar-icon[data-icon="skill"] { background-image: url('assets/icons/toolbar-tech/skill.png?v=20260423c'); }
+.toolbar-icon[data-icon="review-prev"] { background-image: url('assets/icons/toolbar-tech/review-prev.png?v=20260423c'); }
+.toolbar-icon[data-icon="review-next"] { background-image: url('assets/icons/toolbar-tech/review-next.png?v=20260423c'); }
 .board-toolbar button .btn-ripple {
   position: absolute;
   left: var(--x);
@@ -772,7 +813,6 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 /* Sound toggle in header */
 #sound-toggle {
   cursor: pointer;
-  font-size: 1rem;
   width: 36px;
   height: 36px;
   padding: 0;
@@ -784,6 +824,10 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   border: 1px solid rgba(212,175,55,.18);
   border-radius: 50%;
   user-select: none;
+}
+#sound-toggle .toolbar-icon {
+  width: 26px;
+  height: 26px;
 }
 #sound-toggle:hover {
   background: rgba(212,175,55,.16);
@@ -902,6 +946,13 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   width: min(92vw, 780px);
   max-width: 780px;
 }
+#setup-modal .setup-mode-strip {
+  margin-bottom: 14px;
+}
+#setup-modal .mode-row {
+  gap: 10px;
+  margin-bottom: 0;
+}
 #setup-modal .mode-btn {
   min-width: 84px;
   white-space: nowrap;
@@ -943,11 +994,95 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 #setup-modal .setup-field select {
   min-width: 0;
 }
-#setup-modal .setup-field-full {
-  grid-column: 1 / -1;
+#setup-modal #time-settings {
+  margin-top: 4px;
+}
+#setup-modal .time-split {
+  display: flex;
+  gap: 8px;
+}
+#setup-modal .time-split select {
+  flex: 1;
 }
 #mode-hint {
   display: none !important;
+}
+#rogue-wiki-modal .modal-content {
+  width: min(94vw, 1120px);
+  max-width: 1120px;
+  max-height: min(88vh, 920px);
+}
+#rogue-wiki-modal .wiki-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+#rogue-wiki-modal .wiki-intro {
+  color: #9eb0c2;
+  font-size: .88rem;
+  line-height: 1.7;
+}
+#rogue-wiki-modal .wiki-mode-grid,
+#rogue-wiki-modal .wiki-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+#rogue-wiki-modal .wiki-section-title {
+  color: #f4e2a3;
+  font-size: 1rem;
+  letter-spacing: .06em;
+  margin-bottom: 2px;
+}
+#rogue-wiki-modal .wiki-mode-card,
+#rogue-wiki-modal .wiki-card-item {
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.07);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
+    linear-gradient(180deg, #141b26, #0d1219);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+}
+#rogue-wiki-modal .wiki-mode-card {
+  padding: 16px 18px;
+}
+#rogue-wiki-modal .wiki-mode-card h3,
+#rogue-wiki-modal .wiki-card-copy h4 {
+  color: #f7f2d6;
+  font-size: .98rem;
+  margin-bottom: 8px;
+}
+#rogue-wiki-modal .wiki-mode-card p,
+#rogue-wiki-modal .wiki-card-copy p {
+  color: #9eabb8;
+  font-size: .84rem;
+  line-height: 1.68;
+}
+#rogue-wiki-modal .wiki-card-item {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  align-items: center;
+}
+#rogue-wiki-modal .wiki-card-item .rc-icon {
+  width: 74px;
+  height: 96px;
+  margin: 0;
+}
+#rogue-wiki-modal .wiki-card-item .rc-icon.rc-icon-art {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+#rogue-wiki-modal .wiki-card-copy {
+  min-width: 0;
+}
+@media (max-width: 860px) {
+  #rogue-wiki-modal .wiki-mode-grid,
+  #rogue-wiki-modal .wiki-card-grid {
+    grid-template-columns: 1fr;
+  }
 }
 @media (max-width: 720px) {
   #setup-modal .setup-subtitle {
@@ -955,6 +1090,10 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   }
   #setup-modal .setup-grid {
     grid-template-columns: 1fr;
+  }
+  #rogue-wiki-modal .wiki-card-item {
+    grid-template-columns: 70px minmax(0, 1fr);
+    gap: 12px;
   }
 }
 .modal-close {
@@ -1012,7 +1151,20 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   transform: translateY(-2px) scale(1.04);
   box-shadow: 0 0 28px rgba(212,175,55,.26);
 }
-.rogue-card .rc-icon { font-size: 2.4rem; margin-bottom: 12px; }
+.rogue-card .rc-icon {
+  font-size: 2.4rem;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rogue-card .rc-icon.rc-icon-art {
+  width: 92px;
+  height: 92px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
 .rogue-card .rc-name { color: #f5dd93; font-weight: 700; font-size: 1rem; margin-bottom: 8px; }
 .rogue-card .rc-desc { color: #afbac8; font-size: .78rem; line-height: 1.5; }
 /* Legacy Rogue ability bar kept hidden after moving active skills into toolbar */
@@ -1041,7 +1193,20 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   transform: translateY(-2px) scale(1.04);
   box-shadow: 0 0 32px rgba(255,92,92,.26);
 }
-.ultimate-card .rc-icon { font-size: 2.55rem; margin-bottom: 12px; }
+.ultimate-card .rc-icon {
+  font-size: 2.55rem;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ultimate-card .rc-icon.rc-icon-art {
+  width: 96px;
+  height: 96px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
 .ultimate-card .rc-name { color: #ff9d92; font-weight: 700; font-size: 1rem; margin-bottom: 8px; }
 .ultimate-card .rc-desc { color: #ffc0b7; font-size: .78rem; line-height: 1.5; }
 #ultimate-bar {
@@ -1321,7 +1486,7 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
       <h1>围棋对弈场</h1>
       <span id="status-text">连接中…</span>
     </div>
-    <span id="sound-toggle" title="音效开关">🔊</span>
+    <span id="sound-toggle" title="音效开关"><span class="toolbar-icon" data-icon="sound-on" aria-hidden="true"></span></span>
   </div>
   <div class="header-actions">
     <button id="lang-toggle" class="lang-chip" title="切换语言">EN</button>
@@ -1382,28 +1547,29 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 
     <!-- Smart Board Toolbar -->
     <div class="board-toolbar" id="main-toolbar">
-      <button id="btn-setup" title="开始对局" onclick="openSetupModal()">➕</button>
-      <button id="btn-pass" title="虚手" disabled>✋</button>
-      <button id="btn-undo" title="悔棋" disabled>↩️</button>
-      <button id="btn-score" title="计算胜负" disabled>⚖️</button>
-      <button id="btn-territory-toggle" title="形势分析" onclick="toggleTerritory()">👁️</button>
-      <button id="btn-resign" title="认输" disabled>🏳️</button>
+      <button id="btn-setup" title="开始对弈" onclick="openSetupModal()"><span class="toolbar-icon" data-icon="setup" aria-hidden="true"></span></button>
+      <button id="btn-pass" title="虚手" disabled><span class="toolbar-icon" data-icon="pass" aria-hidden="true"></span></button>
+      <button id="btn-undo" title="悔棋" disabled><span class="toolbar-icon" data-icon="undo" aria-hidden="true"></span></button>
+      <button id="btn-score" title="计算胜负" disabled><span class="toolbar-icon" data-icon="score" aria-hidden="true"></span></button>
+      <button id="btn-territory-toggle" title="形势分析" onclick="toggleTerritory()"><span class="toolbar-icon" data-icon="territory-on" aria-hidden="true"></span></button>
+      <button id="btn-resign" title="认输" disabled><span class="toolbar-icon" data-icon="resign" aria-hidden="true"></span></button>
+      <button id="btn-rogue-wiki" title="ROGUE AI WIKI" onclick="openRogueWiki()"><span class="toolbar-icon" data-icon="wiki" aria-hidden="true"></span></button>
+      <button id="btn-settings" title="打开功能" onclick="document.getElementById('settings-drawer').classList.add('open')"><span class="toolbar-icon" data-icon="settings" aria-hidden="true"></span></button>
       <button id="btn-skill" class="skill-btn" title="主动技能" style="display:none" disabled>
-        <span class="skill-btn-icon">✨</span>
+        <span class="toolbar-icon skill-btn-icon" data-icon="skill" aria-hidden="true"></span>
         <span class="skill-use-badge" aria-hidden="true"></span>
       </button>
-      <button title="打开功能" onclick="document.getElementById('settings-drawer').classList.add('open')">⚙️</button>
     </div>
     
     <!-- Review Toolbar (replaces main toolbar when reviewing) -->
     <div class="board-toolbar review-bar" id="review-toolbar" style="display:none;">
       <span id="review-info"></span>
       <button id="btn-review-first" title="第一手">⏭</button>
-      <button id="btn-review-prev" title="上一手">◀</button>
-      <button id="btn-review-next" title="下一手">▶</button>
+      <button id="btn-review-prev" title="上一手"><span class="toolbar-icon" data-icon="review-prev" aria-hidden="true"></span></button>
+      <button id="btn-review-next" title="下一手"><span class="toolbar-icon" data-icon="review-next" aria-hidden="true"></span></button>
       <button id="btn-review-last" title="最后一手">⏭</button>
       <button id="btn-review-exit" title="退出复盘" style="background:#5c4b8b;">⏏</button>
-      <button title="打开功能" onclick="document.getElementById('settings-drawer').classList.add('open')">⚙️</button>
+      <button id="btn-review-settings" title="打开功能" onclick="document.getElementById('settings-drawer').classList.add('open')"><span class="toolbar-icon" data-icon="settings" aria-hidden="true"></span></button>
     </div>
   </div>
 
@@ -1524,28 +1690,36 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
     <h2 style="color:#f4e2a3; margin-bottom:8px; font-size:1.36rem; margin-top:0; letter-spacing:.06em;">开始对弈</h2>
     <p class="setup-subtitle">选择模式、难度与规则，让这一局围棋更像一场不断变化的冒险。</p>
 
-    <div class="form-row"><label id="label-mode">开局</label>
-      <div class="mode-row" style="flex:1; margin:0">
+    <div class="setup-mode-strip">
+      <div class="mode-row">
         <div class="mode-btn active" id="mode-normal" onclick="setMode('normal')">对局</div>
+        <div class="mode-btn" id="mode-rogue" onclick="setMode('rogue')">Rogue</div>
         <div class="mode-btn" id="mode-watch"  onclick="setMode('watch')">学习</div>
         <div class="mode-btn" id="mode-two"    onclick="setMode('two')">双人</div>
         <div class="mode-btn" id="mode-challenge" onclick="setMode('challenge')">闯关</div>
       </div>
     </div>
 
-    <div class="form-row setup-field setup-field-full" id="row-color">
-      <label id="label-color">我执</label>
-      <select id="sel-color">
-        <option value="B" selected>黑棋（先手）</option>
-        <option value="W">白棋（后手）</option>
-        <option value="R">随机（猜先）</option>
-      </select>
-    </div>
-
     <div id="mode-hint" style="font-size:.75rem;color:#888;margin-bottom:7px;display:none"></div>
 
     <div class="setup-grid">
-      <div class="form-row setup-field">
+      <div class="form-row setup-field" id="row-color">
+        <label id="label-color">我执</label>
+        <select id="sel-color">
+          <option value="B" selected>黑棋（先手）</option>
+          <option value="W">白棋（后手）</option>
+          <option value="R">随机（猜先）</option>
+        </select>
+      </div>
+      <div class="form-row setup-field" id="row-rogue-variant" style="display:none;">
+        <label id="label-rogue-variant">玩法</label>
+        <select id="sel-rogue-variant">
+          <option value="solo" selected>单人抽卡</option>
+          <option value="dual">双人抽卡</option>
+          <option value="ultimate">大招对战</option>
+        </select>
+      </div>
+      <div class="form-row setup-field" id="row-size">
         <label id="label-board">棋盘</label>
         <select id="sel-size">
           <option value="19" selected>19×19 标准</option>
@@ -1553,7 +1727,7 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
           <option value="9">9×9</option>
         </select>
       </div>
-      <div class="form-row setup-field">
+      <div class="form-row setup-field" id="row-komi">
         <label id="label-komi">贴目</label>
         <select id="sel-komi">
           <option value="7.5" selected>7.5（中国规则）</option>
@@ -1617,19 +1791,17 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
           <option value="9">让9子</option>
         </select>
       </div>
+      <div class="form-row setup-field" id="row-time">
+        <label id="label-time-mode">用时</label>
+        <select id="sel-time-mode">
+          <option value="none" selected>无限制</option>
+          <option value="byoyomi">包干+读秒</option>
+          <option value="absolute">包干用时</option>
+        </select>
+      </div>
     </div>
-    <!-- Time Control -->
-    <div class="divider" style="margin:12px 0; display:none;"></div>
-    <div class="form-row setup-field" id="row-time">
-      <label id="label-time-mode">用时</label>
-      <select id="sel-time-mode">
-        <option value="none" selected>无限制</option>
-        <option value="byoyomi">包干+读秒</option>
-        <option value="absolute">包干用时</option>
-      </select>
-    </div>
-    <div id="time-settings" style="display:none">
-      <div class="form-row">
+    <div id="time-settings" class="setup-grid" style="display:none">
+      <div class="form-row setup-field">
         <label id="label-main-time">主时</label>
         <select id="sel-main-time">
           <option value="60">1分钟</option>
@@ -1642,42 +1814,22 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
           <option value="3600">60分钟</option>
         </select>
       </div>
-      <div class="form-row" id="row-byoyomi">
+      <div class="form-row setup-field" id="row-byoyomi">
         <label id="label-byoyomi">读秒</label>
-        <select id="sel-byo-periods">
-          <option value="3" selected>3次</option>
-          <option value="5">5次</option>
-          <option value="10">10次</option>
-        </select>
-        <select id="sel-byo-time">
-          <option value="20">20秒</option>
-          <option value="30" selected>30秒</option>
-          <option value="40">40秒</option>
-          <option value="60">60秒</option>
-        </select>
+        <div class="time-split">
+          <select id="sel-byo-periods">
+            <option value="3" selected>3次</option>
+            <option value="5">5次</option>
+            <option value="10">10次</option>
+          </select>
+          <select id="sel-byo-time">
+            <option value="20">20秒</option>
+            <option value="30" selected>30秒</option>
+            <option value="40">40秒</option>
+            <option value="60">60秒</option>
+          </select>
+        </div>
       </div>
-    </div>
-
-    <div class="form-row" id="rogue-row" style="margin-top:8px;">
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-        <input type="checkbox" id="chk-rogue" style="width:16px;height:16px;accent-color:#d4af37;">
-        <span style="color:#d4af37;font-weight:600;">Rogue 模式</span>
-        <span style="color:#888;font-size:.75rem;">（开局三选一强化卡）</span>
-      </label>
-    </div>
-    <div class="form-row" id="ai-rogue-row" style="margin-top:4px; display:none;">
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-        <input type="checkbox" id="chk-ai-rogue" style="width:16px;height:16px;accent-color:#66aaff;">
-        <span style="color:#66aaff;font-weight:700;">AI Rogue 卡</span>
-        <span style="color:#888;font-size:.75rem;">（仅单人，AI 使用受限卡池）</span>
-      </label>
-    </div>
-    <div class="form-row" id="ultimate-row" style="margin-top:4px;">
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-        <input type="checkbox" id="chk-ultimate" style="width:16px;height:16px;accent-color:#ff4444;">
-        <span style="color:#ff4444;font-weight:700;">大招模式</span>
-        <span style="color:#888;font-size:.75rem;">（双方各选超强卡，20手决胜）</span>
-      </label>
     </div>
 
     <div class="btn-row" style="margin-top:16px;">
@@ -1705,6 +1857,31 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
       大招模式</h2>
     <p style="color:#ffc1bb; text-align:center; margin-bottom:18px; font-size:.85rem; line-height:1.6;">挑选你的终局武器。你会得到一张强卡，AI 也会得到它的回应。</p>
     <div id="ultimate-cards" style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; align-items:stretch;"></div>
+  </div>
+</div>
+
+<!-- Rogue Wiki Overlay -->
+<div id="rogue-wiki-modal" class="overlay-modal">
+  <div class="modal-content" style="background:rgba(10,13,19,0.98);">
+    <button class="modal-close" onclick="closeRogueWiki()" title="关闭">✕</button>
+    <div class="wiki-shell">
+      <div>
+        <h2 id="rogue-wiki-title" style="color:#f4e2a3; margin-bottom:8px; font-size:1.34rem; margin-top:0; letter-spacing:.06em;">ROGUE AI WIKI</h2>
+        <p id="rogue-wiki-intro" class="wiki-intro"></p>
+      </div>
+      <section>
+        <div id="rogue-wiki-mode-title" class="wiki-section-title">模式总览</div>
+        <div id="rogue-wiki-modes" class="wiki-mode-grid"></div>
+      </section>
+      <section>
+        <div id="rogue-wiki-rogue-title" class="wiki-section-title">Rogue 卡牌效果</div>
+        <div id="rogue-wiki-rogue-cards" class="wiki-card-grid"></div>
+      </section>
+      <section>
+        <div id="rogue-wiki-ultimate-title" class="wiki-section-title">大招卡牌效果</div>
+        <div id="rogue-wiki-ultimate-cards" class="wiki-card-grid"></div>
+      </section>
+    </div>
   </div>
 </div>
 
@@ -1847,11 +2024,48 @@ function updateChallengeInfo() {
   );
 }
 
+const ROGUE_CARD_ZH = {
+  tengen: { name: "天元", desc: "开局 5 手，AI 会优先靠近天元与星位落子。" },
+  dice: { name: "掷骰", desc: "AI 每手有 8% 概率直接虚手。" },
+  erosion: { name: "蚕食", desc: "每提 1 子，贴目向有利方偏移 4 目。" },
+  puppet: { name: "傀儡术", desc: "先选定 AI 下一手的落点；你先正常落子，随后 AI 会被迫下在那里，整局限 1 次。" },
+  seal: { name: "封印术", desc: "指定 4 个禁着点，整局 AI 都不能下在这些点。" },
+  twin: { name: "连击", desc: "本回合可连续落两手，整局限 1 次。" },
+  nerf: { name: "弱化", desc: "AI 大约下降 8 段，搜索算力只剩约 5%，前 12 手更容易误选备选点。" },
+  komi_relief: { name: "贴目减半", desc: "贴目会朝你有利的方向调整 7 目。" },
+  time_press: { name: "限时压制", desc: "AI 大约下降 5 段，且每手最多思考 0.10 秒，前 12 手更容易仓促误判。" },
+  lowline: { name: "低空飞行", desc: "AI 前 8 手偏向二三路低位。" },
+  suboptimal: { name: "次优之选", desc: "AI 前 8 手更容易从后几名的候选点里随机挑一手。" },
+  mirror: { name: "镜像", desc: "AI 有 10% 概率按棋盘对称位置镜像模仿你的上一手。" },
+  slip: { name: "手滑了", desc: "AI 有 10% 概率手滑到相邻的点位。" },
+  blackhole: { name: "黑洞", desc: "棋盘中心 13 子区域对 AI 前 6 手禁入。" },
+  exchange: { name: "乾坤挪移", desc: "强制 AI 虚手，你继续行棋，整局限 1 次。" },
+  fog: { name: "战争迷雾", desc: "AI 前 11 手每手前会刷新一个 3×3 禁区遮罩；之后每回合随机封锁 2 个 AI 禁着点。" },
+  gravity: { name: "星位引力", desc: "AI 前 7 手被星位磁场牵引。" },
+  golden_corner: { name: "黄金角", desc: "随机封锁一角 4×4 区域，AI 前 10 手禁入。" },
+  sansan: { name: "三三开局", desc: "强制 AI 在开局前 2 手抢四个三三点中的位置；之后 2 手暂时避开角上 4×4 区域。" },
+  shadow: { name: "影子", desc: "AI 前 3 手有 70% 概率紧跟自己的上一手。" },
+  sprout: { name: "萌芽", desc: "每次提子后，都会在附近自动长出 1 颗己棋。" },
+  joseki_ocd: { name: "定式强迫症", desc: "开局亮出 7 个目标点，只要下中 4 个，剩下的 3 个会自动补成你的棋子。" },
+  handicap_quest: { name: "让子任务", desc: "先虚手 1 次，之后每满 8 手奖励 AI 虚手一次，最多触发 3 次。" },
+  god_hand: { name: "神之一手", desc: "踩中隐藏菱形区，周围 3×3 内随机爆出 2 颗己棋，只会落在空点。" },
+  sansan_trap: { name: "三三陷阱", desc: "只有对手第 1 手正好下在四个三三点之一时才会触发，并在那手棋周围反生 8 颗我方棋。" },
+  corner_helper: { name: "守角辅助", desc: "每个角各算一次：任一角的 5×5 区域里有 4 颗己子时，就会在那个角补 1 颗援军。" },
+  sanrensei: { name: "三连星", desc: "若你前 2 手都落在星位，会自动补出第 3 颗星位棋，并再长出 1 颗援军。" },
+  no_regret: { name: "永不悔棋", desc: "禁用悔棋，但每手 10% 概率白送一子。" },
+  quickthink: { name: "快速思考", desc: "4 秒内落子可追加 2 秒连击窗口；选中后禁用推荐点位与悔棋。" },
+  foolish_wisdom: { name: "大智若愚", desc: "摆出愚形，附近 5×5 内随机长出 2 颗己棋。" },
+  five_in_row: { name: "五子连珠", desc: "这是五子棋，不是围棋。每当我方正好连成 5 子，就会优先在首尾补子，并在连线附近补 4 颗援军。" },
+  coach_mode: { name: "代练上号", desc: "主动技能：后 30 手由更强的 AI 代打；若结束后胜率仍低于 50%，则额外再代打 10 手。" },
+  capture_foul: { name: "提子犯规", desc: "若对手单次或累计提子达到 4 颗，就会触发犯规判罚，被惩罚方罚 4 目，随后重新计数。" },
+  last_stand: { name: "起死回生", desc: "当我方胜率跌到 26% 以下时，仅触发 1 次：在上一手周围 3×3 内随机消掉 1 颗敌子，并随机补 1 颗己棋。" },
+};
+
 const ROGUE_CARD_I18N = {
   tengen: { name: "Tengen", desc: "For its first 3 moves, the AI is pulled toward the center and star points." },
   dice: { name: "Dice Roll", desc: "Each AI move has an 8% chance of being skipped entirely." },
   erosion: { name: "Erosion", desc: "Every capture shifts komi by 4 points in the captor's favor." },
-  puppet: { name: "Puppet", desc: "Choose a point \u2014 the AI is forced to play there (once per game)." },
+  puppet: { name: "Puppet", desc: "Mark the AI's next forced point first. You play your move, then the AI must answer there (once per game)." },
   seal: { name: "Seal", desc: "Mark 4 forbidden points the AI cannot touch for the whole game." },
   twin: { name: "Combo", desc: "Play two moves in a single turn once per game for a local follow-up." },
   nerf: { name: "Nerf", desc: "Drop the AI by about 8 ranks, crush its search power to roughly 5%, and make its first 12 moves much more likely to mis-pick backup options." },
@@ -1869,7 +2083,7 @@ const ROGUE_CARD_I18N = {
   sansan: { name: "3-3 Rush", desc: "For its first 2 moves, the AI is forced to open on the four 3-3 points, then avoids corner 4\u00d74 zones for 2 moves." },
   shadow: { name: "Shadow", desc: "On its first 2 moves, the AI has a high chance to cling to its previous stone." },
   sprout: { name: "Sprout", desc: "Each capture spawns a bonus friendly stone nearby." },
-  joseki_ocd: { name: "Joseki OCD", desc: "7 target points appear. Hit any 6 of them to auto-fill the remaining 1 with your stones." },
+  joseki_ocd: { name: "Joseki OCD", desc: "7 target points appear. Hit any 4 of them to auto-fill the remaining 3 with your stones." },
   handicap_quest: { name: "Handicap Quest", desc: "Pass once to start; after every 8 moves you force an AI pass, up to 3 times." },
   god_hand: { name: "Hand of God", desc: "Step on a hidden diamond zone \u2014 2 friendly stones burst into nearby empty points inside a 3\u00d73 area." },
   sansan_trap: { name: "3-3 Trap", desc: "Only if the opponent's very first move lands on any 3-3 point, you immediately gain 8 nearby counter-stones." },
@@ -1882,6 +2096,34 @@ const ROGUE_CARD_I18N = {
   coach_mode: { name: "Coach Login", desc: "Active: a stronger AI plays the next 30 turns for you. If your winrate stays below 50% after that, it plays 10 extra turns." },
   capture_foul: { name: "Capture Foul", desc: "When the opponent's single capture or running capture total reaches 4 stones, a foul triggers automatically. The offender loses 4 points, then the counter resets." },
   last_stand: { name: "Last Stand", desc: "Once per game, if your winrate drops below 26%, remove 1 enemy stone and add 1 friendly stone inside the last move's 3\u00d73 area without landing on forbidden points." },
+};
+
+const ULTIMATE_CARD_ZH = {
+  chain: { name: "连珠棋", desc: "每手 65% 概率触发追加行动。" },
+  proliferate: { name: "无限增殖", desc: "落子后 5×5 范围内爆出 5 颗同色棋。" },
+  double: { name: "双刀流", desc: "每回合固定连下 2 手，但整回合只计 1 手数。" },
+  wildgrow: { name: "狂野生长", desc: "4 颗己子向四周蔓延扩张。" },
+  rejection: { name: "排异反应", desc: "落点 5×5 内敌子被推开或摧毁。" },
+  territory: { name: "绝对领地", desc: "落点周围 4 格形成禁入结界。" },
+  shadow_clone: { name: "影分身", desc: "先生成一颗镜像棋；下一回合会按原落点和镜像点强制连成一整条线。" },
+  plague: { name: "瘟疫", desc: "3×3 内所有敌子转化为己方。" },
+  meteor: { name: "陨石雨", desc: "随机轰掉 5 颗对方棋子。" },
+  quantum: { name: "量子纠缠", desc: "全盘随机位置生成 5 颗同色棋。" },
+  devour: { name: "吞噬", desc: "5×5 范围内敌子全部清空。" },
+  timewarp: { name: "时空裂缝", desc: "85% 概率抹去对手最近 2 手。" },
+  blackout: { name: "天崩地裂", desc: "十字方向清除所有敌子。" },
+  magnet: { name: "磁力吸附", desc: "己方棋子飞速聚拢，碾碎路径上的敌子。" },
+  necro: { name: "亡灵召唤", desc: "召唤 3 颗己棋并策反 2 颗敌棋。" },
+  wall: { name: "万里长城", desc: "有 60% 概率发动：整行或整列筑起一面不可逾越的棋墙。" },
+  joseki_burst: { name: "定式爆发", desc: "命中定式后补满目标，并额外爆出 50 颗同色棋。" },
+  god_hand: { name: "神之一手", desc: "踩中 5×5 隐藏菱形，清空敌子并铺满 50 颗己棋。" },
+  corner_helper: { name: "守角要塞", desc: "四个角分别独立结算：某个角的 5×5 区域里有 2 颗己子时，会封满该角 8×8 边界并清掉里面的敌子。" },
+  sanrensei: { name: "三连星爆发", desc: "前 3 手全落星位，引爆全盘星位势力。" },
+  quickthink: { name: "极速风暴", desc: "5 秒内不限次数连续落子，结束后 AI 再读盘，整段只计 1 手数。" },
+  foolish_wisdom: { name: "愚形连锁", desc: "检测到愚形就连锁生成，最多铺满 20 颗己棋。" },
+  five_in_row: { name: "五子连珠爆发", desc: "这是五子棋，不是围棋。每当我方正好连成 5 子，就会随机清除对方 30 颗棋子，并随机补下 30 颗己棋。" },
+  capture_foul: { name: "提子犯规", desc: "若对手提子或技能消除棋子累计超过 5 颗，则会触发重罚，罚 50 目，并在每次触发后重新计数。" },
+  last_stand: { name: "起死回生", desc: "当我方胜率跌到 30% 以下时：全盘随机清除对方 30 颗棋子，并随机补下 30 颗己棋。" },
 };
 
 const ULTIMATE_CARD_I18N = {
@@ -1923,42 +2165,118 @@ function setLanguage(lang) {
   applyLanguage();
 }
 
+function getCardMeta(cardId, mode) {
+  const zhDict = mode === "ultimate" ? ULTIMATE_CARD_ZH : ROGUE_CARD_ZH;
+  const enDict = mode === "ultimate" ? ULTIMATE_CARD_I18N : ROGUE_CARD_I18N;
+  const dict = currentLang === "en" ? enDict : zhDict;
+  return dict[cardId] || { name: cardId, desc: "" };
+}
+
 function getTranslatedCard(card, mode) {
-  if (currentLang !== "en") return card;
-  const dict = mode === "ultimate" ? ULTIMATE_CARD_I18N : ROGUE_CARD_I18N;
-  const meta = dict[card.id];
+  const meta = getCardMeta(card.id, mode);
   if (!meta) return card;
   return { ...card, name: meta.name, desc: meta.desc };
 }
 
+const CARD_ART_IDS = new Set([
+  "tengen","dice","erosion","puppet","seal","twin","nerf","komi_relief","time_press","lowline",
+  "suboptimal","mirror","slip","blackhole","exchange","fog","gravity","golden_corner","sansan","shadow",
+  "sprout","joseki_ocd","handicap_quest","god_hand","sansan_trap","corner_helper","sanrensei","no_regret",
+  "quickthink","foolish_wisdom","five_in_row","coach_mode","capture_foul","last_stand","chain","proliferate",
+  "double","wildgrow","rejection","territory","shadow_clone","plague","meteor","quantum","devour","timewarp",
+  "blackout","magnet","necro","wall","joseki_burst",
+]);
+
+function getCardIconMarkup(card) {
+  if (CARD_ART_IDS.has(card.id)) {
+    return `<div class="rc-icon rc-icon-art" style="background-image:url('assets/icons/cards-tech/${card.id}.png')"></div>`;
+  }
+  return `<div class="rc-icon">${card.icon}</div>`;
+}
+
 function getRogueCardName(cardId) {
-  return currentLang === "en"
-    ? (ROGUE_CARD_I18N[cardId]?.name || cardId)
-    : ({
-      dice: "掷骰", erosion: "蚕食", puppet: "傀儡术", seal: "封印术", twin: "连击",
-      nerf: "弱化", komi_relief: "贴目减半", time_press: "限时压制", tengen: "天元",
-      lowline: "低空飞行", suboptimal: "次优之选", mirror: "镜像", slip: "手滑了",
-      blackhole: "黑洞", exchange: "乾坤挪移", fog: "战争迷雾", gravity: "星位引力",
-      golden_corner: "黄金角", sansan: "三三开局", sansan_trap: "三三陷阱",
-      shadow: "影子", sprout: "萌芽", joseki_ocd: "定式强迫症", handicap_quest: "让子任务",
-      god_hand: "神之一手", corner_helper: "守角辅助", sanrensei: "三连星",
-      no_regret: "永不悔棋", quickthink: "快速思考", foolish_wisdom: "大智若愚",
-      five_in_row: "五子连珠", coach_mode: "代练上号", capture_foul: "提子犯规", last_stand: "起死回生",
-    }[cardId] || cardId);
+  return getCardMeta(cardId, "rogue").name;
 }
 
 function getUltimateCardName(cardId) {
-  return currentLang === "en"
-    ? (ULTIMATE_CARD_I18N[cardId]?.name || cardId)
-    : ({
-      chain: "连珠棋", proliferate: "无限增殖", double: "双刀流", wildgrow: "狂野生长",
-      rejection: "排异反应", territory: "绝对领地", shadow_clone: "影分身", plague: "瘟疫",
-      meteor: "陨石雨", quantum: "量子纠缠", devour: "吞噬", timewarp: "时空裂缝",
-      blackout: "天崩地裂", magnet: "磁力吸附", necro: "亡灵召唤", wall: "万里长城",
-      joseki_burst: "定式爆发", god_hand: "神之一手", corner_helper: "守角要塞",
-      sanrensei: "三连星爆发", quickthink: "极速风暴", foolish_wisdom: "愚形连锁",
-      five_in_row: "五子连珠爆发", capture_foul: "提子犯规", last_stand: "起死回生",
-    }[cardId] || cardId);
+  return getCardMeta(cardId, "ultimate").name;
+}
+
+const ROGUE_WIKI_MODES = [
+  {
+    key: "solo",
+    zhTitle: "单人抽卡",
+    zhDesc: "你开局三选一张 Rogue 强化卡，AI 按常规规则应战。适合先熟悉单卡节奏。",
+    enTitle: "Solo Draft",
+    enDesc: "You draft 1 Rogue card from 3 choices. The AI plays standard rules with no Rogue card of its own.",
+  },
+  {
+    key: "dual",
+    zhTitle: "双人抽卡",
+    zhDesc: "你先三选一张强化卡，AI 也会从受限 Rogue 卡池获得一张卡。双方都带卡，节奏更乱更凶。",
+    enTitle: "Dual Draft",
+    enDesc: "You pick 1 Rogue card from 3 choices, and the AI also receives 1 card from the restricted AI Rogue pool.",
+  },
+  {
+    key: "ultimate",
+    zhTitle: "大招对战",
+    zhDesc: "你与 AI 各自三选一张大招卡，整局 20 手决胜，强调爆发、清场和强制改盘。",
+    enTitle: "Ultimate Duel",
+    enDesc: "You and the AI each pick 1 ultimate card from 3 choices. The game resolves in a 20-move showdown.",
+  },
+  {
+    key: "challenge",
+    zhTitle: "闯关",
+    zhDesc: "闯关会叠加卡池限制、让子与刷新次数，适合连续冲关和测试极限构筑。",
+    enTitle: "Challenge",
+    enDesc: "Challenge mode layers card-pool restrictions, handicap, and refresh counts for staged runs.",
+  },
+];
+
+function renderRogueWiki() {
+  const intro = document.getElementById("rogue-wiki-intro");
+  const modeWrap = document.getElementById("rogue-wiki-modes");
+  const rogueWrap = document.getElementById("rogue-wiki-rogue-cards");
+  const ultimateWrap = document.getElementById("rogue-wiki-ultimate-cards");
+  if (!intro || !modeWrap || !rogueWrap || !ultimateWrap) return;
+
+  intro.textContent = ui(
+    "这里汇总 Rogue AI 的三种主玩法、闯关路线，以及所有 Rogue 强化卡与大招卡的效果说明。",
+    "This index covers Rogue AI game variants, challenge runs, and the full effect list for Rogue and Ultimate cards."
+  );
+
+  modeWrap.innerHTML = ROGUE_WIKI_MODES.map(item => `
+    <article class="wiki-mode-card">
+      <h3>${currentLang === "en" ? item.enTitle : item.zhTitle}</h3>
+      <p>${currentLang === "en" ? item.enDesc : item.zhDesc}</p>
+    </article>
+  `).join("");
+
+  rogueWrap.innerHTML = Object.keys(ROGUE_CARD_ZH).map(cardId => {
+    const meta = getCardMeta(cardId, "rogue");
+    return `
+      <article class="wiki-card-item">
+        ${getCardIconMarkup({ id: cardId, icon: "?" })}
+        <div class="wiki-card-copy">
+          <h4>${meta.name}</h4>
+          <p>${meta.desc}</p>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  ultimateWrap.innerHTML = Object.keys(ULTIMATE_CARD_ZH).map(cardId => {
+    const meta = getCardMeta(cardId, "ultimate");
+    return `
+      <article class="wiki-card-item">
+        ${getCardIconMarkup({ id: cardId, icon: "?" })}
+        <div class="wiki-card-copy">
+          <h4>${meta.name}</h4>
+          <p>${meta.desc}</p>
+        </div>
+      </article>
+    `;
+  }).join("");
 }
 
 function translateServerEventMessage(message) {
@@ -2048,6 +2366,16 @@ function setTitle(selector, text) {
   if (el) el.title = text;
 }
 
+function setSoundToggleVisual() {
+  const icon = document.querySelector("#sound-toggle .toolbar-icon");
+  if (icon) icon.dataset.icon = soundEnabled ? "sound-on" : "sound-off";
+}
+
+function setTerritoryToggleVisual() {
+  const icon = document.querySelector("#btn-territory-toggle .toolbar-icon");
+  if (icon) icon.dataset.icon = showTerritory ? "territory-on" : "territory-off";
+}
+
 function setConnectionIndicator(ready, text) {
   const dot = document.getElementById("status-dot");
   const status = document.getElementById("status-text");
@@ -2104,14 +2432,15 @@ function applyLanguage() {
   setText("#thinking-indicator", ui("AI 思考中…", "AI is thinking..."));
   setText("#thinking-indicator-panel", ui("AI 思考中…", "AI is thinking..."));
 
-  setTitle("#btn-setup", ui("开始对局", "Start Game"));
+  setTitle("#btn-setup", ui("开始对弈", "Start Game"));
   setTitle("#btn-pass", ui("虚手", "Pass"));
   setTitle("#btn-undo", ui("悔棋", "Undo"));
   setTitle("#btn-score", ui("计算胜负", "Score"));
   setTitle("#btn-territory-toggle", ui("形势分析", "Territory"));
   setTitle("#btn-resign", ui("认输", "Resign"));
-  setTitle("#main-toolbar button:last-child", ui("打开功能", "Settings"));
-  setTitle("#review-toolbar button:last-child", ui("打开功能", "Settings"));
+  setTitle("#btn-rogue-wiki", ui("ROGUE AI WIKI", "ROGUE AI WIKI"));
+  setTitle("#btn-settings", ui("打开功能", "Settings"));
+  setTitle("#btn-review-settings", ui("打开功能", "Settings"));
   setTitle("#btn-review-first", ui("第一手", "First Move"));
   setTitle("#btn-review-prev", ui("上一手", "Previous Move"));
   setTitle("#btn-review-next", ui("下一手", "Next Move"));
@@ -2169,8 +2498,12 @@ function applyLanguage() {
 
   const setupTitle = document.querySelector("#setup-modal h2");
   if (setupTitle) setupTitle.textContent = ui("开始对弈", "Start Game");
-  setText("#label-mode", ui("开局", "Mode"));
+  setText("#rogue-wiki-title", ui("ROGUE AI WIKI", "ROGUE AI WIKI"));
+  setText("#rogue-wiki-mode-title", ui("玩法总览", "Mode Overview"));
+  setText("#rogue-wiki-rogue-title", ui("Rogue 卡牌效果", "Rogue Card Effects"));
+  setText("#rogue-wiki-ultimate-title", ui("大招卡牌效果", "Ultimate Card Effects"));
   setText("#label-color", ui("我执", "Color"));
+  setText("#label-rogue-variant", ui("玩法", "Variant"));
   setText("#label-board", ui("棋盘", "Board"));
   setText("#label-komi", ui("贴目", "Komi"));
   setText("#label-level", ui("等级", "Rank"));
@@ -2184,6 +2517,7 @@ function applyLanguage() {
   setText("#label-main-time", ui("主时", "Main Time"));
   setText("#label-byoyomi", ui("读秒", "Byo-yomi"));
   setText("#mode-normal", ui("对局", "Game"));
+  setText("#mode-rogue", ui("Rogue", "Rogue"));
   setText("#mode-watch", ui("学习", "Study"));
   setText("#mode-two", ui("双人", "Two Players"));
   setText("#mode-challenge", ui("闯关", "Challenge"));
@@ -2198,16 +2532,6 @@ function applyLanguage() {
   if (ultTitle) ultTitle.textContent = ui("大招模式", "Ultimate Mode");
   const ultSub = document.querySelector("#ultimate-overlay p");
   if (ultSub) ultSub.textContent = ui("你与 AI 各选一张超强卡", "You and the AI each choose one card");
-
-  const rogueSpans = document.querySelectorAll("#rogue-row span");
-  if (rogueSpans[0]) rogueSpans[0].textContent = "Rogue Mode";
-  if (rogueSpans[1]) rogueSpans[1].textContent = ui("（开局三选一强化卡）", "(pick 1 of 3 opening cards)");
-  const aiRogueSpans = document.querySelectorAll("#ai-rogue-row span");
-  if (aiRogueSpans[0]) aiRogueSpans[0].textContent = ui("AI Rogue 卡", "AI Rogue Cards");
-  if (aiRogueSpans[1]) aiRogueSpans[1].textContent = ui("（仅单人，AI 使用受限卡池）", "(single-player only, limited AI pool)");
-  const ultSpans = document.querySelectorAll("#ultimate-row span");
-  if (ultSpans[0]) ultSpans[0].textContent = ui("大招模式", "Ultimate Mode");
-  if (ultSpans[1]) ultSpans[1].textContent = ui("（双方各选超强卡，20手决胜）", "(both sides choose an overpowered card, 20 moves to decide)");
 
   setOptionText("sel-placement", [
     ["direct", "直接落子", "Direct"],
@@ -2233,6 +2557,11 @@ function applyLanguage() {
     ["byoyomi", "包干+读秒", "Main + Byo-yomi"],
     ["absolute", "包干用时", "Absolute"]
   ]);
+  setOptionText("sel-rogue-variant", [
+    ["solo", "单人抽卡", "Solo Draft"],
+    ["dual", "双人抽卡", "Dual Draft"],
+    ["ultimate", "大招对战", "Ultimate Duel"]
+  ]);
   setText("#wr-black-label", `${ui("黑", "Black")} 50.0%`);
   setText("#wr-white-label", `${ui("白", "White")} 50.0%`);
   setText("#curve-title", ui("胜率曲线", "Winrate Curve"));
@@ -2248,6 +2577,7 @@ function applyLanguage() {
   if (activeRogueCard) updateRogueBar();
   if (ultimateMode) updateUltimateBar();
   if (gameState) updateUI();
+  renderRogueWiki();
   refreshSetupModeHint();
   updateVariantOptionRows();
   drawWinrateCurve();
@@ -3142,64 +3472,13 @@ function requestReviewAnalysis() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // MODE SELECTOR
 // ═══════════════════════════════════════════════════════════════════════════════
-function setMode(mode) {
-  startMode = mode;
-  document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
-  document.getElementById("mode-" + mode).classList.add("active");
-
-  const rowColor    = document.getElementById("row-color");
-  const rowHandicap = document.getElementById("row-handicap");
-  const hint        = document.getElementById("mode-hint");
-  const komiSel     = document.getElementById("sel-komi");
-
-  const rogueRow = document.getElementById("rogue-row");
-  const ultimateRow = document.getElementById("ultimate-row");
-
-  rowColor.style.display = "flex";
-  rowHandicap.style.display = "flex";
-  hint.style.display = "none";
-  rogueRow.style.display = "";
-  ultimateRow.style.display = "";
-
-  if (mode === "guess") {
-    rowColor.style.display = "none";
-    hint.style.display = "block";
-    hint.textContent = "猜先：随机决定执黑/执白";
-  } else if (mode === "give") {
-    rowColor.style.display = "none";
-    rowHandicap.style.display = "none";
-    hint.style.display = "block";
-    hint.textContent = "让先：你执黑，AI执白，贴目自动设为0";
-    komiSel.value = "0";
-  } else if (mode === "two") {
-    rowColor.style.display = "none";
-    rowHandicap.style.display = "flex";
-    hint.style.display = "block";
-    hint.textContent = "双人：黑白双方均由人落子，可选择是否启用AI形势分析";
-    rogueRow.style.display = "none";
-    ultimateRow.style.display = "none";
-    document.getElementById("chk-rogue").checked = false;
-    document.getElementById("chk-ultimate").checked = false;
-  }
+function getRogueVariantMode() {
+  return document.getElementById("sel-rogue-variant")?.value || "solo";
 }
 
-// Mutual exclusion: rogue vs ultimate checkboxes
-document.getElementById("chk-rogue").addEventListener("change", (e) => {
-  if (e.target.checked) document.getElementById("chk-ultimate").checked = false;
+document.getElementById("sel-rogue-variant").addEventListener("change", () => {
   updateVariantOptionRows();
-});
-document.getElementById("chk-ultimate").addEventListener("change", (e) => {
-  if (e.target.checked) {
-    document.getElementById("chk-rogue").checked = false;
-    document.getElementById("chk-ai-rogue").checked = false;
-  }
-  updateVariantOptionRows();
-});
-document.getElementById("chk-ai-rogue").addEventListener("change", () => {
-  if (!document.getElementById("chk-rogue").checked) {
-    document.getElementById("chk-ai-rogue").checked = false;
-  }
-  updateVariantOptionRows();
+  refreshSetupModeHint();
 });
 
 // Time control UI
@@ -3296,6 +3575,200 @@ function ensureBoardReady(delay = 250) {
 let _boardCacheParams = "";
 let _offScreenBoard = null;
 let _stoneSpriteCache = new Map();
+const BOARD_TEXTURE_SRC = "assets/textures/board-tech-classic-v2.png?v=20260423a";
+const BLACK_STONE_TEXTURE_SRC = "assets/textures/stone-black-traditional-v1.png?v=20260423b";
+const WHITE_STONE_TEXTURE_SRC = "assets/textures/stone-materials-tech-v3.png?v=20260423a";
+const boardTextureImage = new Image();
+const blackStoneTexture = new Image();
+const whiteStoneTexture = new Image();
+boardTextureImage.decoding = "async";
+blackStoneTexture.decoding = "async";
+whiteStoneTexture.decoding = "async";
+
+function isAssetReady(img) {
+  return !!(img && img.complete && img.naturalWidth > 0);
+}
+
+function invalidateBoardVisualCaches() {
+  _boardCacheParams = "";
+  _offScreenBoard = null;
+  _stoneSpriteCache = new Map();
+}
+
+function refreshBoardVisuals() {
+  invalidateBoardVisualCaches();
+  if (boardRenderSize && canvas && ctx) render();
+}
+
+boardTextureImage.onload = refreshBoardVisuals;
+blackStoneTexture.onload = refreshBoardVisuals;
+whiteStoneTexture.onload = refreshBoardVisuals;
+boardTextureImage.src = BOARD_TEXTURE_SRC;
+blackStoneTexture.src = BLACK_STONE_TEXTURE_SRC;
+whiteStoneTexture.src = WHITE_STONE_TEXTURE_SRC;
+
+function paintBoardBase(bCtx, W) {
+  if (isAssetReady(boardTextureImage)) {
+    const crop = Math.floor(boardTextureImage.naturalWidth * 0.14);
+    bCtx.drawImage(
+      boardTextureImage,
+      crop,
+      crop,
+      boardTextureImage.naturalWidth - crop * 2,
+      boardTextureImage.naturalHeight - crop * 2,
+      0,
+      0,
+      W,
+      W
+    );
+  } else {
+    const woodGrad = bCtx.createLinearGradient(0, 0, 0, W);
+    woodGrad.addColorStop(0, "#c89547");
+    woodGrad.addColorStop(0.45, "#d6a85a");
+    woodGrad.addColorStop(1, "#b67d38");
+    bCtx.fillStyle = woodGrad;
+    bCtx.fillRect(0, 0, W, W);
+
+    let grainSeed = boardSize * 131 + W * 17;
+    const grainRand = () => {
+      grainSeed = (grainSeed * 1664525 + 1013904223) >>> 0;
+      return grainSeed / 4294967296;
+    };
+    bCtx.lineCap = "round";
+    for (let i = 0; i < 28; i++) {
+      const startY = grainRand() * W;
+      const driftA = (grainRand() - 0.5) * W * 0.16;
+      const driftB = (grainRand() - 0.5) * W * 0.14;
+      const endY = startY + (grainRand() - 0.5) * W * 0.12;
+      bCtx.strokeStyle = `rgba(88, 52, 19, ${0.022 + grainRand() * 0.028})`;
+      bCtx.lineWidth = Math.max(1.1, W * (0.0014 + grainRand() * 0.0016));
+      bCtx.beginPath();
+      bCtx.moveTo(-W * 0.08, startY);
+      bCtx.bezierCurveTo(W * 0.24, startY + driftA, W * 0.72, startY + driftB, W * 1.08, endY);
+      bCtx.stroke();
+    }
+    for (let i = 0; i < 20; i++) {
+      const startY = grainRand() * W;
+      const driftA = (grainRand() - 0.5) * W * 0.12;
+      const driftB = (grainRand() - 0.5) * W * 0.1;
+      const endY = startY + (grainRand() - 0.5) * W * 0.08;
+      bCtx.strokeStyle = `rgba(255, 231, 186, ${0.01 + grainRand() * 0.018})`;
+      bCtx.lineWidth = Math.max(0.8, W * (0.0008 + grainRand() * 0.001));
+      bCtx.beginPath();
+      bCtx.moveTo(-W * 0.06, startY);
+      bCtx.bezierCurveTo(W * 0.28, startY + driftA, W * 0.68, startY + driftB, W * 1.04, endY);
+      bCtx.stroke();
+    }
+    for (let i = 0; i < 7; i++) {
+      const knotX = W * (0.12 + grainRand() * 0.76);
+      const knotY = W * (0.12 + grainRand() * 0.76);
+      const knotR = W * (0.015 + grainRand() * 0.026);
+      const knot = bCtx.createRadialGradient(knotX - knotR * 0.24, knotY - knotR * 0.18, knotR * 0.1, knotX, knotY, knotR);
+      knot.addColorStop(0, `rgba(102, 58, 20, ${0.12 + grainRand() * 0.08})`);
+      knot.addColorStop(0.45, `rgba(132, 78, 30, ${0.06 + grainRand() * 0.05})`);
+      knot.addColorStop(1, "rgba(132, 78, 30, 0)");
+      bCtx.fillStyle = knot;
+      bCtx.beginPath();
+      bCtx.ellipse(knotX, knotY, knotR * (1.2 + grainRand() * 0.5), knotR * (0.7 + grainRand() * 0.25), grainRand() * Math.PI, 0, Math.PI * 2);
+      bCtx.fill();
+    }
+  }
+
+  const edgeGrad = bCtx.createRadialGradient(W / 2, W / 2, W * 0.26, W / 2, W / 2, W * 0.76);
+  edgeGrad.addColorStop(0, "rgba(255,255,255,0)");
+  edgeGrad.addColorStop(0.72, "rgba(0,0,0,0.035)");
+  edgeGrad.addColorStop(1, "rgba(0,0,0,0.13)");
+  bCtx.fillStyle = edgeGrad;
+  bCtx.fillRect(0, 0, W, W);
+
+  const frameGrad = bCtx.createLinearGradient(0, 0, W, W);
+  frameGrad.addColorStop(0, "rgba(255, 245, 206, 0.08)");
+  frameGrad.addColorStop(1, "rgba(90, 52, 14, 0.14)");
+  bCtx.fillStyle = frameGrad;
+  bCtx.fillRect(0, 0, W, W);
+}
+
+function getStoneVariantId(x, y, color) {
+  return ((x + 3) * 73856093 ^ (y + 5) * 19349663 ^ (color === "B" ? 83492791 : 29765729)) >>> 0;
+}
+
+function paintStoneTexture(sctx, color, cx, cy, r, variantId) {
+  const normalized = (variantId % 997) / 997;
+  const normalizedY = ((variantId >>> 8) % 991) / 991;
+  if (color === "B" && isAssetReady(blackStoneTexture)) {
+    const sourceSize = Math.max(
+      Math.floor(blackStoneTexture.naturalWidth * 0.42),
+      Math.floor(blackStoneTexture.naturalWidth * (0.46 + normalized * 0.18))
+    );
+    const maxSourceX = Math.max(0, blackStoneTexture.naturalWidth - sourceSize);
+    const maxSourceY = Math.max(0, blackStoneTexture.naturalHeight - sourceSize);
+    const sourceX = Math.floor(maxSourceX * normalized);
+    const sourceY = Math.floor(maxSourceY * normalizedY);
+    const angle = ((variantId % 5) - 2) * 0.03;
+    sctx.save();
+    sctx.translate(cx, cy);
+    sctx.rotate(angle);
+    sctx.globalAlpha = 0.18;
+    sctx.drawImage(
+      blackStoneTexture,
+      sourceX,
+      sourceY,
+      sourceSize,
+      sourceSize,
+      -r * 1.02,
+      -r * 1.02,
+      r * 2.04,
+      r * 2.04
+    );
+    sctx.restore();
+    return;
+  }
+
+  if (color === "W" && isAssetReady(whiteStoneTexture)) {
+    const halfWidth = Math.floor(whiteStoneTexture.naturalWidth / 2);
+    const sheetHeight = whiteStoneTexture.naturalHeight;
+    const sourceSize = Math.max(
+      Math.floor(halfWidth * 0.54),
+      Math.floor(halfWidth * (0.58 + normalized * 0.18))
+    );
+    const maxSourceX = Math.max(0, halfWidth - sourceSize);
+    const maxSourceY = Math.max(0, sheetHeight - sourceSize);
+    const sourceX = halfWidth + Math.floor(maxSourceX * normalized);
+    const sourceY = Math.floor(maxSourceY * normalizedY);
+    sctx.save();
+    sctx.translate(cx, cy);
+    sctx.rotate(((variantId % 7) - 3) * 0.05);
+    sctx.globalAlpha = 0.78;
+    sctx.drawImage(
+      whiteStoneTexture,
+      sourceX,
+      sourceY,
+      sourceSize,
+      sourceSize,
+      -r * 1.04,
+      -r * 1.04,
+      r * 2.08,
+      r * 2.08
+    );
+    sctx.restore();
+    return;
+  }
+
+  const fill = sctx.createRadialGradient(cx - r * 0.34, cy - r * 0.36, r * 0.08, cx + r * 0.16, cy + r * 0.2, r * 1.12);
+  if (color === "B") {
+    fill.addColorStop(0, "#363a3f");
+    fill.addColorStop(0.22, "#171b1f");
+    fill.addColorStop(0.72, "#07090d");
+    fill.addColorStop(1, "#010203");
+  } else {
+    fill.addColorStop(0, "#ffffff");
+    fill.addColorStop(0.28, "#fcfcfb");
+    fill.addColorStop(0.72, "#ddd8cc");
+    fill.addColorStop(1, "#afa999");
+  }
+  sctx.fillStyle = fill;
+  sctx.fill();
+}
 
 // ─── Board rendering ───────────────────────────────────────────────────────────
 function drawBoard() {
@@ -3314,85 +3787,22 @@ function drawBoard() {
   const bCtx = _offScreenBoard.getContext("2d");
   bCtx.imageSmoothingEnabled = true;
   if ("imageSmoothingQuality" in bCtx) bCtx.imageSmoothingQuality = "high";
+  paintBoardBase(bCtx, W);
 
-  const woodGrad = bCtx.createLinearGradient(0, 0, 0, W);
-  woodGrad.addColorStop(0, "#c89547");
-  woodGrad.addColorStop(0.45, "#d6a85a");
-  woodGrad.addColorStop(1, "#b67d38");
-  bCtx.fillStyle = woodGrad;
-  bCtx.fillRect(0, 0, W, W);
-
-  let grainSeed = size * 131 + W * 17;
-  const grainRand = () => {
-    grainSeed = (grainSeed * 1664525 + 1013904223) >>> 0;
-    return grainSeed / 4294967296;
-  };
-  bCtx.lineCap = "round";
-  for (let i = 0; i < 28; i++) {
-    const startY = grainRand() * W;
-    const driftA = (grainRand() - 0.5) * W * 0.16;
-    const driftB = (grainRand() - 0.5) * W * 0.14;
-    const endY = startY + (grainRand() - 0.5) * W * 0.12;
-    bCtx.strokeStyle = `rgba(88, 52, 19, ${0.022 + grainRand() * 0.028})`;
-    bCtx.lineWidth = Math.max(1.1, W * (0.0014 + grainRand() * 0.0016));
-    bCtx.beginPath();
-    bCtx.moveTo(-W * 0.08, startY);
-    bCtx.bezierCurveTo(W * 0.24, startY + driftA, W * 0.72, startY + driftB, W * 1.08, endY);
-    bCtx.stroke();
-  }
-  for (let i = 0; i < 20; i++) {
-    const startY = grainRand() * W;
-    const driftA = (grainRand() - 0.5) * W * 0.12;
-    const driftB = (grainRand() - 0.5) * W * 0.1;
-    const endY = startY + (grainRand() - 0.5) * W * 0.08;
-    bCtx.strokeStyle = `rgba(255, 231, 186, ${0.01 + grainRand() * 0.018})`;
-    bCtx.lineWidth = Math.max(0.8, W * (0.0008 + grainRand() * 0.001));
-    bCtx.beginPath();
-    bCtx.moveTo(-W * 0.06, startY);
-    bCtx.bezierCurveTo(W * 0.28, startY + driftA, W * 0.68, startY + driftB, W * 1.04, endY);
-    bCtx.stroke();
-  }
-  for (let i = 0; i < 7; i++) {
-    const knotX = W * (0.12 + grainRand() * 0.76);
-    const knotY = W * (0.12 + grainRand() * 0.76);
-    const knotR = W * (0.015 + grainRand() * 0.026);
-    const knot = bCtx.createRadialGradient(knotX - knotR * 0.24, knotY - knotR * 0.18, knotR * 0.1, knotX, knotY, knotR);
-    knot.addColorStop(0, `rgba(102, 58, 20, ${0.12 + grainRand() * 0.08})`);
-    knot.addColorStop(0.45, `rgba(132, 78, 30, ${0.06 + grainRand() * 0.05})`);
-    knot.addColorStop(1, "rgba(132, 78, 30, 0)");
-    bCtx.fillStyle = knot;
-    bCtx.beginPath();
-    bCtx.ellipse(knotX, knotY, knotR * (1.2 + grainRand() * 0.5), knotR * (0.7 + grainRand() * 0.25), grainRand() * Math.PI, 0, Math.PI * 2);
-    bCtx.fill();
-  }
-
-  const edgeGrad = bCtx.createRadialGradient(W/2, W/2, W*0.24, W/2, W/2, W*0.76);
-  edgeGrad.addColorStop(0, "rgba(255,255,255,0)");
-  edgeGrad.addColorStop(0.68, "rgba(0,0,0,0.05)");
-  edgeGrad.addColorStop(1, "rgba(0,0,0,0.16)");
-  bCtx.fillStyle = edgeGrad;
-  bCtx.fillRect(0, 0, W, W);
-
-  const frameGrad = bCtx.createLinearGradient(0, 0, W, W);
-  frameGrad.addColorStop(0, "rgba(255, 237, 190, 0.15)");
-  frameGrad.addColorStop(1, "rgba(72, 38, 9, 0.24)");
-  bCtx.fillStyle = frameGrad;
-  bCtx.fillRect(0, 0, W, W);
-
-  bCtx.strokeStyle = "rgba(32, 18, 4, 0.78)";
-  bCtx.lineWidth = 1.18;
+  bCtx.strokeStyle = "rgba(68, 40, 11, 0.72)";
+  bCtx.lineWidth = 1.26;
   for (let i = 0; i < size; i++) {
     const p = PAD + i * CELL;
     bCtx.beginPath(); bCtx.moveTo(p, PAD); bCtx.lineTo(p, PAD + (size-1)*CELL); bCtx.stroke();
     bCtx.beginPath(); bCtx.moveTo(PAD, p); bCtx.lineTo(PAD + (size-1)*CELL, p); bCtx.stroke();
   }
 
-  bCtx.strokeStyle = "rgba(20, 10, 0, 0.95)";
-  bCtx.lineWidth = 2.3;
+  bCtx.strokeStyle = "rgba(54, 30, 7, 0.88)";
+  bCtx.lineWidth = 2.5;
   bCtx.strokeRect(PAD - 1, PAD - 1, (size-1)*CELL + 2, (size-1)*CELL + 2);
 
   // Star points
-  bCtx.fillStyle = "rgba(30, 15, 0, 0.95)";
+  bCtx.fillStyle = "rgba(43, 23, 4, 0.95)";
   getStarPoints(size).forEach(([sx, sy]) => {
     bCtx.beginPath();
     bCtx.arc(PAD + sx*CELL, PAD + sy*CELL, CELL * .13, 0, Math.PI*2);
@@ -3400,7 +3810,7 @@ function drawBoard() {
   });
 
   // Coordinates
-  bCtx.fillStyle = "rgba(40, 20, 5, 0.75)";
+  bCtx.fillStyle = "rgba(84, 49, 14, 0.76)";
   const fs = Math.max(9, Math.min(CELL * .35, 14));
   bCtx.font = `600 ${fs}px "Consolas", monospace`;
   bCtx.textAlign = "center"; bCtx.textBaseline = "middle";
@@ -3422,10 +3832,10 @@ function getStarPoints(size) {
   return [];
 }
 
-function getStoneSprite(color, radius) {
+function getStoneSprite(color, radius, variantId = 0) {
   const spriteScale = Math.max(5, Math.ceil(boardRenderDpr * 4));
   const spriteRadius = Math.max(18, Math.round(radius * spriteScale));
-  const key = `${color}_${spriteRadius}_${spriteScale}`;
+  const key = `${color}_${spriteRadius}_${spriteScale}_${variantId % 9}`;
   if (_stoneSpriteCache.has(key)) return _stoneSpriteCache.get(key);
 
   const pad = Math.ceil(spriteRadius * 0.48);
@@ -3447,21 +3857,17 @@ function getStoneSprite(color, radius) {
   sctx.shadowOffsetY = r * 0.22;
   sctx.beginPath();
   sctx.arc(cx, cy, r, 0, Math.PI * 2);
+  const baseFill = sctx.createRadialGradient(cx - r * 0.34, cy - r * 0.36, r * 0.08, cx + r * 0.16, cy + r * 0.2, r * 1.12);
   if (color === "B") {
-    const fill = sctx.createRadialGradient(cx - r * 0.34, cy - r * 0.36, r * 0.08, cx + r * 0.16, cy + r * 0.2, r * 1.12);
-    fill.addColorStop(0, "#363a3f");
-    fill.addColorStop(0.22, "#171b1f");
-    fill.addColorStop(0.72, "#07090d");
-    fill.addColorStop(1, "#010203");
-    sctx.fillStyle = fill;
+    baseFill.addColorStop(0, "#2a2d31");
+    baseFill.addColorStop(0.42, "#14171a");
+    baseFill.addColorStop(1, "#050607");
   } else {
-    const fill = sctx.createRadialGradient(cx - r * 0.34, cy - r * 0.36, r * 0.08, cx + r * 0.16, cy + r * 0.2, r * 1.12);
-    fill.addColorStop(0, "#ffffff");
-    fill.addColorStop(0.28, "#fcfcfb");
-    fill.addColorStop(0.72, "#ddd8cc");
-    fill.addColorStop(1, "#afa999");
-    sctx.fillStyle = fill;
+    baseFill.addColorStop(0, "#ffffff");
+    baseFill.addColorStop(0.58, "#f7f5ef");
+    baseFill.addColorStop(1, "#ddd8cf");
   }
+  sctx.fillStyle = baseFill;
   sctx.fill();
   sctx.restore();
 
@@ -3469,67 +3875,51 @@ function getStoneSprite(color, radius) {
   sctx.beginPath();
   sctx.arc(cx, cy, r, 0, Math.PI * 2);
   sctx.clip();
-  if (color === "W") {
-    sctx.strokeStyle = "rgba(166, 173, 183, 0.2)";
-    sctx.lineWidth = Math.max(1, r * 0.028);
-    for (let i = -4; i <= 4; i++) {
-      sctx.beginPath();
-      sctx.moveTo(cx - r * 0.94, cy + i * r * 0.14 - r * 0.34);
-      sctx.quadraticCurveTo(cx - r * 0.14, cy + i * r * 0.12, cx + r * 0.9, cy + i * r * 0.16 + r * 0.34);
-      sctx.stroke();
-    }
-    sctx.strokeStyle = "rgba(255,255,255,0.16)";
-    sctx.lineWidth = Math.max(1, r * 0.014);
-    for (let i = -3; i <= 3; i++) {
-      sctx.beginPath();
-      sctx.moveTo(cx - r * 0.82, cy + i * r * 0.16 - r * 0.18);
-      sctx.quadraticCurveTo(cx + r * 0.04, cy + i * r * 0.1, cx + r * 0.72, cy + i * r * 0.16 + r * 0.2);
-      sctx.stroke();
-    }
-  } else {
-    const boardBounce = sctx.createRadialGradient(cx + r * 0.2, cy + r * 0.22, r * 0.16, cx + r * 0.22, cy + r * 0.22, r * 0.92);
-    boardBounce.addColorStop(0, "rgba(182, 131, 80, 0.015)");
-    boardBounce.addColorStop(1, "rgba(182, 131, 80, 0.1)");
-    sctx.fillStyle = boardBounce;
+  paintStoneTexture(sctx, color, cx, cy, r, variantId);
+  if (color === "B") {
+    const rimShade = sctx.createRadialGradient(cx, cy, r * 0.58, cx, cy, r * 1.04);
+    rimShade.addColorStop(0, "rgba(0,0,0,0)");
+    rimShade.addColorStop(1, "rgba(0,0,0,0.20)");
+    sctx.fillStyle = rimShade;
     sctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-    const glossyBand = sctx.createLinearGradient(cx - r * 0.5, cy - r * 0.65, cx + r * 0.5, cy + r * 0.78);
-    glossyBand.addColorStop(0, "rgba(255,255,255,0.08)");
-    glossyBand.addColorStop(0.24, "rgba(255,255,255,0.025)");
-    glossyBand.addColorStop(0.52, "rgba(255,255,255,0)");
-    glossyBand.addColorStop(1, "rgba(0,0,0,0.1)");
-    sctx.fillStyle = glossyBand;
+  } else {
+    const pearlShade = sctx.createRadialGradient(cx + r * 0.12, cy + r * 0.18, r * 0.16, cx, cy, r * 1.04);
+    pearlShade.addColorStop(0, "rgba(255,255,255,0)");
+    pearlShade.addColorStop(0.56, "rgba(255,255,255,0)");
+    pearlShade.addColorStop(1, "rgba(130, 116, 97, 0.12)");
+    sctx.fillStyle = pearlShade;
     sctx.fillRect(cx - r, cy - r, r * 2, r * 2);
   }
-  sctx.strokeStyle = color === "B" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.75)";
-  sctx.lineWidth = Math.max(1.4, r * 0.04);
+  sctx.strokeStyle = color === "B" ? "rgba(255,255,255,0.035)" : "rgba(255,255,255,0.52)";
+  sctx.lineWidth = Math.max(1.1, r * 0.032);
   sctx.beginPath();
   sctx.arc(cx, cy, r - sctx.lineWidth / 2, 0, Math.PI * 2);
   sctx.stroke();
 
-  const highlight = sctx.createRadialGradient(cx - r * 0.38, cy - r * 0.44, r * 0.02, cx - r * 0.34, cy - r * 0.38, r * 0.7);
+  const highlight = sctx.createRadialGradient(cx - r * 0.38, cy - r * 0.44, r * 0.02, cx - r * 0.34, cy - r * 0.38, r * 0.55);
   if (color === "B") {
-    highlight.addColorStop(0, "rgba(255,255,255,0.18)");
-    highlight.addColorStop(0.5, "rgba(255,255,255,0.055)");
+    highlight.addColorStop(0, "rgba(255,255,255,0.055)");
+    highlight.addColorStop(0.5, "rgba(255,255,255,0.016)");
     highlight.addColorStop(1, "rgba(255,255,255,0)");
   } else {
-    highlight.addColorStop(0, "rgba(255,255,255,0.98)");
-    highlight.addColorStop(0.5, "rgba(255,255,255,0.45)");
+    highlight.addColorStop(0, "rgba(255,255,255,0.22)");
+    highlight.addColorStop(0.5, "rgba(255,255,255,0.07)");
     highlight.addColorStop(1, "rgba(255,255,255,0)");
   }
   sctx.fillStyle = highlight;
   sctx.beginPath();
-  sctx.ellipse(cx - r * 0.3, cy - r * 0.34, r * 0.34, r * 0.22, -Math.PI / 4, 0, Math.PI * 2);
+  sctx.ellipse(cx - r * 0.31, cy - r * 0.35, r * 0.22, r * 0.12, -Math.PI / 4, 0, Math.PI * 2);
   sctx.fill();
 
   if (color === "B") {
-    sctx.fillStyle = "rgba(255,255,255,0.028)";
+    sctx.fillStyle = "rgba(255,255,255,0.008)";
     sctx.beginPath();
-    sctx.ellipse(cx + r * 0.06, cy - r * 0.08, r * 0.6, r * 0.34, -Math.PI / 6, 0, Math.PI * 2);
+    sctx.ellipse(cx + r * 0.02, cy - r * 0.02, r * 0.36, r * 0.18, -Math.PI / 7, 0, Math.PI * 2);
     sctx.fill();
   } else {
-    sctx.fillStyle = "rgba(160, 168, 180, 0.08)";
+    sctx.fillStyle = "rgba(160, 168, 180, 0.02)";
     sctx.beginPath();
-    sctx.ellipse(cx + r * 0.1, cy + r * 0.14, r * 0.44, r * 0.2, Math.PI / 8, 0, Math.PI * 2);
+    sctx.ellipse(cx + r * 0.12, cy + r * 0.16, r * 0.34, r * 0.15, Math.PI / 8, 0, Math.PI * 2);
     sctx.fill();
   }
   sctx.restore();
@@ -3544,7 +3934,7 @@ function drawStone(x, y, color, scale) {
   const cx = PAD + x * CELL, cy = PAD + y * CELL;
   const r = CELL * .47 * scale;
   if (r <= 0) return;
-  const sprite = getStoneSprite(color, r);
+  const sprite = getStoneSprite(color, r, getStoneVariantId(x, y, color));
   const drawSize = sprite.size / sprite.scale;
   ctx.save();
   ctx.imageSmoothingEnabled = true;
@@ -3892,7 +4282,7 @@ function showRogueCards(cards, meta = {}) {
     const c = getTranslatedCard(c0, "rogue");
     const div = document.createElement("div");
     div.className = "rogue-card";
-    div.innerHTML = `<div class="rc-icon">${c.icon}</div>
+    div.innerHTML = `${getCardIconMarkup(c)}
       <div class="rc-name">${c.name}</div>
       <div class="rc-desc">${c.desc}</div>`;
     div.onclick = () => {
@@ -3936,7 +4326,9 @@ function updateRogueBar() {
   if (activeRogueCard === "puppet") {
     btnPuppet.style.display = "";
     const left = rogueUses.puppet || 0;
-    btnPuppet.textContent = `🎭 ${ui("傀儡术", "Puppet")} (${left})`;
+    const pending = gameState?.rogue_puppet_target;
+    const pendingLabel = pending ? ` · ${ui(`已锁 ${COLS[pending[0]]}${boardSize - pending[1]}`, `Locked ${COLS[pending[0]]}${boardSize - pending[1]}`)}` : "";
+    btnPuppet.textContent = `🎭 ${ui("傀儡术", "Puppet")} (${left})${pendingLabel}`;
     btnPuppet.disabled = left <= 0;
   }
   if (activeRogueCard === "twin") {
@@ -3961,16 +4353,16 @@ function updateRogueBar() {
 
 function getRogueSkillConfig() {
   if (activeRogueCard === "puppet") {
-    return { key: "puppet", icon: "P", uses: rogueUses.puppet || 0, title: ui("主动技能：傀儡术", "Active Skill: Puppet") };
+    return { key: "puppet", uses: rogueUses.puppet || 0, title: ui("主动技能：傀儡术", "Active Skill: Puppet") };
   }
   if (activeRogueCard === "twin") {
-    return { key: "twin", icon: "2", uses: rogueUses.twin || 0, title: ui("主动技能：连击", "Active Skill: Combo") };
+    return { key: "twin", uses: rogueUses.twin || 0, title: ui("主动技能：连击", "Active Skill: Combo") };
   }
   if (activeRogueCard === "exchange") {
-    return { key: "exchange", icon: "<>", uses: rogueUses.exchange || 0, title: ui("主动技能：乾坤挪移", "Active Skill: Turn Steal") };
+    return { key: "exchange", uses: rogueUses.exchange || 0, title: ui("主动技能：乾坤挪移", "Active Skill: Turn Steal") };
   }
   if (activeRogueCard === "coach_mode") {
-    return { key: "coach_mode", icon: "AI", uses: rogueUses.coach_mode || 0, title: ui("主动技能：代练上号", "Active Skill: Coach Mode") };
+    return { key: "coach_mode", uses: rogueUses.coach_mode || 0, title: ui("主动技能：代练上号", "Active Skill: Coach Mode") };
   }
   return null;
 }
@@ -3984,7 +4376,7 @@ function updateRogueSkillButton() {
   if (!cfg) {
     btn.style.display = "none";
     btn.disabled = true;
-    if (iconEl) iconEl.textContent = "✨";
+    if (iconEl) iconEl.dataset.icon = "skill";
     if (usesEl) usesEl.textContent = "";
     btn.title = ui("主动技能", "Active Skill");
     btn.dataset.skill = "";
@@ -3994,9 +4386,13 @@ function updateRogueSkillButton() {
   }
   btn.style.display = "";
   btn.dataset.skill = cfg.key;
-  if (iconEl) iconEl.textContent = cfg.icon;
+  if (iconEl) iconEl.dataset.icon = "skill";
   if (usesEl) usesEl.textContent = String(cfg.uses);
-  btn.title = `${cfg.title} · ${ui("剩余", "Uses")} ${cfg.uses}`;
+  const pending = cfg.key === "puppet" && gameState?.rogue_puppet_target
+    ? ` · ${ui(`已锁 ${COLS[gameState.rogue_puppet_target[0]]}${boardSize - gameState.rogue_puppet_target[1]}`,
+                `Locked ${COLS[gameState.rogue_puppet_target[0]]}${boardSize - gameState.rogue_puppet_target[1]}`)}`
+    : "";
+  btn.title = `${cfg.title} · ${ui("剩余", "Uses")} ${cfg.uses}${pending}`;
   btn.disabled = cfg.uses <= 0;
   btn.classList.toggle("skill-ready", cfg.uses > 0);
   btn.classList.toggle("has-uses", cfg.uses > 0);
@@ -4040,7 +4436,7 @@ function showUltimateCards(cards) {
     const c = getTranslatedCard(c0, "ultimate");
     const div = document.createElement("div");
     div.className = "ultimate-card";
-    div.innerHTML = `<div class="rc-icon">${c.icon}</div>
+    div.innerHTML = `${getCardIconMarkup(c)}
       <div class="rc-name">${c.name}</div>
       <div class="rc-desc">${c.desc}</div>`;
     div.onclick = () => {
@@ -4168,6 +4564,23 @@ function drawRogueMarks() {
       ctx.fill();
     });
   }
+  if (activeRogueCard === "puppet" && gameState?.rogue_puppet_target) {
+    const [tx, ty] = gameState.rogue_puppet_target;
+    const board = getCurrentBoard();
+    if (board && board[ty] && board[ty][tx] === 0) {
+      const px = PAD + tx * CELL;
+      const py = PAD + ty * CELL;
+      ctx.strokeStyle = "rgba(188, 120, 255, 0.9)";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(px, py, CELL * 0.34, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(188, 120, 255, 0.18)";
+      ctx.beginPath();
+      ctx.arc(px, py, CELL * 0.24, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
   if (ultimatePlayerCard === "joseki_burst" && gameState
       && gameState.ultimate_joseki_targets && !gameState.ultimate_joseki_done) {
     const board = getCurrentBoard();
@@ -4218,7 +4631,7 @@ document.getElementById("rb-puppet").addEventListener("click", () => {
   if (!activeRogueCard || activeRogueCard !== "puppet") return;
   if ((rogueUses.puppet || 0) <= 0) return;
   puppetMode = true;
-  log(ui("🎭 傀儡术：请在棋盘上点击 AI 的落子位置", "🎭 Puppet Move: click the point where the AI should play."));
+  log(ui("🎭 傀儡术：先点出 AI 的下一手落点；你随后正常落子", "🎭 Puppet: choose the AI's next forced point first, then play your own move."));
 });
 
 // Twin button click
@@ -4244,7 +4657,7 @@ document.getElementById("btn-skill").addEventListener("click", () => {
   if (!cfg || cfg.uses <= 0) return;
   if (cfg.key === "puppet") {
     puppetMode = true;
-    log(ui("🎭 傀儡术：请在棋盘上点击 AI 的落子位置", "🎭 Puppet Move: click the point where the AI should play."));
+    log(ui("🎭 傀儡术：先点出 AI 的下一手落点；你随后正常落子", "🎭 Puppet: choose the AI's next forced point first, then play your own move."));
     return;
   }
   if (cfg.key === "twin") {
@@ -4333,6 +4746,13 @@ function tryPlay(x, y) {
   if (gameState.board[y][x] !== 0) return;
   // Ko rule: prevent clicking on the ko-forbidden point
   if (gameState.ko_point && gameState.ko_point[0] === x && gameState.ko_point[1] === y) return;
+  if (activeRogueCard === "puppet"
+      && gameState.rogue_puppet_target
+      && gameState.rogue_puppet_target[0] === x
+      && gameState.rogue_puppet_target[1] === y) {
+    log(ui("🎭 这个点已被傀儡术预留给 AI", "🎭 This point is reserved for the AI by Puppet."));
+    return;
+  }
   commitPlay(x, y);
 }
 
@@ -5111,11 +5531,22 @@ function closeOverlay() {
 }
 
 function openSetupModal() {
+  refreshSetupModeHint();
+  updateVariantOptionRows();
   document.getElementById("setup-modal").classList.add("show");
 }
 
 function closeSetupModal() {
   document.getElementById("setup-modal").classList.remove("show");
+}
+
+function openRogueWiki() {
+  renderRogueWiki();
+  document.getElementById("rogue-wiki-modal").classList.add("show");
+}
+
+function closeRogueWiki() {
+  document.getElementById("rogue-wiki-modal").classList.remove("show");
 }
 
 function showConfirmModal(msg, onConfirm) {
@@ -5143,7 +5574,11 @@ document.getElementById("btn-new").addEventListener("click", () => {
   const handicap = parseInt(document.getElementById("sel-handicap").value);
   const isTwoPlayer = (startMode === "two");
   const isAiWatch = (startMode === "watch");
+  const isRogueMode = (startMode === "rogue");
   const isChallenge = (startMode === "challenge");
+  const rogueVariant = getRogueVariantMode();
+  const isDualDraft = isRogueMode && rogueVariant === "dual";
+  const isUltimateVariant = isRogueMode && rogueVariant === "ultimate";
   const aiStyle = document.getElementById("sel-ai-style")?.value || "balanced";
   const aiStyleBlack = document.getElementById("sel-ai-style-black")?.value || aiStyle;
   const aiStyleWhite = document.getElementById("sel-ai-style-white")?.value || aiStyle;
@@ -5155,7 +5590,7 @@ document.getElementById("btn-new").addEventListener("click", () => {
     resetChallengeSession();
   }
 
-  if (startMode === "normal" && playerColor === "R") {
+  if ((startMode === "normal" || isRogueMode) && playerColor === "R") {
     playerColor = Math.random() < 0.5 ? "B" : "W";
     log(ui(`随机结果：你执${playerColor==="B"?"黑":"白"}棋`, `Random result: you play ${playerColor==="B"?"Black":"White"}`));
   } else if (isTwoPlayer || isAiWatch) {
@@ -5204,11 +5639,13 @@ document.getElementById("btn-new").addEventListener("click", () => {
   setTimeout(() => {
     connect();
     setTimeout(() => {
+      const gameSize = isRogueMode ? 19 : parseInt(document.getElementById("sel-size").value, 10);
+      const gameHandicap = isRogueMode ? 0 : handicap;
       sendWS({
         action: "new_game",
-        size:         parseInt(document.getElementById("sel-size").value),
+        size:         gameSize,
         komi:         komi,
-        handicap:     handicap,
+        handicap:     gameHandicap,
         player_color: playerColor,
         level:        isAiWatch ? aiLevelBlack : aiLevelDefault,
         ai_level_black: aiLevelBlack,
@@ -5218,9 +5655,9 @@ document.getElementById("btn-new").addEventListener("click", () => {
         ai_style:     aiStyle,
         ai_style_black: aiStyleBlack,
         ai_style_white: aiStyleWhite,
-        rogue:        isChallenge ? true : (!!document.getElementById("chk-rogue").checked && !document.getElementById("chk-ultimate").checked),
-        ai_rogue:     isChallenge ? false : (!!document.getElementById("chk-ai-rogue").checked && !isTwoPlayer),
-        ultimate:     isChallenge ? false : !!document.getElementById("chk-ultimate").checked,
+        rogue:        isChallenge ? true : (isRogueMode && !isUltimateVariant),
+        ai_rogue:     isChallenge ? false : isDualDraft,
+        ultimate:     isChallenge ? false : isUltimateVariant,
         challenge_beta: isChallenge,
         challenge_stage: isChallenge ? challengeSession.stage : 0,
         challenge_cards: isChallenge ? challengeSession.cards : [],
@@ -5307,6 +5744,7 @@ document.getElementById("hint-toggle").addEventListener("click", () => {
 document.getElementById("territory-toggle").addEventListener("click", () => {
   showTerritory = !showTerritory;
   document.getElementById("territory-toggle").className = "toggle" + (showTerritory ? " on" : "");
+  setTerritoryToggleVisual();
   render();
 });
 
@@ -5330,7 +5768,7 @@ document.getElementById("sel-handicap").addEventListener("change", e => {
 // Sound toggle
 document.getElementById("sound-toggle").addEventListener("click", () => {
   soundEnabled = !soundEnabled;
-  document.getElementById("sound-toggle").textContent = soundEnabled ? "🔊" : "🔇";
+  setSoundToggleVisual();
   // Initialize audio context on first user interaction
   if (soundEnabled) getAudioCtx();
 });
@@ -5471,9 +5909,6 @@ function updateNetworkBadge(status) {
 }
 
 function updateVariantOptionRows() {
-  const rogueRow = document.getElementById("rogue-row");
-  const aiRogueRow = document.getElementById("ai-rogue-row");
-  const ultimateRow = document.getElementById("ultimate-row");
   const levelRow = document.getElementById("row-level");
   const levelRowBlack = document.getElementById("row-level-black");
   const levelRowWhite = document.getElementById("row-level-white");
@@ -5481,35 +5916,28 @@ function updateVariantOptionRows() {
   const styleRowBlack = document.getElementById("row-style-black");
   const styleRowWhite = document.getElementById("row-style-white");
   const rowColor = document.getElementById("row-color");
+  const rowRogueVariant = document.getElementById("row-rogue-variant");
+  const rowSize = document.getElementById("row-size");
   const rowHandicap = document.getElementById("row-handicap");
+  const rowTime = document.getElementById("row-time");
   const isTwo = startMode === "two";
   const isWatch = startMode === "watch";
+  const isRogue = startMode === "rogue";
   const isChallenge = startMode === "challenge";
-  const rogueChecked = !!document.getElementById("chk-rogue")?.checked;
-  const ultimateChecked = !!document.getElementById("chk-ultimate")?.checked;
-  if (rowColor) rowColor.style.display = startMode === "normal" ? "flex" : "none";
-  if (rowHandicap) rowHandicap.style.display = (isWatch || isChallenge) ? "none" : "flex";
-  if (rogueRow) rogueRow.style.display = (isWatch || isChallenge) ? "none" : "";
-  if (ultimateRow) ultimateRow.style.display = (isTwo || isWatch || isChallenge) ? "none" : "";
+  if (rowColor) rowColor.style.display = (startMode === "normal" || isRogue) ? "flex" : "none";
+  if (rowRogueVariant) rowRogueVariant.style.display = isRogue ? "flex" : "none";
+  if (rowSize) rowSize.style.display = isRogue ? "none" : "flex";
+  if (rowHandicap) rowHandicap.style.display = (isWatch || isChallenge || isRogue) ? "none" : "flex";
+  if (rowTime) rowTime.style.display = "flex";
   if (levelRow) levelRow.style.display = isWatch ? "none" : "flex";
   if (levelRowBlack) levelRowBlack.style.display = isWatch ? "flex" : "none";
   if (levelRowWhite) levelRowWhite.style.display = isWatch ? "flex" : "none";
   if (styleRow) styleRow.style.display = (!isTwo && !isWatch && !isChallenge) ? "flex" : "none";
   if (styleRowBlack) styleRowBlack.style.display = isWatch ? "flex" : "none";
   if (styleRowWhite) styleRowWhite.style.display = isWatch ? "flex" : "none";
-  if (aiRogueRow) {
-    aiRogueRow.style.display = (!isTwo && !isWatch && !isChallenge && rogueChecked && !ultimateChecked) ? "" : "none";
-  }
-  if (isWatch || isChallenge) {
-    document.getElementById("chk-rogue").checked = false;
-    document.getElementById("chk-ultimate").checked = false;
-    document.getElementById("chk-ai-rogue").checked = false;
-  } else if (isTwo) {
-    document.getElementById("chk-ultimate").checked = false;
-    document.getElementById("chk-ai-rogue").checked = false;
-  }
-  if (!document.getElementById("chk-rogue").checked) {
-    document.getElementById("chk-ai-rogue").checked = false;
+  if (isRogue) {
+    document.getElementById("sel-size").value = "19";
+    document.getElementById("sel-handicap").value = "0";
   }
 }
 
@@ -5619,6 +6047,16 @@ function refreshSetupModeHint() {
   const hint = document.getElementById("mode-hint");
   if (!hint) return;
   hint.style.display = "block";
+  if (startMode === "rogue") {
+    const variant = getRogueVariantMode();
+    const variantText = variant === "ultimate"
+      ? ui("当前玩法：大招对战。固定 19×19，用普通规则开局，你与 AI 各自带一张大招卡，20 手决胜。", "Current variant: Ultimate Duel. Fixed at 19x19 with standard rules, one ultimate card per side, and a 20-move showdown.")
+      : (variant === "dual"
+        ? ui("当前玩法：双人抽卡。固定 19×19，你先选 1 张 Rogue 卡，AI 也会从受限卡池获得 1 张。", "Current variant: Dual Draft. Fixed at 19x19. You pick 1 Rogue card, and the AI also receives 1 card from the restricted pool.")
+        : ui("当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡，保留颜色、贴目、等级、棋风与用时设置。", "Current variant: Solo Draft. Fixed at 19x19. Only you use a Rogue card, while color, komi, rank, style, and time settings stay available."));
+    hint.textContent = variantText;
+    return;
+  }
   if (startMode === "watch") {
     hint.textContent = ui(
       "学习：黑白双方都由 AI 对弈，可分别调整黑棋与白棋的等级和棋风。",
@@ -5628,8 +6066,8 @@ function refreshSetupModeHint() {
   }
   if (startMode === "two") {
     hint.textContent = ui(
-      "双人：黑白双方均由玩家落子，可保留让子设置，也可启用共享 Rogue 规则卡。",
-      "Two Players: both sides are human, with handicap support and optional shared Rogue rules."
+      "双人：黑白双方均由玩家落子，可调整棋盘、贴目、让子与用时。",
+      "Two Players: both sides are human, with board size, komi, handicap, and timing controls."
     );
     return;
   }
@@ -5686,6 +6124,8 @@ function initBoard() {
 
 // Primary init
 applyLanguage();
+setSoundToggleVisual();
+setTerritoryToggleVisual();
 refreshHintVisibility();
 attachButtonRipples();
 initBoard();

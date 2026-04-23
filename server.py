@@ -143,6 +143,8 @@ if hasattr(sys.stderr, "reconfigure"):
 parser = argparse.ArgumentParser()
 parser.add_argument("--no-katago", action="store_true",
                     help="Disable KataGo (free-play / two-player only)")
+parser.add_argument("--host", default="127.0.0.1",
+                    help="Host interface to bind the HTTP/WebSocket server to")
 args, _ = parser.parse_known_args()
 NO_KATAGO = args.no_katago
 
@@ -154,7 +156,7 @@ USER_DATA_DIR = Path(os.environ.get("LOCALAPPDATA", str(BASE_DIR))) / "GoAI"
 USER_KATAGO_DIR = USER_DATA_DIR / "katago"
 USER_KATAGO_HOME = USER_KATAGO_DIR / "KataGoData"
 USER_RUNTIME_CONFIG_DIR = USER_KATAGO_DIR / "runtime"
-SERVER_REV = "20260413-ui-review-release"
+SERVER_REV = "20260423-puppet-flow-fix"
 KATAGO_EXE = BASE_DIR / "katago" / "katago.exe"             # CUDA build (legacy/optional)
 KATAGO_CUDA_EXE = BASE_DIR / "katago" / "katago_cuda.exe"   # CUDA (downloaded upgrade)
 KATAGO_OPENCL_EXE = BASE_DIR / "katago" / "katago_opencl.exe"  # OpenCL (any GPU)
@@ -166,7 +168,7 @@ USER_KATAGO_MODEL_LARGE = USER_KATAGO_DIR / "model_large.bin.gz"
 KATAGO_CONFIG = BASE_DIR / "katago" / "config.cfg"
 KATAGO_CPU_CONFIG = BASE_DIR / "katago" / "config_cpu.cfg"
 STATIC_DIR = BASE_DIR / "static"
-SERVER_HOST = "0.0.0.0"
+SERVER_HOST = args.host
 SERVER_PORT = 8000
 
 
@@ -349,8 +351,24 @@ def pick_ai_ultimate_card(exclude: list = None) -> str:
     return rng.choice(pool)
 
 
-def get_access_urls(port: int = SERVER_PORT) -> dict:
+def _is_loopback_host(host: str) -> bool:
+    host = (host or "").strip().lower()
+    return host in {"127.0.0.1", "localhost", "::1"}
+
+
+def get_access_urls(host: str = SERVER_HOST, port: int = SERVER_PORT) -> dict:
+    if _is_loopback_host(host):
+        return {
+            "local": [
+                f"http://localhost:{port}",
+                f"http://127.0.0.1:{port}",
+            ],
+            "lan": [],
+        }
+
     lan_ips = set()
+    if host and host not in {"0.0.0.0", "::"} and not _is_loopback_host(host):
+        lan_ips.add(host)
     try:
         for item in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
             ip = item[4][0]
@@ -428,10 +446,11 @@ class GoGame:
         self.rogue_seal_points: list[tuple] = []  # forbidden (x,y) for AI
         self.rogue_waiting_seal: bool = False      # waiting for seal point input
         self.rogue_skip_ai: bool = False           # twin star: skip next AI turn
+        self.rogue_puppet_target: Optional[tuple[int, int]] = None
         self.ai_rogue_enabled: bool = False
         self.ai_rogue_card: Optional[str] = None
         self.ai_rogue_seal_points: list[tuple] = []
-        # 定式强迫症: 8 random target points, player must hit 3 of them
+        # 定式强迫症: 7 random target points, player must hit 4 of them
         self.rogue_joseki_targets: list[tuple] = []
         self.rogue_joseki_hits: int = 0
         self.rogue_joseki_done: bool = False
@@ -671,6 +690,7 @@ class GoGame:
             "rogue_card": self.rogue_card,
             "rogue_uses": self.rogue_uses,
             "rogue_seal_points": [[x, y] for x, y in self.rogue_seal_points],
+            "rogue_puppet_target": list(self.rogue_puppet_target) if self.rogue_puppet_target else None,
             "ai_rogue_enabled": self.ai_rogue_enabled,
             "ai_rogue_card": self.ai_rogue_card,
             "ai_rogue_seal_points": [[x, y] for x, y in self.ai_rogue_seal_points],
@@ -797,6 +817,8 @@ async def shutdown():
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR), check_dir=False),
           name="static")
+app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets"), check_dir=False),
+          name="assets")
 
 
 @app.middleware("http")
@@ -848,7 +870,7 @@ async def get_status():
         "server_rev": SERVER_REV,
         "host": SERVER_HOST,
         "port": SERVER_PORT,
-        "access_urls": get_access_urls(SERVER_PORT),
+        "access_urls": get_access_urls(SERVER_HOST, SERVER_PORT),
         "katago_ready": engine.ready,
         "katago_exe": exe_exists,
         "katago_model": model_exists,
@@ -1396,6 +1418,11 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     player_forbidden = _get_ai_rogue_forbidden_points(game)
                     if not game.two_player and (x, y) in player_forbidden:
                         await send_error("这里已被 AI 的 Rogue 卡限制，当前不能落子")
+                        continue
+                    if (not game.two_player
+                            and game.rogue_card == "puppet"
+                            and game.rogue_puppet_target == (x, y)):
+                        await send_error("该点已被傀儡术预留给 AI")
                         continue
 
                     if engine.ready:
@@ -2699,6 +2726,7 @@ async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
     game.rogue_sansan_trap_done = False
     game.rogue_corner_helper_done = set()
     game.rogue_sanrensei_done = False
+    game.rogue_puppet_target = None
     game.rogue_five_in_row_seen = set()
     game.rogue_last_stand_done = {"B": False, "W": False}
     game.rogue_capture_foul_progress = {"B": 0, "W": 0}
@@ -2738,7 +2766,8 @@ async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
             for px, py in game.rogue_joseki_targets)
         await send_fn({"type": "rogue_event",
                        "msg": f"定式强迫症已点亮 {ROGUE_JOSEKI_TARGET_COUNT} 个目标点：{pts_str}。"
-                              f"命中其中 {ROGUE_JOSEKI_REQUIRED_HITS} 个后会自动补满剩余点位"})
+                              f"命中其中 {ROGUE_JOSEKI_REQUIRED_HITS} 个后会自动补上剩余 "
+                              f"{ROGUE_JOSEKI_TARGET_COUNT - ROGUE_JOSEKI_REQUIRED_HITS} 个点位"})
     elif card_id == "handicap_quest":
         await send_fn({"type": "rogue_event",
                        "msg": f"让子任务开始：你需要先虚手 {ROGUE_HANDICAP_REQUIRED_PASSES} 次，"
@@ -2800,6 +2829,7 @@ async def _apply_challenge_rogue_loadout(game: GoGame, send_fn):
     game.rogue_sansan_trap_done = False
     game.rogue_corner_helper_done = set()
     game.rogue_sanrensei_done = False
+    game.rogue_puppet_target = None
     game.rogue_five_in_row_seen = set()
     game.rogue_last_stand_done = {"B": False, "W": False}
     game.rogue_capture_foul_progress = {"B": 0, "W": 0}
@@ -3850,6 +3880,34 @@ async def _ai_move(game: GoGame, send_fn):
                         "msg": "乾坤挪移生效，AI 本回合虚手并把回合交还给你"})
         return
 
+    if "puppet" in rogue_cards and game.rogue_puppet_target is not None:
+        tx, ty = game.rogue_puppet_target
+        puppet_gtp = coord_to_gtp(tx, ty, game.size)
+        game.rogue_puppet_target = None
+        if game.board[ty][tx] != 0:
+            await send_fn({"type": "rogue_event",
+                           "msg": f"🎭 傀儡术目标 {puppet_gtp} 已被占用，AI 改为正常应手"})
+        elif game.is_ko(tx, ty, color) or not game.is_legal_move(tx, ty, color):
+            await send_fn({"type": "rogue_event",
+                           "msg": f"🎭 傀儡术目标 {puppet_gtp} 当前不合法，AI 改为正常应手"})
+        else:
+            resp = await run_in_executor(engine.send_command, f"play {color} {puppet_gtp}")
+            if "?" not in resp:
+                if game.rogue_uses.get("puppet", 0) > 0:
+                    game.rogue_uses["puppet"] -= 1
+                await _finish_ai_move(
+                    game,
+                    send_fn,
+                    color,
+                    card,
+                    puppet_gtp,
+                    f"🎭 傀儡术生效，AI 被迫落子于 {puppet_gtp}",
+                )
+                await send_fn({"type": "rogue_uses_update", "uses": game.rogue_uses})
+                return
+            await send_fn({"type": "rogue_event",
+                           "msg": f"🎭 傀儡术目标 {puppet_gtp} 执行失败，AI 改为正常应手"})
+
     _mode = "rogue" if rogue_cards else "normal"
     effective_level = game.level
     if "nerf" in rogue_cards:
@@ -4414,6 +4472,7 @@ async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
     await _check_capture_foul(game, send_fn, color, captured, ultimate=False)
 
     game.current_player = game.player_color
+    _prepare_player_turn_modifiers(game)
 
     # Erosion effect (applies even with other cards — only if card is erosion)
     if card == "erosion" and captured > 0:

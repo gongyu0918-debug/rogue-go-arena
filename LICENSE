@@ -1,64 +1,21 @@
-GoAI Non-Commercial License v1.0
+MIT License
 
 Copyright (c) 2026 GoAI contributors
 
-1. Scope
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-This license applies only to the original source code and original project content
-created for this repository, excluding all third-party software, engine binaries,
-models, libraries, runtimes, assets, and materials that are bundled with,
-downloaded by, or referenced by this project.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-All third-party components remain under their own respective licenses.
-
-2. Non-Commercial Permission
-
-Permission is granted, free of charge, to any person obtaining a copy of this
-project's original code and content to:
-
-- use it for personal, educational, research, hobby, or other non-commercial purposes
-- copy it
-- modify it
-- redistribute the original or modified version for non-commercial purposes
-- share the packaged installer or source code for non-commercial purposes
-
-3. Conditions For Non-Commercial Use
-
-The above copyright notice and this license text must be included in copies or
-substantial portions of the project's original code or content.
-
-Redistributors must not falsely imply that the project is official, endorsed by,
-or affiliated with the KataGo project or any other third party.
-
-4. Commercial Use Requires Permission
-
-Commercial use is not automatically granted by this license.
-
-If you want to use this project or a substantial part of its original code or content
-for commercial purposes, you must first obtain separate written permission from the
-repository owner.
-
-Examples of commercial use include, but are not limited to:
-
-- selling the software or a modified version of it
-- bundling it in paid software, paid services, or paid hardware
-- operating it as part of a commercial service
-- redistributing it in a commercial product
-- using it in monetized deployments, platforms, or business offerings
-
-Commercial licensing inquiries should be directed to the repository owner through
-the public GitHub repository contact channels.
-
-5. No Trademark Or Official Affiliation
-
-This project is an independent fan-made project.
-This license does not grant any trademark rights.
-
-6. Warranty Disclaimer
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
-OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

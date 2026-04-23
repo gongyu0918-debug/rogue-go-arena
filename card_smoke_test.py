@@ -4,6 +4,7 @@ import random
 import threading
 
 import server as s
+from app.runtime.ws_actions import WebSocketActionContext, handle_rogue_use_puppet
 
 
 class DummyEngine:
@@ -91,6 +92,56 @@ def seed_board(game):
     game.board[1][1] = 0
 
 
+def make_ws_context(game, sent, *, engine=None):
+    async def send(payload):
+        sent.append(copy.deepcopy(payload))
+
+    async def send_error(msg):
+        sent.append({"type": "error", "message": msg})
+
+    async def do_analysis(_game):
+        return {"winrate": 0.5, "score": 0.0, "top_moves": [], "ownership": []}
+
+    async def do_analysis_bg(_game):
+        return None
+
+    async def fake_async(*_args, **_kwargs):
+        return None
+
+    return WebSocketActionContext(
+        game_id="smoke",
+        game=game,
+        active_games=None,
+        engine=engine or DummyEngine(),
+        send=send,
+        send_error=send_error,
+        do_analysis=do_analysis,
+        do_analysis_bg=do_analysis_bg,
+        run_in_executor=s.run_in_executor,
+        GoGame=s.GoGame,
+        coord_to_gtp=s.coord_to_gtp,
+        get_game_visits=s.get_game_visits,
+        pick_challenge_beta_choices=lambda *_args, **_kwargs: [],
+        pick_ai_rogue_card=lambda **_kwargs: "dice",
+        pick_ai_ultimate_card=lambda **_kwargs: "chain",
+        apply_challenge_rogue_loadout=fake_async,
+        activate_rogue_card=fake_async,
+        activate_ai_rogue_card=fake_async,
+        ai_move=fake_async,
+        ultimate_ai_move=fake_async,
+        ultimate_force_score=fake_async,
+        run_coach_turn_if_needed=fake_async,
+        sync_board_to_katago=fake_async,
+        challenge_remaining=lambda *_args, **_kwargs: 0,
+        challenge_zone_points=lambda _game, pts: pts,
+        rogue_has=s._rogue_has,
+        finish_ultimate_quickthink_turn=lambda _game: None,
+        pick_joseki_targets=s._pick_joseki_targets,
+        random_hidden_center=s._random_hidden_center,
+        diamond_points=s._diamond_points,
+    )
+
+
 async def collect_messages(fn, *args, **kwargs):
     sent = []
 
@@ -162,6 +213,47 @@ async def smoke_joseki_completion():
     for x, y in game.rogue_joseki_targets:
         assert game.board[y][x] == 1
     assert any(msg.get("type") == "rogue_event" for msg in sent)
+
+
+async def smoke_puppet_flow():
+    game = make_game()
+    game.rogue_enabled = True
+    game.rogue_card = "puppet"
+    game.rogue_uses["puppet"] = 1
+    selection_sent = []
+    ctx = make_ws_context(game, selection_sent)
+
+    await handle_rogue_use_puppet(ctx, {"x": 4, "y": 4})
+
+    assert game.rogue_puppet_target == (4, 4)
+    assert game.rogue_uses["puppet"] == 1
+    assert any(msg.get("type") == "rogue_event" and "傀儡术待命" in msg.get("msg", "") for msg in selection_sent)
+
+    player_gtp = s.coord_to_gtp(3, 3, game.size)
+    captured = game.place_stone(3, 3, game.player_color)
+    assert captured >= 0
+    game.moves.append((game.player_color, player_gtp))
+    game.passed[game.player_color] = False
+    game.current_player = game.ai_color
+
+    sent = []
+    old_engine = s.engine
+    try:
+        s.engine = DummyEngine(["C3"])
+        async def send(payload):
+            sent.append(copy.deepcopy(payload))
+
+        await s._ai_move(game, send)
+    finally:
+        s.engine = old_engine
+
+    assert game.rogue_puppet_target is None
+    assert game.rogue_uses["puppet"] == 0
+    assert game.current_player == game.player_color
+    assert game.board[4][4] == 2
+    assert any(msg.get("type") == "ai_move" and msg.get("gtp") == "E5" for msg in sent)
+    assert any(msg.get("type") == "rogue_event" and "被迫落子于 E5" in msg.get("msg", "") for msg in sent)
+    assert any(msg.get("type") == "rogue_uses_update" and msg.get("uses", {}).get("puppet") == 0 for msg in sent)
 
 
 async def smoke_ai_rogue_cards():
@@ -1354,6 +1446,7 @@ async def main():
         await smoke_activate_rogue_cards()
         await smoke_player_rogue_effects()
         await smoke_joseki_completion()
+        await smoke_puppet_flow()
         await smoke_ai_rogue_cards()
         await smoke_slip_card()
         await smoke_new_rogue_cards()

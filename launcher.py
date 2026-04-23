@@ -25,9 +25,13 @@ from collections import deque
 from tkinter import scrolledtext, messagebox
 from urllib.parse import urlencode
 
-SERVER_URL = "http://localhost:8000"
-EXPECTED_SERVER_REV = "20260413-ui-review-release"
+SERVER_PORT = 8000
+LOOPBACK_HOST = "127.0.0.1"
+LAN_HOST = "0.0.0.0"
+SERVER_URL = f"http://{LOOPBACK_HOST}:{SERVER_PORT}"
+EXPECTED_SERVER_REV = "20260423-puppet-flow-fix"
 KATAGO_REPO = "lightvector/KataGo"
+LAN_FIREWALL_RULE_NAME = "GoAI_LAN_8000"
 CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 DETACHED_PROCESS = getattr(subprocess, "DETACHED_PROCESS", 0)
 
@@ -210,6 +214,7 @@ class GoAILauncher:
         self._background_photo = None
         self._server_active = False
         self._engine_phase = "idle"
+        self._active_server_host = LOOPBACK_HOST
 
         self.root = tk.Tk()
         self.root.title("GoAI 启动器")
@@ -217,11 +222,14 @@ class GoAILauncher:
         self.root.resizable(False, False)
         self.root.configure(bg=BG)
 
-        self._status_var = tk.StringVar(value="服务器未启")
+        self._status_var = tk.StringVar(value="服务器未启动")
         self._status_hint_var = tk.StringVar(value="")
-        self._mode_var = tk.StringVar(value="等待启动")
+        self._mode_var = tk.StringVar(value="未启动")
         self._ai_status_var = tk.StringVar(value="启动时开启")
-        self._address_var = tk.StringVar(value="http://localhost:8000")
+        self._address_var = tk.StringVar(value=SERVER_URL)
+        self._lan_address_var = tk.StringVar(value="未开启")
+        self._network_hint_var = tk.StringVar(value="默认仅本机可访问")
+        self._lan_enabled = tk.BooleanVar(value=False)
 
         ico = os.path.join(BASE_DIR, "goai.ico")
         if os.path.exists(ico):
@@ -326,6 +334,179 @@ class GoAILauncher:
     def _toggle_log_panel(self):
         self._set_log_visibility(not self._log_visible)
 
+    @staticmethod
+    def _is_loopback_host(host: str | None) -> bool:
+        host = (host or "").strip().lower()
+        return host in {"127.0.0.1", "localhost", "::1"}
+
+    def _desired_bind_host(self) -> str:
+        return LAN_HOST if self._lan_enabled.get() else LOOPBACK_HOST
+
+    def _refresh_network_fields(
+        self,
+        *,
+        local_url: str | None = None,
+        lan_url: str | None = None,
+        running: bool | None = None,
+        host: str | None = None,
+    ):
+        def _do():
+            active = self._server_active if running is None else running
+            active_host = self._active_server_host if host is None else host
+            if local_url:
+                self._address_var.set(local_url)
+
+            if lan_url:
+                self._lan_address_var.set(lan_url)
+            elif active and not self._is_loopback_host(active_host):
+                self._lan_address_var.set("未发现局域网地址")
+            elif self._lan_enabled.get():
+                self._lan_address_var.set("启动服务后显示")
+            else:
+                self._lan_address_var.set("未开启")
+
+            if active and not self._is_loopback_host(active_host):
+                lan_text = self._lan_address_var.get()
+                if lan_text.startswith("http://"):
+                    self._network_hint_var.set(f"局域网共享中 · {lan_text}")
+                else:
+                    self._network_hint_var.set("局域网共享中 · 正在探测入口")
+            elif self._lan_enabled.get():
+                self._network_hint_var.set("局域网模式待生效，启动后自动放行端口并显示入口")
+            else:
+                self._network_hint_var.set("默认仅本机可访问")
+
+        self._call_in_ui(_do)
+        self._sync_lan_button()
+
+    def _sync_lan_button(self):
+        def _update():
+            if not hasattr(self, "_lan_btn"):
+                return
+            active_lan = self._server_active and not self._is_loopback_host(self._active_server_host)
+            pending_lan = (not self._server_active) and self._lan_enabled.get()
+            enabled = active_lan or pending_lan
+            if enabled:
+                text = "局域网共享中" if active_lan else "局域网待生效"
+                variant = "success"
+            else:
+                text = "允许局域网"
+                variant = "neutral"
+            state = "disabled" if self._running else "normal"
+            self._apply_button_style(self._lan_btn, variant, text=text, state=state)
+
+        self._call_in_ui(_update)
+
+    def _delete_lan_firewall_rule(self) -> bool:
+        if os.name != "nt":
+            return False
+        try:
+            completed = subprocess.run(
+                ["netsh", "advfirewall", "firewall", "delete", "rule", f"name={LAN_FIREWALL_RULE_NAME}"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=20,
+                check=False,
+                creationflags=_creationflags_no_window(),
+            )
+            return completed.returncode == 0
+        except Exception:
+            return False
+
+    def _ensure_lan_firewall_rule(self) -> bool:
+        if os.name != "nt":
+            return False
+
+        def _run_netsh(args: list[str]) -> bool:
+            try:
+                completed = subprocess.run(
+                    ["netsh", *args],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=20,
+                    check=False,
+                    creationflags=_creationflags_no_window(),
+                )
+                return completed.returncode == 0
+            except Exception:
+                return False
+
+        self._delete_lan_firewall_rule()
+        add_args = [
+            "advfirewall", "firewall", "add", "rule",
+            f"name={LAN_FIREWALL_RULE_NAME}",
+            "dir=in",
+            "action=allow",
+            "profile=private",
+            "protocol=TCP",
+            f"localport={SERVER_PORT}",
+        ]
+        if _run_netsh(add_args):
+            return True
+
+        ps_args = ",".join("'" + part.replace("'", "''") + "'" for part in add_args)
+        ps_cmd = (
+            "Start-Process -FilePath 'netsh' "
+            f"-ArgumentList @({ps_args}) -Verb RunAs -Wait -WindowStyle Hidden"
+        )
+        try:
+            completed = subprocess.run(
+                ["powershell", "-NoProfile", "-Command", ps_cmd],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=45,
+                check=False,
+                creationflags=_creationflags_no_window(),
+            )
+            return completed.returncode == 0
+        except Exception:
+            return False
+
+    def _restart_for_network_mode(self):
+        if self._running:
+            self._log_msg("服务启动中，网络模式会在下次重启后生效", GOLD)
+            return
+
+        if not self._server_active:
+            mode = "局域网共享" if self._lan_enabled.get() else "仅本机访问"
+            self._log_msg(f"已切换为{mode}，下次启动服务时生效", GOLD)
+            self._refresh_network_fields()
+            return
+
+        def _restart():
+            self._log_msg("正在重启服务以应用新的访问模式…", GOLD)
+            self._stop_server()
+            time.sleep(0.8)
+            self._start_server()
+
+        threading.Thread(target=_restart, daemon=True).start()
+
+    def _toggle_lan_access(self):
+        enabled = not self._lan_enabled.get()
+        self._lan_enabled.set(enabled)
+        self._refresh_network_fields()
+
+        if enabled:
+            self._log_msg("已开启局域网共享模式，其他设备可通过局域网入口访问", GOLD)
+
+            def _prepare_lan():
+                if self._ensure_lan_firewall_rule():
+                    self._log_msg(f"已放行 Windows 私有网络 {SERVER_PORT} 端口", GREEN)
+                else:
+                    self._log_msg("未能自动放行 Windows 防火墙，局域网访问可能受限", GOLD)
+
+            threading.Thread(target=_prepare_lan, daemon=True).start()
+        else:
+            self._log_msg("已切回仅本机访问模式", GOLD)
+
+            def _restore_local_only():
+                if self._delete_lan_firewall_rule():
+                    self._log_msg(f"已收回 Windows 私有网络 {SERVER_PORT} 端口放行", GREEN)
+
+            threading.Thread(target=_restore_local_only, daemon=True).start()
+
+        self._restart_for_network_mode()
+
     def _sync_ai_toggle_button(self):
         def _update():
             if self._running and not self._server_active:
@@ -424,52 +605,55 @@ class GoAILauncher:
             bg=BG3,
         ).pack(side="left")
 
-        info_box = tk.Frame(hero, bg=PANEL)
-        info_box.place(x=392, y=34, width=242, height=40)
-        tk.Label(
-            info_box,
-            text="入口地址",
-            font=("Microsoft YaHei", 9, "bold"),
-            fg=GOLD,
-            bg=PANEL,
-        ).pack(anchor="w")
-        tk.Label(
-            info_box,
-            textvariable=self._address_var,
-            font=("Consolas", 10),
-            fg=TEXT,
-            bg=PANEL,
-        ).pack(anchor="w", pady=(2, 0))
+        action_panel = tk.Frame(hero, bg=PANEL)
+        action_panel.place(x=392, y=24, width=242, height=152)
+
+        action_grid = tk.Frame(action_panel, bg=PANEL)
+        action_grid.pack(fill="both", expand=True)
+        action_grid.grid_columnconfigure(0, weight=1, uniform="hero-actions")
+        action_grid.grid_columnconfigure(1, weight=1, uniform="hero-actions")
+        action_grid.grid_rowconfigure(0, weight=1)
+        action_grid.grid_rowconfigure(1, weight=1)
+        action_grid.grid_rowconfigure(2, weight=1)
 
         self._start_btn = self._make_button(
-            hero,
+            action_grid,
             text="启动服务",
             command=self._start_server,
             variant="primary",
             width=None,
-            font_size=10,
+            font_size=11,
         )
-        self._start_btn.place(x=392, y=88, width=242, height=42)
+        self._start_btn.grid(row=0, column=0, columnspan=2, sticky="nsew")
         self._stop_btn = self._make_button(
-            hero,
+            action_grid,
             text="停止服务",
             command=self._stop_server,
             variant="danger",
             width=None,
-            font_size=9,
+            font_size=10,
         )
-        self._stop_btn.place(x=392, y=138, width=116, height=38)
+        self._stop_btn.grid(row=1, column=1, sticky="nsew", padx=(6, 0), pady=(8, 0))
         self._stop_btn.configure(state="disabled")
         self._open_btn = self._make_button(
-            hero,
-            text="打开网页",
+            action_grid,
+            text="打开页面",
             command=self._open_browser,
             variant="success",
             width=None,
-            font_size=9,
+            font_size=10,
         )
-        self._open_btn.place(x=518, y=138, width=116, height=38)
+        self._open_btn.grid(row=1, column=0, sticky="nsew", padx=(0, 6), pady=(8, 0))
         self._open_btn.configure(state="disabled")
+        self._lan_btn = self._make_button(
+            action_grid,
+            text="允许局域网",
+            command=self._toggle_lan_access,
+            variant="neutral",
+            width=None,
+            font_size=10,
+        )
+        self._lan_btn.grid(row=2, column=0, columnspan=2, sticky="nsew", pady=(8, 0))
 
         controls = self._make_card(self.root, bg=PANEL_ALT, alpha=224)
         controls.place(x=28, y=228, width=664, height=104)
@@ -557,6 +741,7 @@ class GoAILauncher:
         add_row("服务状态", self._mode_var)
         add_row("AI 状态", self._ai_status_var)
         add_row("本机入口", self._address_var)
+        add_row("局域网入口", self._lan_address_var)
 
         self._log_panel = self._make_card(self.root, bg=PANEL_ALT, alpha=220)
         self._log_toggle_btn = self._make_button(
@@ -604,6 +789,7 @@ class GoAILauncher:
         self._quit_btn.place(x=618, y=600, width=74, height=30)
 
         self._set_log_visibility(False)
+        self._refresh_network_fields()
 
     def _log_msg(self, msg: str, color: str = "#58a6ff"):
         self._server_log_tail.append(msg)
@@ -1090,16 +1276,17 @@ class GoAILauncher:
             self._apply_button_style(self._upgrade_btn, "disabled", text="升级不可用", state="disabled")
             self._upgrade_btn.config(cursor="arrow")
 
-    def _set_status(self, running: bool, text: str):
+    def _set_status(self, running: bool, text: str, summary_text: str | None = None):
         def _do():
             self._server_active = running
             self._dot_canvas.itemconfig(self._dot, fill=GREEN if running else RED)
             self._status_var.set(text)
-            self._mode_var.set(text)
+            self._mode_var.set(summary_text or text)
             self._start_btn.config(state="disabled" if running else "normal")
             self._stop_btn.config(state="normal" if running else "disabled")
             self._open_btn.config(state="normal" if running else "disabled")
         self._call_in_ui(_do)
+        self._refresh_network_fields(running=running)
         self._sync_ai_toggle_button()
 
     def _refresh_model_btn_state(self):
@@ -1159,7 +1346,7 @@ class GoAILauncher:
             pass
 
     @staticmethod
-    def _port_open(port=8000, timeout=1.0) -> bool:
+    def _port_open(port=SERVER_PORT, timeout=1.0) -> bool:
         try:
             with socket.create_connection(("127.0.0.1", port), timeout=timeout):
                 return True
@@ -1175,7 +1362,7 @@ class GoAILauncher:
             return None
 
     @staticmethod
-    def _listener_pids(port=8000):
+    def _listener_pids(port=SERVER_PORT):
         try:
             out = subprocess.check_output(
                 ["netstat", "-ano", "-p", "tcp"],
@@ -1224,7 +1411,7 @@ class GoAILauncher:
         except Exception:
             return ""
 
-    def _stop_stale_server_on_port(self, port=8000) -> bool:
+    def _stop_stale_server_on_port(self, port=SERVER_PORT) -> bool:
         stopped_any = False
         for pid in self._listener_pids(port):
             if self.server_proc and pid == self.server_proc.pid:
@@ -1267,6 +1454,8 @@ class GoAILauncher:
         if not status:
             return
 
+        host = status.get("host") or LOOPBACK_HOST
+        self._active_server_host = host
         phase = status.get("engine_phase") or ("ready" if status.get("katago_ready") else "idle")
         backend = status.get("engine_backend")
         model = status.get("engine_model")
@@ -1276,22 +1465,28 @@ class GoAILauncher:
 
         if phase == "ready":
             self._engine_phase = "ready"
-            self._set_status(True, "运行中")
+            self._set_status(True, "服务器运行中", "运行中")
             self._model_running = True
         elif phase == "initializing":
             self._engine_phase = "initializing"
-            self._set_status(True, "启动中")
+            self._set_status(True, "服务器启动中", "启动中")
             self._model_running = False
         elif phase in {"failed", "stopped"} or status.get("no_katago"):
             self._engine_phase = phase or "stopped"
-            self._set_status(True, "运行中")
+            self._set_status(True, "服务器运行中", "运行中")
             self._model_running = False
         else:
             self._engine_phase = phase or "idle"
-            self._set_status(True, "运行中")
+            self._set_status(True, "服务器运行中", "运行中")
 
         local_urls = (status.get("access_urls") or {}).get("local") or [SERVER_URL]
-        self._call_in_ui(lambda: self._address_var.set(local_urls[0]))
+        lan_urls = (status.get("access_urls") or {}).get("lan") or []
+        self._refresh_network_fields(
+            local_url=local_urls[0],
+            lan_url=lan_urls[0] if lan_urls else None,
+            running=True,
+            host=host,
+        )
 
         if emit_log and signature != self._last_engine_signature:
             if phase == "initializing":
@@ -1349,7 +1544,8 @@ class GoAILauncher:
 
         if self.server_proc and self.server_proc.poll() is not None:
             self._status_monitor_stop.set()
-            self._set_status(False, "服务器已停止")
+            self._active_server_host = LOOPBACK_HOST
+            self._set_status(False, "服务器已停止", "未启动")
             self._log_msg(f"服务器进程已结束 (code={self.server_proc.returncode})", MUTED)
 
     def _log_failure_tail(self, prefix: str):
@@ -1365,31 +1561,42 @@ class GoAILauncher:
         self._running = True
         self._engine_phase = "booting"
         ai_enabled = bool(self._ai_enabled.get())
-        self._set_status(False, "启动中，KataGo 初始化...")
-        self._log_msg("正在启动 GoAI 服务器", GOLD)
+        desired_host = self._desired_bind_host()
+        mode_label = "局域网共享" if desired_host == LAN_HOST else "仅本机访问"
+        self._set_status(False, "服务器启动中…", "启动中")
+        self._sync_lan_button()
+        self._log_msg(f"正在启动 GoAI 服务器（{mode_label}）", GOLD)
 
         def _run():
             status = self._fetch_status()
-            if status and status.get("server_rev") == EXPECTED_SERVER_REV:
+            if (
+                status
+                and status.get("server_rev") == EXPECTED_SERVER_REV
+                and (status.get("host") or LOOPBACK_HOST) == desired_host
+            ):
                 self._log_msg("检测到新版本服务已在运行，直接连接", GREEN)
                 self._process_status_payload(status, emit_log=True)
                 self._start_status_monitor()
                 if self._wait_frontend_ready():
                     self._open_browser()
                 else:
-                    self._log_msg("服务已运行，但前端页面尚未确认就绪，可点击“打开网页”重试", GOLD)
+                    self._log_msg("服务已运行，但页面尚未确认就绪，可点击“打开页面”重试", GOLD)
                 self._running = False
+                self._sync_lan_button()
                 return
+            if status and status.get("server_rev") == EXPECTED_SERVER_REV:
+                self._log_msg("检测到现有服务的访问模式与当前设置不同，准备重启", GOLD)
 
-            if self._port_open(8000, 0.5):
-                self._log_msg("检测到 8000 端口已被占用，尝试替换旧服务", GOLD)
-                self._stop_stale_server_on_port(8000)
+            if self._port_open(SERVER_PORT, 0.5):
+                self._log_msg(f"检测到 {SERVER_PORT} 端口已被占用，尝试替换旧服务", GOLD)
+                self._stop_stale_server_on_port(SERVER_PORT)
                 time.sleep(1.0)
 
             if USE_SERVER_EXE:
                 cmd = [_SERVER_EXE]
             else:
                 cmd = [PYTHON, SERVER_SCRIPT]
+            cmd.extend(["--host", desired_host])
             if not ai_enabled:
                 cmd.append("--no-katago")
             try:
@@ -1425,7 +1632,9 @@ class GoAILauncher:
                 self._log_msg(f"启动失败: {e}", RED)
                 self._running = False
                 self._engine_phase = "idle"
-                self._set_status(False, "启动失败")
+                self._active_server_host = LOOPBACK_HOST
+                self._set_status(False, "启动失败", "未启动")
+                self._sync_lan_button()
                 return
 
             threading.Thread(target=self._pump_server_output, daemon=True).start()
@@ -1450,24 +1659,28 @@ class GoAILauncher:
                 if self._wait_frontend_ready():
                     self._open_browser()
                 else:
-                    self._log_msg("HTTP 已启动，但前端页面尚未确认就绪，可点击“打开网页”重试", GOLD)
+                    self._log_msg("HTTP 已启动，但页面尚未确认就绪，可点击“打开页面”重试", GOLD)
             else:
                 if self.server_proc.poll() is None:
-                    self._log_failure_tail("服务器未能在预期时间内监听 8000 端口")
+                    self._log_failure_tail(f"服务器未能在预期时间内监听 {SERVER_PORT} 端口")
                 else:
                     self._log_msg("服务器启动失败，请查看上方日志", RED)
-                self._set_status(False, "启动失败")
+                self._active_server_host = LOOPBACK_HOST
+                self._set_status(False, "启动失败", "未启动")
                 self._engine_phase = "idle"
                 self._running = False
+                self._sync_lan_button()
                 return
 
             self._running = False
             self._sync_ai_toggle_button()
+            self._sync_lan_button()
 
         threading.Thread(target=_run, daemon=True).start()
 
     def _stop_server(self):
         self._status_monitor_stop.set()
+        stopped_external = False
         if self.server_proc:
             try:
                 self.server_proc.terminate()
@@ -1478,12 +1691,15 @@ class GoAILauncher:
                 except Exception:
                     pass
             self.server_proc = None
+        elif self._port_open(SERVER_PORT, 0.5):
+            stopped_external = self._stop_stale_server_on_port(SERVER_PORT)
         self._running = False
         self._server_active = False
+        self._active_server_host = LOOPBACK_HOST
         self._engine_phase = "idle"
         self._model_running = False
-        self._set_status(False, "服务器已停止")
-        self._log_msg("已停止服务器", GOLD)
+        self._set_status(False, "服务器已停止", "未启动")
+        self._log_msg("已停止服务器" if stopped_external or not self._port_open(SERVER_PORT, 0.5) else "服务器停止请求已发送", GOLD)
 
     def _toggle_model(self):
         """Toggle the KataGo engine on/off via the server's API."""

@@ -267,21 +267,15 @@ async def handle_rogue_use_puppet(ctx: WebSocketActionContext, data: dict) -> No
         return
     x, y = int(data["x"]), int(data["y"])
     gtp = ctx.coord_to_gtp(x, y, game.size)
-    ai_color = game.ai_color
-    resp = await ctx.run_in_executor(ctx.engine.send_command, f"play {ai_color} {gtp}")
-    if "?" in resp:
-        await ctx.send_error(f"该位置无法落子: {gtp}")
+    if not (0 <= x < game.size and 0 <= y < game.size):
+        await ctx.send_error("目标点超出棋盘范围")
         return
-    game.rogue_uses["puppet"] -= 1
-    game.moves.append((ai_color, gtp))
-    game.place_stone(x, y, ai_color)
-    game.passed[ai_color] = False
-    game.current_player = game.player_color
-    game.push_history()
+    if game.board[y][x] != 0:
+        await ctx.send_error(f"该位置已有棋子: {gtp}")
+        return
+    game.rogue_puppet_target = (x, y)
     await ctx.send({"type": "game_state", **game.to_state()})
-    await ctx.send({"type": "ai_move", "gtp": gtp, "color": ai_color, "x": x, "y": y})
-    await ctx.send({"type": "rogue_event", "msg": f"🎭 傀儡术！你替 AI 落子于 {gtp}"})
-    await ctx.send({"type": "rogue_uses_update", "uses": game.rogue_uses})
+    await ctx.send({"type": "rogue_event", "msg": f"🎭 傀儡术待命：你先正常落子，随后 AI 会被迫下在 {gtp}"})
     if not game.game_over and ctx.engine.ready:
         asyncio.create_task(ctx.do_analysis_bg(game))
 

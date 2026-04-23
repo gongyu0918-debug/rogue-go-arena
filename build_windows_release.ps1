@@ -1,13 +1,14 @@
 param(
-    [string]$Version = (Get-Date -Format "yyyy.MM.dd")
+    [string]$Version = (Get-Date -Format "yyyy.MM.dd"),
+    [string]$BuildDir = (Join-Path $PSScriptRoot "build"),
+    [string]$DistDir = (Join-Path $PSScriptRoot "dist"),
+    [string]$ReleaseDir = (Join-Path $PSScriptRoot "release")
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$DistDir = Join-Path $RepoRoot "dist"
-$ReleaseDir = Join-Path $RepoRoot "release"
 
 function Resolve-Iscc {
     $cmd = Get-Command ISCC.exe -ErrorAction SilentlyContinue
@@ -30,28 +31,40 @@ function Resolve-Iscc {
 
 Write-Host "==> Repo root: $RepoRoot"
 Write-Host "==> Build version: $Version"
+Write-Host "==> Build dir: $BuildDir"
+Write-Host "==> Dist dir: $DistDir"
+Write-Host "==> Release dir: $ReleaseDir"
 
 if (Test-Path $DistDir) {
     Remove-Item -LiteralPath $DistDir -Recurse -Force
 }
-if (Test-Path (Join-Path $RepoRoot "build")) {
-    Remove-Item -LiteralPath (Join-Path $RepoRoot "build") -Recurse -Force
+if (Test-Path $BuildDir) {
+    Remove-Item -LiteralPath $BuildDir -Recurse -Force
 }
+New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
+New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
 New-Item -ItemType Directory -Force -Path $ReleaseDir | Out-Null
 
-Write-Host "==> Building launcher EXE"
-python -m PyInstaller --noconfirm GoAI.spec
+Push-Location $RepoRoot
+try {
+    Write-Host "==> Building launcher EXE"
+    python -m PyInstaller --noconfirm --distpath $DistDir --workpath $BuildDir GoAI.spec
 
-Write-Host "==> Building server EXE bundle"
-python -m PyInstaller --noconfirm GoAI_Server.spec
+    Write-Host "==> Building server EXE bundle"
+    python -m PyInstaller --noconfirm --distpath $DistDir --workpath $BuildDir GoAI_Server.spec
 
-$iscc = Resolve-Iscc
-Write-Host "==> Building installer with Inno Setup"
-& $iscc `
-    "/DMyAppVersion=$Version" `
-    "/DRepoRoot=$RepoRoot" `
-    "/DReleaseDir=$ReleaseDir" `
-    (Join-Path $RepoRoot "GoAI_Setup.iss")
+    $iscc = Resolve-Iscc
+    Write-Host "==> Building installer with Inno Setup"
+    & $iscc `
+        "/DMyAppVersion=$Version" `
+        "/DRepoRoot=$RepoRoot" `
+        "/DDistDir=$DistDir" `
+        "/DReleaseDir=$ReleaseDir" `
+        (Join-Path $RepoRoot "GoAI_Setup.iss")
+}
+finally {
+    Pop-Location
+}
 
 Write-Host "==> Build completed"
 Get-ChildItem $ReleaseDir | Sort-Object LastWriteTime -Descending | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize
