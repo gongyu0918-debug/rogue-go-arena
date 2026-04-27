@@ -24,6 +24,7 @@ LOOPBACK_HOST = "127.0.0.1"
 SERVER_URL = f"http://{LOOPBACK_HOST}:{SERVER_PORT}"
 EXPECTED_SERVER_REV = "20260424-client-shell-rogue"
 NATIVE_WINDOW_SIZE = "1500,1000"
+EDGE_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "GoAI" / "edge-app-profile"
 CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 DETACHED_PROCESS = getattr(subprocess, "DETACHED_PROCESS", 0)
 
@@ -161,22 +162,35 @@ def _find_edge_exe() -> str | None:
     return shutil.which("msedge")
 
 
+def _stop_katago_runtime() -> None:
+    try:
+        req = urllib.request.Request(f"{SERVER_URL}/stop_katago", method="POST")
+        with urllib.request.urlopen(req, timeout=2):
+            pass
+    except Exception:
+        pass
+
+
 def _open_native_client_window(url: str) -> bool:
     edge = _find_edge_exe()
     if edge:
         try:
-            subprocess.Popen(
+            EDGE_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+            proc = subprocess.Popen(
                 [
                     edge,
                     f"--app={url}",
                     "--new-window",
                     f"--window-size={NATIVE_WINDOW_SIZE}",
+                    f"--user-data-dir={EDGE_PROFILE_DIR}",
                     "--disable-features=msEdgeSidebarV2",
                 ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 creationflags=_creationflags_no_window(),
             )
+            proc.wait()
+            _stop_katago_runtime()
             return True
         except Exception:
             pass

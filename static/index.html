@@ -663,13 +663,17 @@ header h1 {
   box-shadow: -12px 0 44px rgba(0,0,0,0.56);
   z-index: 1000;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   transition: right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   padding: 24px;
   border-left: 1px solid rgba(255,255,255,.05);
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-sizing: border-box;
 }
+.settings-drawer * { box-sizing: border-box; }
 .settings-drawer.open { right: 0; }
 .drawer-close {
   display: block; position: absolute;
@@ -692,6 +696,9 @@ header h1 {
   padding: 18px 18px 16px;
   border: 1px solid rgba(255,255,255,.06);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 14px 28px rgba(0,0,0,.14);
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
 }
 .panel-card h3 {
   font-size: .82rem; color: #d4af37;
@@ -832,8 +839,9 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 
 /* Move info */
 #move-info { font-size: .85rem; line-height: 1.8; }
-.info-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.02); }
-.info-val { color: #d4af37; font-weight: 600; }
+.info-row { display: flex; justify-content: space-between; gap: 10px; min-width: 0; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.02); }
+.info-row span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.info-val { color: #d4af37; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Toggle */
 .toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
@@ -1070,20 +1078,27 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 #game-log {
   max-height: 140px;
   overflow-y: auto;
+  overflow-x: hidden;
   font-size: .75rem;
   line-height: 1.55;
   color: #aaa;
+  max-width: 100%;
+  scrollbar-gutter: stable;
+  contain: layout paint;
 }
 #game-log > div {
+  max-width: 100%;
   padding: 4px 8px;
   margin-bottom: 6px;
   border-radius: 10px;
   background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012));
   border: 1px solid rgba(255,255,255,.03);
-  animation: driftFloat .28s ease-out both;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 #game-log::-webkit-scrollbar { width: 3px; }
-#game-log::-webkit-scrollbar-thumb { background: #2a4a8a; border-radius: 2px; }
+#game-log::-webkit-scrollbar-thumb { background: rgba(150,102,48,.74); border-radius: 2px; }
 
 /* Overlay */
 #overlay {
@@ -1106,11 +1121,20 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   to   { transform: scale(1); opacity: 1; }
 }
 #overlay-content {
-  background: linear-gradient(160deg, #1c2d4f 0%, #16213e 60%, #122040 100%);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(234,197,96,.18), transparent 42%),
+    linear-gradient(180deg, rgba(12,10,8,.78), rgba(6,6,7,.86)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(160deg, #2a1a0f 0%, #130e0b 62%, #08090b 100%);
+  background-size: auto, auto, cover, auto;
   border-radius: 16px;
   padding: 36px;
   text-align: center;
-  box-shadow: 0 8px 40px rgba(0,0,0,.7), 0 0 0 1px rgba(226,183,20,.1);
+  border: 1px solid rgba(150,102,48,.52);
+  box-shadow:
+    inset 0 1px 0 rgba(255,230,170,.08),
+    inset 0 -1px 0 rgba(0,0,0,.62),
+    0 8px 40px rgba(0,0,0,.72);
   max-width: 360px;
   position: relative;
   overflow: hidden;
@@ -1120,7 +1144,7 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   position: absolute;
   inset: -40% -10% auto;
   height: 180px;
-  background: radial-gradient(circle, rgba(255,255,255,.14), transparent 58%);
+  background: radial-gradient(circle, rgba(255,222,142,.10), transparent 58%);
   pointer-events: none;
 }
 #overlay-close {
@@ -1138,18 +1162,24 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 #overlay-content p  { font-size: .95rem; color: #ccc; margin-bottom: 20px; }
 #overlay.victory #overlay-content {
   background:
-    radial-gradient(circle at top, rgba(212,175,55,.22), transparent 42%),
-    linear-gradient(160deg, #283550 0%, #1b263d 58%, #121c31 100%);
+    radial-gradient(circle at top, rgba(212,175,55,.24), transparent 42%),
+    linear-gradient(180deg, rgba(12,10,8,.78), rgba(6,6,7,.86)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(160deg, #2f2011 0%, #17100b 58%, #08090b 100%);
 }
 #overlay.defeat #overlay-content {
   background:
-    radial-gradient(circle at top, rgba(145, 60, 60, .18), transparent 42%),
-    linear-gradient(160deg, #2c1921 0%, #221520 58%, #17111a 100%);
+    radial-gradient(circle at top, rgba(145, 60, 60, .16), transparent 42%),
+    linear-gradient(180deg, rgba(12,10,8,.78), rgba(6,6,7,.86)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(160deg, #2b1710 0%, #160d0a 58%, #08090b 100%);
 }
 #overlay.draw #overlay-content {
   background:
-    radial-gradient(circle at top, rgba(128, 150, 180, .16), transparent 42%),
-    linear-gradient(160deg, #20303a 0%, #18252d 58%, #121b22 100%);
+    radial-gradient(circle at top, rgba(212,175,55,.14), transparent 42%),
+    linear-gradient(180deg, rgba(12,10,8,.78), rgba(6,6,7,.86)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(160deg, #23170e 0%, #120d0a 58%, #08090b 100%);
 }
 #overlay-sparks {
   position: absolute;
@@ -1170,13 +1200,17 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 }
 .score-row { display: flex; justify-content: space-around; margin-bottom: 20px; }
 .score-item {
-  background: rgba(15,52,96,.5);
+  background:
+    linear-gradient(180deg, rgba(12,10,8,.48), rgba(5,6,7,.66)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(180deg, #21150d, #090a0c);
+  background-size: auto, cover, auto;
   border-radius: 10px;
   padding: 10px 20px;
   min-width: 100px;
-  border: 1px solid rgba(42,74,138,.4);
+  border: 1px solid rgba(150,102,48,.46);
 }
-.score-item .label { font-size: .72rem; color: #8899b4; margin-bottom: 4px; }
+.score-item .label { font-size: .72rem; color: #b8aa89; margin-bottom: 4px; }
 .score-item .value { font-size: 1.15rem; font-weight: 700; color: #e2b714; }
 
 /* Thinking */
@@ -1193,15 +1227,57 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 #thinking-indicator,
 #thinking-indicator-panel {
-  display: none; align-items: center;
+  display: flex; align-items: center;
   gap: 5px; font-size: .8rem; color: #e2b714;
-  margin-top: 8px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .14s ease, visibility .14s ease;
 }
 #thinking-indicator.show,
-#thinking-indicator-panel.show { display: flex; }
+#thinking-indicator-panel.show {
+  opacity: 1;
+  visibility: visible;
+}
+#thinking-indicator {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--toolbar-bottom, clamp(8px, .95vh, 18px)) + clamp(88px, 5.5vw, 112px));
+  transform: translateX(-50%);
+  z-index: 58;
+  margin: 0;
+  min-width: 128px;
+  min-height: 32px;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(11,9,7,.7), rgba(5,6,8,.76)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(180deg, rgba(34,22,12,.9), rgba(8,9,12,.88));
+  background-size: auto, cover, auto;
+  border: 1px solid rgba(170,117,52,.48);
+  box-shadow: 0 10px 26px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,230,170,.08);
+  white-space: nowrap;
+}
+#thinking-indicator-panel {
+  min-height: 24px;
+  margin-top: 8px;
+}
 
 /* Divider */
 .divider { height: 1px; background: #2a3a5e; margin: 8px 0; }
+.settings-divider {
+  height: 1px;
+  margin: 12px 0 10px;
+  background: linear-gradient(90deg, transparent, rgba(171,118,52,.46), rgba(226,190,93,.28), transparent);
+}
+.sgf-section-title {
+  font-size: .82rem;
+  color: #e2b714;
+  margin: 2px 0 8px;
+  letter-spacing: .14em;
+}
 
 /* Color badge */
 .my-color-badge {
@@ -1633,12 +1709,12 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   text-align: center; transition: all 0.2s; user-select: none;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 20px 36px rgba(0,0,0,.28);
 }
-.ultimate-card:hover { border-color: #ff6666; transform: translateY(-4px) scale(1.03);
-  box-shadow: 0 18px 34px rgba(255,68,68,0.24); }
+.ultimate-card:hover { border-color: #d4af37; transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 18px 34px rgba(212,175,55,0.18); }
 .ultimate-card.selected {
-  border-color: #ffb0a2;
+  border-color: #f5dd93;
   transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 0 32px rgba(255,92,92,.26);
+  box-shadow: 0 0 32px rgba(212,175,55,.24);
 }
 .ultimate-card .rc-icon {
   font-size: 2.55rem;
@@ -1654,8 +1730,8 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   background-repeat: no-repeat;
   background-size: contain;
 }
-.ultimate-card .rc-name { color: #ff9d92; font-weight: 700; font-size: 1rem; margin-bottom: 8px; }
-.ultimate-card .rc-desc { color: #ffc0b7; font-size: .78rem; line-height: 1.5; }
+.ultimate-card .rc-name { color: #f5dd93; font-weight: 700; font-size: 1rem; margin-bottom: 8px; }
+.ultimate-card .rc-desc { color: #d7c6a5; font-size: .78rem; line-height: 1.5; }
 #ultimate-bar {
   display:none; position:absolute; bottom:12px; right:12px; z-index:40;
   background:rgba(40,5,5,0.92); border:1px solid rgba(255,68,68,0.4);
@@ -2139,6 +2215,20 @@ header::before { display: none; }
     inset 0 -3px 6px rgba(255,225,154,.08),
     0 0 0 5px rgba(14,8,4,.12);
 }
+#board-container .board-light-balance {
+  position: absolute;
+  left: var(--board-fit-x, 250px);
+  top: var(--board-fit-y, 107px);
+  width: var(--board-fit-size, 720px);
+  height: var(--board-fit-size, 720px);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 3;
+  mix-blend-mode: multiply;
+  background:
+    radial-gradient(circle at 50% 47%, rgba(78,48,18,.22), rgba(78,48,18,.14) 24%, rgba(78,48,18,.06) 48%, transparent 72%),
+    linear-gradient(90deg, rgba(0,0,0,.04), transparent 18%, transparent 82%, rgba(0,0,0,.04));
+}
 #board-canvas {
   position: relative;
   z-index: 1;
@@ -2198,13 +2288,20 @@ header::before { display: none; }
   flex-wrap: nowrap;
   justify-content: center;
   gap: clamp(10px, .78vw, 20px);
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  padding: clamp(8px, .55vw, 12px) clamp(10px, .72vw, 16px);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(10,9,8,.62), rgba(5,6,8,.78)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(180deg, rgba(31,22,15,.94), rgba(8,9,12,.92));
+  background-size: auto, cover, auto;
+  border: 1px solid rgba(137,91,41,.44);
+  box-shadow:
+    inset 0 1px 0 rgba(255,230,170,.08),
+    inset 0 -1px 0 rgba(0,0,0,.6),
+    0 18px 42px rgba(0,0,0,.34);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .board-toolbar button {
   width: clamp(72px, 4.25vw, 98px);
@@ -2213,11 +2310,14 @@ header::before { display: none; }
   gap: 5px;
   border-radius: 14px;
   background:
-    radial-gradient(circle at 50% 14%, rgba(255,255,255,.08), transparent 42%),
-    linear-gradient(180deg, rgba(28,33,42,.88), rgba(8,11,16,.86));
-  border-color: rgba(255,255,255,.1);
+    radial-gradient(circle at 50% 12%, rgba(255,235,174,.08), transparent 42%),
+    linear-gradient(180deg, rgba(13,11,9,.46), rgba(6,7,9,.62)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(180deg, rgba(48,32,18,.92), rgba(8,10,14,.9));
+  background-size: auto, auto, cover, auto;
+  border-color: rgba(150,102,48,.52);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.07),
+    inset 0 1px 0 rgba(255,230,170,.08),
     inset 0 -1px 0 rgba(0,0,0,.58),
     0 18px 38px rgba(0,0,0,.46);
   backdrop-filter: blur(12px);
@@ -2273,11 +2373,16 @@ header::before { display: none; }
   max-width: 760px !important;
   padding: 20px 22px 22px;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(32,34,38,.95), rgba(12,14,18,.95)) !important;
-  border: 1px solid rgba(255,255,255,.11);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(212,175,55,.16), transparent 40%),
+    linear-gradient(180deg, rgba(13,11,9,.78), rgba(7,8,10,.86)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(180deg, #24180f, #090a0c) !important;
+  background-size: auto, auto, cover, auto;
+  border: 1px solid rgba(150,102,48,.52);
 }
 .ultimate-draft-modal {
-  border-color: rgba(255,111,111,.45) !important;
+  border-color: rgba(180,122,58,.58) !important;
 }
 .card-draft-modal > p {
   color: #aeb7c1 !important;
@@ -2292,16 +2397,22 @@ header::before { display: none; }
   padding: 16px 13px 14px;
   border-radius: 14px;
   background:
-    radial-gradient(circle at 50% 18%, rgba(65,210,222,.12), transparent 34%),
-    linear-gradient(180deg, #111a1f, #090d12) !important;
-  border-color: rgba(71,211,221,.34);
-  box-shadow: 0 18px 32px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.05);
+    radial-gradient(circle at 50% 18%, rgba(212,175,55,.16), transparent 34%),
+    linear-gradient(180deg, rgba(14,11,8,.56), rgba(6,7,8,.72)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(180deg, #2b1b10, #090a0c) !important;
+  background-size: auto, auto, cover, auto;
+  border-color: rgba(150,102,48,.48);
+  box-shadow: 0 18px 32px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,230,170,.06);
 }
 .ultimate-card {
-  border-color: rgba(240,201,91,.38);
+  border-color: rgba(150,102,48,.5);
   background:
-    radial-gradient(circle at 50% 20%, rgba(240,201,91,.18), transparent 34%),
-    linear-gradient(180deg, #1c1711, #0e0b08) !important;
+    radial-gradient(circle at 50% 20%, rgba(240,201,91,.17), transparent 34%),
+    linear-gradient(180deg, rgba(14,11,8,.56), rgba(6,7,8,.72)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(180deg, #2d1b10, #090a0c) !important;
+  background-size: auto, auto, cover, auto;
 }
 .rogue-card .rc-icon.rc-icon-art,
 .ultimate-card .rc-icon.rc-icon-art {
@@ -2520,6 +2631,7 @@ header::before { display: none; }
       </div>
     </div>
     <canvas id="board-canvas"></canvas>
+    <div class="board-light-balance" aria-hidden="true"></div>
     
     <!-- Finetune mode overlay -->
     <div id="finetune-ui">
@@ -2629,8 +2741,8 @@ header::before { display: none; }
         <span class="spinner"></span>AI 思考中…
       </div>
 
-      <div class="divider" style="margin-top:16px;"></div>
-      <h3 style="font-size:.82rem;color:#e2b714;margin:6px 0">复盘/棋谱</h3>
+      <div class="settings-divider"></div>
+      <h3 class="sgf-section-title">复盘/棋谱</h3>
       <div class="sgf-row">
         <button class="btn-purple" id="btn-sgf-save">保存棋谱</button>
         <button class="btn-purple" id="btn-sgf-load">导入棋谱</button>
@@ -3172,6 +3284,7 @@ let activeAiRogueCard = null;
 let aiRogueSeals = [];
 
 function setLanguage(lang) {
+  closeWoodSelectMenu();
   currentLang = lang === "en" ? "en" : "zh";
   localStorage.setItem("goai_lang", currentLang);
   applyLanguage();
@@ -3447,6 +3560,18 @@ function setTitle(selector, text) {
   if (el) el.title = text;
 }
 
+function setThinkingText(text) {
+  ["thinking-indicator", "thinking-indicator-panel"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = "";
+    const spinner = document.createElement("span");
+    spinner.className = "spinner";
+    el.appendChild(spinner);
+    el.appendChild(document.createTextNode(text));
+  });
+}
+
 function setSoundToggleVisual() {
   const icon = document.querySelector("#sound-toggle .toolbar-icon");
   if (icon) icon.dataset.icon = soundEnabled ? "sound-on" : "sound-off";
@@ -3603,7 +3728,9 @@ function syncWoodSelect(select) {
     btn.disabled = !!select.disabled;
     btn.setAttribute("aria-expanded", wrap.classList.contains("open") ? "true" : "false");
   }
-  if (activeWoodSelect === select) renderWoodSelectMenu(select);
+  if (activeWoodSelect === select && woodSelectPopover?.classList.contains("open")) {
+    renderWoodSelectMenu(select);
+  }
 }
 
 function syncWoodSelects() {
@@ -3725,7 +3852,7 @@ window.addEventListener("resize", () => {
   if (activeWoodSelect) placeWoodSelectMenu(activeWoodSelect);
 });
 document.addEventListener("scroll", () => {
-  if (activeWoodSelect) placeWoodSelectMenu(activeWoodSelect);
+  if (activeWoodSelect) closeWoodSelectMenu();
 }, true);
 
 function ensureLanguageControl() {
@@ -3773,8 +3900,7 @@ function applyLanguage() {
   setText("#client-run-label", ui("手数", "Move"));
   setTitle("#sound-toggle", ui("音效开关", "Sound"));
   setConnectionIndicator(!!ws && ws.readyState === WebSocket.OPEN);
-  setText("#thinking-indicator", ui("AI 思考中…", "AI is thinking..."));
-  setText("#thinking-indicator-panel", ui("AI 思考中…", "AI is thinking..."));
+  setThinkingText(ui("AI 思考中…", "AI is thinking..."));
 
   setTitle("#btn-setup", ui("开始", "Start"));
   setTitle("#btn-quick-rogue", ui("Rogue", "Rogue"));
@@ -3959,7 +4085,8 @@ function applyLanguage() {
   drawWinrateCurve();
   enhanceWoodSelects();
   syncWoodSelects();
-  resizeBoard(reviewMode ? reviewBoardSize : (gameState?.size || boardSize || 19));
+  syncBoardFitFrame();
+  if (boardRenderSize) render();
 }
 
 // Review mode state
@@ -4952,8 +5079,9 @@ function resizeBoard(size) {
   const toolbarButtonHeight = compact
     ? 66
     : Math.round(Math.min(82, Math.max(64, window.innerWidth * 0.0365)));
+  const toolbarFramePadY = Math.round(Math.min(compact ? 20 : 24, Math.max(compact ? 16 : 18, window.innerWidth * 0.011)));
   const windowedTight = !compact && availableViewportHeight < 1050;
-  const toolbarSafeClear = toolbarButtonHeight + toolbarBottomInset + (windowedTight ? 18 : 10);
+  const toolbarSafeClear = toolbarButtonHeight + toolbarFramePadY + toolbarBottomInset + (windowedTight ? 18 : 10);
   const toolbarBaseClear = Math.round(Math.min(
     compact ? 92 : 112,
     Math.max(compact ? 64 : 58, stageHeight * (compact ? 0.075 : 0.058))
@@ -4976,6 +5104,22 @@ function resizeBoard(size) {
   const boardLeft = Math.round((stageWidth - total) / 2);
   const boardRight = Math.max(0, stageWidth - boardLeft - total);
   const boardBottom = Math.max(0, stageHeight - boardTop - total);
+  const nextDpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+  const layoutUnchanged =
+    boardContainer &&
+    boardRenderSize === total &&
+    boardRenderDpr === nextDpr &&
+    canvas.style.width === `${total}px` &&
+    canvas.style.height === `${total}px` &&
+    boardContainer.style.width === `${stageWidth}px` &&
+    boardContainer.style.getPropertyValue("--stage-pad-left") === `${boardLeft}px` &&
+    boardContainer.style.getPropertyValue("--stage-pad-right") === `${boardRight}px` &&
+    boardContainer.style.getPropertyValue("--stage-pad-top") === `${boardTop}px` &&
+    boardContainer.style.getPropertyValue("--stage-pad-bottom") === `${boardBottom}px`;
+  if (layoutUnchanged) {
+    syncBoardFitFrame();
+    return;
+  }
   document.documentElement.style.setProperty("--goai-stage-width", `${stageWidth}px`);
   if (boardContainer) {
     boardContainer.style.width = `${stageWidth}px`;
@@ -4987,7 +5131,7 @@ function resizeBoard(size) {
     boardContainer.style.setProperty("--toolbar-width", `${Math.min(stageWidth * 0.72, Math.max(1120, total * 1.08))}px`);
   }
   boardRenderSize = total;
-  boardRenderDpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+  boardRenderDpr = nextDpr;
   canvas.width = Math.floor(total * boardRenderDpr);
   canvas.height = Math.floor(total * boardRenderDpr);
   canvas.style.width = `${total}px`;
@@ -5141,6 +5285,17 @@ function paintBoardBase(bCtx, W) {
   frameGrad.addColorStop(1, "rgba(90, 52, 14, 0.14)");
   bCtx.fillStyle = frameGrad;
   bCtx.fillRect(0, 0, W, W);
+
+  bCtx.save();
+  bCtx.globalCompositeOperation = "multiply";
+  const comfortGrad = bCtx.createRadialGradient(W * 0.5, W * 0.48, W * 0.08, W * 0.5, W * 0.48, W * 0.72);
+  comfortGrad.addColorStop(0, "rgba(106, 72, 31, 0.22)");
+  comfortGrad.addColorStop(0.42, "rgba(116, 76, 28, 0.14)");
+  comfortGrad.addColorStop(0.78, "rgba(116, 76, 28, 0.06)");
+  comfortGrad.addColorStop(1, "rgba(255,255,255,0)");
+  bCtx.fillStyle = comfortGrad;
+  bCtx.fillRect(0, 0, W, W);
+  bCtx.restore();
 }
 
 function getStoneVariantId(x, y, color) {
@@ -5193,7 +5348,7 @@ function paintStoneTexture(sctx, color, cx, cy, r, variantId) {
     sctx.save();
     sctx.translate(cx, cy);
     sctx.rotate(((variantId % 7) - 3) * 0.05);
-    sctx.globalAlpha = 0.78;
+    sctx.globalAlpha = 0.58;
     sctx.drawImage(
       whiteStoneTexture,
       sourceX,
@@ -5206,6 +5361,17 @@ function paintStoneTexture(sctx, color, cx, cy, r, variantId) {
       r * 2.08
     );
     sctx.restore();
+    sctx.save();
+    sctx.globalCompositeOperation = "multiply";
+    const warmShade = sctx.createRadialGradient(cx - r * 0.18, cy - r * 0.22, r * 0.12, cx, cy, r * 1.06);
+    warmShade.addColorStop(0, "rgba(235, 224, 205, 0.12)");
+    warmShade.addColorStop(0.58, "rgba(202, 187, 162, 0.18)");
+    warmShade.addColorStop(1, "rgba(152, 132, 104, 0.24)");
+    sctx.fillStyle = warmShade;
+    sctx.beginPath();
+    sctx.arc(cx, cy, r, 0, Math.PI * 2);
+    sctx.fill();
+    sctx.restore();
     return;
   }
 
@@ -5216,10 +5382,10 @@ function paintStoneTexture(sctx, color, cx, cy, r, variantId) {
     fill.addColorStop(0.72, "#07090d");
     fill.addColorStop(1, "#010203");
   } else {
-    fill.addColorStop(0, "#ffffff");
-    fill.addColorStop(0.28, "#fcfcfb");
-    fill.addColorStop(0.72, "#ddd8cc");
-    fill.addColorStop(1, "#afa999");
+    fill.addColorStop(0, "#eee8dc");
+    fill.addColorStop(0.28, "#e5dfd1");
+    fill.addColorStop(0.72, "#cfc6b7");
+    fill.addColorStop(1, "#a69b89");
   }
   sctx.fillStyle = fill;
   sctx.fill();
@@ -5318,9 +5484,9 @@ function getStoneSprite(color, radius, variantId = 0) {
     baseFill.addColorStop(0.42, "#14171a");
     baseFill.addColorStop(1, "#050607");
   } else {
-    baseFill.addColorStop(0, "#ffffff");
-    baseFill.addColorStop(0.58, "#f7f5ef");
-    baseFill.addColorStop(1, "#ddd8cf");
+    baseFill.addColorStop(0, "#eee8dc");
+    baseFill.addColorStop(0.56, "#ded7ca");
+    baseFill.addColorStop(1, "#bfb5a5");
   }
   sctx.fillStyle = baseFill;
   sctx.fill();
@@ -5340,12 +5506,12 @@ function getStoneSprite(color, radius, variantId = 0) {
   } else {
     const pearlShade = sctx.createRadialGradient(cx + r * 0.12, cy + r * 0.18, r * 0.16, cx, cy, r * 1.04);
     pearlShade.addColorStop(0, "rgba(255,255,255,0)");
-    pearlShade.addColorStop(0.56, "rgba(255,255,255,0)");
-    pearlShade.addColorStop(1, "rgba(130, 116, 97, 0.12)");
+    pearlShade.addColorStop(0.48, "rgba(242,232,212,0.04)");
+    pearlShade.addColorStop(1, "rgba(126, 108, 86, 0.22)");
     sctx.fillStyle = pearlShade;
     sctx.fillRect(cx - r, cy - r, r * 2, r * 2);
   }
-  sctx.strokeStyle = color === "B" ? "rgba(255,255,255,0.035)" : "rgba(255,255,255,0.52)";
+  sctx.strokeStyle = color === "B" ? "rgba(255,255,255,0.035)" : "rgba(242,232,210,0.36)";
   sctx.lineWidth = Math.max(1.1, r * 0.032);
   sctx.beginPath();
   sctx.arc(cx, cy, r - sctx.lineWidth / 2, 0, Math.PI * 2);
@@ -5357,8 +5523,8 @@ function getStoneSprite(color, radius, variantId = 0) {
     highlight.addColorStop(0.5, "rgba(255,255,255,0.016)");
     highlight.addColorStop(1, "rgba(255,255,255,0)");
   } else {
-    highlight.addColorStop(0, "rgba(255,255,255,0.22)");
-    highlight.addColorStop(0.5, "rgba(255,255,255,0.07)");
+    highlight.addColorStop(0, "rgba(255,250,238,0.12)");
+    highlight.addColorStop(0.5, "rgba(255,246,232,0.035)");
     highlight.addColorStop(1, "rgba(255,255,255,0)");
   }
   sctx.fillStyle = highlight;
@@ -5372,7 +5538,7 @@ function getStoneSprite(color, radius, variantId = 0) {
     sctx.ellipse(cx + r * 0.02, cy - r * 0.02, r * 0.36, r * 0.18, -Math.PI / 7, 0, Math.PI * 2);
     sctx.fill();
   } else {
-    sctx.fillStyle = "rgba(160, 168, 180, 0.02)";
+    sctx.fillStyle = "rgba(126, 112, 92, 0.055)";
     sctx.beginPath();
     sctx.ellipse(cx + r * 0.12, cy + r * 0.16, r * 0.34, r * 0.15, Math.PI / 8, 0, Math.PI * 2);
     sctx.fill();
@@ -5514,19 +5680,19 @@ function roundedRectPath(x, y, w, h, r) {
 
 function drawHintPercentChip(cx, cy, pct, rank) {
   const chipR = Math.max(12, CELL * 0.27);
-  const hue = rank === 0 ? 96 : 92 - rank * 4;
+  const hue = rank === 0 ? 88 : 84 - rank * 4;
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,.18)";
-  ctx.shadowBlur = CELL * 0.18;
+  ctx.shadowColor = "rgba(0,0,0,.14)";
+  ctx.shadowBlur = CELL * 0.12;
   ctx.beginPath();
   ctx.arc(cx, cy, chipR, 0, Math.PI * 2);
-  ctx.fillStyle = `hsla(${hue}, 64%, 64%, 0.96)`;
+  ctx.fillStyle = `hsla(${hue}, 42%, 58%, 0.88)`;
   ctx.fill();
-  ctx.strokeStyle = `hsla(${hue}, 46%, 22%, 0.92)`;
+  ctx.strokeStyle = `hsla(${hue}, 38%, 24%, 0.86)`;
   ctx.lineWidth = 1.4;
   ctx.stroke();
   ctx.shadowBlur = 0;
-  ctx.fillStyle = "#1f3c12";
+  ctx.fillStyle = "#1f3216";
   ctx.font = `700 ${Math.max(9, Math.min(13, CELL * 0.24))}px "Microsoft YaHei", sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -5555,9 +5721,9 @@ function drawHints() {
     if (i > 0) {
       ctx.save();
       roundedRectPath(cx - box / 2, cy - box / 2, box, box, box * 0.14);
-      ctx.fillStyle = `rgba(255,255,255,${0.22 - i * 0.03})`;
+      ctx.fillStyle = `rgba(229,219,198,${0.16 - i * 0.025})`;
       ctx.fill();
-      ctx.strokeStyle = `rgba(255,255,255,${0.12 - i * 0.015})`;
+      ctx.strokeStyle = `rgba(106,78,39,${0.12 - i * 0.014})`;
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.restore();
@@ -5567,9 +5733,9 @@ function drawHints() {
         cx - r * 0.35, cy - r * 0.35, r * 0.1,
         cx, cy, r
       );
-      g.addColorStop(0, "rgba(92,92,92,.98)");
-      g.addColorStop(0.55, "rgba(36,36,36,.98)");
-      g.addColorStop(1, "rgba(12,12,12,.98)");
+      g.addColorStop(0, "rgba(76,74,65,.92)");
+      g.addColorStop(0.55, "rgba(32,31,28,.94)");
+      g.addColorStop(1, "rgba(13,12,10,.94)");
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,.28)";
       ctx.shadowBlur = CELL * 0.3;
@@ -5578,7 +5744,7 @@ function drawHints() {
       ctx.fillStyle = g;
       ctx.fill();
       ctx.lineWidth = 1.5;
-      ctx.strokeStyle = "rgba(255,255,255,.16)";
+      ctx.strokeStyle = "rgba(226,204,154,.13)";
       ctx.stroke();
       ctx.shadowBlur = 0;
       ctx.restore();
@@ -5600,7 +5766,7 @@ function drawTerritory() {
       const v = own[y * sz + x];
       if (v === undefined || Math.abs(v) < 0.25) continue;
       const cx = PAD + x * CELL, cy = PAD + y * CELL;
-      const alpha = Math.min(0.75, Math.abs(v) * 0.85);
+      const alpha = Math.min(0.52, Math.abs(v) * 0.58);
       const r = CELL * 0.22;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -5609,9 +5775,9 @@ function drawTerritory() {
         ctx.fill();
         ctx.strokeStyle = `rgba(0,0,0,${alpha * 0.6})`; ctx.lineWidth = 0.5; ctx.stroke();
       } else {
-        ctx.fillStyle = `rgba(240,240,240,${alpha})`;
+        ctx.fillStyle = `rgba(222,214,198,${alpha})`;
         ctx.fill();
-        ctx.strokeStyle = `rgba(180,180,180,${alpha * 0.6})`; ctx.lineWidth = 0.5; ctx.stroke();
+        ctx.strokeStyle = `rgba(132,118,96,${alpha * 0.55})`; ctx.lineWidth = 0.5; ctx.stroke();
       }
     }
   }
@@ -5635,9 +5801,9 @@ function drawReviewHints() {
     if (i === 0) {
       const r = CELL * 0.43;
       const g = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.1, cx, cy, r);
-      g.addColorStop(0, "rgba(92,92,92,.9)");
-      g.addColorStop(0.55, "rgba(36,36,36,.9)");
-      g.addColorStop(1, "rgba(12,12,12,.9)");
+      g.addColorStop(0, "rgba(76,74,65,.86)");
+      g.addColorStop(0.55, "rgba(32,31,28,.9)");
+      g.addColorStop(1, "rgba(13,12,10,.9)");
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,.28)";
       ctx.shadowBlur = CELL * 0.3;
@@ -5649,7 +5815,7 @@ function drawReviewHints() {
       const box = CELL * 0.5;
       ctx.save();
       roundedRectPath(cx - box / 2, cy - box / 2, box, box, box * 0.14);
-      ctx.fillStyle = `rgba(255,255,255,${0.2 - i * 0.03})`;
+      ctx.fillStyle = `rgba(229,219,198,${0.15 - i * 0.024})`;
       ctx.fill();
       ctx.restore();
     }
@@ -6181,12 +6347,21 @@ function boardXY(e) {
 // ─── Unified play logic (debounced for mobile touch+click) ───────────────────
 let lastPlayTime = 0;
 let aiResponseTimer = null;
+function isCoachTakingOver() {
+  return !twoPlayerMode
+    && activeRogueCard === "coach_mode"
+    && (gameState?.rogue_coach_moves_left || 0) > 0;
+}
 function tryPlay(x, y) {
   const now = Date.now();
   const minGap = (ultimateMode && ultimatePlayerCard === "quickthink" && gameState?.ultimate_quickthink_active) ? 80 : 400;
   if (now - lastPlayTime < minGap) return; // debounce touch+click dual-fire
   if (reviewMode) return;
   if (!gameState || gameState.game_over) return;
+  if (isCoachTakingOver()) {
+    log(ui("🎓 代练上号接管中，请等待强化 AI 完成代打。", "🎓 Coach is controlling this phase. Wait for the boosted AI to finish."));
+    return;
+  }
   if (!twoPlayerMode && !isMyTurn) return;
   if (x < 0 || x >= boardSize || y < 0 || y >= boardSize) return;
 
@@ -6211,6 +6386,7 @@ function tryPlay(x, y) {
 }
 
 function commitPlay(x, y) {
+  closeWoodSelectMenu();
   if (gameState.board[y][x] !== 0) return;
   fineTunePos = null;
   updateFinetuneUI();
@@ -6249,6 +6425,7 @@ function commitPlay(x, y) {
 }
 
 canvas.addEventListener("click", e => {
+  closeWoodSelectMenu();
   const {x, y} = boardXY(e);
   if (x < 0 || x >= boardSize || y < 0 || y >= boardSize) return;
   // Rogue: seal point selection
@@ -6258,6 +6435,10 @@ canvas.addEventListener("click", e => {
   }
   // Rogue: puppet mode — choose AI's move
   if (puppetMode) {
+    if (isCoachTakingOver()) {
+      log(ui("🎓 代练上号接管中，暂时不能指定傀儡点。", "🎓 Coach is controlling this phase. Puppet targeting is paused."));
+      return;
+    }
     puppetMode = false;
     sendWS({ action: "rogue_use_puppet", x, y });
     return;
@@ -6276,6 +6457,7 @@ canvas.addEventListener("mouseleave", () => { hoverXY = null; if (!animFrameId) 
 // Touch support - passive:false ensures preventDefault works on mobile
 canvas.addEventListener("touchend", e => {
   e.preventDefault();
+  closeWoodSelectMenu();
   if (!e.changedTouches || !e.changedTouches[0]) return;
   const touch = e.changedTouches[0];
   const rect = canvas.getBoundingClientRect();
@@ -6286,7 +6468,15 @@ canvas.addEventListener("touchend", e => {
   const y = Math.round(((touch.clientY - rect.top) * sy - PAD) / CELL);
   if (x < 0 || x >= boardSize || y < 0 || y >= boardSize) return;
   if (rogueSealing) { sendWS({ action: "rogue_seal_point", x, y }); return; }
-  if (puppetMode) { puppetMode = false; sendWS({ action: "rogue_use_puppet", x, y }); return; }
+  if (puppetMode) {
+    if (isCoachTakingOver()) {
+      log(ui("🎓 代练上号接管中，暂时不能指定傀儡点。", "🎓 Coach is controlling this phase. Puppet targeting is paused."));
+      return;
+    }
+    puppetMode = false;
+    sendWS({ action: "rogue_use_puppet", x, y });
+    return;
+  }
   tryPlay(x, y);
 }, { passive: false });
 
@@ -6968,10 +7158,15 @@ function setButtons(active) {
 
 function log(msg) {
   const el = document.getElementById("game-log");
+  if (!el) return;
+  closeWoodSelectMenu();
   const d = document.createElement("div");
   d.textContent = msg;
   el.appendChild(d);
-  el.scrollTop = el.scrollHeight;
+  while (el.children.length > 90) el.firstElementChild?.remove();
+  requestAnimationFrame(() => {
+    el.scrollTop = el.scrollHeight;
+  });
 }
 
 function showOverlay(title, sub, winner, score) {

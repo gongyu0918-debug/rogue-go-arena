@@ -262,6 +262,9 @@ async def handle_rogue_use_puppet(ctx: WebSocketActionContext, data: dict) -> No
     game = ctx.restore_game()
     if not game or game.game_over or not ctx.engine.ready:
         return
+    if game.rogue_card == "coach_mode" and game.rogue_coach_moves_left > 0:
+        await ctx.send_error("代练上号接管中，请等待强化 AI 完成代打")
+        return
     if game.rogue_card != "puppet" or game.rogue_uses.get("puppet", 0) <= 0:
         await ctx.send_error("傀儡术已用完")
         return
@@ -287,6 +290,9 @@ async def handle_rogue_use_twin(ctx: WebSocketActionContext, data: dict) -> None
     game = ctx.restore_game()
     if not game or game.game_over:
         return
+    if game.rogue_card == "coach_mode" and game.rogue_coach_moves_left > 0:
+        await ctx.send_error("代练上号接管中，请等待强化 AI 完成代打")
+        return
     if game.rogue_card != "twin" or game.rogue_uses.get("twin", 0) <= 0:
         await ctx.send_error("双子星辰已用完")
         return
@@ -305,6 +311,9 @@ async def handle_rogue_use_exchange(ctx: WebSocketActionContext, data: dict) -> 
     game = ctx.restore_game()
     if not game or game.game_over:
         return
+    if game.rogue_card == "coach_mode" and game.rogue_coach_moves_left > 0:
+        await ctx.send_error("代练上号接管中，请等待强化 AI 完成代打")
+        return
     if game.rogue_card != "exchange" or game.rogue_uses.get("exchange", 0) <= 0:
         await ctx.send_error("乾坤挪移已用完")
         return
@@ -317,6 +326,9 @@ async def handle_rogue_use_exchange(ctx: WebSocketActionContext, data: dict) -> 
 async def handle_rogue_use_coach(ctx: WebSocketActionContext, data: dict) -> None:
     game = ctx.restore_game()
     if not game or game.game_over or not ctx.engine.ready:
+        return
+    if game.rogue_card == "coach_mode" and game.rogue_coach_moves_left > 0:
+        await ctx.send_error("代练上号已经在接管中")
         return
     if game.challenge_beta:
         if ctx.challenge_remaining(game, "coach") <= 0:

@@ -472,7 +472,7 @@ _engine_state_snapshot = engine_runtime.snapshot
 
 @app.on_event("startup")
 async def startup():
-    engine_runtime.handle_app_startup()
+    log("[Server] KataGo will start on first game request")
 
 
 @app.on_event("shutdown")
@@ -776,18 +776,36 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
 
                     if not engine.ready and not data.get("two_player", False):
                         snapshot = _engine_state_snapshot()
+                        if snapshot.get("phase") not in {"initializing", "ready"}:
+                            engine_runtime.start_background("game_start")
+                            snapshot = _engine_state_snapshot()
                         await send({
                             "type": "engine_not_ready",
                             "phase": snapshot.get("phase"),
-                            "message": snapshot.get("message"),
+                            "message": snapshot.get("message") or "KataGo 正在随游戏启动",
                             "last_error": snapshot.get("last_error"),
                             "log_tail": snapshot.get("log_tail"),
                         })
-                        await send_error(
-                            snapshot.get("message")
-                            or "KataGo未就绪，请稍候重试，或先使用两人对局模式"
-                        )
-                        continue
+                        deadline = time.time() + 120
+                        while not engine.ready and time.time() < deadline:
+                            await asyncio.sleep(0.5)
+                            snapshot = _engine_state_snapshot()
+                            if snapshot.get("phase") in {"failed", "disabled", "stopped"}:
+                                break
+                        if not engine.ready:
+                            snapshot = _engine_state_snapshot()
+                            await send({
+                                "type": "engine_not_ready",
+                                "phase": snapshot.get("phase"),
+                                "message": snapshot.get("message"),
+                                "last_error": snapshot.get("last_error"),
+                                "log_tail": snapshot.get("log_tail"),
+                            })
+                            await send_error(
+                                snapshot.get("message")
+                                or "KataGo未就绪，请稍候重试，或先使用两人对局模式"
+                            )
+                            continue
 
                     active_games.prune()
                     size = int(data.get("size", 19))
@@ -935,6 +953,13 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         game = active_games.get(game_id, touch=True)
                     if not game or game.game_over:
                         await send_error("暂无进行中的对局")
+                        continue
+                    if (
+                        not game.two_player
+                        and game.rogue_card == "coach_mode"
+                        and game.rogue_coach_moves_left > 0
+                    ):
+                        await send_error("代练上号接管中，请等待强化 AI 完成代打")
                         continue
 
                     if game.two_player:
@@ -1145,6 +1170,13 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     if not game:
                         game = active_games.get(game_id, touch=True)
                     if not game or game.game_over:
+                        continue
+                    if (
+                        not game.two_player
+                        and game.rogue_card == "coach_mode"
+                        and game.rogue_coach_moves_left > 0
+                    ):
+                        await send_error("代练上号接管中，请等待强化 AI 完成代打")
                         continue
 
                     if game.two_player:
@@ -3297,7 +3329,13 @@ def _is_suspicious_ai_pass(game: GoGame, gtp_move: str, color: str) -> bool:
     return non_pass_moves < 3 and empty_points > max(20, game.size * 2)
 
 
-async def _pick_nonpass_fallback_move(game: GoGame, color: str, visits: int) -> Optional[str]:
+async def _pick_nonpass_fallback_move(
+    game: GoGame,
+    color: str,
+    visits: int,
+    forbidden: Optional[set[tuple[int, int]]] = None,
+) -> Optional[str]:
+    forbidden = forbidden or set()
     try:
         lines, _ = engine.analyze(
             color,
@@ -3314,12 +3352,56 @@ async def _pick_nonpass_fallback_move(game: GoGame, color: str, visits: int) -> 
             coord = gtp_to_coord(gtp, game.size)
             if not coord or game.board[coord[1]][coord[0]] != 0:
                 continue
+            if coord in forbidden or not game.is_legal_move(coord[0], coord[1], color):
+                continue
             with engine.command_lock:
                 resp = engine._send_command_locked(f"play {color} {gtp}")
                 if "?" not in resp:
                     return gtp
     except Exception as exc:
         _engine_log(f"non-pass fallback failed: {exc}")
+    return None
+
+
+async def _pick_ranked_legal_move(
+    game: GoGame,
+    color: str,
+    visits: int,
+    forbidden: Optional[set[tuple[int, int]]] = None,
+    *,
+    time_limit: float = 1.5,
+) -> Optional[str]:
+    forbidden = forbidden or set()
+    try:
+        lines, _ = await run_in_executor(
+            engine.analyze,
+            color,
+            max(120, min(visits, 1400)),
+            50,
+            time_limit,
+            ["rootInfo", "true"],
+        )
+        result = engine.parse_analysis(lines, [], game.size, to_move_color=color)
+        candidates = []
+        for item in result.get("top_moves", []):
+            gtp = (item.get("move") or item.get("gtp") or "").strip()
+            if not gtp or gtp.upper() in {"PASS", "RESIGN"}:
+                continue
+            coord = gtp_to_coord(gtp, game.size)
+            if (
+                coord
+                and coord not in forbidden
+                and game.board[coord[1]][coord[0]] == 0
+                and game.is_legal_move(coord[0], coord[1], color)
+            ):
+                candidates.append(gtp)
+        for gtp in candidates:
+            with engine.command_lock:
+                resp = engine._send_command_locked(f"play {color} {gtp}")
+                if "?" not in resp:
+                    return gtp
+    except Exception as exc:
+        _engine_log(f"ranked legal fallback failed: {exc}")
     return None
 
 
@@ -3356,19 +3438,13 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
     if forbidden and gtp_move.upper() not in ("PASS", "RESIGN"):
         coord = gtp_to_coord(gtp_move, game.size)
         if coord and coord in forbidden:
-            import time as _time
-            rng = random.Random(_time.time_ns())
-            valid = [(sx, sy) for sy in range(game.size) for sx in range(game.size)
-                     if game.board[sy][sx] == 0 and (sx, sy) not in forbidden
-                     and game.is_legal_move(sx, sy, color)]
-            if valid:
-                bx, by = rng.choice(valid)
-                gtp_move = coord_to_gtp(bx, by, game.size)
-            else:
-                gtp_move = "pass"
+            with engine.command_lock:
+                engine._send_command_locked("undo")
+            ranked = await _pick_ranked_legal_move(game, color, visits, forbidden, time_limit=1.2)
+            gtp_move = ranked or "pass"
 
     if _is_suspicious_ai_pass(game, gtp_move, color):
-        fallback_move = await _pick_nonpass_fallback_move(game, color, visits)
+        fallback_move = await _pick_nonpass_fallback_move(game, color, visits, forbidden)
         if fallback_move:
             _engine_log(f"Suspicious early PASS in ultimate mode, replaced with {fallback_move}")
             gtp_move = fallback_move
@@ -3887,6 +3963,7 @@ async def _ai_move_avoid_points(game, color, visits, time_limit, forbidden):
     for x, y in forbidden:
         forbidden_gtp.add(coord_to_gtp(x, y, game.size))
     forbidden_gtp_upper = {s.upper() for s in forbidden_gtp}
+    forbidden_coords = set(forbidden)
 
     def _analyze_and_pick():
         with engine.command_lock:
@@ -3902,12 +3979,13 @@ async def _ai_move_avoid_points(game, color, visits, time_limit, forbidden):
 
             gtp_move = resp.replace("=", "").strip()
             # If move is not on a forbidden point, use it
-            if gtp_move.upper() in ("PASS", "RESIGN") or \
+            if gtp_move.upper() not in ("PASS", "RESIGN") and \
                gtp_move.upper() not in forbidden_gtp_upper:
                 return gtp_move
 
             # Move hit a sealed point — undo and try with reduced visits
-            engine._send_command_locked("undo")
+            if gtp_move.upper() not in ("PASS", "RESIGN"):
+                engine._send_command_locked("undo")
             # Try a few times with randomization
             for attempt in range(5):
                 v = max(50, visits // (2 + attempt))
@@ -3915,30 +3993,37 @@ async def _ai_move_avoid_points(game, color, visits, time_limit, forbidden):
                 resp2 = engine._send_command_locked(
                     f"genmove {color}", timeout=20)
                 m = resp2.replace("=", "").strip()
-                if m.upper() in ("PASS", "RESIGN") or \
+                if m.upper() not in ("PASS", "RESIGN") and \
                    m.upper() not in forbidden_gtp_upper:
                     return m
-                engine._send_command_locked("undo")
+                if m.upper() not in ("PASS", "RESIGN"):
+                    engine._send_command_locked("undo")
+            return None
 
-            # Final fallback: pick any legal point outside the forbidden set
-            # so cards like seal/blackhole/golden_corner always honor their
-            # promise instead of occasionally leaking a forbidden move.
+    picked = await run_in_executor(_analyze_and_pick)
+    if picked:
+        return picked
+
+    ranked = await _pick_ranked_legal_move(game, color, visits, forbidden_coords, time_limit=1.3)
+    if ranked:
+        return ranked
+
+    def _last_resort():
+        with engine.command_lock:
             allowed = [(x, y) for y in range(game.size) for x in range(game.size)
                        if game.board[y][x] == 0
-                       and coord_to_gtp(x, y, game.size).upper()
-                       not in forbidden_gtp_upper]
+                       and (x, y) not in forbidden_coords
+                       and game.is_legal_move(x, y, color)]
             random.shuffle(allowed)
             for ax, ay in allowed:
                 gtp = coord_to_gtp(ax, ay, game.size)
                 r = engine._send_command_locked(f"play {color} {gtp}")
                 if "?" not in r:
                     return gtp
-
-            # No legal points remain outside the forbidden set.
             engine._send_command_locked(f"play {color} pass")
             return "pass"
 
-    return await run_in_executor(_analyze_and_pick)
+    return await run_in_executor(_last_resort)
 
 
 async def _ai_move_avoid_points_allow_only(game, color, visits, time_limit,
