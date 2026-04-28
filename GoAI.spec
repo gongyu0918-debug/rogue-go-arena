@@ -1,13 +1,28 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
+
+import webview
+
+
+webview_hook_dir = str(Path(webview.__file__).resolve().parent / "__pyinstaller")
+
 
 a = Analysis(
     ['launcher.py'],
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=[],
-    hookspath=[],
+    hiddenimports=[
+        'webview',
+        'webview.platforms.edgechromium',
+        'webview.platforms.winforms',
+        'clr_loader',
+        'pythonnet',
+        'proxy_tools',
+        'bottle',
+    ],
+    hookspath=[webview_hook_dir],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],

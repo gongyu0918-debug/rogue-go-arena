@@ -1,11 +1,13 @@
 """GoAI native client entrypoint.
 
-Starts the bundled server if needed and opens the game in an app-style window.
-The legacy Tk launcher is backed up in Playground.
+Starts the bundled server sidecar and opens the game in a desktop WebView2
+window. Edge app-window and system browser fallbacks are kept for machines
+without a working WebView2 host.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import shutil
@@ -25,8 +27,10 @@ SERVER_URL = f"http://{LOOPBACK_HOST}:{SERVER_PORT}"
 EXPECTED_SERVER_REV = "20260424-client-shell-rogue"
 NATIVE_WINDOW_SIZE = "1500,1000"
 EDGE_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "GoAI" / "edge-app-profile"
+WEBVIEW_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "GoAI" / "webview-profile"
 CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 DETACHED_PROCESS = getattr(subprocess, "DETACHED_PROCESS", 0)
+DESKTOP_SHELLS = {"webview", "edge", "browser"}
 
 
 def _launcher_dir() -> Path:
@@ -77,6 +81,14 @@ def _server_startupinfo():
 
 def _frontend_url() -> str:
     return f"{SERVER_URL}/?{urlencode({'rev': EXPECTED_SERVER_REV, 'ts': int(time.time())})}"
+
+
+def _window_size() -> tuple[int, int]:
+    try:
+        width_text, height_text = NATIVE_WINDOW_SIZE.split(",", 1)
+        return int(width_text), int(height_text)
+    except Exception:
+        return 1500, 1000
 
 
 def _fetch_status(timeout=1.5) -> dict | None:
@@ -171,7 +183,37 @@ def _stop_katago_runtime() -> None:
         pass
 
 
-def _open_native_client_window(url: str) -> bool:
+def _open_webview_window(url: str) -> bool:
+    try:
+        import webview
+    except Exception:
+        return False
+
+    width, height = _window_size()
+    try:
+        WEBVIEW_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+        webview.create_window(
+            "GoAI",
+            url,
+            width=width,
+            height=height,
+            min_size=(1100, 720),
+            background_color="#111318",
+            text_select=True,
+        )
+        webview.start(
+            gui="edgechromium",
+            private_mode=False,
+            storage_path=str(WEBVIEW_PROFILE_DIR),
+            icon=str(BASE_DIR / "goai.ico"),
+        )
+        _stop_katago_runtime()
+        return True
+    except Exception:
+        return False
+
+
+def _open_edge_app_window(url: str) -> bool:
     edge = _find_edge_exe()
     if edge:
         try:
@@ -194,11 +236,23 @@ def _open_native_client_window(url: str) -> bool:
             return True
         except Exception:
             pass
+    return False
+
+
+def _open_system_browser(url: str) -> bool:
     try:
         os.startfile(url)
         return True
     except Exception:
         return False
+
+
+def _open_native_client_window(url: str, shell: str) -> bool:
+    if shell == "webview" and _open_webview_window(url):
+        return True
+    if shell in {"webview", "edge"} and _open_edge_app_window(url):
+        return True
+    return _open_system_browser(url)
 
 
 def _wait_frontend_ready(timeout=90.0) -> bool:
@@ -233,10 +287,16 @@ def _start_server() -> bool:
         return False
 
 
-def run_native_client() -> int:
+def _resolve_shell(shell: str | None) -> str:
+    selected = (shell or os.environ.get("GOAI_DESKTOP_SHELL") or "webview").strip().lower()
+    return selected if selected in DESKTOP_SHELLS else "webview"
+
+
+def run_native_client(shell: str | None = None) -> int:
+    desktop_shell = _resolve_shell(shell)
     status = _fetch_status(timeout=1.5)
     if status and status.get("server_rev") == EXPECTED_SERVER_REV:
-        return 0 if _open_native_client_window(_frontend_url()) else 1
+        return 0 if _open_native_client_window(_frontend_url(), desktop_shell) else 1
     if _port_open(SERVER_PORT, 0.5):
         _stop_stale_server_on_port(SERVER_PORT)
         time.sleep(0.8)
@@ -248,8 +308,19 @@ def run_native_client() -> int:
         except Exception:
             pass
         return 1
-    return 0 if _open_native_client_window(_frontend_url()) else 1
+    return 0 if _open_native_client_window(_frontend_url(), desktop_shell) else 1
+
+
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Start the GoAI desktop client.")
+    parser.add_argument(
+        "--shell",
+        choices=sorted(DESKTOP_SHELLS),
+        default=None,
+        help="Desktop shell to use: webview uses WebView2, edge uses Edge app mode.",
+    )
+    return parser.parse_args(argv)
 
 
 if __name__ == "__main__":
-    raise SystemExit(run_native_client())
+    raise SystemExit(run_native_client(shell=_parse_args().shell))
