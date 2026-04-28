@@ -1,0 +1,520 @@
+{
+  "locale": "en-US",
+  "name": "English",
+  "phrases": {
+    "(推理较慢)": "(slower)",
+    "⚠ 胜率未达80%，暂不可计算胜负": "⚠ Win rate is below 80%, scoring is unavailable",
+    "⚠ AI 响应超时，尝试重新请求…": "⚠ AI response timed out. Retrying...",
+    "⚡ 快速思考超时，自动虚手": "⚡ Quick Thinking timed out. Auto-pass.",
+    "⚡ 快速思考已禁用推荐点位": "⚡ Quick Think disables hints.",
+    "⚡ 自由落子时间结束，AI 开始读盘": "⚡ Free placement ended. The AI is reading the board.",
+    "🎓 代练上号接管中，请等待强化 AI 完成代打。": "🎓 Coach is controlling this phase. Wait for the boosted AI to finish.",
+    "🎓 代练上号接管中，暂时不能指定傀儡点。": "🎓 Coach is controlling this phase. Puppet targeting is paused.",
+    "🎭 傀儡术：先点出 AI 的下一手落点；你随后正常落子": "🎭 Puppet: choose the AI's next forced point first, then play your own move.",
+    "🎭 这个点已被傀儡术预留给 AI": "🎭 This point is reserved for the AI by Puppet.",
+    "🚫 四道封印已设定！": "🚫 Four seals are now in place!",
+    "1080p": "1080p",
+    "1440p": "1440p",
+    "20 手决胜开始！": "The 20-move showdown begins!",
+    "20手决胜": "20-move showdown",
+    "4K": "4K",
+    "白": "White",
+    "白（我）": "White (You)",
+    "白（AI）": "White (AI)",
+    "白吃子": "White Captures",
+    "白方胜率": "White Winrate",
+    "白棋": "White",
+    "白棋（后手）": "White (Second)",
+    "白棋等级": "White Rank",
+    "白棋风格": "White Style",
+    "白棋落子": "White to move",
+    "包干+读秒": "Main + Byo-yomi",
+    "包干用时": "Absolute",
+    "保存棋谱": "Save SGF",
+    "比分": "Score",
+    "超时": "Timeout",
+    "持平": "Even",
+    "闯关": "Challenge",
+    "闯关：测试版默认执白，按当前关卡自动套用让子与卡组限制。": "Challenge: beta mode defaults you to White and applies stage handicap and loadout rules automatically.",
+    "闯关进度": "Challenge",
+    "闯关前两关已通关。": "Challenge cleared.",
+    "打开功能": "Settings",
+    "大招对战": "Ultimate Duel",
+    "大招卡牌效果": "Ultimate Card Effects",
+    "大招模式": "Ultimate Mode",
+    "代练上号": "Coach",
+    "待开始": "Ready",
+    "待选大招": "Pick Ultimate",
+    "单人抽卡": "Solo Draft",
+    "当前卡牌禁用悔棋": "Undo disabled by current card",
+    "当前卡牌效果禁用了悔棋": "Undo is disabled by the current card",
+    "当前手数": "Move",
+    "当前玩法：大招对战。固定 19×19，用普通规则开局，你与 AI 各自带一张大招卡，20 手决胜。": "Current variant: Ultimate Duel. Fixed at 19x19 with standard rules, one ultimate card per side, and a 20-move showdown.",
+    "当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡，保留颜色、贴目、等级、棋风与用时设置。": "Current variant: Solo Draft. Fixed at 19x19. Only you use a Rogue card, while color, komi, rank, style, and time settings stay available.",
+    "当前玩法：双人抽卡。固定 19×19，你先选 1 张 Rogue 卡，AI 也会从受限卡池获得 1 张。": "Current variant: Dual Draft. Fixed at 19x19. You pick 1 Rogue card, and the AI also receives 1 card from the restricted pool.",
+    "导入棋谱": "Load SGF",
+    "地盘差": "Territory Diff",
+    "等级": "Rank",
+    "第一手": "First Move",
+    "读秒": "Byo-yomi",
+    "对局": "Game",
+    "对局：可手选黑白或随机猜先；选择让子时会自动把贴目设为 0，仍可手动改回 6.5 或 7.5。": "Game: choose Black, White, or random color; handicap auto-sets komi to 0, but you can still change it back to 6.5 or 7.5.",
+    "对局进行中…": "Game Active...",
+    "对局开始后显示胜率曲线": "Winrate history appears after analysis starts.",
+    "对局信息": "Game Info",
+    "对局已结束": "The game is already over",
+    "对手级别": "Opponent",
+    "封印术成型": "Seal locked in",
+    "辅助分析": "Analysis",
+    "复盘": "Review",
+    "复盘/棋谱": "Review / SGF",
+    "共享规则卡": "Shared rule card",
+    "关闭": "Close",
+    "韩语": "Korean",
+    "黑": "Black",
+    "黑（我）": "Black (You)",
+    "黑（AI）": "Black (AI)",
+    "黑吃子": "Black Captures",
+    "黑方胜率": "Black Winrate",
+    "黑棋": "Black",
+    "黑棋（先手）": "Black (First)",
+    "黑棋等级": "Black Rank",
+    "黑棋风格": "Black Style",
+    "黑棋落子": "Black to move",
+    "画面尺寸": "Display Size",
+    "回合窃取": "Turn stolen",
+    "悔棋": "Undo",
+    "计数": "Scoring",
+    "计算": "Score",
+    "计算胜负": "Score",
+    "检测中…": "Checking...",
+    "角部强化": "Corner fortified",
+    "界面选项": "Interface",
+    "精准落子(支持微调)": "Fine-tune",
+    "镜像偏折": "Mirror pulse",
+    "均势": "Balanced",
+    "开始": "Start",
+    "开始对弈": "Start Game",
+    "快棋": "Fast",
+    "快速思考结束，轮到 AI 读盘": "Quick Thinking ended. The AI is reading the board.",
+    "傀儡术": "Puppet",
+    "傀儡术发动": "Puppet unleashed",
+    "理解": "Read",
+    "连击": "Combo",
+    "连击加速": "Combo surge",
+    "连接": "Connection",
+    "连接错误": "Connection error",
+    "连接断开，重连中…": "Disconnected, reconnecting...",
+    "连接中…": "Connecting...",
+    "轮到你": "Your turn",
+    "落子模式": "Placement",
+    "模式": "Mode",
+    "模型就绪": "Model ready",
+    "目差": "Score Lead",
+    "你: ": "You: ",
+    "你认输了": "You resigned",
+    "你赢了！": "You win!",
+    "您确定要认输吗？": "Are you sure you want to resign?",
+    "挪移": "Swap",
+    "平局": "Draw",
+    "普通对局": "Classic Game",
+    "棋盘": "Board",
+    "棋谱记录": "Game Log",
+    "棋谱解析失败: ": "Failed to parse SGF: ",
+    "棋谱已保存": "SGF saved",
+    "棋谱中未找到有效着法": "No valid moves were found in the SGF",
+    "起死回生": "Last Stand",
+    "强度": "Tier",
+    "请求悔棋": "Undo requested",
+    "请求终局计分…": "Requesting endgame scoring...",
+    "取消": "Cancel",
+    "全局设定": "Settings",
+    "全屏": "Fullscreen",
+    "确定": "Confirm",
+    "确认开始": "Start",
+    "确认落子": "Confirm Move",
+    "确认执行此操作？": "Confirm this action?",
+    "让子": "Handicap",
+    "认输": "Resignation",
+    "日语": "Japanese",
+    "上一手": "Previous Move",
+    "上移": "Up",
+    "设置": "Settings",
+    "神之一手": "Hand of God",
+    "胜！": " wins!",
+    "胜方": "Winner",
+    "胜率曲线": "Winrate Curve",
+    "胜率需≥80%才可计算胜负": "Win rate must reach 80% to score",
+    "剩余": "Uses",
+    "是否进行形势计算并申请终局？": "Run scoring and request endgame?",
+    "手滑偏移": "Butterfingers",
+    "手数": "Move",
+    "双方（人）": "Human vs Human",
+    "双方虚手": "Double pass",
+    "双人": "Two Players",
+    "双人：黑白双方均由玩家落子，可调整棋盘、贴目、让子与用时。": "Two Players: both sides are human, with board size, komi, handicap, and timing controls.",
+    "双人抽卡": "Dual Draft",
+    "双人对局": "Two Players",
+    "双人对局开始 — 黑棋先行": "Two-player game started — Black moves first",
+    "随机（猜先）": "Random (Guess)",
+    "贴目": "Komi",
+    "退出复盘": "Exit Review",
+    "玩法": "Variant",
+    "玩法总览": "Mode Overview",
+    "围棋对弈场": "Rogue Go Arena",
+    "我执": "Color",
+    "无卡牌": "No Card",
+    "无玩家卡": "No Player Card",
+    "无限制": "No Limit",
+    "五子连珠": "Five in a Row",
+    "下一手": "Next Move",
+    "下移": "Down",
+    "显示手数": "Show Move Numbers",
+    "显示推荐落点": "Show Suggested Moves",
+    "星位共鸣": "Star ignition",
+    "行棋方": "Turn",
+    "形势": "Territory",
+    "形势估算": "Score Estimate",
+    "形势判断": "Territory Estimate",
+    "虚手": "Pass",
+    "选择大招卡": "Pick ultimate card",
+    "选择界面语言": "Choose interface language",
+    "选择一张卡": "Pick a card",
+    "学习": "Study",
+    "学习：黑白双方都由 AI 对弈，可分别调整黑棋与白棋的等级和棋风。": "Study: both sides are AI, with separate rank and style controls for Black and White.",
+    "已连接": "Connected",
+    "已通过第 1 关，进入第 2 关。你将执白并按让 2 子开局，同时再选 1 张卡。": "Stage 1 cleared. Start Stage 2 as White with a 2-stone handicap opening and one more card?",
+    "已终局": "Finished",
+    "音效开关": "Sound",
+    "引擎": "Engine",
+    "用时": "Time",
+    "右移": "Right",
+    "愚形连锁": "Ugly shape chain",
+    "语言": "Language",
+    "再来一局": "Play Again",
+    "暂无进行中的对局，请点击「开始对弈」开始": "No active game was found. Click Start Game to begin.",
+    "战争迷雾刷新": "Fog of War",
+    "这里汇总 Rogue AI 的三种主玩法、闯关路线，以及所有 Rogue 强化卡与大招卡的效果说明。": "This index covers Rogue AI game variants, challenge runs, and the full effect list for Rogue and Ultimate cards.",
+    "直接落子": "Direct",
+    "中文": "Chinese",
+    "主动技能": "Active Skill",
+    "主动技能：代练上号": "Active Skill: Coach Mode",
+    "主动技能：傀儡术": "Active Skill: Puppet",
+    "主动技能：连击": "Active Skill: Combo",
+    "主动技能：乾坤挪移": "Active Skill: Turn Steal",
+    "主时": "Main Time",
+    "自适应": "Auto",
+    "自由落子": "Free",
+    "最后一手": "Last Move",
+    "左移": "Left",
+    "AI 待命": "AI standby",
+    "AI 胜利": "AI wins",
+    "AI 思考": "AI thinking",
+    "AI 思考中…": "AI is thinking...",
+    "AI 虚手": "AI passes",
+    "AI 学习": "AI Study",
+    "AI 在线": "AI online",
+    "AI认输": "AI resigned",
+    "AI行为": "AI Behavior",
+    "English": "English",
+    "GoAI": "GoAI",
+    "GoAI | 围棋对弈场": "GoAI | Rogue Go Arena",
+    "Rogue": "Rogue",
+    "ROGUE": "ROGUE",
+    "Rogue · 大招对战": "Rogue · Ultimate Duel",
+    "Rogue · 单人抽卡": "Rogue · Solo Draft",
+    "Rogue · 双人抽卡": "Rogue · Dual Draft",
+    "Rogue 规则生效": "Rogue effect",
+    "Rogue 卡牌效果": "Rogue Card Effects",
+    "Rogue 模式": "Rogue Mode",
+    "ROGUE AI WIKI": "ROGUE AI WIKI",
+    "Wiki": "Wiki"
+  },
+  "rankGroups": {
+    "kyu": "── Kyu ──",
+    "amateur": "── Amateur Dan ──",
+    "pro": "── Professional Dan ──"
+  },
+  "cardMeta": {
+    "主动": "Active",
+    "AI干扰": "AI Disrupt",
+    "爆发": "Burst",
+    "陷阱": "Trap",
+    "开局构筑": "Opening Build",
+    "任务": "Quest",
+    "风险收益": "Risk Reward",
+    "节奏": "Tempo",
+    "连线构筑": "Line Build",
+    "规则改写": "Rule Shift",
+    "连动": "Chain",
+    "任务爆发": "Quest Burst",
+    "大招": "Ultimate",
+    "低": "Low",
+    "中": "Medium",
+    "高": "High"
+  },
+  "wikiModes": [
+    {
+      "key": "solo",
+      "title": "Solo Draft",
+      "desc": "You draft 1 Rogue card from 3 choices. The AI plays standard rules with no Rogue card of its own."
+    },
+    {
+      "key": "dual",
+      "title": "Dual Draft",
+      "desc": "You pick 1 Rogue card from 3 choices, and the AI also receives 1 card from the restricted AI Rogue pool."
+    },
+    {
+      "key": "ultimate",
+      "title": "Ultimate Duel",
+      "desc": "You and the AI each pick 1 ultimate card from 3 choices. The game resolves in a 20-move showdown."
+    },
+    {
+      "key": "challenge",
+      "title": "Challenge",
+      "desc": "Challenge mode layers card-pool restrictions, handicap, and refresh counts for staged runs."
+    }
+  ],
+  "cards": {
+    "rogue": {
+      "tengen": {
+        "name": "Tengen",
+        "desc": "For its first 3 moves, the AI is pulled toward the center and star points."
+      },
+      "dice": {
+        "name": "Dice Roll",
+        "desc": "Each AI move has a 10% chance of being skipped entirely."
+      },
+      "erosion": {
+        "name": "Erosion",
+        "desc": "Every capture shifts komi by 4 points in the captor's favor."
+      },
+      "puppet": {
+        "name": "Puppet",
+        "desc": "Mark the AI's next forced point first. You play your move, then the AI must answer there (once per game)."
+      },
+      "seal": {
+        "name": "Seal",
+        "desc": "Mark 4 forbidden points the AI cannot touch for the whole game."
+      },
+      "twin": {
+        "name": "Combo",
+        "desc": "Play two moves in a single turn once per game for a local follow-up."
+      },
+      "nerf": {
+        "name": "Nerf",
+        "desc": "Drop the AI by about 8 ranks, crush its search power to roughly 5%, and make its first 12 moves much more likely to mis-pick backup options."
+      },
+      "komi_relief": {
+        "name": "Komi Cut",
+        "desc": "Komi shifts 7 points in your favor."
+      },
+      "time_press": {
+        "name": "Time Crunch",
+        "desc": "Drop the AI by about 5 ranks, cap it at 0.10 seconds per move, and make its first 12 moves much more likely to misread under time pressure."
+      },
+      "lowline": {
+        "name": "Low Sweep",
+        "desc": "The AI hugs the 2nd–3rd lines for 6 moves."
+      },
+      "suboptimal": {
+        "name": "Second Best",
+        "desc": "For its first 8 moves, the AI is much more likely to choose weaker backup options."
+      },
+      "mirror": {
+        "name": "Mirror",
+        "desc": "16% chance the AI mirrors your last move across the board."
+      },
+      "slip": {
+        "name": "Butterfingers",
+        "desc": "14% chance the AI slips to a straight-adjacent point."
+      },
+      "blackhole": {
+        "name": "Black Hole",
+        "desc": "The central 13-point zone is off-limits to the AI for its first 6 moves."
+      },
+      "exchange": {
+        "name": "Turn Steal",
+        "desc": "Force the AI to pass — you keep playing (once per game)."
+      },
+      "fog": {
+        "name": "Fog of War",
+        "desc": "For the AI's first 11 moves, a drifting 3×3 no-go zone appears. After that, each turn blocks 2 random legal points."
+      },
+      "gravity": {
+        "name": "Gravity Well",
+        "desc": "The AI is pulled toward star points for 5 moves."
+      },
+      "golden_corner": {
+        "name": "Golden Corner",
+        "desc": "A random 4×4 corner is sealed off from the AI for its first 10 moves."
+      },
+      "sansan": {
+        "name": "3-3 Rush",
+        "desc": "For its first 2 moves, the AI is forced to open on the four 3-3 points, then avoids corner 4×4 zones for 2 moves."
+      },
+      "shadow": {
+        "name": "Shadow",
+        "desc": "On its first 2 moves, the AI has a high chance to cling to its previous stone."
+      },
+      "sprout": {
+        "name": "Sprout",
+        "desc": "Each capture spawns a bonus friendly stone nearby."
+      },
+      "joseki_ocd": {
+        "name": "Joseki OCD",
+        "desc": "7 target points appear. Hit any 4 of them to auto-fill the remaining 3 with your stones."
+      },
+      "handicap_quest": {
+        "name": "Handicap Quest",
+        "desc": "Pass once to start; after every 8 moves you force an AI pass, up to 3 times."
+      },
+      "god_hand": {
+        "name": "Hand of God",
+        "desc": "Step on a hidden diamond zone — 3 friendly stones burst into nearby empty points inside a 3×3 area."
+      },
+      "sansan_trap": {
+        "name": "3-3 Trap",
+        "desc": "Only if the opponent's very first move lands on any 3-3 point, you immediately gain 8 nearby counter-stones."
+      },
+      "corner_helper": {
+        "name": "Corner Guard",
+        "desc": "Each corner can trigger once. If any corner's 5×5 area has 4 of your stones, that corner gains 1 reinforcement."
+      },
+      "sanrensei": {
+        "name": "Three Stars",
+        "desc": "If your first 2 moves both land on star points, the game auto-fills a 3rd star point stone and adds 2 nearby support stones."
+      },
+      "no_regret": {
+        "name": "No Regrets",
+        "desc": "Undo disabled — but each move has a 12% chance to add a free stone."
+      },
+      "quickthink": {
+        "name": "Quick Think",
+        "desc": "Play within 3s to unlock a 1s bonus move window. Hints and undo are disabled while this card is active."
+      },
+      "foolish_wisdom": {
+        "name": "Wise Fool",
+        "desc": "Form an ugly shape to sprout 2 bonus stones in the nearby 5×5 area."
+      },
+      "five_in_row": {
+        "name": "Five in a Row",
+        "desc": "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, it extends the ends if possible; blocked ends become nearby support stones, plus 4 extra support stones near the line."
+      },
+      "coach_mode": {
+        "name": "Coach Login",
+        "desc": "Active: a stronger AI plays the next 30 turns for you. If your winrate stays below 50% after that, it plays 10 extra turns."
+      },
+      "capture_foul": {
+        "name": "Capture Foul",
+        "desc": "When the opponent's single capture or running capture total reaches 4 stones, a foul triggers automatically. The offender loses 4 points, then the counter resets."
+      },
+      "last_stand": {
+        "name": "Last Stand",
+        "desc": "Once per game, if your winrate drops below 26%, remove 1 enemy stone and add 1 friendly stone inside the last move's 3×3 area without landing on forbidden points."
+      }
+    },
+    "ultimate": {
+      "chain": {
+        "name": "Chain Strike",
+        "desc": "Every move has a 65% chance to grant an extra turn."
+      },
+      "proliferate": {
+        "name": "Infinite Bloom",
+        "desc": "After you play, 5 same-color stones bloom in a 5×5 zone."
+      },
+      "double": {
+        "name": "Dual Blades",
+        "desc": "Every turn becomes a 2-move combo, but the whole burst only counts as 1 move."
+      },
+      "wildgrow": {
+        "name": "Wild Growth",
+        "desc": "4 of your stones spread outward into empty space."
+      },
+      "rejection": {
+        "name": "Repulsion",
+        "desc": "Enemy stones in the 5×5 zone are pushed away or destroyed."
+      },
+      "territory": {
+        "name": "Absolute Zone",
+        "desc": "Create a 4-step forbidden barrier around your move."
+      },
+      "shadow_clone": {
+        "name": "Shadow Clone",
+        "desc": "Create a mirrored stone now. One turn later, the original point and mirror point are forced into a full line even if either endpoint was removed."
+      },
+      "plague": {
+        "name": "Plague",
+        "desc": "Convert every enemy stone in the 3×3 area to your color."
+      },
+      "meteor": {
+        "name": "Meteor Strike",
+        "desc": "Randomly obliterate 5 enemy stones anywhere on the board."
+      },
+      "quantum": {
+        "name": "Quantum Surge",
+        "desc": "5 same-color stones materialize at random positions."
+      },
+      "devour": {
+        "name": "Devour",
+        "desc": "Erase every enemy stone in the surrounding 5×5 area."
+      },
+      "timewarp": {
+        "name": "Time Rift",
+        "desc": "85% chance to erase the opponent's last 2 moves from existence."
+      },
+      "blackout": {
+        "name": "Cataclysm",
+        "desc": "Wipe all enemy stones in a cross pattern from your move."
+      },
+      "magnet": {
+        "name": "Magnet Pull",
+        "desc": "Your stones rush toward the point, crushing enemies in their path."
+      },
+      "necro": {
+        "name": "Necromancy",
+        "desc": "Summon 3 friendly stones and convert 2 enemy stones."
+      },
+      "wall": {
+        "name": "Great Wall",
+        "desc": "60% chance to trigger. Fill an entire row or column with an impassable stone wall."
+      },
+      "joseki_burst": {
+        "name": "Joseki Burst",
+        "desc": "Complete joseki points, then detonate 50 bonus stones."
+      },
+      "god_hand": {
+        "name": "Hand of God",
+        "desc": "Trigger the hidden diamond — wipe enemies and flood the board with 50 stones."
+      },
+      "corner_helper": {
+        "name": "Corner Fortress",
+        "desc": "Each corner can trigger once. If a corner's 5×5 area has 2 of your stones, that corner's 8×8 boundary is filled and enemies inside are cleared."
+      },
+      "sanrensei": {
+        "name": "Star Ignition",
+        "desc": "Play your first 3 moves on star points to ignite star-point influence across the board."
+      },
+      "quickthink": {
+        "name": "Speed Storm",
+        "desc": "Place unlimited stones for 5 seconds — then the AI reads the board. The whole burst counts as 1 move."
+      },
+      "foolish_wisdom": {
+        "name": "Fool's Chain",
+        "desc": "Ugly-shape chain reaction spawns up to 20 stones until it stops."
+      },
+      "five_in_row": {
+        "name": "Five in a Row Burst",
+        "desc": "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, remove 30 enemy stones and drop 30 friendly stones across the board. This effect can chain."
+      },
+      "capture_foul": {
+        "name": "Capture Foul",
+        "desc": "Whenever the opponent captures or removes more than 5 stones (including card effects), the foul triggers with 100% certainty. The offender immediately loses 50 points, then the counter resets and can trigger again."
+      },
+      "last_stand": {
+        "name": "Last Stand",
+        "desc": "If your winrate drops below 30%, clear 30 enemy stones and add 30 friendly stones across the entire board."
+      }
+    }
+  }
+}

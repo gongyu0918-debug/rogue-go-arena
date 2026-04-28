@@ -321,6 +321,7 @@ class KataGoEngine:
                 "top_moves": [],
                 "ownership": ownership,
                 "analysis_color": to_move_color,
+                "analysis_ready": False,
             }
 
         segments = [
@@ -414,6 +415,7 @@ class KataGoEngine:
             "top_moves": moves[:8],
             "ownership": ownership,
             "analysis_color": to_move_color,
+            "analysis_ready": bool(moves or root_match),
         }
 
     def stop(self):

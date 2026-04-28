@@ -293,30 +293,68 @@ header h1 {
   max-width: 1500px;
 }
 /* Win Rate Bar */
-#winrate-bar-wrap { width: 100%; margin-bottom: 8px; }
+#winrate-bar-wrap {
+  width: 100%;
+  margin-bottom: 0;
+  transition: opacity .18s ease, filter .18s ease;
+}
 #winrate-bar {
   width: 100%; height: 28px;
   border-radius: 14px; overflow: hidden;
-  background: linear-gradient(90deg, #d8d8d8, #f0f0f0);
+  background:
+    linear-gradient(180deg, rgba(255,236,178,.15), rgba(0,0,0,.12)),
+    linear-gradient(90deg, #0d0d0d 0%, #242424 46%, #f6efd8 54%, #fff8e9 100%);
+  background-size: auto, auto;
   position: relative;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,.3), 0 1px 4px rgba(0,0,0,.2);
+  box-shadow:
+    inset 0 2px 5px rgba(0,0,0,.42),
+    inset 0 0 0 1px rgba(255,232,176,.08),
+    0 1px 4px rgba(0,0,0,.2);
 }
 #wr-black {
+  position: absolute;
+  left: 0; top: 0;
   height: 100%;
-  background: linear-gradient(90deg, #0a0a0a, #333, #444);
+  background: linear-gradient(90deg, #050505, #232323 66%, #3b3b3b);
   transition: width .5s cubic-bezier(.4,0,.2,1);
   display: flex; align-items: center;
   padding-left: 10px;
+  overflow: hidden;
+  z-index: 2;
 }
 #wr-white {
   position: absolute; right: 0; top: 0;
   height: 100%;
-  display: flex; align-items: center;
+  width: 50%;
+  background: linear-gradient(90deg, #d8d0ba, #f5ecd7 42%, #fff8ec);
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+  display: flex; align-items: center; justify-content: flex-end;
   padding-right: 10px;
+  overflow: hidden;
+  z-index: 1;
 }
-.wr-label { font-size: .78rem; font-weight: 700; }
+.wr-label { font-size: .78rem; font-weight: 700; white-space: nowrap; }
 #wr-black .wr-label { color: #fff; }
-#wr-white .wr-label { color: #111; }
+#wr-white .wr-label { color: #15110a; }
+#winrate-bar-wrap.analysis-off #winrate-bar,
+#winrate-bar-wrap.analysis-pending #winrate-bar {
+  background:
+    repeating-linear-gradient(135deg, rgba(218,164,79,.12) 0 6px, rgba(0,0,0,.18) 6px 12px),
+    linear-gradient(180deg, rgba(10,8,6,.58), rgba(3,4,5,.72)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a');
+  background-size: auto, auto, cover;
+  filter: saturate(.82) brightness(.72);
+}
+#winrate-bar-wrap.analysis-off #wr-black,
+#winrate-bar-wrap.analysis-off #wr-white,
+#winrate-bar-wrap.analysis-pending #wr-black,
+#winrate-bar-wrap.analysis-pending #wr-white {
+  background: transparent;
+}
+#winrate-bar-wrap.analysis-off .wr-label,
+#winrate-bar-wrap.analysis-pending .wr-label {
+  opacity: 0;
+}
 
 /* Timers */
 .timer-wrap {
@@ -542,13 +580,13 @@ header h1 {
 .toolbar-icon[data-icon="wiki"] { background-image: url('assets/icons/toolbar-classic/wiki.png?v=20260424d'); }
 .toolbar-icon[data-icon="pass"] { background-image: url('assets/icons/toolbar-classic/pass.png?v=20260424d'); }
 .toolbar-icon[data-icon="undo"] { background-image: url('assets/icons/toolbar-classic/undo.png?v=20260424d'); }
-.toolbar-icon[data-icon="score"] { background-image: url('assets/icons/toolbar-classic/score.png?v=20260424d'); }
+.toolbar-icon[data-icon="score"] { background-image: url('assets/icons/toolbar-classic/score.png?v=20260428a'); }
 .toolbar-icon[data-icon="territory-on"] { background-image: url('assets/icons/toolbar-classic/territory-on.png?v=20260424d'); }
 .toolbar-icon[data-icon="territory-off"] { background-image: url('assets/icons/toolbar-classic/territory-off.png?v=20260424d'); }
 .toolbar-icon[data-icon="resign"] { background-image: url('assets/icons/toolbar-classic/resign.png?v=20260424d'); }
 .toolbar-icon[data-icon="settings"] { background-image: url('assets/icons/toolbar-classic/settings.png?v=20260424d'); }
-.toolbar-icon[data-icon="sound-on"] { background-image: url('assets/icons/toolbar-classic/sound-on.png?v=20260424d'); }
-.toolbar-icon[data-icon="sound-off"] { background-image: url('assets/icons/toolbar-classic/sound-off.png?v=20260424d'); }
+.toolbar-icon[data-icon="sound-on"] { background-image: url('assets/icons/toolbar-classic/sound-on.png?v=20260428a'); }
+.toolbar-icon[data-icon="sound-off"] { background-image: url('assets/icons/toolbar-classic/sound-off.png?v=20260428a'); }
 .toolbar-icon[data-icon="skill"] { background-image: url('assets/icons/toolbar-classic/skill.png?v=20260424d'); }
 .toolbar-icon[data-icon="review-prev"] { background-image: url('assets/icons/toolbar-classic/review-prev.png?v=20260424d'); }
 .toolbar-icon[data-icon="review-next"] { background-image: url('assets/icons/toolbar-classic/review-next.png?v=20260424d'); }
@@ -2034,8 +2072,7 @@ header::before { display: none; }
   width: 9px;
   height: 9px;
 }
-.lang-chip,
-#sound-toggle {
+.lang-chip {
   min-width: 54px;
   height: 34px;
   padding: 0 12px;
@@ -2044,17 +2081,37 @@ header::before { display: none; }
   border-color: rgba(255,255,255,.12);
   color: #eadcae;
 }
+#sound-toggle {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  margin-left: auto;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  box-shadow: none;
+}
 #sound-toggle .toolbar-icon {
-  width: 24px;
-  height: 24px;
+  width: 34px;
+  height: 34px;
+  filter: drop-shadow(0 8px 13px rgba(0,0,0,.34));
+}
+#sound-toggle:hover {
+  background: rgba(255,232,176,.045);
 }
 .client-command-deck {
   width: min(var(--goai-stage-width, 1180px), calc(100% - 52px));
   min-height: 54px;
   margin: 10px auto 0;
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: flex-start;
+  gap: 10px;
   padding: 8px 12px;
   border-radius: 16px;
   background:
@@ -2093,22 +2150,24 @@ header::before { display: none; }
   font-weight: 800;
 }
 .client-status-grid {
-  display: flex;
-  flex: 1 1 auto;
+  display: none !important;
+  flex: 0 1 344px;
+  max-width: 344px;
+  margin-left: auto;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   overflow: hidden;
   flex-wrap: nowrap;
 }
 .client-status-card {
   min-height: 34px;
-  padding: 6px 11px;
+  padding: 6px 8px;
   display: inline-flex;
   align-items: center;
   flex: 1 1 0;
   min-width: 0;
-  gap: 8px;
+  gap: 6px;
   border-radius: 11px;
   background:
     radial-gradient(circle at 50% 10%, rgba(255,232,176,.06), transparent 42%),
@@ -2123,13 +2182,14 @@ header::before { display: none; }
   white-space: nowrap;
 }
 .client-status-card:nth-child(2) {
-  flex: 1.65 1 0;
+  flex: 1.6 1 112px;
+  max-width: 128px;
 }
 .client-status-card .label {
   margin: 0;
   color: #a68f6d;
-  font-size: .63rem;
-  letter-spacing: .08em;
+  font-size: .58rem;
+  letter-spacing: .05em;
   flex: 0 0 auto;
   white-space: nowrap;
 }
@@ -2257,20 +2317,27 @@ header::before { display: none; }
 .hud-chip { border-radius: 10px; }
 #winrate-bar-wrap {
   width: 100%;
-  max-width: 330px;
+  max-width: none;
   margin: 0;
   opacity: .92;
-  display: none;
+  display: block;
 }
 .top-winrate-slot {
-  min-width: 0;
-  display: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  width: min(520px, calc(100% - 310px));
+  min-width: 320px;
+  transform: translate(-50%, -50%);
+  display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
+  pointer-events: none;
 }
 .top-winrate-slot.active {
   display: flex;
-  flex: 0 1 330px;
+  flex: none;
 }
 .client-locale-controls {
   flex: 0 0 auto;
@@ -2456,11 +2523,30 @@ header::before { display: none; }
 @media (max-width: 980px) {
   .client-command-deck {
     width: calc(100% - 20px);
+    display: grid;
+    grid-template-columns: auto minmax(180px, 1fr) auto auto;
     gap: 7px;
     padding: 7px 8px;
     overflow: hidden;
   }
+  .client-identity {
+    grid-column: 1 / 3;
+  }
+  #sound-toggle {
+    grid-column: 3;
+    justify-self: end;
+    margin-left: 0;
+  }
+  .client-locale-controls {
+    grid-column: 4;
+    justify-self: end;
+  }
   .client-status-grid {
+    display: none !important;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    max-width: none;
+    margin-left: 0;
     justify-content: flex-start;
     flex-wrap: nowrap;
     gap: 6px;
@@ -2480,8 +2566,15 @@ header::before { display: none; }
     display: none;
   }
   .top-winrate-slot.active {
-    flex: 0 1 230px;
-    justify-content: flex-end;
+    position: relative;
+    left: auto;
+    top: auto;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+    transform: none;
+    justify-content: center;
   }
   .lang-chip {
     min-width: 48px;
@@ -2508,7 +2601,7 @@ header::before { display: none; }
     padding-inline: 7px;
   }
   .top-winrate-slot.active {
-    flex-basis: 180px;
+    flex-basis: 100%;
   }
   #winrate-bar {
     height: 24px;
@@ -2538,7 +2631,6 @@ header::before { display: none; }
       <h1>围棋对弈场</h1>
       <span id="status-text">连接中…</span>
     </div>
-    <span id="sound-toggle" title="音效开关"><span class="toolbar-icon" data-icon="sound-on" aria-hidden="true"></span></span>
   </div>
   <div class="header-actions">
   </div>
@@ -2548,6 +2640,18 @@ header::before { display: none; }
   <div class="client-identity">
     <span class="client-title" id="client-title">GoAI</span>
     <span class="client-kicker" id="client-kicker">ROGUE</span>
+  </div>
+  <div id="top-winrate-slot" class="top-winrate-slot active">
+    <div id="winrate-bar-wrap" class="analysis-pending">
+      <div id="winrate-bar">
+        <div id="wr-black" style="width:50%">
+          <span class="wr-label" id="wr-black-label"></span>
+        </div>
+        <div id="wr-white">
+          <span class="wr-label" id="wr-white-label"></span>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="client-status-grid">
     <div class="client-status-card">
@@ -2567,18 +2671,7 @@ header::before { display: none; }
       <span class="value" id="client-run-value">待开始</span>
     </div>
   </div>
-  <div id="top-winrate-slot" class="top-winrate-slot">
-    <div id="winrate-bar-wrap">
-      <div id="winrate-bar">
-        <div id="wr-black" style="width:50%">
-          <span class="wr-label" id="wr-black-label">黑 50.0%</span>
-        </div>
-        <div id="wr-white">
-          <span class="wr-label" id="wr-white-label">白 50.0%</span>
-        </div>
-      </div>
-    </div>
-  </div>
+  <button id="sound-toggle" type="button" title="音效开关" aria-label="音效开关"><span class="toolbar-icon" data-icon="sound-on" aria-hidden="true"></span></button>
   <div class="client-actions">
     <button class="client-action primary" id="quick-rogue" onclick="quickStartRogue()">Rogue</button>
     <button class="client-action" id="quick-setup" onclick="openNormalSetup()">开始</button>
@@ -2588,6 +2681,8 @@ header::before { display: none; }
     <select id="lang-toggle" class="lang-chip" title="切换语言" aria-label="语言">
       <option value="zh">中文</option>
       <option value="en">English</option>
+      <option value="ja">日本語</option>
+      <option value="ko">한국어</option>
     </select>
   </div>
 </section>
@@ -2700,15 +2795,13 @@ header::before { display: none; }
           <option value="2160">4K</option>
         </select>
       </div>
-      <div class="toggle-row">
-        <div class="toggle on" id="sound-settings-toggle"></div>
-        <span class="toggle-label" id="settings-sound-label">音效</span>
-      </div>
       <div class="form-row language-row">
         <label id="settings-language-label">语言</label>
         <select id="settings-language-select">
           <option value="zh">中文</option>
           <option value="en">English</option>
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
         </select>
       </div>
     </div>
@@ -3047,23 +3140,132 @@ const RANK_GROUPS = [
 
 const RANK_LABELS = {};
 RANK_GROUPS.filter(r => !r.separator).forEach(r => RANK_LABELS[r.id] = r.label);
-const COLS = "ABCDEFGHJKLMNOPQRST";
+function normalizeLang(lang) {
+  const raw = String(lang || "").trim().toLowerCase();
+  if (raw.startsWith("ja")) return "ja";
+  if (raw.startsWith("ko") || raw.startsWith("kr")) return "ko";
+  if (raw.startsWith("en")) return "en";
+  return "zh";
+}
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════════════════════════════
-let ws = null, gameState = null;
-let analysis = { winrate: 0.5, score: 0, top_moves: [], ownership: [] };
-let winrateHistory = [];
-let showHints = false, showTerritory = true, showMoveNumbers = false;
-let boardSize = 19, CELL = 32, PAD;
-let stagePreset = localStorage.getItem("goai_stage_preset") || "auto";
+const urlLang = new URLSearchParams(window.location.search).get("lang");
+let currentLang = normalizeLang(urlLang || localStorage.getItem("goai_lang") || navigator.language || "zh");
+const LOCALE_FILES = {
+  zh: "zh-CN.json",
+  en: "en-US.json",
+  ja: "ja-JP.json",
+  ko: "ko-KR.json",
+};
+const localeCache = {};
+
+function activeLocalePack() {
+  return localeCache[currentLang] || localeCache.zh || null;
+}
+
+function fallbackLocalePack() {
+  return localeCache.zh || activeLocalePack();
+}
+
+async function loadLocalePack(lang) {
+  const normalized = normalizeLang(lang);
+  if (localeCache[normalized]) return localeCache[normalized];
+  const file = LOCALE_FILES[normalized] || LOCALE_FILES.zh;
+  const response = await fetch("/static/locales/" + file + "?v=20260428b", { cache: "no-cache" });
+  if (!response.ok) throw new Error("Failed to load locale " + file + ": " + response.status);
+  const pack = await response.json();
+  localeCache[normalized] = pack;
+  return pack;
+}
+
+async function ensureLocale(lang = currentLang) {
+  try {
+    await loadLocalePack("zh");
+    const normalized = normalizeLang(lang);
+    if (normalized !== "zh") await loadLocalePack(normalized);
+  } catch (err) {
+    console.warn("[i18n] locale loading failed", err);
+  }
+}
+
+function localizedValue(zh, en, ja, ko) {
+  const packValue = activeLocalePack()?.phrases?.[zh];
+  if (packValue !== undefined) return packValue;
+  if (currentLang === "en") return en ?? zh;
+  if (currentLang === "ja") return ja ?? zh;
+  if (currentLang === "ko") return ko ?? zh;
+  return fallbackLocalePack()?.phrases?.[zh] ?? zh;
+}
+
+function ui(zh, en, ja, ko) {
+  return localizedValue(zh, en, ja, ko);
+}
+
+function langObjectValue(value) {
+  if (!value || typeof value !== "object") return value || "";
+  return value[currentLang] ?? value.zh ?? value.en ?? "";
+}
+
+function rankLabel(rankId) {
+  if (!rankId) return "";
+  const kyuMatch = String(rankId).match(/^(\d+)k$/);
+  if (kyuMatch) {
+    const n = kyuMatch[1];
+    if (currentLang === "en") return `${n} kyu`;
+    if (currentLang === "ja") return `${n}級`;
+    if (currentLang === "ko") return `${n}급`;
+    return `${n}级`;
+  }
+  const amaMatch = String(rankId).match(/^a(\d+)d$/);
+  if (amaMatch) {
+    const n = amaMatch[1];
+    if (currentLang === "en") return `Amateur ${n} dan`;
+    if (currentLang === "ja") return `アマ${n}段`;
+    if (currentLang === "ko") return `아마 ${n}단`;
+    return `业余${n}段`;
+  }
+  const proMatch = String(rankId).match(/^p(\d+)d$/);
+  if (proMatch) {
+    const n = proMatch[1];
+    if (currentLang === "en") return `Pro ${n} dan`;
+    if (currentLang === "ja") return `プロ${n}段`;
+    if (currentLang === "ko") return `프로 ${n}단`;
+    return ["职业一段","职业二段","职业三段","职业四段","职业五段","职业六段","职业七段","职业八段","职业九段"][Number(n) - 1] || rankId;
+  }
+  return RANK_LABELS[rankId] || rankId;
+}
+
+function rankGroupLabel(label) {
+  const groups = activeLocalePack()?.rankGroups || fallbackLocalePack()?.rankGroups || {};
+  if (label.includes("级位")) return groups.kyu || label;
+  if (label.includes("业余")) return groups.amateur || label;
+  if (label.includes("职业")) return groups.pro || label;
+  return label;
+}
+
+const COLS = "ABCDEFGHJKLMNOPQRST".split("");
 let gameId = localStorage.getItem("goai_game_id") || Math.random().toString(36).slice(2);
 localStorage.setItem("goai_game_id", gameId);
-let myColor = "B", aiColor = "W";
-let lastAiMove = null, isMyTurn = false;
-let startMode = "normal";
+let ws = null;
+let intentionalClose = false;
+let gameState = null;
+let previousBoard = null;
+let lastAiMove = null;
+let boardSize = 19;
+let PAD = 0;
+let CELL = 0;
+let myColor = "B";
+let aiColor = "W";
+let isMyTurn = false;
 let twoPlayerMode = false;
+let showHints = false;
+let showTerritory = true;
+let showMoveNumbers = false;
+let startMode = "normal";
+let stagePreset = localStorage.getItem("goai_stage_preset") || "auto";
+let analysis = { winrate: 0.5, score: 0, top_moves: [], ownership: [], analysis_ready: false };
+let analysisReady = false;
+let winrateHistory = [];
+let gameLogEntries = [];
 let challengeSession = {
   active: false,
   stage: 1,
@@ -3073,15 +3275,6 @@ let challengeSession = {
   remaining: { undo: 3, hint: 10, coach: 3 },
   cleared: false,
 };
-let intentionalClose = false;
-let previousBoard = null; // for capture detection
-const urlLang = new URLSearchParams(location.search).get("lang");
-let currentLang = (((urlLang || localStorage.getItem("goai_lang") || navigator.language || "zh")).toLowerCase().startsWith("en")) ? "en" : "zh";
-localStorage.setItem("goai_lang", currentLang);
-
-function ui(zh, en) {
-  return currentLang === "en" ? en : zh;
-}
 
 function resetChallengeSession() {
   challengeSession = {
@@ -3148,153 +3341,35 @@ function updateChallengeInfo() {
   );
 }
 
-const ROGUE_CARD_ZH = {
-  tengen: { name: "天元", desc: "开局 5 手，AI 会优先靠近天元与星位落子。" },
-  dice: { name: "掷骰", desc: "AI 每手有 10% 概率直接虚手。" },
-  erosion: { name: "蚕食", desc: "每提 1 子，贴目向有利方偏移 4 目。" },
-  puppet: { name: "傀儡术", desc: "先选定 AI 下一手的落点；你先正常落子，随后 AI 会被迫下在那里，整局限 1 次。" },
-  seal: { name: "封印术", desc: "指定 4 个禁着点，整局 AI 都不能下在这些点。" },
-  twin: { name: "连击", desc: "本回合可连续落两手，整局限 1 次。" },
-  nerf: { name: "弱化", desc: "AI 大约下降 8 段，搜索算力只剩约 5%，前 12 手更容易误选备选点。" },
-  komi_relief: { name: "贴目减半", desc: "贴目会朝你有利的方向调整 7 目。" },
-  time_press: { name: "限时压制", desc: "AI 大约下降 5 段，且每手最多思考 0.10 秒，前 12 手更容易仓促误判。" },
-  lowline: { name: "低空飞行", desc: "AI 前 8 手偏向二三路低位。" },
-  suboptimal: { name: "次优之选", desc: "AI 前 8 手更容易从后几名的候选点里随机挑一手。" },
-  mirror: { name: "镜像", desc: "AI 有 16% 概率按棋盘对称位置镜像模仿你的上一手。" },
-  slip: { name: "手滑了", desc: "AI 有 14% 概率手滑到相邻的点位。" },
-  blackhole: { name: "黑洞", desc: "棋盘中心 13 子区域对 AI 前 6 手禁入。" },
-  exchange: { name: "乾坤挪移", desc: "强制 AI 虚手，你继续行棋，整局限 1 次。" },
-  fog: { name: "战争迷雾", desc: "AI 前 11 手每手前会刷新一个 3×3 禁区遮罩；之后每回合随机封锁 2 个 AI 禁着点。" },
-  gravity: { name: "星位引力", desc: "AI 前 7 手被星位磁场牵引。" },
-  golden_corner: { name: "黄金角", desc: "随机封锁一角 4×4 区域，AI 前 10 手禁入。" },
-  sansan: { name: "三三开局", desc: "强制 AI 在开局前 2 手抢四个三三点中的位置；之后 2 手暂时避开角上 4×4 区域。" },
-  shadow: { name: "影子", desc: "AI 前 3 手有 70% 概率紧跟自己的上一手。" },
-  sprout: { name: "萌芽", desc: "每次提子后，都会在附近自动长出 1 颗己棋。" },
-  joseki_ocd: { name: "定式强迫症", desc: "开局亮出 7 个目标点，只要下中 4 个，剩下的 3 个会自动补成你的棋子。" },
-  handicap_quest: { name: "让子任务", desc: "先虚手 1 次，之后每满 8 手奖励 AI 虚手一次，最多触发 3 次。" },
-  god_hand: { name: "神之一手", desc: "踩中隐藏菱形区，周围 3×3 内随机爆出 3 颗己棋，只会落在空点。" },
-  sansan_trap: { name: "三三陷阱", desc: "只有对手第 1 手正好下在四个三三点之一时才会触发，并在那手棋周围反生 8 颗我方棋。" },
-  corner_helper: { name: "守角辅助", desc: "每个角各算一次：任一角的 5×5 区域里有 4 颗己子时，就会在那个角补 1 颗援军。" },
-  sanrensei: { name: "三连星", desc: "若你前 2 手都落在星位，会自动补出第 3 颗星位棋，并再长出 2 颗援军。" },
-  no_regret: { name: "永不悔棋", desc: "禁用悔棋，但每手 12% 概率白送一子。" },
-  quickthink: { name: "快速思考", desc: "4 秒内落子可追加 2 秒连击窗口；选中后禁用推荐点位与悔棋。" },
-  foolish_wisdom: { name: "大智若愚", desc: "摆出愚形，附近 5×5 内随机长出 2 颗己棋。" },
-  five_in_row: { name: "五子连珠", desc: "这是五子棋，不是围棋。每当我方正好连成 5 子，就会优先在首尾补子，并在连线附近补 4 颗援军。" },
-  coach_mode: { name: "代练上号", desc: "主动技能：后 30 手由更强的 AI 代打；若结束后胜率仍低于 50%，则额外再代打 10 手。" },
-  capture_foul: { name: "提子犯规", desc: "若对手单次或累计提子达到 4 颗，就会触发犯规判罚，被惩罚方罚 4 目，随后重新计数。" },
-  last_stand: { name: "起死回生", desc: "当我方胜率跌到 26% 以下时，仅触发 1 次：在上一手周围 3×3 内随机消掉 1 颗敌子，并随机补 1 颗己棋。" },
-};
-
-const ROGUE_CARD_I18N = {
-  tengen: { name: "Tengen", desc: "For its first 3 moves, the AI is pulled toward the center and star points." },
-  dice: { name: "Dice Roll", desc: "Each AI move has a 10% chance of being skipped entirely." },
-  erosion: { name: "Erosion", desc: "Every capture shifts komi by 4 points in the captor's favor." },
-  puppet: { name: "Puppet", desc: "Mark the AI's next forced point first. You play your move, then the AI must answer there (once per game)." },
-  seal: { name: "Seal", desc: "Mark 4 forbidden points the AI cannot touch for the whole game." },
-  twin: { name: "Combo", desc: "Play two moves in a single turn once per game for a local follow-up." },
-  nerf: { name: "Nerf", desc: "Drop the AI by about 8 ranks, crush its search power to roughly 5%, and make its first 12 moves much more likely to mis-pick backup options." },
-  komi_relief: { name: "Komi Cut", desc: "Komi shifts 7 points in your favor." },
-  time_press: { name: "Time Crunch", desc: "Drop the AI by about 5 ranks, cap it at 0.10 seconds per move, and make its first 12 moves much more likely to misread under time pressure." },
-  lowline: { name: "Low Sweep", desc: "The AI hugs the 2nd\u20133rd lines for 6 moves." },
-  suboptimal: { name: "Second Best", desc: "For its first 8 moves, the AI is much more likely to choose weaker backup options." },
-  mirror: { name: "Mirror", desc: "16% chance the AI mirrors your last move across the board." },
-  slip: { name: "Butterfingers", desc: "14% chance the AI slips to a straight-adjacent point." },
-  blackhole: { name: "Black Hole", desc: "The central 13-point zone is off-limits to the AI for its first 6 moves." },
-  exchange: { name: "Turn Steal", desc: "Force the AI to pass \u2014 you keep playing (once per game)." },
-  fog: { name: "Fog of War", desc: "For the AI's first 11 moves, a drifting 3\u00d73 no-go zone appears. After that, each turn blocks 2 random legal points." },
-  gravity: { name: "Gravity Well", desc: "The AI is pulled toward star points for 5 moves." },
-  golden_corner: { name: "Golden Corner", desc: "A random 4\u00d74 corner is sealed off from the AI for its first 10 moves." },
-  sansan: { name: "3-3 Rush", desc: "For its first 2 moves, the AI is forced to open on the four 3-3 points, then avoids corner 4\u00d74 zones for 2 moves." },
-  shadow: { name: "Shadow", desc: "On its first 2 moves, the AI has a high chance to cling to its previous stone." },
-  sprout: { name: "Sprout", desc: "Each capture spawns a bonus friendly stone nearby." },
-  joseki_ocd: { name: "Joseki OCD", desc: "7 target points appear. Hit any 4 of them to auto-fill the remaining 3 with your stones." },
-  handicap_quest: { name: "Handicap Quest", desc: "Pass once to start; after every 8 moves you force an AI pass, up to 3 times." },
-  god_hand: { name: "Hand of God", desc: "Step on a hidden diamond zone \u2014 3 friendly stones burst into nearby empty points inside a 3\u00d73 area." },
-  sansan_trap: { name: "3-3 Trap", desc: "Only if the opponent's very first move lands on any 3-3 point, you immediately gain 8 nearby counter-stones." },
-  corner_helper: { name: "Corner Guard", desc: "Each corner can trigger once. If any corner's 5\u00d75 area has 4 of your stones, that corner gains 1 reinforcement." },
-  sanrensei: { name: "Three Stars", desc: "If your first 2 moves both land on star points, the game auto-fills a 3rd star point stone and adds 2 nearby support stones." },
-  no_regret: { name: "No Regrets", desc: "Undo disabled \u2014 but each move has a 12% chance to add a free stone." },
-  quickthink: { name: "Quick Think", desc: "Play within 3s to unlock a 1s bonus move window. Hints and undo are disabled while this card is active." },
-  foolish_wisdom: { name: "Wise Fool", desc: "Form an ugly shape to sprout 2 bonus stones in the nearby 5\u00d75 area." },
-  five_in_row: { name: "Five in a Row", desc: "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, it extends the ends if possible; blocked ends become nearby support stones, plus 4 extra support stones near the line." },
-  coach_mode: { name: "Coach Login", desc: "Active: a stronger AI plays the next 30 turns for you. If your winrate stays below 50% after that, it plays 10 extra turns." },
-  capture_foul: { name: "Capture Foul", desc: "When the opponent's single capture or running capture total reaches 4 stones, a foul triggers automatically. The offender loses 4 points, then the counter resets." },
-  last_stand: { name: "Last Stand", desc: "Once per game, if your winrate drops below 26%, remove 1 enemy stone and add 1 friendly stone inside the last move's 3\u00d73 area without landing on forbidden points." },
-};
-
-const ULTIMATE_CARD_ZH = {
-  chain: { name: "连珠棋", desc: "每手 65% 概率触发追加行动。" },
-  proliferate: { name: "无限增殖", desc: "落子后 5×5 范围内爆出 5 颗同色棋。" },
-  double: { name: "双刀流", desc: "每回合固定连下 2 手，但整回合只计 1 手数。" },
-  wildgrow: { name: "狂野生长", desc: "4 颗己子向四周蔓延扩张。" },
-  rejection: { name: "排异反应", desc: "落点 5×5 内敌子被推开或摧毁。" },
-  territory: { name: "绝对领地", desc: "落点周围 4 格形成禁入结界。" },
-  shadow_clone: { name: "影分身", desc: "先生成一颗镜像棋；下一回合会按原落点和镜像点强制连成一整条线。" },
-  plague: { name: "瘟疫", desc: "3×3 内所有敌子转化为己方。" },
-  meteor: { name: "陨石雨", desc: "随机轰掉 5 颗对方棋子。" },
-  quantum: { name: "量子纠缠", desc: "全盘随机位置生成 5 颗同色棋。" },
-  devour: { name: "吞噬", desc: "5×5 范围内敌子全部清空。" },
-  timewarp: { name: "时空裂缝", desc: "85% 概率抹去对手最近 2 手。" },
-  blackout: { name: "天崩地裂", desc: "十字方向清除所有敌子。" },
-  magnet: { name: "磁力吸附", desc: "己方棋子飞速聚拢，碾碎路径上的敌子。" },
-  necro: { name: "亡灵召唤", desc: "召唤 3 颗己棋并策反 2 颗敌棋。" },
-  wall: { name: "万里长城", desc: "有 60% 概率发动：整行或整列筑起一面不可逾越的棋墙。" },
-  joseki_burst: { name: "定式爆发", desc: "命中定式后补满目标，并额外爆出 50 颗同色棋。" },
-  god_hand: { name: "神之一手", desc: "踩中 5×5 隐藏菱形，清空敌子并铺满 50 颗己棋。" },
-  corner_helper: { name: "守角要塞", desc: "四个角分别独立结算：某个角的 5×5 区域里有 2 颗己子时，会封满该角 8×8 边界并清掉里面的敌子。" },
-  sanrensei: { name: "三连星爆发", desc: "前 3 手全落星位，引爆全盘星位势力。" },
-  quickthink: { name: "极速风暴", desc: "5 秒内不限次数连续落子，结束后 AI 再读盘，整段只计 1 手数。" },
-  foolish_wisdom: { name: "愚形连锁", desc: "检测到愚形就连锁生成，最多铺满 20 颗己棋。" },
-  five_in_row: { name: "五子连珠爆发", desc: "这是五子棋，不是围棋。每当我方正好连成 5 子，就会随机清除对方 30 颗棋子，并随机补下 30 颗己棋。" },
-  capture_foul: { name: "提子犯规", desc: "若对手提子或技能消除棋子累计超过 5 颗，则会触发重罚，罚 50 目，并在每次触发后重新计数。" },
-  last_stand: { name: "起死回生", desc: "当我方胜率跌到 30% 以下时：全盘随机清除对方 30 颗棋子，并随机补下 30 颗己棋。" },
-};
-
-const ULTIMATE_CARD_I18N = {
-  chain: { name: "Chain Strike", desc: "Every move has a 65% chance to grant an extra turn." },
-  proliferate: { name: "Infinite Bloom", desc: "After you play, 5 same-color stones bloom in a 5\u00d75 zone." },
-  double: { name: "Dual Blades", desc: "Every turn becomes a 2-move combo, but the whole burst only counts as 1 move." },
-  wildgrow: { name: "Wild Growth", desc: "4 of your stones spread outward into empty space." },
-  rejection: { name: "Repulsion", desc: "Enemy stones in the 5\u00d75 zone are pushed away or destroyed." },
-  territory: { name: "Absolute Zone", desc: "Create a 4-step forbidden barrier around your move." },
-  shadow_clone: { name: "Shadow Clone", desc: "Create a mirrored stone now. One turn later, the original point and mirror point are forced into a full line even if either endpoint was removed." },
-  plague: { name: "Plague", desc: "Convert every enemy stone in the 3\u00d73 area to your color." },
-  meteor: { name: "Meteor Strike", desc: "Randomly obliterate 5 enemy stones anywhere on the board." },
-  quantum: { name: "Quantum Surge", desc: "5 same-color stones materialize at random positions." },
-  devour: { name: "Devour", desc: "Erase every enemy stone in the surrounding 5\u00d75 area." },
-  timewarp: { name: "Time Rift", desc: "85% chance to erase the opponent's last 2 moves from existence." },
-  blackout: { name: "Cataclysm", desc: "Wipe all enemy stones in a cross pattern from your move." },
-  magnet: { name: "Magnet Pull", desc: "Your stones rush toward the point, crushing enemies in their path." },
-  necro: { name: "Necromancy", desc: "Summon 3 friendly stones and convert 2 enemy stones." },
-  wall: { name: "Great Wall", desc: "60% chance to trigger. Fill an entire row or column with an impassable stone wall." },
-  joseki_burst: { name: "Joseki Burst", desc: "Complete joseki points, then detonate 50 bonus stones." },
-  god_hand: { name: "Hand of God", desc: "Trigger the hidden diamond \u2014 wipe enemies and flood the board with 50 stones." },
-  corner_helper: { name: "Corner Fortress", desc: "Each corner can trigger once. If a corner's 5\u00d75 area has 2 of your stones, that corner's 8\u00d78 boundary is filled and enemies inside are cleared." },
-  sanrensei: { name: "Star Ignition", desc: "Play your first 3 moves on star points to ignite star-point influence across the board." },
-  quickthink: { name: "Speed Storm", desc: "Place unlimited stones for 5 seconds \u2014 then the AI reads the board. The whole burst counts as 1 move." },
-  foolish_wisdom: { name: "Fool's Chain", desc: "Ugly-shape chain reaction spawns up to 20 stones until it stops." },
-  five_in_row: { name: "Five in a Row Burst", desc: "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, remove 30 enemy stones and drop 30 friendly stones across the board. This effect can chain." },
-  capture_foul: { name: "Capture Foul", desc: "Whenever the opponent captures or removes more than 5 stones (including card effects), the foul triggers with 100% certainty. The offender immediately loses 50 points, then the counter resets and can trigger again." },
-  last_stand: { name: "Last Stand", desc: "If your winrate drops below 30%, clear 30 enemy stones and add 30 friendly stones across the entire board." },
-};
+const ROGUE_CARD_IDS = [
+  "tengen","dice","erosion","puppet","seal","twin","nerf","komi_relief","time_press","lowline",
+  "suboptimal","mirror","slip","blackhole","exchange","fog","gravity","golden_corner","sansan","shadow",
+  "sprout","joseki_ocd","handicap_quest","god_hand","sansan_trap","corner_helper","sanrensei","no_regret",
+  "quickthink","foolish_wisdom","five_in_row","coach_mode","capture_foul","last_stand",
+];
+const ULTIMATE_CARD_IDS = [
+  "chain","proliferate","double","wildgrow","rejection","territory","shadow_clone","plague","meteor","quantum",
+  "devour","timewarp","blackout","magnet","necro","wall","joseki_burst","god_hand","corner_helper",
+  "sanrensei","quickthink","foolish_wisdom","five_in_row","capture_foul","last_stand",
+];
 
 let rogueOfferCards = [];
 let ultimateOfferCards = [];
 let activeAiRogueCard = null;
 let aiRogueSeals = [];
 
-function setLanguage(lang) {
+async function setLanguage(lang) {
   closeWoodSelectMenu();
-  currentLang = lang === "en" ? "en" : "zh";
+  currentLang = normalizeLang(lang);
   localStorage.setItem("goai_lang", currentLang);
+  await ensureLocale(currentLang);
   applyLanguage();
 }
 
 function getCardMeta(cardId, mode) {
-  const zhDict = mode === "ultimate" ? ULTIMATE_CARD_ZH : ROGUE_CARD_ZH;
-  const enDict = mode === "ultimate" ? ULTIMATE_CARD_I18N : ROGUE_CARD_I18N;
-  const dict = currentLang === "en" ? enDict : zhDict;
-  return dict[cardId] || { name: cardId, desc: "" };
+  const active = activeLocalePack()?.cards?.[mode]?.[cardId];
+  const fallback = fallbackLocalePack()?.cards?.[mode]?.[cardId];
+  return active || fallback || { name: cardId, desc: "" };
 }
 
 function getTranslatedCard(card, mode) {
@@ -3302,25 +3377,6 @@ function getTranslatedCard(card, mode) {
   if (!meta) return card;
   return { ...card, name: meta.name, desc: meta.desc };
 }
-
-const CARD_META_TRANSLATIONS = {
-  "主动": "Active",
-  "AI干扰": "AI Disrupt",
-  "爆发": "Burst",
-  "陷阱": "Trap",
-  "开局构筑": "Opening Build",
-  "任务": "Quest",
-  "风险收益": "Risk Reward",
-  "节奏": "Tempo",
-  "连线构筑": "Line Build",
-  "规则改写": "Rule Shift",
-  "连动": "Chain",
-  "任务爆发": "Quest Burst",
-  "大招": "Ultimate",
-  "低": "Low",
-  "中": "Medium",
-  "高": "High",
-};
 
 const ROGUE_CARD_META = {
   puppet: { tier: "S", category: "主动", complexity: "高" },
@@ -3350,7 +3406,9 @@ const ULTIMATE_CARD_META = {
 
 function localizeCardMetaValue(value) {
   if (!value) return "";
-  return currentLang === "en" ? (CARD_META_TRANSLATIONS[value] || value) : value;
+  return activeLocalePack()?.cardMeta?.[value]
+    || fallbackLocalePack()?.cardMeta?.[value]
+    || value;
 }
 
 function inferCardMeta(card, mode) {
@@ -3364,9 +3422,9 @@ function inferCardMeta(card, mode) {
 function getCardMetaMarkup(card, mode) {
   const meta = inferCardMeta(card, mode);
   return `<div class="card-meta-row">
-    <span class="card-tag tier">${ui("强度", "Tier")} ${meta.tier}</span>
+    <span class="card-tag tier">${ui("强度", "Tier", "強さ", "강도")} ${meta.tier}</span>
     <span class="card-tag">${localizeCardMetaValue(meta.category)}</span>
-    <span class="card-tag complexity">${ui("理解", "Read")} ${localizeCardMetaValue(meta.complexity)}</span>
+    <span class="card-tag complexity">${ui("理解", "Read", "理解", "이해")} ${localizeCardMetaValue(meta.complexity)}</span>
   </div>`;
 }
 
@@ -3394,36 +3452,10 @@ function getUltimateCardName(cardId) {
   return getCardMeta(cardId, "ultimate").name;
 }
 
-const ROGUE_WIKI_MODES = [
-  {
-    key: "solo",
-    zhTitle: "单人抽卡",
-    zhDesc: "你开局三选一张 Rogue 强化卡，AI 按常规规则应战。适合先熟悉单卡节奏。",
-    enTitle: "Solo Draft",
-    enDesc: "You draft 1 Rogue card from 3 choices. The AI plays standard rules with no Rogue card of its own.",
-  },
-  {
-    key: "dual",
-    zhTitle: "双人抽卡",
-    zhDesc: "你先三选一张强化卡，AI 也会从受限 Rogue 卡池获得一张卡。双方都带卡，节奏更乱更凶。",
-    enTitle: "Dual Draft",
-    enDesc: "You pick 1 Rogue card from 3 choices, and the AI also receives 1 card from the restricted AI Rogue pool.",
-  },
-  {
-    key: "ultimate",
-    zhTitle: "大招对战",
-    zhDesc: "你与 AI 各自三选一张大招卡，整局 20 手决胜，强调爆发、清场和强制改盘。",
-    enTitle: "Ultimate Duel",
-    enDesc: "You and the AI each pick 1 ultimate card from 3 choices. The game resolves in a 20-move showdown.",
-  },
-  {
-    key: "challenge",
-    zhTitle: "闯关",
-    zhDesc: "闯关会叠加卡池限制、让子与刷新次数，适合连续冲关和测试极限构筑。",
-    enTitle: "Challenge",
-    enDesc: "Challenge mode layers card-pool restrictions, handicap, and refresh counts for staged runs.",
-  },
-];
+function localizedModeField(item, field) {
+  const key = field.toLowerCase();
+  return item[key] || "";
+}
 
 function renderRogueWiki() {
   const intro = document.getElementById("rogue-wiki-intro");
@@ -3434,17 +3466,20 @@ function renderRogueWiki() {
 
   intro.textContent = ui(
     "这里汇总 Rogue AI 的三种主玩法、闯关路线，以及所有 Rogue 强化卡与大招卡的效果说明。",
-    "This index covers Rogue AI game variants, challenge runs, and the full effect list for Rogue and Ultimate cards."
+    "This index covers Rogue AI game variants, challenge runs, and the full effect list for Rogue and Ultimate cards.",
+    "Rogue AIの主な遊び方、チャレンジルート、Rogue強化カードと必殺カードの効果をまとめています。",
+    "Rogue AI의 주요 모드, 도전 루트, Rogue 강화 카드와 궁극기 카드 효과를 모았습니다."
   );
 
-  modeWrap.innerHTML = ROGUE_WIKI_MODES.map(item => `
+  const modes = activeLocalePack()?.wikiModes || fallbackLocalePack()?.wikiModes || [];
+  modeWrap.innerHTML = modes.map(item => `
     <article class="wiki-mode-card">
-      <h3>${currentLang === "en" ? item.enTitle : item.zhTitle}</h3>
-      <p>${currentLang === "en" ? item.enDesc : item.zhDesc}</p>
+      <h3>${localizedModeField(item, "Title")}</h3>
+      <p>${localizedModeField(item, "Desc")}</p>
     </article>
   `).join("");
 
-  rogueWrap.innerHTML = Object.keys(ROGUE_CARD_ZH).map(cardId => {
+  rogueWrap.innerHTML = ROGUE_CARD_IDS.map(cardId => {
     const meta = getCardMeta(cardId, "rogue");
     return `
       <article class="wiki-card-item">
@@ -3458,7 +3493,7 @@ function renderRogueWiki() {
     `;
   }).join("");
 
-  ultimateWrap.innerHTML = Object.keys(ULTIMATE_CARD_ZH).map(cardId => {
+  ultimateWrap.innerHTML = ULTIMATE_CARD_IDS.map(cardId => {
     const meta = getCardMeta(cardId, "ultimate");
     return `
       <article class="wiki-card-item">
@@ -3473,7 +3508,7 @@ function renderRogueWiki() {
   }).join("");
 }
 
-function translateServerEventMessage(message) {
+function translateServerEventMessageLegacy(message) {
   if (currentLang !== "en" || !message) return message || "";
   const translateCorner = (corner) => ({
     "左上角": "top-left corner",
@@ -3482,6 +3517,11 @@ function translateServerEventMessage(message) {
     "右下角": "bottom-right corner",
   }[corner] || corner);
   const patterns = [
+    [/^🎭 傀儡术待命：你先正常落子，随后 AI 会被迫下在 (.+)$/, (gtp) => `🎭 Puppet ready: play normally first, then the AI will be forced to ${gtp}.`],
+    [/^⚡ 双子星辰！你可以继续落子$/, () => "⚡ Combo: you may play again."],
+    [/^🔄 乾坤挪移！你可以继续落子$/, () => "🔄 Swap Turn: you may play again."],
+    [/^🏋️ 奖励回合！你可以继续落子$/, () => "🏋️ Bonus turn. You may play again."],
+    [/^你可以继续落子$/, () => "You may play again."],
     [/^连珠棋触发成功，你可以继续落子$/, () => "Combo Chain triggered. You may play again."],
     [/^双刀流触发成功，你可以继续落子$/, () => "Dual Blades triggered. You may play again."],
     [/^⚡ 快速思考：2 秒追加手已开启$/, () => "⚡ Quick Thinking: the 2-second bonus move is now active"],
@@ -3550,6 +3590,124 @@ function translateServerEventMessage(message) {
   return message;
 }
 
+function translateServerEventMessage(message) {
+  const source = String(message || "");
+  if (!source) return "";
+  if (currentLang === "en") return translateServerEventMessageLegacy(source);
+  if (currentLang === "zh") return source;
+  const pick = (ja, ko) => currentLang === "ja" ? ja : ko;
+  const translateCorner = (corner) => ({
+    "左上角": pick("左上隅", "좌상귀"),
+    "右上角": pick("右上隅", "우상귀"),
+    "左下角": pick("左下隅", "좌하귀"),
+    "右下角": pick("右下隅", "우하귀"),
+  }[corner] || corner);
+  const patterns = [
+    [/^暂无进行中的对局$/, () => pick("進行中の対局はありません", "진행 중인 대국이 없습니다")],
+    [/^KataGo尚未就绪，当前不能进行 AI 对局$/, () => pick("KataGoはまだ準備できていないため、AI対局は開始できません", "KataGo가 아직 준비되지 않아 AI 대국을 진행할 수 없습니다")],
+    [/^还没轮到你$/, () => pick("まだあなたの番ではありません", "아직 당신 차례가 아닙니다")],
+    [/^落点超出棋盘范围$/, () => pick("着点が盤外です", "착점이 바둑판 밖입니다")],
+    [/^目标点超出棋盘范围$/, () => pick("目標点が盤外です", "목표 지점이 바둑판 밖입니다")],
+    [/^该位置已有棋子:? ?(.+)?$/, (gtp = "") => pick(`その点にはすでに石があります${gtp ? `：${gtp}` : ""}`, `그 지점에는 이미 돌이 있습니다${gtp ? `: ${gtp}` : ""}`)],
+    [/^打劫禁着：不能立即提回$/, () => pick("コウの禁着：すぐに取り返せません", "패 금지: 즉시 되따낼 수 없습니다")],
+    [/^这手属于自杀禁着，不能这样下$/, () => pick("自殺手のため着手できません", "자충수 금지라 둘 수 없습니다")],
+    [/^这里已被绝对领地封锁，不能在 AI 的禁区内落子$/, () => pick("ここはAIの絶対領域で封鎖されています", "이 지점은 AI의 절대 영역으로 봉쇄되었습니다")],
+    [/^这里已被 AI 的 Rogue 卡限制，当前不能落子$/, () => pick("ここはAIのRogueカードで制限されています", "이 지점은 AI의 Rogue 카드로 제한되었습니다")],
+    [/^该点已被傀儡术预留给 AI$/, () => pick("この点は傀儡術でAI用に予約済みです", "이 지점은 꼭두각시술로 AI에게 예약되었습니다")],
+    [/^无效落子: (.+)$/, (gtp) => pick(`無効な着手：${gtp}`, `잘못된 착수: ${gtp}`)],
+    [/^快速思考已禁用推荐点位，请自行判断局面$/, () => pick("クイック思考中は推薦着点が無効です。自力で判断してください", "빠른 사고에서는 추천 착점이 비활성화됩니다. 직접 판단하세요")],
+    [/^这张卡会禁用悔棋$/, () => pick("このカード効果で待ったは使えません", "이 카드 효과로 무르기를 사용할 수 없습니다")],
+    [/^测试版闯关：推荐点次数已用完$/, () => pick("チャレンジベータ：推薦着点の回数を使い切りました", "도전 베타: 추천 착점 횟수를 모두 사용했습니다")],
+    [/^测试版闯关：悔棋次数已用完$/, () => pick("チャレンジベータ：待ったの回数を使い切りました", "도전 베타: 무르기 횟수를 모두 사용했습니다")],
+    [/^测试版闯关：代下次数已用完$/, () => pick("チャレンジベータ：代打回数を使い切りました", "도전 베타: 대리 착수 횟수를 모두 사용했습니다")],
+    [/^当前测试版闯关没有剩余刷新次数$/, () => pick("チャレンジの更新回数が残っていません", "도전 새로고침 횟수가 남아 있지 않습니다")],
+    [/^当前可刷新卡牌不足 3 张$/, () => pick("更新できるカードが3枚未満です", "새로고침 가능한 카드가 3장 미만입니다")],
+    [/^代练上号接管中，请等待强化 AI 完成代打$/, () => pick("コーチモードが代打中です。強化AIの着手完了をお待ちください", "코치 모드가 대리 착수 중입니다. 강화 AI가 마칠 때까지 기다려 주세요")],
+    [/^代练上号已经在接管中$/, () => pick("コーチモードはすでに代打中です", "코치 모드가 이미 진행 중입니다")],
+    [/^代练上号已经用完了$/, () => pick("コーチモードは使用済みです", "코치 모드를 이미 사용했습니다")],
+    [/^傀儡术已用完$/, () => pick("傀儡術は使用済みです", "꼭두각시술을 이미 사용했습니다")],
+    [/^双子星辰已用完$/, () => pick("連撃は使用済みです", "연격을 이미 사용했습니다")],
+    [/^乾坤挪移已用完$/, () => pick("乾坤挪移は使用済みです", "건곤이동을 이미 사용했습니다")],
+    [/^处理出错: (.+)$/, (err) => pick(`処理エラー：${err}`, `처리 오류: ${err}`)],
+    [/^服务器错误: (.+)$/, (err) => pick(`サーバーエラー：${err}`, `서버 오류: ${err}`)],
+    [/^连珠棋触发成功，你可以继续落子$/, () => pick("連珠棋が発動しました。続けて着手できます", "연주기가 발동했습니다. 계속 착수할 수 있습니다")],
+    [/^双刀流触发成功，你可以继续落子$/, () => pick("双刀流が発動しました。続けて着手できます", "쌍검류가 발동했습니다. 계속 착수할 수 있습니다")],
+    [/^⚡ 快速思考：2 秒追加手已开启$/, () => pick("⚡ クイック思考：2秒の追加手が有効になりました", "⚡ 빠른 사고: 2초 추가 착수가 활성화되었습니다")],
+    [/^🏋️ 让子棋任务：还需虚手 (\d+) 次才能落子$/, (n) => pick(`🏋️ 置き石クエスト：あと${n}回パスすると着手できます`, `🏋️ 접바둑 임무: ${n}번 더 패스해야 착수할 수 있습니다`)],
+    [/^🏋️ 让子棋任务完成！现在每 (\d+) 手可多下一手$/, (n) => pick(`🏋️ 置き石クエスト完了。以後${n}手ごとに追加手を得ます`, `🏋️ 접바둑 임무 완료. 이제 ${n}수마다 추가 착수를 얻습니다`)],
+    [/^🏋️ 虚手 (\d+)\/(\d+)$/, (a, b) => pick(`🏋️ パス：${a}/${b}`, `🏋️ 패스: ${a}/${b}`)],
+    [/^🎭 傀儡术待命：你先正常落子，随后 AI 会被迫下在 (.+)$/, (gtp) => pick(`🎭 傀儡術待機：先に通常着手すると、AIは${gtp}へ強制着手します`, `🎭 꼭두각시술 대기: 먼저 정상 착수하면 AI가 ${gtp}에 강제 착수합니다`)],
+    [/^🎭 傀儡术！你替 AI 落子于 (.+)$/, (gtp) => pick(`🎭 傀儡術：AIの代わりに${gtp}へ着手しました`, `🎭 꼭두각시술: AI 대신 ${gtp}에 착수했습니다`)],
+    [/^🎭 傀儡术生效，AI 被迫落子于 (.+)$/, (gtp) => pick(`🎭 傀儡術発動。AIは${gtp}へ強制着手しました`, `🎭 꼭두각시술 발동. AI가 ${gtp}에 강제 착수했습니다`)],
+    [/^🎭 傀儡术目标 (.+) 已被占用，AI 改为正常应手$/, (gtp) => pick(`🎭 傀儡術の目標${gtp}は占有済みです。AIは通常応手します`, `🎭 꼭두각시술 목표 ${gtp}가 이미 점유되어 AI가 정상 응수합니다`)],
+    [/^🎭 傀儡术目标 (.+) 当前不合法，AI 改为正常应手$/, (gtp) => pick(`🎭 傀儡術の目標${gtp}は不合法です。AIは通常応手します`, `🎭 꼭두각시술 목표 ${gtp}가 현재 불법이라 AI가 정상 응수합니다`)],
+    [/^🎭 傀儡术目标 (.+) 执行失败，AI 改为正常应手$/, (gtp) => pick(`🎭 傀儡術の目標${gtp}は失敗しました。AIは通常応手します`, `🎭 꼭두각시술 목표 ${gtp} 실행 실패. AI가 정상 응수합니다`)],
+    [/^⚡ 双子星辰激活！下一手后可连续落子（剩余 (\d+) 次）$/, (n) => pick(`⚡ 連撃発動。次の着手後に続けて打てます（残り${n}回）`, `⚡ 연격 발동. 다음 착수 후 계속 둘 수 있습니다(남은 ${n}회)`)],
+    [/^⚡ 双子星辰！你可以继续落子$/, () => pick("⚡ 連撃：続けて着手できます", "⚡ 연격: 계속 착수할 수 있습니다")],
+    [/^🔄 乾坤挪移激活！AI 下次将被迫虚手$/, () => pick("🔄 乾坤挪移発動。次のAI番は強制パスになります", "🔄 건곤이동 발동. 다음 AI 차례는 강제 패스됩니다")],
+    [/^🔄 乾坤挪移！你可以继续落子$/, () => pick("🔄 乾坤挪移：続けて着手できます", "🔄 건곤이동: 계속 착수할 수 있습니다")],
+    [/^乾坤挪移生效，AI 本回合虚手并把回合交还给你$/, () => pick("乾坤挪移が発動し、AIはパスして手番を返しました", "건곤이동이 적용되어 AI가 패스하고 차례를 돌려줬습니다")],
+    [/^你可以继续落子$/, () => pick("続けて着手できます", "계속 착수할 수 있습니다")],
+    [/^🏋️ 奖励回合！你可以继续落子$/, () => pick("🏋️ ボーナス手番です。続けて着手できます", "🏋️ 보너스 차례입니다. 계속 착수할 수 있습니다")],
+    [/^黄金角已封锁 (.+) 的 4x4 区域$/, (corner) => pick(`黄金角が${translateCorner(corner)}の4x4領域を封鎖しました`, `황금귀가 ${translateCorner(corner)}의 4x4 구역을 봉쇄했습니다`)],
+    [/^定式强迫症已点亮 (\d+) 个目标点：(.*)。命中其中 (\d+) 个后会自动补满剩余点位$/, (count, pts, hits) => pick(`定石強迫症が${count}個の目標点を点灯：${pts}。${hits}個命中で残りを自動補完します`, `정석 강박이 ${count}개 목표점을 표시했습니다: ${pts}. ${hits}개를 맞히면 나머지를 자동 보충합니다`)],
+    [/^定式爆发已点亮目标点：(.*)。命中其中 3 个后会触发爆发$/, (pts) => pick(`定石爆発が目標点を点灯：${pts}。3個命中で爆発します`, `정석 폭발 목표점이 표시되었습니다: ${pts}. 3개를 맞히면 폭발합니다`)],
+    [/^让子任务开始：你需要先虚手 (\d+) 次，之后每下满 (\d+) 手可再让 AI 虚手一次$/, (passes, interval) => pick(`置き石クエスト開始。先に${passes}回パスし、その後${interval}手ごとにAIパスを得ます`, `접바둑 임무 시작. 먼저 ${passes}번 패스한 뒤 ${interval}수마다 AI 패스를 얻습니다`)],
+    [/^蚕食触发：提掉 (\d+) 子，当前贴目变为 (.+)$/, (captured, komi) => pick(`蚕食発動：${captured}子を取り、コミは${komi}になりました`, `잠식 발동: ${captured}자를 따냈고 덤은 ${komi}입니다`)],
+    [/^萌芽触发：在 (.+) 额外长出一颗己方棋子$/, (gtp) => pick(`萌芽発動：${gtp}に味方の石が1子増えました`, `새싹 발동: ${gtp}에 아군 돌 1개가 추가되었습니다`)],
+    [/^定式命中 \((\d+)\/(\d+)\)$/, (a, b) => pick(`定石命中（${a}/${b}）`, `정석 명중(${a}/${b})`)],
+    [/^定式强迫症完成，自动补上 (\d+) 颗同色棋$/, (n) => pick(`定石強迫症完了：同色の石を${n}子自動補完しました`, `정석 강박 완료: 같은 색 돌 ${n}개를 자동 보충했습니다`)],
+    [/^✨ 神之一手发动，在暗点周围爆发 (\d+) 颗同色棋$/, (n) => pick(`✨ 神の一手発動：隠し点の周囲に同色${n}子が出現しました`, `✨ 신의 한 수 발동: 숨은 지점 주변에 같은 색 돌 ${n}개가 터졌습니다`)],
+    [/^🏯 守角辅助补强了 (\d+) 颗角部援军$/, (n) => pick(`🏯 守角補助が隅に援軍${n}子を補強しました`, `🏯 귀 수비 보조가 귀에 지원 돌 ${n}개를 보강했습니다`)],
+    [/^✦ 三连星发动，(?:额外点亮|自动补出) (\d+) 个?颗?星位(?:棋)?$/, (n) => pick(`✦ 三連星発動：星位の石を${n}子追加しました`, `✦ 삼연성 발동: 화점 돌 ${n}개가 추가되었습니다`)],
+    [/^🎯 五子连珠发动，正好连成 5 子，首尾额外补下 (\d+) 颗棋子$/, (n) => pick(`🎯 五子連珠発動：ちょうど5子が並び、両端に${n}子を追加しました`, `🎯 오목 연주 발동: 정확히 5개가 이어져 양끝에 보너스 돌 ${n}개를 추가했습니다`)],
+    [/^🫀 起死回生发动，在上一手周围扭转局面：清掉 (\d+) 颗敌子，补下 (\d+) 颗己棋$/, (cleared, changed) => pick(`🫀 起死回生発動：直前の着手周辺で敵石${cleared}子を消し、味方${changed}子を追加しました`, `🫀 기사회생 발동: 이전 착수 주변에서 적 돌 ${cleared}개를 제거하고 아군 돌 ${changed}개를 추가했습니다`)],
+    [/^🚫 永不悔棋发动，在 (.+) 补了一手$/, (gtp) => pick(`🚫 悔いなし発動：${gtp}に1手補いました`, `🚫 후회 없음 발동: ${gtp}에 보너스 돌을 추가했습니다`)],
+    [/^🪤 大智若愚发动，识别到 (\d+) 个愚形，额外长出 (\d+) 颗己方棋子$/, (shapes, stones) => pick(`🪤 大智若愚発動：愚形${shapes}個を検出し、味方${stones}子を追加しました`, `🪤 대지약우 발동: 나쁜 모양 ${shapes}개를 감지해 아군 돌 ${stones}개를 추가했습니다`)],
+    [/^让子任务奖励触发：每满 (\d+) 手获得一次奖励，本回合 AI 虚手$/, (n) => pick(`置き石クエスト報酬発動：${n}手ごとに報酬を得て、この回はAIがパスします`, `접바둑 임무 보상 발동: ${n}수마다 보상을 얻으며 이번 차례 AI가 패스합니다`)],
+    [/^🦠 无限增生！生成 (\d+) 颗棋子$/, (n) => pick(`🦠 無限増殖！${n}子を生成しました`, `🦠 무한 증식! 돌 ${n}개를 생성했습니다`)],
+    [/^🌿 狂野生长！(\d+) 颗棋子生长出新子$/, (n) => pick(`🌿 狂野成長！${n}子から新しい石が伸びました`, `🌿 야생 성장! 돌 ${n}개에서 새 돌이 자랐습니다`)],
+    [/^👥 影分身！在 (.+) 出现分身，下一回合会连成镜像线$/, (gtp) => pick(`👥 影分身！${gtp}に分身が出現し、次の回合で鏡像線を作ります`, `👥 그림자 분신! ${gtp}에 분신이 생겼고 다음 턴에 거울선이 이어집니다`)],
+    [/^👥 影分身连线完成：(.+) 连到 (.+)，铺开 (\d+) 颗同色棋$/, (from, to, n) => pick(`👥 影分身の連線完了：${from}から${to}まで同色${n}子を敷きました`, `👥 그림자 분신 연결 완료: ${from}에서 ${to}까지 같은 색 돌 ${n}개를 펼쳤습니다`)],
+    [/^☠️ 瘟疫蔓延！感染 (\d+) 颗敌子$/, (n) => pick(`☠️ 疫病蔓延！敵石${n}子を感染させました`, `☠️ 역병 확산! 적 돌 ${n}개를 감염시켰습니다`)],
+    [/^☄️ 陨石雨！摧毁 (\d+) 颗对方棋子$/, (n) => pick(`☄️ 隕石雨！敵石${n}子を破壊しました`, `☄️ 운석비! 상대 돌 ${n}개를 파괴했습니다`)],
+    [/^⚛️ 量子纠缠！在 (\d+) 个位置出现棋子$/, (n) => pick(`⚛️ 量子もつれ！${n}箇所に石が出現しました`, `⚛️ 양자 얽힘! ${n}개 위치에 돌이 생겼습니다`)],
+    [/^👹 吞噬之口！吃掉 (\d+) 颗对方棋子$/, (n) => pick(`👹 呑噬の口！敵石${n}子を飲み込みました`, `👹 포식의 입! 상대 돌 ${n}개를 먹었습니다`)],
+    [/^⏳ 时空裂缝！抹去对方 (\d+) 手棋$/, (n) => pick(`⏳ 時空裂け目！相手の${n}手を消しました`, `⏳ 시공 균열! 상대의 ${n}수를 지웠습니다`)],
+    [/^🌋 天崩地裂！十字清除 (\d+) 颗敌子$/, (n) => pick(`🌋 天崩地裂！十字方向で敵石${n}子を消しました`, `🌋 천붕지열! 십자 방향으로 적 돌 ${n}개를 제거했습니다`)],
+    [/^🧲 磁力吸附！(\d+) 子飞奔，碾碎 (\d+) 颗敌子$/, (moved, crushed) => pick(`🧲 磁力吸着！${moved}子が移動し、敵${crushed}子を砕きました`, `🧲 자력 흡착! 돌 ${moved}개가 이동해 적 돌 ${crushed}개를 부쉈습니다`)],
+    [/^🧲 磁力吸附！(\d+) 子飞奔$/, (moved) => pick(`🧲 磁力吸着！${moved}子が移動しました`, `🧲 자력 흡착! 돌 ${moved}개가 이동했습니다`)],
+    [/^💀 亡灵召唤！召唤 (\d+) 子，转化 (\d+) 子$/, (spawned, converted) => pick(`💀 亡霊召喚！${spawned}子を召喚し、${converted}子を転化しました`, `💀 망령 소환! ${spawned}개를 소환하고 ${converted}개를 전환했습니다`)],
+    [/^定式爆发命中 \((\d+)\/(\d+)\)$/, (a, b) => pick(`定石爆発命中（${a}/${b}）`, `정석 폭발 명중(${a}/${b})`)],
+    [/^定式爆发完成：补满 (\d+) 个目标点，并额外爆发 (\d+) 颗棋子$/, (targets, extra) => pick(`定石爆発完了：目標点${targets}個を補完し、さらに${extra}子が爆発しました`, `정석 폭발 완료: 목표점 ${targets}개를 채우고 추가 돌 ${extra}개가 폭발했습니다`)],
+    [/^✨ 神之一手发动，清空 (\d+) 颗敌子并洒下 (\d+) 颗同色棋$/, (cleared, filled) => pick(`✨ 神の一手発動：敵${cleared}子を消し、同色${filled}子を敷きました`, `✨ 신의 한 수 발동: 적 돌 ${cleared}개를 제거하고 같은 색 돌 ${filled}개를 뿌렸습니다`)],
+    [/^🏯 守角要塞封锁角部，清空 (\d+) 子并筑边 (\d+) 子$/, (cleared, placed) => pick(`🏯 守角要塞が隅を封鎖し、${cleared}子を消して辺に${placed}子を築きました`, `🏯 귀 요새가 귀를 봉쇄하고 ${cleared}개를 제거한 뒤 경계 돌 ${placed}개를 세웠습니다`)],
+    [/^✦ 三连星爆发，清空 (\d+) 子并扩张 (\d+) 颗星位势力$/, (cleared, changed) => pick(`✦ 三連星爆発：${cleared}子を消し、星位勢力${changed}子を拡張しました`, `✦ 삼연성 폭발: 돌 ${cleared}개를 제거하고 화점 세력 ${changed}개를 확장했습니다`)],
+    [/^🎯 五子连珠爆发连锁 (\d+) 次：随机清除 (\d+) 颗敌子，并补下 (\d+) 颗己棋$/, (chains, cleared, spawned) => pick(`🎯 五子連珠爆発が${chains}回連鎖：敵石${cleared}子を消し、味方${spawned}子を追加しました`, `🎯 오목 연주 폭발이 ${chains}회 연쇄: 적 돌 ${cleared}개를 제거하고 아군 돌 ${spawned}개를 추가했습니다`)],
+    [/^🫀 起死回生发动，绝境反扑：清掉 (\d+) 颗敌子，并补下 (\d+) 颗己棋$/, (cleared, spawned) => pick(`🫀 起死回生発動：敵石${cleared}子を消し、味方${spawned}子を追加しました`, `🫀 기사회생 발동: 적 돌 ${cleared}개를 제거하고 아군 돌 ${spawned}개를 추가했습니다`)],
+    [/^🪤 大智若愚第 (\d+) 波发动，识别到 (\d+) 个愚形，生成 (\d+) 颗己方棋子$/, (wave, shapes, batch) => pick(`🪤 大智若愚 第${wave}波：愚形${shapes}個を検出し、味方${batch}子を生成しました`, `🪤 대지약우 ${wave}파: 나쁜 모양 ${shapes}개를 감지해 아군 돌 ${batch}개를 생성했습니다`)],
+    [/^🪤 大智若愚连锁结束，本次共生成 (\d+) 颗己方棋子$/, (n) => pick(`🪤 大智若愚の連鎖終了。今回合計${n}子を生成しました`, `🪤 대지약우 연쇄 종료. 이번에 총 ${n}개를 생성했습니다`)],
+    [/^🧱 万里长城发动！第 (\d+) 行筑起 (\d+) 子$/, (row, placed) => pick(`🧱 万里長城発動！第${row}行に${placed}子を築きました`, `🧱 만리장성 발동! ${row}행에 돌 ${placed}개를 세웠습니다`)],
+    [/^🧱 万里长城发动！([A-Z]) 列筑起 (\d+) 子$/, (col, placed) => pick(`🧱 万里長城発動！${col}列に${placed}子を築きました`, `🧱 만리장성 발동! ${col}열에 돌 ${placed}개를 세웠습니다`)],
+    [/^🧱 万里长城未能成型，这次没有筑起城墙$/, () => pick("🧱 万里長城は今回は成立しませんでした", "🧱 만리장성이 이번에는 형성되지 않았습니다")],
+    [/^AI 的连珠棋触发，AI 将继续落子$/, () => pick("AIの連珠棋が発動し、AIが続けて着手します", "AI의 연주기가 발동해 AI가 계속 착수합니다")],
+    [/^AI 的双刀流触发，AI 将继续落子$/, () => pick("AIの双刀流が発動し、AIが続けて着手します", "AI의 쌍검류가 발동해 AI가 계속 착수합니다")],
+    [/^掷骰触发，AI 这手选择虚手$/, () => pick("ダイス発動。AIはこの手でパスを選びました", "주사위 발동. AI가 이번 수에 패스를 선택했습니다")],
+    [/^镜像触发，AI 在对称点 (.+) 落子$/, (gtp) => pick(`鏡像発動。AIは対称点${gtp}に着手しました`, `거울 발동. AI가 대칭점 ${gtp}에 착수했습니다`)],
+    [/^🌫 战争迷雾刷新：高亮 3x3 区域本回合对 AI 禁止落子$/, () => pick("🌫 戦争の霧更新：強調された3x3領域はこの回AI禁入です", "🌫 전장의 안개 갱신: 강조된 3x3 구역은 이번 턴 AI 금지구역입니다")],
+    [/^🌫 战争迷雾残留：本回合随机封锁 (\d+) 个 AI 禁着点$/, (n) => pick(`🌫 戦争の霧残留：この回AI禁着点${n}個をランダム封鎖しました`, `🌫 전장의 안개 잔류: 이번 턴 AI 금지점 ${n}개를 무작위 봉쇄했습니다`)],
+    [/^手滑了触发，AI 原本想下 (.+)，结果滑到 (.+)$/, (from, to) => pick(`手滑り発動。AIは${from}に打つ予定でしたが${to}へ滑りました`, `미끄러짐 발동. AI가 원래 ${from}에 두려다 ${to}로 미끄러졌습니다`)],
+    [/^△ 三三陷阱发动，在 (.+) 周围反打 (\d+) 子$/, (gtp, n) => pick(`△ 三三トラップ発動：${gtp}周辺に反撃石${n}子を置きました`, `△ 삼삼 함정 발동: ${gtp} 주변에 반격 돌 ${n}개를 뒀습니다`)],
+    [/^蚕食反制：AI 提掉了 (\d+) 子，当前贴目变为 (.+)$/, (captured, komi) => pick(`蚕食反制：AIが${captured}子を取り、コミは${komi}になりました`, `잠식 반격: AI가 ${captured}자를 따냈고 덤은 ${komi}입니다`)],
+    [/^🐛 蚕食！AI 提 (\d+) 子，贴目变为 (.+)$/, (captured, komi) => pick(`🐛 蚕食！AIが${captured}子を取り、コミは${komi}になりました`, `🐛 잠식! AI가 ${captured}자를 따냈고 덤은 ${komi}입니다`)],
+  ];
+  for (const [pattern, formatter] of patterns) {
+    const match = source.match(pattern);
+    if (match) return formatter(...match.slice(1));
+  }
+  return source;
+}
+
 function setText(selector, text) {
   const el = document.querySelector(selector);
   if (el) el.textContent = text;
@@ -3573,8 +3731,15 @@ function setThinkingText(text) {
 }
 
 function setSoundToggleVisual() {
-  const icon = document.querySelector("#sound-toggle .toolbar-icon");
+  const button = document.getElementById("sound-toggle");
+  const label = ui("音效开关", "Sound");
+  const icon = button?.querySelector(".toolbar-icon");
   if (icon) icon.dataset.icon = soundEnabled ? "sound-on" : "sound-off";
+  if (button) {
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    button.classList.toggle("muted", !soundEnabled);
+  }
   const settingsToggle = document.getElementById("sound-settings-toggle");
   if (settingsToggle) settingsToggle.className = "toggle" + (soundEnabled ? " on" : "");
 }
@@ -3582,6 +3747,14 @@ function setSoundToggleVisual() {
 function setTerritoryToggleVisual() {
   const icon = document.querySelector("#btn-territory-toggle .toolbar-icon");
   if (icon) icon.dataset.icon = showTerritory ? "territory-on" : "territory-off";
+}
+
+function hasUsableAnalysis(value) {
+  return !!value && value.analysis_ready === true && Number.isFinite(Number(value.winrate));
+}
+
+function analysisPanelEnabled() {
+  return showTerritory && !isHintLockedByCard();
 }
 
 function setConnectionIndicator(ready, text) {
@@ -3619,20 +3792,72 @@ function currentTurnLabel() {
   return cp === myColor ? ui("轮到你", "Your turn") : ui("AI 思考", "AI thinking");
 }
 
+function moveNumberText(value) {
+  if (currentLang === "en") return `Move ${value}`;
+  if (currentLang === "ja") return `${value}手`;
+  if (currentLang === "ko") return `${value}수`;
+  return `第${value}手`;
+}
+
 function localizeEngineText(text) {
   if (!text) return "";
-  if (currentLang !== "en") return text;
-  return String(text)
-    .replace(/CUDA\(升级包\)/g, "CUDA (upgrade pack)")
-    .replace(/升级包/g, "upgrade pack")
-    .replace(/引擎已就绪/g, "engine ready")
-    .replace(/引擎初始化中/g, "engine starting")
-    .replace(/引擎检测中/g, "checking engine")
-    .replace(/检测中/g, "checking")
-    .replace(/AI 待命/g, "AI ready")
-    .replace(/AI 在线/g, "AI online")
-    .replace(/CPU 模式/g, "CPU mode")
-    .replace(/高端/g, "high-end");
+  const source = String(text);
+  if (currentLang === "zh") return source;
+  const maps = {
+    en: [
+      [/CUDA\(升级包\)/g, "CUDA (upgrade pack)"],
+      [/升级包/g, "upgrade pack"],
+      [/引擎已就绪/g, "engine ready"],
+      [/引擎初始化中/g, "engine starting"],
+      [/引擎检测中/g, "checking engine"],
+      [/检测中/g, "checking"],
+      [/AI 待命/g, "AI ready"],
+      [/AI 在线/g, "AI online"],
+      [/CPU 模式/g, "CPU mode"],
+      [/高端/g, "high-end"],
+    ],
+    ja: [
+      [/CUDA\(升级包\)/g, "CUDA(アップグレード版)"],
+      [/升级包/g, "アップグレード版"],
+      [/引擎已就绪/g, "エンジン準備完了"],
+      [/引擎初始化中/g, "エンジン起動中"],
+      [/引擎检测中/g, "エンジン確認中"],
+      [/检测中/g, "確認中"],
+      [/AI 待命/g, "AI待機中"],
+      [/AI 在线/g, "AIオンライン"],
+      [/CPU 模式/g, "CPUモード"],
+      [/高端/g, "ハイエンド"],
+    ],
+    ko: [
+      [/CUDA\(升级包\)/g, "CUDA(업그레이드팩)"],
+      [/升级包/g, "업그레이드팩"],
+      [/引擎已就绪/g, "엔진 준비됨"],
+      [/引擎初始化中/g, "엔진 시작 중"],
+      [/引擎检测中/g, "엔진 확인 중"],
+      [/检测中/g, "확인 중"],
+      [/AI 待命/g, "AI 대기"],
+      [/AI 在线/g, "AI 온라인"],
+      [/CPU 模式/g, "CPU 모드"],
+      [/高端/g, "하이엔드"],
+    ],
+  };
+  return (maps[currentLang] || []).reduce((value, [pattern, replacement]) => value.replace(pattern, replacement), source);
+}
+
+function engineStatusText(net, connected) {
+  if (net.katago_ready) {
+    const backend = net.engine_backend ? localizeEngineText(net.engine_backend) : "KataGo";
+    const model = net.engine_model || net.katago_model_name || "";
+    return model ? `${backend} · ${model}` : backend;
+  }
+  if (net.katago_model) {
+    const model = net.katago_model_name || "";
+    return model
+      ? ui(`模型就绪 · ${model}`, `Model ready · ${model}`)
+      : ui("模型就绪", "Model ready");
+  }
+  if (net.engine_message) return localizeEngineText(net.engine_message);
+  return connected ? ui("AI 待命", "AI ready") : ui("检测中…", "Checking...");
 }
 
 function syncClientShell() {
@@ -3655,14 +3880,14 @@ function syncClientShell() {
     : (activeRogueCard ? getRogueCardName(activeRogueCard) : ui("无卡牌", "No Card"));
   if (statusValue) statusValue.textContent = connected ? ui("已连接", "Connected") : ui("连接中…", "Connecting...");
   if (engineValue) {
-    const engineText = net.engine_message
-      ? localizeEngineText(net.engine_message)
-      : (connected ? ui("AI 待命", "AI ready") : ui("检测中…", "Checking..."));
+    const engineText = engineStatusText(net, connected);
     engineValue.textContent = engineText;
-    engineValue.title = engineText;
+    engineValue.title = net.katago_model_name
+      ? `${engineText} · ${net.katago_model_name}`
+      : engineText;
   }
   if (modeValue) modeValue.textContent = modeLabel;
-  if (runValue) runValue.textContent = gameState ? `${ui("第", "Move ")}${moveText}${currentLang === "en" ? "" : " 手"} · ${turnLabel}` : ui("待开始", "Ready");
+  if (runValue) runValue.textContent = gameState ? `${moveNumberText(moveText)} · ${turnLabel}` : ui("待开始", "Ready");
   if (hudMode) hudMode.textContent = modeLabel;
   if (hudMove) hudMove.textContent = `${ui("手数", "Move")} ${moveText}`;
   if (hudTurn) hudTurn.textContent = turnLabel;
@@ -3694,9 +3919,9 @@ function toggleFullscreen() {
 function setOptionText(selectId, pairs) {
   const el = document.getElementById(selectId);
   if (!el) return;
-  pairs.forEach(([value, zh, en]) => {
+  pairs.forEach(([value, zh, en, ja, ko]) => {
     const opt = el.querySelector(`option[value="${value}"]`);
-    if (opt) opt.textContent = ui(zh, en);
+    if (opt) opt.textContent = ui(zh, en, ja, ko);
   });
   syncWoodSelect(el);
 }
@@ -3873,22 +4098,21 @@ function rebuildCurveLegend() {
 }
 
 function applyLanguage() {
-  document.documentElement.lang = currentLang === "en" ? "en" : "zh-CN";
-  document.title = ui("GoAI | 围棋对弈场", "GoAI | Rogue Go Arena");
+  document.documentElement.lang = { zh: "zh-CN", en: "en", ja: "ja", ko: "ko" }[currentLang] || "zh-CN";
+  document.title = ui("GoAI | 围棋对弈场", "GoAI | Rogue Go Arena", "GoAI | 囲碁対局場", "GoAI | 바둑 대국장");
 
   ensureLanguageControl();
   rebuildCurveLegend();
   const langSelect = document.getElementById("lang-toggle");
   if (langSelect) {
     langSelect.value = currentLang;
-    langSelect.title = ui("选择界面语言", "Choose interface language");
+    langSelect.title = ui("选择界面语言", "Choose interface language", "表示言語を選択", "표시 언어 선택");
   }
   const settingsLanguageSelect = document.getElementById("settings-language-select");
   if (settingsLanguageSelect) settingsLanguageSelect.value = currentLang;
-  setText("#settings-language-label", ui("语言", "Language"));
-  setText("#settings-sound-label", ui("音效", "Sound"));
+  setText("#settings-language-label", ui("语言", "Language", "言語", "언어"));
 
-  setText("#header-main h1", ui("围棋对弈场", "Rogue Go Arena"));
+  setText("#header-main h1", ui("围棋对弈场", "Rogue Go Arena", "囲碁対局場", "바둑 대국장"));
   setText("#client-kicker", ui("ROGUE", "ROGUE"));
   setText("#client-title", ui("GoAI", "GoAI"));
   setText("#quick-rogue", ui("Rogue", "Rogue"));
@@ -3898,132 +4122,132 @@ function applyLanguage() {
   setText("#client-engine-label", ui("引擎", "Engine"));
   setText("#client-mode-label", ui("模式", "Mode"));
   setText("#client-run-label", ui("手数", "Move"));
-  setTitle("#sound-toggle", ui("音效开关", "Sound"));
+  setTitle("#sound-toggle", ui("音效开关", "Sound", "効果音", "효과음"));
   setConnectionIndicator(!!ws && ws.readyState === WebSocket.OPEN);
   setThinkingText(ui("AI 思考中…", "AI is thinking..."));
 
-  setTitle("#btn-setup", ui("开始", "Start"));
-  setTitle("#btn-quick-rogue", ui("Rogue", "Rogue"));
-  setTitle("#btn-pass", ui("虚手", "Pass"));
-  setTitle("#btn-undo", ui("悔棋", "Undo"));
-  setTitle("#btn-score", ui("计算", "Score"));
-  setTitle("#btn-territory-toggle", ui("形势", "Territory"));
-  setTitle("#btn-resign", ui("认输", "Resign"));
+  setTitle("#btn-setup", ui("开始", "Start", "開始", "시작"));
+  setTitle("#btn-quick-rogue", ui("Rogue", "Rogue", "Rogue", "Rogue"));
+  setTitle("#btn-pass", ui("虚手", "Pass", "パス", "패스"));
+  setTitle("#btn-undo", ui("悔棋", "Undo", "待った", "무르기"));
+  setTitle("#btn-score", ui("计算", "Score", "計算", "계산"));
+  setTitle("#btn-territory-toggle", ui("形势", "Territory", "形勢", "형세"));
+  setTitle("#btn-resign", ui("认输", "Resign", "投了", "불계패"));
   setTitle("#btn-rogue-wiki", ui("Wiki", "Wiki"));
-  setTitle("#btn-settings", ui("设置", "Settings"));
-  setTitle("#btn-review-settings", ui("打开功能", "Settings"));
-  setTitle("#btn-review-first", ui("第一手", "First Move"));
-  setTitle("#btn-review-prev", ui("上一手", "Previous Move"));
-  setTitle("#btn-review-next", ui("下一手", "Next Move"));
-  setTitle("#btn-review-last", ui("最后一手", "Last Move"));
-  setTitle("#btn-review-exit", ui("退出复盘", "Exit Review"));
+  setTitle("#btn-settings", ui("设置", "Settings", "設定", "설정"));
+  setTitle("#btn-review-settings", ui("打开功能", "Settings", "機能を開く", "기능 열기"));
+  setTitle("#btn-review-first", ui("第一手", "First Move", "初手", "첫 수"));
+  setTitle("#btn-review-prev", ui("上一手", "Previous Move", "前の手", "이전 수"));
+  setTitle("#btn-review-next", ui("下一手", "Next Move", "次の手", "다음 수"));
+  setTitle("#btn-review-last", ui("最后一手", "Last Move", "最終手", "마지막 수"));
+  setTitle("#btn-review-exit", ui("退出复盘", "Exit Review", "検討を終了", "복기 종료"));
   [
-    ["#btn-setup .tool-label", "开始", "Start"],
+    ["#btn-setup .tool-label", "开始", "Start", "開始", "시작"],
     ["#btn-quick-rogue .tool-label", "Rogue", "Rogue"],
     ["#btn-rogue-wiki .tool-label", "Wiki", "Wiki"],
-    ["#btn-pass .tool-label", "虚手", "Pass"],
-    ["#btn-undo .tool-label", "悔棋", "Undo"],
-    ["#btn-score .tool-label", "计算", "Score"],
-    ["#btn-territory-toggle .tool-label", "形势", "Area"],
-    ["#btn-resign .tool-label", "认输", "Resign"],
-    ["#btn-settings .tool-label", "设置", "Settings"],
-    ["#btn-skill .tool-label", "技能", "Skill"],
-  ].forEach(([selector, zh, en]) => setText(selector, ui(zh, en)));
+    ["#btn-pass .tool-label", "虚手", "Pass", "パス", "패스"],
+    ["#btn-undo .tool-label", "悔棋", "Undo", "待った", "무르기"],
+    ["#btn-score .tool-label", "计算", "Score", "計算", "계산"],
+    ["#btn-territory-toggle .tool-label", "形势", "Area", "形勢", "형세"],
+    ["#btn-resign .tool-label", "认输", "Resign", "投了", "불계패"],
+    ["#btn-settings .tool-label", "设置", "Settings", "設定", "설정"],
+    ["#btn-skill .tool-label", "技能", "Skill", "スキル", "스킬"],
+  ].forEach(([selector, zh, en, ja, ko]) => setText(selector, ui(zh, en, ja, ko)));
   setTitle(".drawer-close", ui("关闭", "Close"));
   setTitle("#overlay-close", ui("关闭", "Close"));
   setTitle(".modal-close", ui("关闭", "Close"));
-  setTitle("#ft-up", ui("上移", "Up"));
-  setTitle("#ft-down", ui("下移", "Down"));
-  setTitle("#ft-left", ui("左移", "Left"));
-  setTitle("#ft-right", ui("右移", "Right"));
-  setTitle("#ft-ok", ui("确认落子", "Confirm Move"));
+  setTitle("#ft-up", ui("上移", "Up", "上へ", "위로"));
+  setTitle("#ft-down", ui("下移", "Down", "下へ", "아래로"));
+  setTitle("#ft-left", ui("左移", "Left", "左へ", "왼쪽"));
+  setTitle("#ft-right", ui("右移", "Right", "右へ", "오른쪽"));
+  setTitle("#ft-ok", ui("确认落子", "Confirm Move", "着手を確定", "착수 확정"));
 
   const drawerTitle = document.querySelector("#settings-drawer h2");
-  if (drawerTitle) drawerTitle.textContent = ui("全局设定", "Settings");
+  if (drawerTitle) drawerTitle.textContent = ui("全局设定", "Settings", "全体設定", "전체 설정");
   const panelTitles = document.querySelectorAll("#settings-drawer .panel-card h3:not(#lang-panel-title)");
-  if (panelTitles[0]) panelTitles[0].textContent = ui("界面选项", "Interface");
-  if (panelTitles[1]) panelTitles[1].textContent = ui("辅助分析", "Analysis");
-  if (panelTitles[2]) panelTitles[2].textContent = ui("复盘/棋谱", "Review / SGF");
-  if (panelTitles[3]) panelTitles[3].textContent = ui("对局信息", "Game Info");
-  if (panelTitles[4]) panelTitles[4].textContent = ui("棋谱记录", "Game Log");
+  if (panelTitles[0]) panelTitles[0].textContent = ui("界面选项", "Interface", "画面設定", "화면 옵션");
+  if (panelTitles[1]) panelTitles[1].textContent = ui("辅助分析", "Analysis", "補助分析", "보조 분석");
+  if (panelTitles[2]) panelTitles[2].textContent = ui("复盘/棋谱", "Review / SGF", "検討 / SGF", "복기 / 기보");
+  if (panelTitles[3]) panelTitles[3].textContent = ui("对局信息", "Game Info", "対局情報", "대국 정보");
+  if (panelTitles[4]) panelTitles[4].textContent = ui("棋谱记录", "Game Log", "棋譜記録", "기보 기록");
 
   const settingsLabels = Array.from(document.querySelectorAll("#settings-drawer .form-row label"))
     .filter(el => el.id !== "lang-panel-label");
-  if (settingsLabels[0]) settingsLabels[0].textContent = ui("落子模式", "Placement");
-  setText("#settings-stage-label", ui("画面尺寸", "Display Size"));
+  if (settingsLabels[0]) settingsLabels[0].textContent = ui("落子模式", "Placement", "着手方式", "착수 방식");
+  setText("#settings-stage-label", ui("画面尺寸", "Display Size", "画面サイズ", "화면 크기"));
   const toggleLabels = Array.from(document.querySelectorAll("#settings-drawer .toggle-label"))
     .filter(el => !el.id || !el.id.startsWith("settings-"));
-  if (toggleLabels[0]) toggleLabels[0].textContent = ui("显示推荐落点", "Show Suggested Moves");
-  if (toggleLabels[1]) toggleLabels[1].textContent = ui("显示手数", "Show Move Numbers");
-  if (toggleLabels[2]) toggleLabels[2].textContent = ui("形势判断", "Territory Estimate");
-  setText("#btn-sgf-save", ui("保存棋谱", "Save SGF"));
-  setText("#btn-sgf-load", ui("导入棋谱", "Load SGF"));
+  if (toggleLabels[0]) toggleLabels[0].textContent = ui("显示推荐落点", "Show Suggested Moves", "推薦着点を表示", "추천 착점 표시");
+  if (toggleLabels[1]) toggleLabels[1].textContent = ui("显示手数", "Show Move Numbers", "手数を表示", "수순 표시");
+  if (toggleLabels[2]) toggleLabels[2].textContent = ui("形势判断", "Territory Estimate", "形勢判断", "형세 판단");
+  setText("#btn-sgf-save", ui("保存棋谱", "Save SGF", "棋譜を保存", "기보 저장"));
+  setText("#btn-sgf-load", ui("导入棋谱", "Load SGF", "棋譜を読み込み", "기보 불러오기"));
 
   const infoLabels = document.querySelectorAll("#move-info .info-row span:first-child");
   const infoTexts = [
-    ui("我执", "You Play"),
-    ui("当前手数", "Move"),
-    ui("行棋方", "Turn"),
-    ui("黑吃子", "Black Captures"),
-    ui("白吃子", "White Captures"),
-    ui("形势估算", "Score Estimate"),
-    ui("地盘差", "Territory Diff"),
-    ui("对手级别", "Opponent")
+    ui("我执", "You Play", "持ち色", "내 돌"),
+    ui("当前手数", "Move", "手数", "수순"),
+    ui("行棋方", "Turn", "手番", "차례"),
+    ui("黑吃子", "Black Captures", "黒のアゲハマ", "흑 따낸 돌"),
+    ui("白吃子", "White Captures", "白のアゲハマ", "백 따낸 돌"),
+    ui("形势估算", "Score Estimate", "形勢判断", "형세 추정"),
+    ui("地盘差", "Territory Diff", "地合い差", "집 차이"),
+    ui("对手级别", "Opponent", "相手の棋力", "상대 기력")
   ];
   infoLabels.forEach((el, idx) => { if (infoTexts[idx]) el.textContent = infoTexts[idx]; });
   const challengeInfoLabel = document.querySelector("#challenge-info-row span:first-child");
   if (challengeInfoLabel) challengeInfoLabel.textContent = ui("闯关进度", "Challenge");
 
   const overlayStats = document.querySelectorAll("#overlay .score-item .label");
-  if (overlayStats[0]) overlayStats[0].textContent = ui("胜方", "Winner");
-  if (overlayStats[1]) overlayStats[1].textContent = ui("比分", "Score");
+  if (overlayStats[0]) overlayStats[0].textContent = ui("胜方", "Winner", "勝者", "승자");
+  if (overlayStats[1]) overlayStats[1].textContent = ui("比分", "Score", "スコア", "점수");
   const overlayBtns = document.querySelectorAll("#overlay .btn-row button");
-  if (overlayBtns[0]) overlayBtns[0].textContent = ui("复盘", "Review");
-  if (overlayBtns[1]) overlayBtns[1].textContent = ui("再来一局", "Play Again");
+  if (overlayBtns[0]) overlayBtns[0].textContent = ui("复盘", "Review", "検討", "복기");
+  if (overlayBtns[1]) overlayBtns[1].textContent = ui("再来一局", "Play Again", "もう一局", "다시 한 판");
 
   const setupTitle = document.querySelector("#setup-modal h2");
-  if (setupTitle) setupTitle.textContent = ui("开始对弈", "Start Game");
+  if (setupTitle) setupTitle.textContent = ui("开始对弈", "Start Game", "対局開始", "대국 시작");
   setText("#rogue-wiki-title", ui("ROGUE AI WIKI", "ROGUE AI WIKI"));
-  setText("#rogue-wiki-mode-title", ui("玩法总览", "Mode Overview"));
-  setText("#rogue-wiki-rogue-title", ui("Rogue 卡牌效果", "Rogue Card Effects"));
-  setText("#rogue-wiki-ultimate-title", ui("大招卡牌效果", "Ultimate Card Effects"));
-  setText("#label-color", ui("我执", "Color"));
-  setText("#label-rogue-variant", ui("玩法", "Variant"));
-  setText("#label-board", ui("棋盘", "Board"));
-  setText("#label-komi", ui("贴目", "Komi"));
-  setText("#label-level", ui("等级", "Rank"));
-  setText("#label-level-black", ui("黑棋等级", "Black Rank"));
-  setText("#label-level-white", ui("白棋等级", "White Rank"));
-  setText("#label-style", ui("AI行为", "AI Behavior"));
-  setText("#label-style-black", ui("黑棋风格", "Black Style"));
-  setText("#label-style-white", ui("白棋风格", "White Style"));
-  setText("#label-handicap", ui("让子", "Handicap"));
-  setText("#label-time-mode", ui("用时", "Time"));
-  setText("#label-main-time", ui("主时", "Main Time"));
-  setText("#label-byoyomi", ui("读秒", "Byo-yomi"));
-  setText("#mode-normal", ui("对局", "Game"));
+  setText("#rogue-wiki-mode-title", ui("玩法总览", "Mode Overview", "モード概要", "모드 개요"));
+  setText("#rogue-wiki-rogue-title", ui("Rogue 卡牌效果", "Rogue Card Effects", "Rogueカード効果", "Rogue 카드 효과"));
+  setText("#rogue-wiki-ultimate-title", ui("大招卡牌效果", "Ultimate Card Effects", "必殺カード効果", "궁극기 카드 효과"));
+  setText("#label-color", ui("我执", "Color", "持ち色", "내 돌"));
+  setText("#label-rogue-variant", ui("玩法", "Variant", "モード", "모드"));
+  setText("#label-board", ui("棋盘", "Board", "碁盤", "바둑판"));
+  setText("#label-komi", ui("贴目", "Komi", "コミ", "덤"));
+  setText("#label-level", ui("等级", "Rank", "棋力", "기력"));
+  setText("#label-level-black", ui("黑棋等级", "Black Rank", "黒の棋力", "흑 기력"));
+  setText("#label-level-white", ui("白棋等级", "White Rank", "白の棋力", "백 기력"));
+  setText("#label-style", ui("AI行为", "AI Behavior", "AIの棋風", "AI 행마"));
+  setText("#label-style-black", ui("黑棋风格", "Black Style", "黒の棋風", "흑 기풍"));
+  setText("#label-style-white", ui("白棋风格", "White Style", "白の棋風", "백 기풍"));
+  setText("#label-handicap", ui("让子", "Handicap", "置き石", "접바둑"));
+  setText("#label-time-mode", ui("用时", "Time", "持ち時間", "제한 시간"));
+  setText("#label-main-time", ui("主时", "Main Time", "持ち時間", "기본 시간"));
+  setText("#label-byoyomi", ui("读秒", "Byo-yomi", "秒読み", "초읽기"));
+  setText("#mode-normal", ui("对局", "Game", "対局", "대국"));
   setText("#mode-rogue", ui("Rogue", "Rogue"));
-  setText("#mode-watch", ui("学习", "Study"));
-  setText("#mode-two", ui("双人", "Two Players"));
-  setText("#mode-challenge", ui("闯关", "Challenge"));
-  setText("#btn-new", ui("确认开始", "Start"));
-  setText("#confirm-msg", ui("确认执行此操作？", "Confirm this action?"));
+  setText("#mode-watch", ui("学习", "Study", "研究", "학습"));
+  setText("#mode-two", ui("双人", "Two Players", "二人", "2인"));
+  setText("#mode-challenge", ui("闯关", "Challenge", "チャレンジ", "도전"));
+  setText("#btn-new", ui("确认开始", "Start", "開始する", "시작"));
+  setText("#confirm-msg", ui("确认执行此操作？", "Confirm this action?", "この操作を実行しますか？", "이 작업을 실행할까요?"));
   const confirmBtns = document.querySelectorAll("#confirm-modal .btn-row button");
   if (confirmBtns[0]) confirmBtns[0].textContent = ui("取消", "Cancel");
   if (confirmBtns[1]) confirmBtns[1].textContent = ui("确定", "Confirm");
   const rogueTitle = document.querySelector("#rogue-overlay h2");
-  if (rogueTitle) rogueTitle.textContent = ui("Rogue 模式", "Rogue Mode");
+  if (rogueTitle) rogueTitle.textContent = ui("Rogue 模式", "Rogue Mode", "Rogueモード", "Rogue 모드");
   const ultTitle = document.querySelector("#ultimate-overlay h2");
-  if (ultTitle) ultTitle.textContent = ui("大招模式", "Ultimate Mode");
+  if (ultTitle) ultTitle.textContent = ui("大招模式", "Ultimate Mode", "必殺モード", "궁극기 모드");
   const ultSub = document.querySelector("#ultimate-overlay p");
-  if (ultSub) ultSub.textContent = ui("选择大招卡", "Pick ultimate card");
+  if (ultSub) ultSub.textContent = ui("选择大招卡", "Pick ultimate card", "必殺カードを選択", "궁극기 카드 선택");
 
   setOptionText("sel-placement", [
-    ["direct", "直接落子", "Direct"],
-    ["fine", "精准落子(支持微调)", "Fine-tune"]
+    ["direct", "直接落子", "Direct", "直接着手", "바로 착수"],
+    ["fine", "精准落子(支持微调)", "Fine-tune", "精密着手（微調整）", "정밀 착수(미세 조정)"]
   ]);
   setOptionText("sel-stage-preset", [
-    ["auto", "自适应", "Auto"],
+    ["auto", "自适应", "Auto", "自動", "자동"],
     ["1080", "1080p", "1080p"],
     ["1440", "1440p", "1440p"],
     ["2160", "4K", "4K"]
@@ -4031,43 +4255,46 @@ function applyLanguage() {
   const stageSelect = document.getElementById("sel-stage-preset");
   if (stageSelect) stageSelect.value = stagePreset;
   setOptionText("lang-toggle", [
-    ["zh", "中文", "Chinese"],
-    ["en", "English", "English"]
+    ["zh", "中文", "Chinese", "中国語", "중국어"],
+    ["en", "English", "English", "英語", "영어"],
+    ["ja", "日语", "Japanese", "日本語", "일본어"],
+    ["ko", "韩语", "Korean", "韓国語", "한국어"]
   ]);
   setOptionText("settings-language-select", [
-    ["zh", "中文", "Chinese"],
-    ["en", "English", "English"]
+    ["zh", "中文", "Chinese", "中国語", "중국어"],
+    ["en", "English", "English", "英語", "영어"],
+    ["ja", "日语", "Japanese", "日本語", "일본어"],
+    ["ko", "韩语", "Korean", "韓国語", "한국어"]
   ]);
   setOptionText("sel-color", [
-    ["B", "黑棋（先手）", "Black (First)"],
-    ["W", "白棋（后手）", "White (Second)"],
-    ["R", "随机（猜先）", "Random (Guess)"]
+    ["B", "黑棋（先手）", "Black (First)", "黒（先番）", "흑(선수)"],
+    ["W", "白棋（后手）", "White (Second)", "白（後番）", "백(후수)"],
+    ["R", "随机（猜先）", "Random (Guess)", "ランダム（ニギリ）", "무작위(돌 가리기)"]
   ]);
   const aiStyleOptions = [
-    ["balanced", "均衡", "Balanced"],
-    ["territory", "注重实地", "Territory"],
-    ["influence", "注重外势", "Influence"],
-    ["attack", "注重进攻", "Attack"],
-    ["defense", "注重防守", "Defense"]
+    ["balanced", "均衡", "Balanced", "バランス", "균형"],
+    ["territory", "注重实地", "Territory", "地重視", "실리 중시"],
+    ["influence", "注重外势", "Influence", "厚み重視", "세력 중시"],
+    ["attack", "注重进攻", "Attack", "攻め重視", "공격 중시"],
+    ["defense", "注重防守", "Defense", "守り重視", "수비 중시"]
   ];
   setOptionText("sel-ai-style", aiStyleOptions);
   setOptionText("sel-ai-style-black", aiStyleOptions);
   setOptionText("sel-ai-style-white", aiStyleOptions);
   setOptionText("sel-time-mode", [
-    ["none", "无限制", "No Limit"],
-    ["byoyomi", "包干+读秒", "Main + Byo-yomi"],
-    ["absolute", "包干用时", "Absolute"]
+    ["none", "无限制", "No Limit", "無制限", "무제한"],
+    ["byoyomi", "包干+读秒", "Main + Byo-yomi", "持ち時間＋秒読み", "기본 시간+초읽기"],
+    ["absolute", "包干用时", "Absolute", "切れ負け", "절대 시간"]
   ]);
   setOptionText("sel-rogue-variant", [
-    ["solo", "单人抽卡", "Solo Draft"],
-    ["dual", "双人抽卡", "Dual Draft"],
-    ["ultimate", "大招对战", "Ultimate Duel"]
+    ["solo", "单人抽卡", "Solo Draft", "ソロドラフト", "솔로 드래프트"],
+    ["dual", "双人抽卡", "Dual Draft", "デュアルドラフト", "듀얼 드래프트"],
+    ["ultimate", "大招对战", "Ultimate Duel", "必殺デュエル", "궁극기 대전"]
   ]);
-  setText("#wr-black-label", `${ui("黑", "Black")} 50.0%`);
-  setText("#wr-white-label", `${ui("白", "White")} 50.0%`);
-  setText("#curve-title", ui("胜率曲线", "Winrate Curve"));
-  setText("#curve-label-winrate", ui("白方胜率", "White Winrate"));
-  setText("#curve-label-score", ui("目差", "Score Lead"));
+  updateWinRate(analysis?.winrate ?? 0.5);
+  setText("#curve-title", ui("胜率曲线", "Winrate Curve", "勝率グラフ", "승률 그래프"));
+  setText("#curve-label-winrate", ui("白方胜率", "White Winrate", "白の勝率", "백 승률"));
+  setText("#curve-label-score", ui("目差", "Score Lead", "目差", "집 차이"));
   setConnectionIndicator(!!ws && ws.readyState === WebSocket.OPEN);
   if (document.getElementById("rogue-overlay").classList.contains("show") && rogueOfferCards.length) {
     showRogueCards(rogueOfferCards);
@@ -4078,6 +4305,7 @@ function applyLanguage() {
   if (activeRogueCard) updateRogueBar();
   if (ultimateMode) updateUltimateBar();
   if (gameState) updateUI();
+  refreshRankSelectLabels();
   syncClientShell();
   renderRogueWiki();
   refreshSetupModeHint();
@@ -4085,6 +4313,7 @@ function applyLanguage() {
   drawWinrateCurve();
   enhanceWoodSelects();
   syncWoodSelects();
+  renderGameLog();
   syncBoardFitFrame();
   if (boardRenderSize) render();
 }
@@ -4758,11 +4987,16 @@ function syncCardTurnTimer() {
     const seconds = gameState.rogue_quickthink_seconds || (gameState.rogue_quickthink_stage === 1 ? 3 : 2);
     const key = `rq:${gameState.move_number}:${gameState.rogue_quickthink_stage}`;
     if (cardTurnKey !== key) {
-      log(ui(`⚡ 快速思考：${seconds} 秒内完成这一手`, `⚡ Quick Thinking: finish this move within ${seconds} seconds.`));
+      logI18n(
+        `⚡ 快速思考：${seconds} 秒内完成这一手`,
+        `⚡ Quick Thinking: finish this move within ${seconds} seconds.`,
+        `⚡ クイック思考：${seconds}秒以内に着手`,
+        `⚡ 빠른 사고: ${seconds}초 안에 착수`
+      );
       startCardTurnTimer(seconds, key, ui("快棋", "Fast"), () => {
         // Safety: do not auto-pass if it's no longer the player's turn
         if (!isMyTurn || (gameState && gameState.current_player !== myColor)) return;
-        log(ui("⚡ 快速思考超时，自动虚手", "⚡ Quick Thinking timed out. Auto-pass."));
+        logI18n("⚡ 快速思考超时，自动虚手", "⚡ Quick Thinking timed out. Auto-pass.", "⚡ クイック思考が時間切れになり、自動パス", "⚡ 빠른 사고 시간 초과, 자동 패스");
         sendWS({ action: "pass" });
         if (!twoPlayerMode) {
           isMyTurn = false;
@@ -4777,11 +5011,16 @@ function syncCardTurnTimer() {
     const seconds = gameState.ultimate_quickthink_seconds || 5;
     const key = `uq:${gameState.ultimate_quickthink_token || 0}:${seconds}`;
     if (cardTurnKey !== key) {
-      log(ui(`⚡ 大招快速思考：${seconds} 秒自由落子开始`, `⚡ Ultimate Quick Thinking: free placement begins for ${seconds} seconds.`));
+      logI18n(
+        `⚡ 大招快速思考：${seconds} 秒自由落子开始`,
+        `⚡ Ultimate Quick Thinking: free placement begins for ${seconds} seconds.`,
+        `⚡ 必殺クイック思考：${seconds}秒の自由着手開始`,
+        `⚡ 궁극기 빠른 사고: ${seconds}초 자유 착수 시작`
+      );
       startCardTurnTimer(seconds, key, ui("自由落子", "Free"), () => {
         // Safety: do not end quickthink if it's no longer the player's turn
         if (!isMyTurn || (gameState && gameState.current_player !== myColor)) return;
-        log(ui("⚡ 自由落子时间结束，AI 开始读盘", "⚡ Free placement ended. The AI is reading the board."));
+        logI18n("⚡ 自由落子时间结束，AI 开始读盘", "⚡ Free placement ended. The AI is reading the board.", "⚡ 自由着手時間が終了し、AIが読みを開始", "⚡ 자유 착수 시간이 끝나 AI가 판을 읽습니다");
         sendWS({ action: "ultimate_quickthink_end" });
         if (!twoPlayerMode) {
           isMyTurn = false;
@@ -4844,7 +5083,7 @@ function exportSgf() {
   a.download = `goai_${dt}.sgf`;
   a.click();
   URL.revokeObjectURL(url);
-  log(ui("棋谱已保存", "SGF saved"));
+  logI18n("棋谱已保存", "SGF saved", "棋譜を保存しました", "기보 저장됨");
 }
 
 function parseSgf(text) {
@@ -4888,7 +5127,12 @@ function loadSgfFile(file) {
       resizeBoard(size);
       updateReviewUI();
       render();
-      log(ui(`已导入棋谱：${moves.length}手 ${size}×${size} 贴目${komi}`, `SGF loaded: ${moves.length} moves, ${size}x${size}, komi ${komi}`));
+      logI18n(
+        `已导入棋谱：${moves.length}手 ${size}×${size} 贴目${komi}`,
+        `SGF loaded: ${moves.length} moves, ${size}x${size}, komi ${komi}`,
+        `棋譜を読み込みました：${moves.length}手 ${size}×${size} コミ${komi}`,
+        `기보 불러옴: ${moves.length}수 ${size}×${size} 덤 ${komi}`
+      );
 
       // Request analysis for current position
       requestReviewAnalysis();
@@ -6251,7 +6495,7 @@ document.getElementById("rb-puppet").addEventListener("click", () => {
   if (!activeRogueCard || activeRogueCard !== "puppet") return;
   if ((rogueUses.puppet || 0) <= 0) return;
   puppetMode = true;
-  log(ui("🎭 傀儡术：先点出 AI 的下一手落点；你随后正常落子", "🎭 Puppet: choose the AI's next forced point first, then play your own move."));
+  logI18n("🎭 傀儡术：先点出 AI 的下一手落点；你随后正常落子", "🎭 Puppet: choose the AI's next forced point first, then play your own move.", "🎭 傀儡術：まずAIの次の着点を指定し、その後通常どおり着手", "🎭 꼭두각시술: 먼저 AI의 다음 착점을 지정하고 이어서 정상 착수");
 });
 
 // Twin button click
@@ -6277,7 +6521,7 @@ document.getElementById("btn-skill").addEventListener("click", () => {
   if (!cfg || cfg.uses <= 0) return;
   if (cfg.key === "puppet") {
     puppetMode = true;
-    log(ui("🎭 傀儡术：先点出 AI 的下一手落点；你随后正常落子", "🎭 Puppet: choose the AI's next forced point first, then play your own move."));
+    logI18n("🎭 傀儡术：先点出 AI 的下一手落点；你随后正常落子", "🎭 Puppet: choose the AI's next forced point first, then play your own move.", "🎭 傀儡術：まずAIの次の着点を指定し、その後通常どおり着手", "🎭 꼭두각시술: 먼저 AI의 다음 착점을 지정하고 이어서 정상 착수");
     return;
   }
   if (cfg.key === "twin") {
@@ -6359,7 +6603,7 @@ function tryPlay(x, y) {
   if (reviewMode) return;
   if (!gameState || gameState.game_over) return;
   if (isCoachTakingOver()) {
-    log(ui("🎓 代练上号接管中，请等待强化 AI 完成代打。", "🎓 Coach is controlling this phase. Wait for the boosted AI to finish."));
+    logI18n("🎓 代练上号接管中，请等待强化 AI 完成代打。", "🎓 Coach is controlling this phase. Wait for the boosted AI to finish.", "🎓 コーチモードが代打中です。強化AIの着手完了をお待ちください。", "🎓 코치 모드가 대리 착수 중입니다. 강화 AI가 마칠 때까지 기다려 주세요.");
     return;
   }
   if (!twoPlayerMode && !isMyTurn) return;
@@ -6379,7 +6623,7 @@ function tryPlay(x, y) {
       && gameState.rogue_puppet_target
       && gameState.rogue_puppet_target[0] === x
       && gameState.rogue_puppet_target[1] === y) {
-    log(ui("🎭 这个点已被傀儡术预留给 AI", "🎭 This point is reserved for the AI by Puppet."));
+    logI18n("🎭 这个点已被傀儡术预留给 AI", "🎭 This point is reserved for the AI by Puppet.", "🎭 この点は傀儡術でAI用に予約済みです", "🎭 이 지점은 꼭두각시술로 AI에게 예약되었습니다");
     return;
   }
   commitPlay(x, y);
@@ -6414,7 +6658,7 @@ function commitPlay(x, y) {
     clearTimeout(aiResponseTimer);
     aiResponseTimer = setTimeout(() => {
       if (!isMyTurn && gameState && !gameState.game_over) {
-        log(ui("⚠ AI 响应超时，尝试重新请求…", "⚠ AI response timed out. Retrying..."));
+        logI18n("⚠ AI 响应超时，尝试重新请求…", "⚠ AI response timed out. Retrying...", "⚠ AIの応答がタイムアウトしました。再要求中…", "⚠ AI 응답 시간 초과, 다시 요청 중…");
         sendWS({ action: "request_hint" });
         setThinking(false);
         // Re-check game state
@@ -6436,7 +6680,7 @@ canvas.addEventListener("click", e => {
   // Rogue: puppet mode — choose AI's move
   if (puppetMode) {
     if (isCoachTakingOver()) {
-      log(ui("🎓 代练上号接管中，暂时不能指定傀儡点。", "🎓 Coach is controlling this phase. Puppet targeting is paused."));
+      logI18n("🎓 代练上号接管中，暂时不能指定傀儡点。", "🎓 Coach is controlling this phase. Puppet targeting is paused.", "🎓 コーチモードが代打中のため、傀儡点は指定できません。", "🎓 코치 모드가 대리 착수 중이라 꼭두각시 지점을 지정할 수 없습니다.");
       return;
     }
     puppetMode = false;
@@ -6470,7 +6714,7 @@ canvas.addEventListener("touchend", e => {
   if (rogueSealing) { sendWS({ action: "rogue_seal_point", x, y }); return; }
   if (puppetMode) {
     if (isCoachTakingOver()) {
-      log(ui("🎓 代练上号接管中，暂时不能指定傀儡点。", "🎓 Coach is controlling this phase. Puppet targeting is paused."));
+      logI18n("🎓 代练上号接管中，暂时不能指定傀儡点。", "🎓 Coach is controlling this phase. Puppet targeting is paused.", "🎓 コーチモードが代打中のため、傀儡点は指定できません。", "🎓 코치 모드가 대리 착수 중이라 꼭두각시 지점을 지정할 수 없습니다.");
       return;
     }
     puppetMode = false;
@@ -6514,25 +6758,6 @@ function detectNewStone(oldBoard, newBoard, size) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // WEBSOCKET
 // ═══════════════════════════════════════════════════════════════════════════════
-function connect() {
-  const wsScheme = location.protocol === "https:" ? "wss" : "ws";
-  const wsUrl = `${wsScheme}://${location.host}/ws/${gameId}`;
-  ws = new WebSocket(wsUrl);
-  ws.onopen = () => {
-    setConnectionIndicator(true, "已连接");
-    log("已连接");
-    refreshNetworkInfo();
-    if (!gameState) sendWS({ action: "reconnect" });
-  };
-  ws.onclose = () => {
-    if (intentionalClose) { intentionalClose = false; return; }
-    setConnectionIndicator(false, "连接断开，重连中…");
-    setTimeout(connect, 2000);
-  };
-  ws.onmessage = e => handleMessage(JSON.parse(e.data));
-  ws.onerror   = () => { setConnectionIndicator(false, "连接错误"); };
-}
-
 function sendWS(data) {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data));
 }
@@ -6552,7 +6777,8 @@ function handleMessage(msg) {
       aiColor  = msg.ai_color;
       lastAiMove = null;
       previousBoard = null;
-      analysis = { winrate: 0.5, score: 0, top_moves: [], ownership: [] };
+      analysis = { winrate: 0.5, score: 0, top_moves: [], ownership: [], analysis_ready: false };
+      analysisReady = false;
       resetWinrateHistory();
       isMyTurn = msg.ai_observer ? false : (twoPlayerMode ? true : (msg.current_player === myColor));
       reviewMode = false; sgfLoadedMode = false;
@@ -6566,15 +6792,33 @@ function handleMessage(msg) {
       if (timerMode !== "none") startTimerFor(msg.current_player);
       triggerBoardIntro();
       if (msg.ai_observer) {
-        log(ui(
-          `学习模式开始 — 黑 ${RANK_LABELS[msg.ai_level_black] || msg.ai_level_black} / 白 ${RANK_LABELS[msg.ai_level_white] || msg.ai_level_white}`,
-          `Study mode started — Black ${RANK_LABELS[msg.ai_level_black] || msg.ai_level_black} / White ${RANK_LABELS[msg.ai_level_white] || msg.ai_level_white}`
-        ));
+        const blackLevel = msg.ai_level_black;
+        const whiteLevel = msg.ai_level_white;
+        logRender(() => {
+          const blackRank = rankLabel(blackLevel) || blackLevel || "";
+          const whiteRank = rankLabel(whiteLevel) || whiteLevel || "";
+          return ui(
+            `学习模式开始 — 黑 ${blackRank} / 白 ${whiteRank}`,
+            `Study mode started — Black ${blackRank} / White ${whiteRank}`,
+            `研究モード開始 — 黒 ${blackRank} / 白 ${whiteRank}`,
+            `학습 모드 시작 — 흑 ${blackRank} / 백 ${whiteRank}`
+          );
+        });
       } else if (twoPlayerMode) {
-        log(ui("双人对局开始 — 黑棋先行", "Two-player game started — Black moves first"));
+        logI18n("双人对局开始 — 黑棋先行", "Two-player game started — Black moves first", "二人対局開始 — 黒番から", "2인 대국 시작 — 흑 선착");
       } else {
-        log(ui(`新对局 — 我执${myColor==="B"?"黑":"白"}棋，AI：${RANK_LABELS[msg.level]||msg.level}`,
-          `New game — you play ${myColor==="B"?"Black":"White"}, AI: ${RANK_LABELS[msg.level]||msg.level}`));
+        const playerColor = myColor;
+        const gameLevel = msg.level;
+        logRender(() => {
+          const colorName = playerColor === "B" ? ui("黑", "Black", "黒", "흑") : ui("白", "White", "白", "백");
+          const levelName = rankLabel(gameLevel) || gameLevel;
+          return ui(
+            `新对局 — 我执${colorName}棋，AI：${levelName}`,
+            `New game — you play ${colorName}, AI: ${levelName}`,
+            `新対局 — 持ち色 ${colorName}、AI: ${levelName}`,
+            `새 대국 — 내 돌 ${colorName}, AI: ${levelName}`
+          );
+        });
       }
       break;
     }
@@ -6626,16 +6870,29 @@ function handleMessage(msg) {
       clearTimeout(aiResponseTimer);
       if (msg.x !== null) {
         const gtp = `${COLS[msg.x]}${boardSize - msg.y}`;
-        log(currentLang === "en" ? `AI (${msg.color==="B"?"Black":"White"}) -> ${gtp}` : `AI(${msg.color==="B"?"黑":"白"}) → ${gtp}`);
+        logI18n(
+          `AI(${msg.color === "B" ? "黑" : "白"}) → ${gtp}`,
+          `AI (${msg.color === "B" ? "Black" : "White"}) -> ${gtp}`,
+          `AI（${msg.color === "B" ? "黒" : "白"}）→ ${gtp}`,
+          `AI(${msg.color === "B" ? "흑" : "백"}) → ${gtp}`
+        );
       } else {
-        log(ui("AI 虚手", "AI passes"));
+        logI18n("AI 虚手", "AI passes", "AIパス", "AI 패스");
       }
       if (!animFrameId) render();
       break;
 
     case "analysis": {
       analysis = msg;
+      analysisReady = hasUsableAnalysis(msg);
       updateWinRate(msg.winrate);
+      if (!analysisReady) {
+        document.getElementById("info-score").textContent = "--";
+        document.getElementById("info-territory").textContent = "--";
+        setThinking(false);
+        if (!animFrameId) render();
+        break;
+      }
       if (!reviewMode) pushWinratePoint(msg.winrate, msg.score);
       const sc = msg.score;
       // Chinese rules (komi 7.5): use 子; Japanese rules (komi 6.5): use 目
@@ -6671,28 +6928,28 @@ function handleMessage(msg) {
       setThinking(false); setButtons(false);
       stopTimerTick();
       clearCardTurnTimer();
-      const winnerName = msg.winner==="B" ? ui("黑棋", "Black") : msg.winner==="W" ? ui("白棋", "White") : ui("平局", "Draw");
+      const winnerName = msg.winner==="B" ? ui("黑棋", "Black", "黒", "흑") : msg.winner==="W" ? ui("白棋", "White", "白", "백") : ui("平局", "Draw", "持碁", "무승부");
       const youWin = twoPlayerMode ? false : (msg.winner === myColor);
       const titleText = twoPlayerMode
         ? `${winnerName}${ui("胜！", " wins!")}`
         : (youWin ? ui("你赢了！", "You win!") : msg.winner ? ui("AI 胜利", "AI wins") : ui("平局", "Draw"));
-      // Format score string: Chinese rules uses 子, Japanese uses 目
-      let scoreDisplay = msg.score || "—";
-      if (msg.score && gameState) {
-        const isChinese = gameState.komi === 7.5;
-        // KataGo returns e.g. "B+2.5" — append correct unit
-        const m = msg.score.match(/^([BW])\+(.+)$/);
-        if (m) {
-          const who = m[1] === "B" ? ui("黑", "Black") : ui("白", "White");
-          scoreDisplay = currentLang === "en"
-            ? `${who} +${m[2]} ${isChinese ? "stones" : "points"}`
-            : `${who}胜${m[2]}${isChinese ? "子" : "目"}`;
-        }
-      }
+      const scoreRaw = msg.score || "";
+      const scoreKomi = gameState?.komi;
+      const scoreDisplay = formatScoreDisplay(scoreRaw, scoreKomi);
       showOverlay(titleText, reasonText(msg.reason), winnerName, scoreDisplay);
-      log(currentLang === "en"
-        ? `${winnerName} wins ${scoreDisplay} (${reasonText(msg.reason)})`
-        : `${winnerName}胜 ${scoreDisplay} (${reasonText(msg.reason)})`);
+      const winnerCode = msg.winner;
+      const reasonCode = msg.reason;
+      logRender(() => {
+        const winner = winnerCode === "B" ? ui("黑棋", "Black", "黒", "흑") : winnerCode === "W" ? ui("白棋", "White", "白", "백") : ui("平局", "Draw", "持碁", "무승부");
+        const score = formatScoreDisplay(scoreRaw, scoreKomi);
+        const reason = reasonText(reasonCode);
+        return ui(
+          `${winner}胜 ${score} (${reason})`,
+          `${winner} wins ${score} (${reason})`,
+          `${winner}勝ち ${score} (${reason})`,
+          `${winner} 승 ${score} (${reason})`
+        );
+      });
       if (gameState?.challenge_beta) {
         const currentStage = gameState.challenge_stage || challengeSession.stage || 1;
         if (youWin && currentStage === 1) {
@@ -6720,7 +6977,7 @@ function handleMessage(msg) {
           challengeSession.cleared = true;
           challengeSession.active = true;
           updateChallengeInfo();
-          log(ui("\u95ef\u5173\u524d\u4e24\u5173\u5df2\u901a\u5173\u3002", "Challenge cleared."));
+          logI18n("\u95ef\u5173\u524d\u4e24\u5173\u5df2\u901a\u5173\u3002", "Challenge cleared.", "チャレンジの最初の2面を突破しました。", "도전 첫 두 단계를 통과했습니다.");
         }
       }
       break;
@@ -6755,17 +7012,27 @@ function handleMessage(msg) {
       render();
       setButtons(!msg.game_over);
       updateUI();
-      log(ui(`已恢复对局（第${msg.move_number}手）`, `Game restored (move ${msg.move_number})`));
-      if (msg.game_over) log(ui("对局已结束", "The game is already over"));
+      logI18n(
+        `已恢复对局（第${msg.move_number}手）`,
+        `Game restored (move ${msg.move_number})`,
+        `対局を復元しました（${msg.move_number}手）`,
+        `대국을 복원했습니다(${msg.move_number}수)`
+      );
+      if (msg.game_over) logI18n("对局已结束", "The game is already over", "対局は終了しています", "대국이 이미 종료되었습니다");
       break;
     }
 
     case "reconnect_failed":
-      log(ui("暂无进行中的对局，请点击「开始对弈」开始", "No active game was found. Click Start Game to begin."));
+      logI18n(
+        "暂无进行中的对局，请点击「开始对弈」开始",
+        "No active game was found. Click Start Game to begin.",
+        "進行中の対局はありません。「対局開始」を押してください",
+        "진행 중인 대국이 없습니다. 「대국 시작」을 눌러 시작하세요"
+      );
       break;
 
     case "error":
-      log(`⚠ ${translateServerEventMessage(msg.message)}`);
+      logServerEvent(msg.message, "⚠ ");
       setThinking(false);
       // Revert optimistic board update on rejected moves (e.g. ko)
       if (previousBoard && gameState) {
@@ -6777,7 +7044,11 @@ function handleMessage(msg) {
       break;
 
     case "level_set":
-      log(ui(`级别 → ${RANK_LABELS[msg.level]||msg.level}`, `Level -> ${RANK_LABELS[msg.level]||msg.level}`));
+      const selectedLevel = msg.level;
+      logRender(() => {
+        const levelName = rankLabel(selectedLevel) || selectedLevel;
+        return ui(`级别 → ${levelName}`, `Level -> ${levelName}`, `棋力 → ${levelName}`, `기력 → ${levelName}`);
+      });
       if (gameState) gameState.level = msg.level;
       updateUI();
       break;
@@ -6804,7 +7075,16 @@ function handleMessage(msg) {
         document.getElementById("seal-overlay").style.display = "block";
       }
       showCardEffectVisual(msg.card_name || getRogueCardName(msg.card_id), "rogue");
-      log(ui(`🃏 已选择强化卡：${msg.icon} ${getRogueCardName(msg.card_id)}`, `🃏 Card selected: ${msg.icon} ${getRogueCardName(msg.card_id)}`));
+      {
+        const cardIcon = msg.icon || "";
+        const cardId = msg.card_id;
+        logRender(() => ui(
+          `🃏 已选择强化卡：${cardIcon} ${getRogueCardName(cardId)}`,
+          `🃏 Card selected: ${cardIcon} ${getRogueCardName(cardId)}`,
+          `🃏 強化カード選択：${cardIcon} ${getRogueCardName(cardId)}`,
+          `🃏 강화 카드 선택: ${cardIcon} ${getRogueCardName(cardId)}`
+        ));
+      }
       break;
 
     case "rogue_ai_selected":
@@ -6814,7 +7094,16 @@ function handleMessage(msg) {
       updateRogueBar();
       if (!animFrameId) render();
       showCardEffectVisual(msg.card_name || getRogueCardName(msg.card_id), "rogue");
-      log(ui(`🤖 AI 启用了 Rogue 卡：${msg.icon} ${getRogueCardName(msg.card_id)}`, `🤖 The AI equipped a Rogue card: ${msg.icon} ${getRogueCardName(msg.card_id)}`));
+      {
+        const cardIcon = msg.icon || "";
+        const cardId = msg.card_id;
+        logRender(() => ui(
+          `🤖 AI 启用了 Rogue 卡：${cardIcon} ${getRogueCardName(cardId)}`,
+          `🤖 The AI equipped a Rogue card: ${cardIcon} ${getRogueCardName(cardId)}`,
+          `🤖 AIがRogueカードを装備：${cardIcon} ${getRogueCardName(cardId)}`,
+          `🤖 AI가 Rogue 카드를 장착: ${cardIcon} ${getRogueCardName(cardId)}`
+        ));
+      }
       break;
 
     case "rogue_seal_update":
@@ -6827,14 +7116,14 @@ function handleMessage(msg) {
     case "rogue_seal_done":
       rogueSealing = false;
       document.getElementById("seal-overlay").style.display = "none";
-      log(ui("🚫 四道封印已设定！", "🚫 Four seals are now in place!"));
+      logI18n("🚫 四道封印已设定！", "🚫 Four seals are now in place!", "🚫 4つの封印を設定しました！", "🚫 네 개의 봉인이 설정되었습니다!");
       if (!animFrameId) render();
       break;
 
     case "rogue_event":
       showCardEffectVisual(msg.msg, "rogue");
       triggerSignatureCardEffect(msg.msg);
-      log(translateServerEventMessage(msg.msg));
+      logServerEvent(msg.msg);
       break;
 
     case "rogue_uses_update":
@@ -6859,73 +7148,26 @@ function handleMessage(msg) {
       syncCardTurnTimer();
       if (!animFrameId) render();
       showCardEffectVisual(msg.player_card, "ultimate");
-      log(ui(`\u{1F0CF} 你选择了 ${msg.player_icon} ${getUltimateCardName(msg.player_card)}`, `\u{1F0CF} You chose ${msg.player_icon} ${getUltimateCardName(msg.player_card)}`));
-      log(ui(`\u{1F916} AI 选择了 ${msg.ai_icon} ${getUltimateCardName(msg.ai_card)}`, `\u{1F916} The AI chose ${msg.ai_icon} ${getUltimateCardName(msg.ai_card)}`));
-      log(ui("20 手决胜开始！", "The 20-move showdown begins!"));
+      {
+        const playerIcon = msg.player_icon || "";
+        const playerCard = msg.player_card;
+        const aiIcon = msg.ai_icon || "";
+        const aiCard = msg.ai_card;
+        logRender(() => ui(
+          `\u{1F0CF} 你选择了 ${playerIcon} ${getUltimateCardName(playerCard)}`,
+          `\u{1F0CF} You chose ${playerIcon} ${getUltimateCardName(playerCard)}`,
+          `\u{1F0CF} ${playerIcon} ${getUltimateCardName(playerCard)}を選択`,
+          `\u{1F0CF} ${playerIcon} ${getUltimateCardName(playerCard)} 선택`
+        ));
+        logRender(() => ui(
+          `\u{1F916} AI 选择了 ${aiIcon} ${getUltimateCardName(aiCard)}`,
+          `\u{1F916} The AI chose ${aiIcon} ${getUltimateCardName(aiCard)}`,
+          `\u{1F916} AIが${aiIcon} ${getUltimateCardName(aiCard)}を選択`,
+          `\u{1F916} AI가 ${aiIcon} ${getUltimateCardName(aiCard)} 선택`
+        ));
+      }
+      logI18n("20 手决胜开始！", "The 20-move showdown begins!", "20手決戦開始！", "20수 승부 시작!");
       break;
-  }
-}
-
-function reasonText(r) {
-  return currentLang === "en"
-    ? ({resign:"Resignation", ai_resign:"AI resigned", score:"Scoring", double_pass:"Double pass", timeout:"Timeout", ultimate_20moves:"20-move showdown"}[r] || r || "")
-    : ({resign:"认输", ai_resign:"AI认输", score:"计数", double_pass:"双方虚手", timeout:"超时", ultimate_20moves:"20手决胜"}[r] || r || "");
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// UI HELPERS
-// ═══════════════════════════════════════════════════════════════════════════════
-function updateUI() {
-  if (!gameState) return;
-  if (twoPlayerMode) {
-    document.getElementById("info-my-color").innerHTML = ui("双方（人）", "Human vs Human");
-  } else {
-    const colorDot = `<span class="my-color-badge" style="background:${myColor==='B'?'#111':'#eee'}"></span>`;
-    document.getElementById("info-my-color").innerHTML =
-      colorDot + (myColor==="B" ? ui("黑棋", "Black") : ui("白棋", "White"));
-  }
-  document.getElementById("info-move").textContent = gameState.move_number || 0;
-  const cp = gameState.current_player;
-  if (twoPlayerMode) {
-    document.getElementById("info-player").textContent = cp === "B" ? ui("黑棋落子", "Black to move") : ui("白棋落子", "White to move");
-  } else {
-    document.getElementById("info-player").textContent =
-      cp === myColor
-        ? (cp==="B" ? ui("黑（我）", "Black (You)") : ui("白（我）", "White (You)"))
-        : (cp==="B" ? ui("黑（AI）", "Black (AI)") : ui("白（AI）", "White (AI)"));
-  }
-  if (cardTurnRemaining > 0 && isMyTurn) {
-    document.getElementById("info-player").textContent += ` ${cardTurnLabel}${cardTurnRemaining.toFixed(1)}s`;
-  }
-  document.getElementById("info-cap-b").textContent = gameState.captures?.B || 0;
-  document.getElementById("info-cap-w").textContent = gameState.captures?.W || 0;
-  document.getElementById("info-level").textContent =
-    gameState.ai_observer
-      ? `${ui("黑", "Black")} ${RANK_LABELS[gameState.ai_level_black] || gameState.ai_level_black || "—"} / ${ui("白", "White")} ${RANK_LABELS[gameState.ai_level_white] || gameState.ai_level_white || "—"}`
-      : (twoPlayerMode ? ui("双人", "Two Players") : (RANK_LABELS[gameState.level] || gameState.level || "—"));
-  syncClientShell();
-}
-
-function updateWinRate(wr) {
-  const wrap = document.getElementById("winrate-bar-wrap");
-  const hintsAllowed = showHints && !isHintLockedByCard();
-  const topSlot = document.getElementById("top-winrate-slot");
-  if (wrap) wrap.style.display = hintsAllowed ? "block" : "none";
-  if (topSlot) topSlot.classList.toggle("active", hintsAllowed);
-  if (!hintsAllowed) return;
-  const rawBlack = Math.max(0, Math.min(100, wr * 100));
-  const rawWhite = 100 - rawBlack;
-  const b = rawBlack.toFixed(1);
-  const w = rawWhite.toFixed(1);
-  document.getElementById("wr-black").style.width = rawBlack + "%";
-  document.getElementById("wr-black-label").textContent = `${ui("黑", "Black")} ${b}%`;
-  document.getElementById("wr-white-label").textContent = `${ui("白", "White")} ${w}%`;
-  // Score button only available when one side >= 80%
-  const btnScore = document.getElementById("btn-score");
-  if (btnScore && gameState && !gameState.game_over) {
-    const canScore = rawBlack >= 80 || rawWhite >= 80;
-    btnScore.disabled = !canScore;
-    btnScore.title = canScore ? "计算胜负" : "胜率需≥80%才可计算胜负";
   }
 }
 
@@ -7087,10 +7329,10 @@ function refreshHintVisibility() {
     const toggle = document.getElementById("hint-toggle");
     if (toggle) toggle.className = "toggle";
   }
-  const visible = showHints && !locked;
   const topSlot = document.getElementById("top-winrate-slot");
-  if (wrap) wrap.style.display = visible ? "block" : "none";
-  if (topSlot) topSlot.classList.toggle("active", visible);
+  if (wrap) wrap.style.display = "block";
+  if (topSlot) topSlot.classList.add("active");
+  updateWinRate(analysis ? analysis.winrate : 0.5);
 }
 
 function isHintLockedByCard() {
@@ -7104,73 +7346,75 @@ function setThinking(v) {
   document.getElementById("thinking-indicator-panel").className = v ? "show" : "";
 }
 
-function setButtons(active) {
-  ["btn-pass","btn-undo","btn-resign"].forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.disabled = !active;
-  });
-  const btnUndo = document.getElementById("btn-undo");
-  if (btnUndo) {
-    if (gameState && gameState.rogue_undo_disabled) {
-      btnUndo.disabled = true;
-      btnUndo.title = "Undo disabled by current card";
-    } else if (active) {
-      btnUndo.title = "Undo";
-    }
-  }
-  // Score button: also gated by 80% winrate
-  const btnScore = document.getElementById("btn-score");
-  if (btnScore) {
-    if (!active) {
-      btnScore.disabled = true;
-    } else {
-      const wr = analysis ? analysis.winrate : 0.5;
-      const bPct = wr * 100;
-      btnScore.disabled = !(bPct >= 80 || (100 - bPct) >= 80);
-    }
-  }
-  const btnNew = document.getElementById("btn-new");
-  if (btnNew) {
-    if (active) {
-      btnNew.disabled = true;
-      btnNew.textContent = "对局进行中…";
-      btnNew.style.opacity = "0.5";
-      btnNew.style.cursor = "not-allowed";
-    } else {
-      btnNew.disabled = false;
-      btnNew.textContent = "确认开始";
-      btnNew.style.opacity = "";
-      btnNew.style.cursor = "";
-    }
-  }
-  const btnSetup = document.getElementById("btn-setup");
-  if (btnSetup) {
-    if (active) {
-      btnSetup.disabled = true;
-      btnSetup.style.opacity = "0.5";
-      btnSetup.style.cursor = "not-allowed";
-    } else {
-      btnSetup.disabled = false;
-      btnSetup.style.opacity = "";
-      btnSetup.style.cursor = "";
-    }
-  }
+function log(msg) {
+  gameLogEntries.push({ text: String(msg || "") });
+  while (gameLogEntries.length > 90) gameLogEntries.shift();
+  renderGameLog();
 }
 
-function log(msg) {
+function logI18n(zh, en, ja, ko) {
+  gameLogEntries.push({ args: [zh, en, ja, ko] });
+  while (gameLogEntries.length > 90) gameLogEntries.shift();
+  renderGameLog();
+}
+
+function logRender(renderer) {
+  gameLogEntries.push({ renderer });
+  while (gameLogEntries.length > 90) gameLogEntries.shift();
+  renderGameLog();
+}
+
+function logServerEvent(message, prefix = "") {
+  const raw = String(message || "");
+  logRender(() => `${prefix}${translateServerEventMessage(raw)}`);
+}
+
+function localizeLogText(text) {
+  const value = String(text || "");
+  const known = {
+    "已连接": ["已连接", "Connected", "接続済み", "연결됨"],
+    "Connected": ["已连接", "Connected", "接続済み", "연결됨"],
+    "接続済み": ["已连接", "Connected", "接続済み", "연결됨"],
+    "연결됨": ["已连接", "Connected", "接続済み", "연결됨"],
+    "对局已结束": ["对局已结束", "The game is already over", "対局は終了しています", "대국이 이미 종료되었습니다"],
+    "The game is already over": ["对局已结束", "The game is already over", "対局は終了しています", "대국이 이미 종료되었습니다"],
+    "暂无进行中的对局，请点击「开始对弈」开始": ["暂无进行中的对局，请点击「开始对弈」开始", "No active game was found. Click Start Game to begin.", "進行中の対局はありません。「対局開始」を押してください", "진행 중인 대국이 없습니다. 「대국 시작」을 눌러 시작하세요"],
+    "No active game was found. Click Start Game to begin.": ["暂无进行中的对局，请点击「开始对弈」开始", "No active game was found. Click Start Game to begin.", "進行中の対局はありません。「対局開始」を押してください", "진행 중인 대국이 없습니다. 「대국 시작」을 눌러 시작하세요"],
+  };
+  if (known[value]) return ui(...known[value]);
+  let match = value.match(/^已恢复对局（第(\d+)手）$/)
+    || value.match(/^Game restored \(move (\d+)\)$/)
+    || value.match(/^対局を復元しました（(\d+)手）$/)
+    || value.match(/^대국을 복원했습니다\((\d+)수\)$/);
+  if (match) {
+    const move = match[1];
+    return ui(
+      `已恢复对局（第${move}手）`,
+      `Game restored (move ${move})`,
+      `対局を復元しました（${move}手）`,
+      `대국을 복원했습니다(${move}수)`
+    );
+  }
+  return value;
+}
+
+function renderGameLog() {
   const el = document.getElementById("game-log");
   if (!el) return;
   closeWoodSelectMenu();
-  const d = document.createElement("div");
-  d.textContent = msg;
-  el.appendChild(d);
-  while (el.children.length > 90) el.firstElementChild?.remove();
+  el.innerHTML = "";
+  for (const entry of gameLogEntries) {
+    const d = document.createElement("div");
+    d.textContent = entry.renderer ? entry.renderer() : (entry.args ? ui(...entry.args) : localizeLogText(entry.text));
+    el.appendChild(d);
+  }
   requestAnimationFrame(() => {
     el.scrollTop = el.scrollHeight;
   });
 }
 
 function clearGameLog() {
+  gameLogEntries = [];
   const el = document.getElementById("game-log");
   if (el) el.innerHTML = "";
 }
@@ -7254,7 +7498,12 @@ document.getElementById("btn-new").addEventListener("click", () => {
 
   if ((startMode === "normal" || isRogueMode) && playerColor === "R") {
     playerColor = Math.random() < 0.5 ? "B" : "W";
-    log(ui(`随机结果：你执${playerColor==="B"?"黑":"白"}棋`, `Random result: you play ${playerColor==="B"?"Black":"White"}`));
+    logI18n(
+      `随机结果：你执${playerColor==="B"?"黑":"白"}棋`,
+      `Random result: you play ${playerColor==="B"?"Black":"White"}`,
+      `ニギリ結果：${playerColor==="B"?"黒":"白"}番`,
+      `돌 가리기 결과: ${playerColor==="B"?"흑":"백"}`
+    );
   } else if (isTwoPlayer || isAiWatch) {
     playerColor = "B";
   } else if (isChallenge) {
@@ -7270,7 +7519,8 @@ document.getElementById("btn-new").addEventListener("click", () => {
 
   twoPlayerMode = isTwoPlayer;
   gameState = null;
-  analysis = { winrate: 0.5, score: 0, top_moves: [], ownership: [] };
+  analysis = { winrate: 0.5, score: 0, top_moves: [], ownership: [], analysis_ready: false };
+  analysisReady = false;
   resetWinrateHistory();
   lastAiMove = null;
   previousBoard = null;
@@ -7331,11 +7581,11 @@ document.getElementById("btn-new").addEventListener("click", () => {
 });
 
 document.getElementById("lang-toggle").addEventListener("change", (e) => {
-  setLanguage(e.target.value || "zh");
+  void setLanguage(e.target.value || "zh");
 });
 
 document.getElementById("settings-language-select").addEventListener("change", (e) => {
-  setLanguage(e.target.value || "zh");
+  void setLanguage(e.target.value || "zh");
 });
 
 document.getElementById("btn-pass").addEventListener("click", () => {
@@ -7346,23 +7596,28 @@ document.getElementById("btn-pass").addEventListener("click", () => {
   if (ultimateMode && ultimatePlayerCard === "quickthink" && gameState.ultimate_quickthink_active) {
     sendWS({ action: "ultimate_quickthink_end" });
     if (!twoPlayerMode) { isMyTurn = false; setThinking(true); }
-    log(ui("快速思考结束，轮到 AI 读盘", "Quick Thinking ended. The AI is reading the board."));
+  logI18n("快速思考结束，轮到 AI 读盘", "Quick Thinking ended. The AI is reading the board.", "クイック思考終了。AIの読み番です", "빠른 사고 종료, AI가 판을 읽습니다");
     return;
   }
   sendWS({ action: "pass" });
   if (!twoPlayerMode) { isMyTurn = false; setThinking(true); }
-  log(currentLang === "en" ? `${passColor==="B"?"Black":"White"} passes` : `${passColor==="B"?"黑棋":"白棋"} 虚手`);
+  logI18n(
+    `${passColor === "B" ? "黑棋" : "白棋"} 虚手`,
+    `${passColor === "B" ? "Black" : "White"} passes`,
+    `${passColor === "B" ? "黒" : "白"} パス`,
+    `${passColor === "B" ? "흑" : "백"} 패스`
+  );
 });
 
 document.getElementById("btn-undo").addEventListener("click", () => {
   if (gameState && gameState.rogue_undo_disabled) {
-    log(ui("当前卡牌效果禁用了悔棋", "Undo is disabled by the current card"));
+    logI18n("当前卡牌效果禁用了悔棋", "Undo is disabled by the current card", "現在のカード効果で待ったは使えません", "현재 카드 효과로 무르기를 사용할 수 없습니다");
     return;
   }
   previousBoard = gameState ? gameState.board.map(row => [...row]) : null;
   sendWS({ action: "undo" });
   setThinking(false);
-  log(ui("请求悔棋", "Undo requested"));
+  logI18n("请求悔棋", "Undo requested", "待ったを要求", "무르기 요청");
 });
 
 document.getElementById("btn-score").addEventListener("click", () => {
@@ -7370,12 +7625,12 @@ document.getElementById("btn-score").addEventListener("click", () => {
   const wr = analysis ? analysis.winrate : 0.5;
   const blackPct = wr * 100;
   if (blackPct < 80 && (100 - blackPct) < 80) {
-    log(ui("⚠ 胜率未达80%，暂不可计算胜负", "⚠ Win rate is below 80%, scoring is unavailable"));
+    logI18n("⚠ 胜率未达80%，暂不可计算胜负", "⚠ Win rate is below 80%, scoring is unavailable", "⚠ 勝率が80%未満のため終局計算できません", "⚠ 승률이 80% 미만이라 계가할 수 없습니다");
     return;
   }
   showConfirmModal(ui("是否进行形势计算并申请终局？", "Run scoring and request endgame?"), () => {
     sendWS({ action: "score" });
-    log(ui("请求终局计分…", "Requesting endgame scoring..."));
+    logI18n("请求终局计分…", "Requesting endgame scoring...", "終局計算を要求中…", "종국 계가 요청 중…");
   });
 });
 
@@ -7383,7 +7638,7 @@ document.getElementById("btn-resign").addEventListener("click", () => {
   showConfirmModal(ui("您确定要认输吗？", "Are you sure you want to resign?"), () => {
     sendWS({ action: "resign" });
     setButtons(false);
-    log(ui("你认输了", "You resigned"));
+    logI18n("你认输了", "You resigned", "投了しました", "불계패했습니다");
   });
 });
 
@@ -7396,7 +7651,7 @@ document.getElementById("hint-toggle").addEventListener("click", () => {
     showHints = false;
     document.getElementById("hint-toggle").className = "toggle";
     refreshHintVisibility();
-    log(ui("⚡ 快速思考已禁用推荐点位", "⚡ Quick Think disables hints."));
+    logI18n("⚡ 快速思考已禁用推荐点位", "⚡ Quick Think disables hints.", "⚡ クイック思考により推薦着点は無効です", "⚡ 빠른 사고로 추천 착점이 비활성화됨");
     render();
     return;
   }
@@ -7412,6 +7667,7 @@ document.getElementById("territory-toggle").addEventListener("click", () => {
   showTerritory = !showTerritory;
   document.getElementById("territory-toggle").className = "toggle" + (showTerritory ? " on" : "");
   setTerritoryToggleVisual();
+  updateWinRate(analysis ? analysis.winrate : 0.5);
   render();
 });
 
@@ -7434,14 +7690,14 @@ document.getElementById("sel-handicap").addEventListener("change", e => {
 });
 
 // Sound toggle
-document.getElementById("sound-toggle").addEventListener("click", () => {
+document.getElementById("sound-toggle")?.addEventListener("click", () => {
   soundEnabled = !soundEnabled;
   setSoundToggleVisual();
   // Initialize audio context on first user interaction
   if (soundEnabled) getAudioCtx();
 });
 
-document.getElementById("sound-settings-toggle").addEventListener("click", () => {
+document.getElementById("sound-settings-toggle")?.addEventListener("click", () => {
   soundEnabled = !soundEnabled;
   setSoundToggleVisual();
   if (soundEnabled) getAudioCtx();
@@ -7525,11 +7781,11 @@ function populateRankSelect(selectEl, defaultRank = "a3d") {
     const opt = document.createElement("option");
     if (r.separator) {
       opt.disabled = true;
-      opt.textContent = r.label;
+      opt.textContent = rankGroupLabel(r.label);
       opt.style.color = "#888";
     } else {
       opt.value = r.id;
-      opt.textContent = r.label;
+      opt.textContent = rankLabel(r.id);
       if (r.id === defaultRank) opt.selected = true;
     }
     selectEl.appendChild(opt);
@@ -7542,6 +7798,38 @@ const rankSelects = [
   document.getElementById("sel-level-white"),
 ].filter(Boolean);
 rankSelects.forEach(selectEl => populateRankSelect(selectEl));
+
+let gpuSlowFrom = "";
+
+function slowRankSuffix() {
+  return ui("(推理较慢)", "(slower)", "（推論遅め）", "(추론 느림)");
+}
+
+function applySlowRankWarnings() {
+  const slowIdx = RANK_ORDER.indexOf(gpuSlowFrom);
+  if (slowIdx < 0) return;
+  rankSelects.forEach(selectEl => {
+    for (const opt of selectEl.options) {
+      if (opt.disabled) continue;
+      const rIdx = RANK_ORDER.indexOf(opt.value);
+      if (rIdx >= slowIdx) {
+        opt.textContent = `⚠ ${rankLabel(opt.value)} ${slowRankSuffix()}`;
+        opt.style.color = "#ff9800";
+        opt.dataset.slowMarked = "1";
+      }
+    }
+  });
+}
+
+function refreshRankSelectLabels() {
+  rankSelects.forEach(selectEl => {
+    const previous = selectEl.value || "a3d";
+    populateRankSelect(selectEl, previous);
+    selectEl.value = previous;
+    syncWoodSelect(selectEl);
+  });
+  applySlowRankWarnings();
+}
 
 // Fetch GPU info and adjust rank selector
 (async function detectGPU() {
@@ -7556,22 +7844,8 @@ rankSelects.forEach(selectEl => populateRankSelect(selectEl));
     }
 
     // Mark slow ranks with warning
-    const slowIdx = RANK_ORDER.indexOf(gpu.slow_from);
-    if (slowIdx >= 0) {
-      rankSelects.forEach(selectEl => {
-        for (const opt of selectEl.options) {
-          if (opt.disabled) continue;
-          const rIdx = RANK_ORDER.indexOf(opt.value);
-          if (rIdx >= slowIdx && !opt.dataset.slowMarked) {
-            opt.textContent = currentLang === "en"
-              ? ("⚠️ " + opt.textContent + " (slower)")
-              : ("⚠️ " + opt.textContent + " (推理较慢)");
-            opt.style.color = "#ff9800";
-            opt.dataset.slowMarked = "1";
-          }
-        }
-      });
-    }
+    gpuSlowFrom = gpu.slow_from || "";
+    applySlowRankWarnings();
     syncWoodSelects();
   } catch(e) { /* GPU detection unavailable */ }
 })();
@@ -7579,10 +7853,6 @@ rankSelects.forEach(selectEl => populateRankSelect(selectEl));
 // ═══════════════════════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════════════════════
-function updateNetworkBadge(status) {
-  window.__goaiNetworkStatus = status || null;
-}
-
 function updateVariantOptionRows() {
   const levelRow = document.getElementById("row-level");
   const levelRowBlack = document.getElementById("row-level-black");
@@ -7619,9 +7889,26 @@ function updateVariantOptionRows() {
 }
 
 function reasonText(r) {
-  return currentLang === "en"
-    ? ({resign:"Resignation", ai_resign:"AI resigned", score:"Scoring", double_pass:"Double pass", timeout:"Timeout", ultimate_20moves:"20-move showdown"}[r] || r || "")
-    : ({resign:"认输", ai_resign:"AI认输", score:"计数", double_pass:"双方虚手", timeout:"超时", ultimate_20moves:"20手决胜"}[r] || r || "");
+  return {
+    resign: ui("认输", "Resignation", "投了", "投了"),
+    ai_resign: ui("AI认输", "AI resigned", "AI投了", "AI投了"),
+    score: ui("计数", "Scoring", "計算", "계가"),
+    double_pass: ui("双方虚手", "Double pass", "双方パス", "쌍방 패스"),
+    timeout: ui("超时", "Timeout", "時間切れ", "시간 초과"),
+    ultimate_20moves: ui("20手决胜", "20-move showdown", "20手決戦", "20수 승부"),
+  }[r] || r || "";
+}
+
+function formatScoreDisplay(score, komi) {
+  const rawScore = score || "—";
+  const m = String(rawScore).match(/^([BW])\+(.+)$/);
+  if (!m) return rawScore;
+  const who = m[1] === "B" ? ui("黑", "Black", "黒", "흑") : ui("白", "White", "白", "백");
+  const isChineseRules = komi === 7.5;
+  if (currentLang === "en") return `${who} +${m[2]} ${isChineseRules ? "stones" : "points"}`;
+  if (currentLang === "ja") return `${who}${m[2]}${isChineseRules ? "子" : "目"}勝ち`;
+  if (currentLang === "ko") return `${who} ${m[2]}집 승`;
+  return `${who}胜${m[2]}${isChineseRules ? "子" : "目"}`;
 }
 
 function updateUI() {
@@ -7649,22 +7936,45 @@ function updateUI() {
   document.getElementById("info-cap-b").textContent = gameState.captures?.B || 0;
   document.getElementById("info-cap-w").textContent = gameState.captures?.W || 0;
   document.getElementById("info-level").textContent =
-    twoPlayerMode ? ui("双人", "Two Players") : (RANK_LABELS[gameState.level] || gameState.level || "—");
+    gameState.ai_observer
+      ? `${ui("黑", "Black")} ${rankLabel(gameState.ai_level_black) || "—"} / ${ui("白", "White")} ${rankLabel(gameState.ai_level_white) || "—"}`
+      : (twoPlayerMode ? ui("双人", "Two Players") : (rankLabel(gameState.level) || "—"));
   syncClientShell();
 }
 
 function updateWinRate(wr) {
   const wrap = document.getElementById("winrate-bar-wrap");
-  const hintsAllowed = showHints && !isHintLockedByCard();
   const topSlot = document.getElementById("top-winrate-slot");
-  if (wrap) wrap.style.display = hintsAllowed ? "block" : "none";
-  if (topSlot) topSlot.classList.toggle("active", hintsAllowed);
-  if (!hintsAllowed) return;
-  const rawBlack = Math.max(0, Math.min(100, wr * 100));
+  const enabled = analysisPanelEnabled();
+  const ready = enabled && analysisReady && Number.isFinite(Number(wr));
+  if (wrap) {
+    wrap.style.display = "block";
+    wrap.classList.toggle("analysis-off", !enabled);
+    wrap.classList.toggle("analysis-pending", enabled && !ready);
+  }
+  if (topSlot) topSlot.classList.add("active");
+  if (!ready) {
+    const black = document.getElementById("wr-black");
+    const white = document.getElementById("wr-white");
+    const blackLabel = document.getElementById("wr-black-label");
+    const whiteLabel = document.getElementById("wr-white-label");
+    if (black) black.style.width = "50%";
+    if (white) white.style.width = "50%";
+    if (blackLabel) blackLabel.textContent = "";
+    if (whiteLabel) whiteLabel.textContent = "";
+    const btnScore = document.getElementById("btn-score");
+    if (btnScore && gameState && !gameState.game_over) {
+      btnScore.disabled = true;
+      btnScore.title = ui("计算胜负", "Score");
+    }
+    return;
+  }
+  const rawBlack = Math.max(0, Math.min(100, Number(wr) * 100));
   const rawWhite = 100 - rawBlack;
   const b = rawBlack.toFixed(1);
   const w = rawWhite.toFixed(1);
   document.getElementById("wr-black").style.width = rawBlack + "%";
+  document.getElementById("wr-white").style.width = rawWhite + "%";
   document.getElementById("wr-black-label").textContent = `${ui("黑", "Black")} ${b}%`;
   document.getElementById("wr-white-label").textContent = `${ui("白", "White")} ${w}%`;
   const btnScore = document.getElementById("btn-score");
@@ -7691,12 +8001,18 @@ function setButtons(active) {
   }
   const btnScore = document.getElementById("btn-score");
   if (btnScore) {
-    if (!active) {
+    const enabled = analysisPanelEnabled();
+    const wr = analysis ? Number(analysis.winrate) : 0.5;
+    const bPct = Number.isFinite(wr) ? wr * 100 : 50;
+    const canScore = active && enabled && analysisReady && (bPct >= 80 || (100 - bPct) >= 80);
+    if (!canScore) {
       btnScore.disabled = true;
+      btnScore.title = enabled
+        ? ui("胜率需≥80%才可计算胜负", "Win rate must reach 80% to score")
+        : ui("计算胜负", "Score");
     } else {
-      const wr = analysis ? analysis.winrate : 0.5;
-      const bPct = wr * 100;
-      btnScore.disabled = !(bPct >= 80 || (100 - bPct) >= 80);
+      btnScore.disabled = false;
+      btnScore.title = ui("计算胜负", "Score");
     }
   }
   const btnNew = document.getElementById("btn-new");
@@ -7785,7 +8101,7 @@ function connect() {
   ws = new WebSocket(wsUrl);
   ws.onopen = () => {
     setConnectionIndicator(true, ui("已连接", "Connected"));
-    log(ui("已连接", "Connected"));
+    logI18n("已连接", "Connected", "接続済み", "연결됨");
     refreshNetworkInfo();
     if (!gameState) sendWS({ action: "reconnect" });
   };
@@ -7807,14 +8123,19 @@ function initBoard() {
 }
 
 // Primary init
-applyLanguage();
-setSoundToggleVisual();
-setTerritoryToggleVisual();
-refreshHintVisibility();
-attachButtonRipples();
-initBoard();
-setMode(startMode);
-triggerBoardIntro();
+async function bootstrapApp() {
+  await ensureLocale(currentLang);
+  applyLanguage();
+  setSoundToggleVisual();
+  setTerritoryToggleVisual();
+  refreshHintVisibility();
+  attachButtonRipples();
+  initBoard();
+  setMode(startMode);
+  triggerBoardIntro();
+  refreshNetworkInfo();
+  connect();
+}
 
 // Fallback: re-init after full page load if layout wasn't ready
 window.addEventListener("load", () => {
@@ -7850,8 +8171,7 @@ boardWatchdogTimer = window.setInterval(() => {
   ensureBoardReady(0);
 }, 1500);
 
-refreshNetworkInfo();
-connect();
+bootstrapApp();
 </script>
 </body>
 </html>

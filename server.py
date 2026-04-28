@@ -533,6 +533,7 @@ async def get_status():
     snapshot = _engine_state_snapshot()
     model_exists = engine_runtime.has_model_files()
     exe_exists = engine_runtime.has_engine_binaries()
+    selected_model = engine_runtime.select_model()
     return {
         "server_rev": SERVER_REV,
         "host": SERVER_HOST,
@@ -541,6 +542,8 @@ async def get_status():
         "katago_ready": engine.ready,
         "katago_exe": exe_exists,
         "katago_model": model_exists,
+        "katago_model_name": selected_model.name if selected_model else None,
+        "katago_model_loaded": bool(engine.ready and snapshot.get("active_model")),
         "no_katago": NO_KATAGO,
         "cpu_mode": engine_runtime.cpu_mode,
         "static_ready": (STATIC_DIR / "index.html").exists(),
@@ -691,7 +694,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
     async def do_analysis(g: GoGame) -> dict:
         if not engine.ready:
             result = {"winrate": 0.5, "score": 0.0, "top_moves": [],
-                      "ownership": []}
+                      "ownership": [], "analysis_ready": False}
             g.last_analysis = copy.deepcopy(result)
             return result
         await _sync_board_to_katago(g)
@@ -720,7 +723,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 print(f"[Analysis] error: {ex}")
                 traceback.print_exc()
                 return {"winrate": 0.5, "score": 0.0, "top_moves": [],
-                        "ownership": []}
+                        "ownership": [], "analysis_ready": False}
 
         result = await run_in_executor(_analyze)
         g.last_analysis = copy.deepcopy(result)

@@ -12,6 +12,12 @@
 <p align="center">
   <a href="https://github.com/gongyu0918-debug/rogue-goai/releases/latest"><strong>Download for Windows</strong></a>
   ·
+  <a href="#为什么值得玩">中文</a>
+  ·
+  <a href="#japanese--日本語">日本語</a>
+  ·
+  <a href="#korean--한국어">한국어</a>
+  ·
   <a href="#快速开始">Quick Start</a>
   ·
   <a href="#玩法模式">Modes</a>
@@ -52,7 +58,7 @@ GoAI 把围棋从“引擎分析界面”推进到“可反复开局的策略游
 | 暗色木纹棋桌 | 正俯视棋盘、木质 UI、棋盒背景、沉浸式桌面体验 |
 | 自适应布局 | 窗口化、1080p、2K、4K 视图都能保持棋盘和按钮可用 |
 | 引擎回退 | 优先 CUDA，随后 OpenCL，再到 CPU |
-| 双语界面 | 中文 / English 可切换 |
+| 四语界面 | 中文 / English / 日本語 / 한국어 可切换 |
 | 浏览器后备 | WebView2 不可用时可回退 Edge app-window 或系统浏览器 |
 
 ## 玩法模式
@@ -215,6 +221,76 @@ runtime_smoke_test.py 运行时烟测
 | 五子连珠爆发 | 五连触发大范围清除和补子 |
 
 </details>
+
+## Japanese / 日本語
+
+GoAI は、KataGo の読みをそのまま土台にしながら、囲碁を毎局ドラフトと逆転劇が起きるデスクトップゲームへ押し広げます。19路盤の読み合いはそのままに、Rogue カードと Ultimate カードが、禁入エリア、強制着手、追加手、隠し爆発、低勝率からの反撃を盤上へ持ち込みます。
+
+Windows 版は WebView2 デスクトップアプリとして起動します。ローカルの FastAPI/WebSocket サーバーが対局状態を持ち、KataGo は sidecar エンジンとして CUDA、OpenCL、CPU の順に自動フォールバックします。
+
+### 見どころ
+
+| Feature | 内容 |
+| --- | --- |
+| KataGo powered | 本格的な囲碁エンジンをローカルで起動 |
+| Rogue Draft | 34枚の Rogue カードで対局ルールを改変 |
+| Ultimate Burst | 25枚の大技カードで短局でも大きな山場を作る |
+| AI Rogue | AI 側もカードを持ち、通常対局が読み合いと対策のゲームになる |
+| Dark Wood Board | 古典木目の棋盤、棋盒風 UI、視認性重視のデスクトップ画面 |
+| Four Languages | 中文 / English / 日本語 / 한국어 をアプリ内で切替 |
+
+### Download
+
+[Latest Release](https://github.com/gongyu0918-debug/rogue-goai/releases/latest) から `GoAI_Setup_*.exe` をダウンロードしてインストールします。
+
+```text
+CUDA -> OpenCL -> CPU
+```
+
+起動時に利用可能なエンジン経路を自動検出します。NVIDIA GPU があれば CUDA を優先し、環境に合わせて OpenCL または CPU へ切り替わります。
+
+### Game Modes
+
+- Classic: 通常の AI 対局、練習、棋力確認に向いたモード。
+- Rogue: 開局でカードを選び、AI の手、禁入点、追加石、コミ、時間制限などを変えるモード。
+- Ultimate: 双方が大技カードを持ち、20手前後でも一気に盤面が動くモード。
+- Study: AI 同士の対局を観察し、布石や形勢判断を追うモード。
+- Local Two Player: ローカル共有用の二人対局。Rogue ルールを加えるとパーティー対局にも使えます。
+
+## Korean / 한국어
+
+GoAI는 KataGo의 수읽기를 기반으로, 전통 바둑을 매 판 드래프트와 역전이 살아 있는 Windows 데스크톱 게임으로 확장합니다. 19줄 바둑판의 기본 감각은 유지하면서 Rogue 카드와 Ultimate 카드가 금지 구역, 강제 착수, 추가 수, 숨은 폭발, 낮은 승률에서의 반격을 만들어 냅니다.
+
+Windows 버전은 WebView2 데스크톱 앱으로 실행됩니다. 로컬 FastAPI/WebSocket 서버가 대국 상태를 관리하고, KataGo는 sidecar 엔진으로 동작하며 CUDA, OpenCL, CPU 순서로 자동 전환됩니다.
+
+### 핵심 매력
+
+| Feature | 설명 |
+| --- | --- |
+| KataGo powered | 강력한 바둑 엔진을 로컬에서 실행 |
+| Rogue Draft | 34장의 Rogue 카드가 한 판의 규칙을 바꿈 |
+| Ultimate Burst | 25장의 궁극기 카드로 짧은 대국에도 큰 변곡점을 만듦 |
+| AI Rogue | AI도 카드를 얻어 일반 대국이 대응전으로 바뀜 |
+| Dark Wood Board | 고전 목재 바둑판, 바둑통 느낌의 UI, 집중하기 좋은 화면 |
+| Four Languages | 中文 / English / 日本語 / 한국어 앱 내 전환 지원 |
+
+### Download
+
+[Latest Release](https://github.com/gongyu0918-debug/rogue-goai/releases/latest) 에서 `GoAI_Setup_*.exe` 를 내려받아 설치합니다.
+
+```text
+CUDA -> OpenCL -> CPU
+```
+
+실행 시 사용 가능한 엔진 경로를 자동으로 감지합니다. NVIDIA GPU가 있으면 CUDA를 우선 사용하고, 환경에 따라 OpenCL 또는 CPU로 전환됩니다.
+
+### Game Modes
+
+- Classic: 일반 AI 대국, 연습, 기력 확인에 적합한 모드.
+- Rogue: 시작 시 카드를 선택해 AI 착수, 금지점, 추가 돌, 덤, 시간 압박 등을 바꾸는 모드.
+- Ultimate: 양쪽이 궁극기 카드를 들고 20수 전후에도 판세가 크게 흔들리는 모드.
+- Study: AI 대 AI 대국을 보며 포석, 흐름, 형세 판단을 관찰하는 모드.
+- Local Two Player: 한 PC에서 즐기는 2인 대국. Rogue 규칙을 넣으면 파티형 바둑으로도 어울립니다.
 
 ## 开发命令
 

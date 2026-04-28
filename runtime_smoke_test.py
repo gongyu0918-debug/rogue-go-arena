@@ -12,6 +12,33 @@ from urllib.parse import urlparse
 import websockets
 
 
+ROGUE_SMOKE_DIRECT_AI_CARDS = {
+    "tengen",
+    "dice",
+    "erosion",
+    "nerf",
+    "komi_relief",
+    "time_press",
+    "lowline",
+    "suboptimal",
+    "mirror",
+    "slip",
+    "blackhole",
+    "fog",
+    "gravity",
+    "golden_corner",
+    "sansan",
+    "shadow",
+    "sprout",
+    "god_hand",
+    "corner_helper",
+    "no_regret",
+    "foolish_wisdom",
+    "capture_foul",
+    "last_stand",
+}
+
+
 def coord_to_gtp(x: int, y: int, size: int) -> str:
     cols = "ABCDEFGHJKLMNOPQRST"
     return f"{cols[x]}{size - y}"
@@ -94,60 +121,70 @@ async def normal_smoke(base_http: str, base_ws: str) -> dict:
 
 
 async def rogue_smoke(base_ws: str) -> dict:
-    game_id = "runtime-rogue-" + uuid.uuid4().hex[:8]
-    transcript: list[dict] = []
-    async with websockets.connect(f"{base_ws}/ws/{game_id}", max_size=10_000_000) as ws:
-        await ws.send(json.dumps({
-            "action": "new_game",
-            "size": 9,
-            "komi": 7.5,
-            "handicap": 0,
-            "player_color": "B",
-            "level": "5k",
-            "two_player": False,
-            "ai_observer": False,
-            "rogue": True,
-            "ai_rogue": False,
-            "ultimate": False,
-            "challenge_beta": False,
-        }))
-        await recv_until(ws, lambda m: m.get("type") == "game_start", timeout=20, transcript=transcript)
-        offer = await recv_until(ws, lambda m: m.get("type") == "rogue_offer", timeout=20, transcript=transcript)
-        cards = offer.get("cards") or []
-        chosen = next((card for card in cards if card.get("id") != "seal"), cards[0])
-        await ws.send(json.dumps({"action": "rogue_select_card", "card_id": chosen["id"]}))
-        await recv_until(ws, lambda m: m.get("type") == "rogue_card_selected", timeout=20, transcript=transcript)
+    skipped_offers: list[list[str]] = []
+    for _attempt in range(8):
+        game_id = "runtime-rogue-" + uuid.uuid4().hex[:8]
+        transcript: list[dict] = []
+        async with websockets.connect(f"{base_ws}/ws/{game_id}", max_size=10_000_000) as ws:
+            await ws.send(json.dumps({
+                "action": "new_game",
+                "size": 9,
+                "komi": 7.5,
+                "handicap": 0,
+                "player_color": "B",
+                "level": "5k",
+                "two_player": False,
+                "ai_observer": False,
+                "rogue": True,
+                "ai_rogue": False,
+                "ultimate": False,
+                "challenge_beta": False,
+            }))
+            await recv_until(ws, lambda m: m.get("type") == "game_start", timeout=20, transcript=transcript)
+            offer = await recv_until(ws, lambda m: m.get("type") == "rogue_offer", timeout=20, transcript=transcript)
+            cards = offer.get("cards") or []
+            chosen = next((card for card in cards if card.get("id") in ROGUE_SMOKE_DIRECT_AI_CARDS), None)
+            if not chosen:
+                skipped_offers.append([card.get("id") for card in cards])
+                continue
+            await ws.send(json.dumps({"action": "rogue_select_card", "card_id": chosen["id"]}))
+            await recv_until(ws, lambda m: m.get("type") == "rogue_card_selected", timeout=20, transcript=transcript)
 
-        accepted = False
-        last_error = None
-        for y in range(9):
-            for x in range(9):
-                await ws.send(json.dumps({"action": "play", "x": x, "y": y}))
-                msg = await recv_until(
-                    ws,
-                    lambda m: m.get("type") in {"error", "game_state", "ai_move"},
-                    timeout=30,
-                    transcript=transcript,
-                )
-                if msg.get("type") == "error":
-                    last_error = msg.get("message")
-                    continue
-                accepted = True
-                break
-            if accepted:
-                break
+            accepted = False
+            last_error = None
+            saw_ai_move = None
+            for y in range(9):
+                for x in range(9):
+                    await ws.send(json.dumps({"action": "play", "x": x, "y": y}))
+                    msg = await recv_until(
+                        ws,
+                        lambda m: m.get("type") in {"error", "game_state", "ai_move"},
+                        timeout=30,
+                        transcript=transcript,
+                    )
+                    if msg.get("type") == "error":
+                        last_error = msg.get("message")
+                        continue
+                    accepted = True
+                    if msg.get("type") == "ai_move":
+                        saw_ai_move = msg
+                    break
+                if accepted:
+                    break
 
-        ai_move = await recv_until(ws, lambda m: m.get("type") == "ai_move", timeout=30, transcript=transcript)
+            if not accepted:
+                raise RuntimeError(f"rogue player move was never accepted: {last_error}")
+            ai_move = saw_ai_move or await recv_until(ws, lambda m: m.get("type") == "ai_move", timeout=30, transcript=transcript)
+            return {
+                "game_id": game_id,
+                "offer_ids": [card.get("id") for card in cards],
+                "skipped_offers": skipped_offers,
+                "selected_card": chosen["id"],
+                "ai_move": ai_move.get("gtp"),
+                "status": "passed",
+            }
 
-    if not accepted:
-        raise RuntimeError(f"rogue player move was never accepted: {last_error}")
-    return {
-        "game_id": game_id,
-        "offer_ids": [card.get("id") for card in cards],
-        "selected_card": chosen["id"],
-        "ai_move": ai_move.get("gtp"),
-        "status": "passed",
-    }
+    raise RuntimeError(f"no direct-AI rogue smoke card was offered: {skipped_offers}")
 
 
 async def ultimate_smoke(base_ws: str) -> dict:
