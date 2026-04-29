@@ -259,7 +259,7 @@ runtime_smoke_test.py 运行时烟测
 - Rogue 精选池、AI Rogue 池、双人 Rogue 池、闯关 Beta 池
 - Ultimate 精选池和 AI Ultimate 池
 
-完整定义见 [app/data/cards.py](app/data/cards.py)。
+完整明文配置见 [app/data/cards.json](app/data/cards.json)，结构约束见 [app/data/cards.schema.json](app/data/cards.schema.json)。游戏每次开局都会重新加载本机配置；可视化编辑器保存到 `%LOCALAPPDATA%\GoAI\cards.json`，保留基准配置作为回退。
 
 <details>
 <summary>Rogue 卡牌例子</summary>
@@ -362,6 +362,16 @@ CUDA -> OpenCL -> CPU
 - Local Two Player: 한 PC에서 즐기는 2인 대국. Rogue 규칙을 넣으면 파티형 바둑으로도 어울립니다.
 
 ## 开发命令
+
+启动本地服务并打开卡牌配置编辑器：
+
+```bash
+python server.py --host 127.0.0.1 --port 8000
+```
+
+```text
+http://127.0.0.1:8000/card-editor
+```
 
 运行卡牌烟测：
 

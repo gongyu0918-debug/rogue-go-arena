@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gongyu0918-debug/rogue-go-arena/cards.schema.json",
+  "title": "Rogue Go Arena Card Config",
+  "type": "object",
+  "required": [
+    "version",
+    "locales",
+    "cards",
+    "pools",
+    "challenge",
+    "tuning"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "locale_default": {
+      "type": "string"
+    },
+    "locales": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "cards": {
+      "type": "object",
+      "required": [
+        "rogue",
+        "ultimate"
+      ],
+      "properties": {
+        "rogue": {
+          "$ref": "#/$defs/cardMap"
+        },
+        "ultimate": {
+          "$ref": "#/$defs/cardMap"
+        }
+      }
+    },
+    "meta": {
+      "type": "object"
+    },
+    "pools": {
+      "type": "object"
+    },
+    "challenge": {
+      "type": "object"
+    },
+    "tuning": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/tuning"
+      }
+    }
+  },
+  "$defs": {
+    "localized": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "card": {
+      "type": "object",
+      "required": [
+        "name",
+        "desc",
+        "icon"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/localized"
+        },
+        "desc": {
+          "$ref": "#/$defs/localized"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "uses": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "cardMap": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/card"
+      }
+    },
+    "tuning": {
+      "type": "object",
+      "required": [
+        "group",
+        "label",
+        "value"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "card": {
+          "type": "string"
+        },
+        "label": {
+          "$ref": "#/$defs/localized"
+        },
+        "min": {
+          "type": [
+            "number",
+            "integer",
+            "null"
+          ]
+        },
+        "max": {
+          "type": [
+            "number",
+            "integer",
+            "null"
+          ]
+        },
+        "step": {
+          "type": [
+            "number",
+            "integer"
+          ]
+        },
+        "value": {
+          "type": [
+            "number",
+            "integer"
+          ]
+        }
+      }
+    }
+  }
+}

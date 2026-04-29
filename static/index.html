@@ -3373,6 +3373,12 @@ function getCardMeta(cardId, mode) {
 }
 
 function getTranslatedCard(card, mode) {
+  const localeCode = { zh: "zh-CN", en: "en-US", ja: "ja-JP", ko: "ko-KR" }[currentLang] || "zh-CN";
+  if (card?.i18n) {
+    const name = card.i18n.name?.[localeCode] || card.i18n.name?.["zh-CN"] || card.name;
+    const desc = card.i18n.desc?.[localeCode] || card.i18n.desc?.["zh-CN"] || card.desc;
+    return { ...card, name, desc };
+  }
   const meta = getCardMeta(card.id, mode);
   if (!meta) return card;
   return { ...card, name: meta.name, desc: meta.desc };

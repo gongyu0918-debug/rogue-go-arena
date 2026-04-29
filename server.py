@@ -17,8 +17,10 @@ from typing import Optional
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 import uvicorn
+import app.config.gameplay as gameplay_config
+import app.runtime.ws_actions as ws_actions_module
 from app.config.gameplay import (
     AI_STYLE_OPTIONS,
     CHALLENGE_ACTIVE_USE_BONUS,
@@ -112,6 +114,9 @@ from app.config.gameplay import (
     ULTIMATE_TIMEWARP_TRIGGER_CHANCE,
     ULTIMATE_WALL_TRIGGER_CHANCE,
     ULTIMATE_WILDGROW_MAX_GROWTH,
+    get_balance_editor_payload,
+    reset_balance_overrides,
+    save_balance_overrides,
 )
 from app.config.gpu_tiers import (
     GPU_TIER_PATTERNS as _GPU_TIER_PATTERNS,
@@ -134,9 +139,15 @@ from app.data.cards import (
     challenge_category_counts,
     featured_rogue_cards,
     featured_ultimate_cards,
+    get_card_config_editor_payload,
+    get_gameplay_tuning_specs,
+    get_gameplay_tuning_values,
     get_rogue_card,
     rogue_card_summary,
     rogue_card_ids,
+    reload_card_catalog,
+    reset_card_config,
+    save_card_config,
     ultimate_card_summary,
     ultimate_card_ids,
 )
@@ -189,6 +200,34 @@ SERVER_PORT = args.port
 
 def log(message: str):
     print(message, flush=True)
+
+
+def _sync_balance_globals() -> None:
+    for key in gameplay_config.BALANCE_DEFAULTS:
+        if key in globals():
+            globals()[key] = getattr(gameplay_config, key)
+    for key in ("ROGUE_COACH_BASE_TURNS", "ROGUE_SEAL_POINT_COUNT", "ULTIMATE_JOSEKI_TARGET_COUNT"):
+        if hasattr(ws_actions_module, key):
+            setattr(ws_actions_module, key, getattr(gameplay_config, key))
+
+
+def reload_live_card_config() -> list[str]:
+    errors = reload_card_catalog()
+    if errors:
+        return errors
+    errors = gameplay_config.apply_balance_values(
+        get_gameplay_tuning_values(),
+        get_gameplay_tuning_specs(),
+    )
+    if errors:
+        return errors
+    _sync_balance_globals()
+    return []
+
+
+CARD_CONFIG_STARTUP_ERRORS = reload_live_card_config()
+if CARD_CONFIG_STARTUP_ERRORS:
+    log("[CardConfig] " + " | ".join(CARD_CONFIG_STARTUP_ERRORS[:5]))
 
 
 def _ensure_user_katago_dirs():
@@ -511,6 +550,93 @@ async def root():
     return FileResponse(str(index_path))
 
 
+@app.get("/balance-lab")
+async def balance_lab():
+    lab_path = STATIC_DIR / "card_editor.html"
+    if not lab_path.exists():
+        return Response(
+            content="static/card_editor.html not found",
+            media_type="text/plain; charset=utf-8",
+            status_code=500,
+        )
+    return FileResponse(str(lab_path))
+
+
+@app.get("/card-editor")
+async def card_editor():
+    return await balance_lab()
+
+
+@app.get("/api/card-config")
+async def get_card_config_payload():
+    reload_live_card_config()
+    return get_card_config_editor_payload()
+
+
+@app.get("/api/card-config/schema")
+async def get_card_config_schema():
+    payload = get_card_config_editor_payload()
+    return payload.get("schema", {})
+
+
+@app.post("/api/card-config")
+async def save_card_config_payload(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(
+            {"ok": False, "errors": ["request body must be JSON"]},
+            status_code=400,
+        )
+    config = body.get("config") if isinstance(body, dict) else None
+    result = save_card_config(config)
+    if result.get("ok"):
+        live_errors = reload_live_card_config()
+        if live_errors:
+            result = {"ok": False, "errors": live_errors, "payload": get_card_config_editor_payload()}
+    if not result.get("ok"):
+        return JSONResponse(result, status_code=400)
+    return result
+
+
+@app.post("/api/card-config/reset")
+async def reset_card_config_payload():
+    result = reset_card_config()
+    if result.get("ok"):
+        live_errors = reload_live_card_config()
+        if live_errors:
+            result = {"ok": False, "errors": live_errors, "payload": get_card_config_editor_payload()}
+    if not result.get("ok"):
+        return JSONResponse(result, status_code=400)
+    return result
+
+
+@app.get("/api/balance")
+async def get_balance_lab_payload():
+    return get_balance_editor_payload()
+
+
+@app.post("/api/balance")
+async def save_balance_lab_payload(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(
+            {"ok": False, "errors": ["request body must be JSON"]},
+            status_code=400,
+        )
+    values = body.get("values", {}) if isinstance(body, dict) else {}
+    result = save_balance_overrides(values)
+    if not result.get("ok"):
+        return JSONResponse(result, status_code=400)
+    return result
+
+
+@app.post("/api/balance/reset")
+async def reset_balance_lab_payload():
+    return reset_balance_overrides()
+
+
 @app.get("/ranks")
 async def get_ranks():
     return [{"id": k, "label": v} for k, v in RANK_LABELS.items()]
@@ -547,6 +673,8 @@ async def get_status():
         "no_katago": NO_KATAGO,
         "cpu_mode": engine_runtime.cpu_mode,
         "static_ready": (STATIC_DIR / "index.html").exists(),
+        "card_config": get_card_config_editor_payload().get("source"),
+        "card_config_errors": get_card_config_editor_payload().get("errors", []),
         "engine_phase": snapshot.get("phase"),
         "engine_message": snapshot.get("message"),
         "engine_backend": snapshot.get("active_backend"),
@@ -789,6 +917,10 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     continue
 
                 if action == "new_game":
+                    config_errors = reload_live_card_config()
+                    if config_errors:
+                        await send_error("卡牌配置加载失败：" + "；".join(config_errors[:6]))
+                        continue
 
                     if not engine.ready and not data.get("two_player", False):
                         snapshot = _engine_state_snapshot()

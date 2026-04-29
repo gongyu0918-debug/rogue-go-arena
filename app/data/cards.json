@@ -1,0 +1,2250 @@
+{
+  "$schema": "./cards.schema.json",
+  "version": 1,
+  "locale_default": "zh-CN",
+  "locales": [
+    "zh-CN",
+    "en-US",
+    "ja-JP",
+    "ko-KR"
+  ],
+  "cards": {
+    "rogue": {
+      "tengen": {
+        "name": {
+          "zh-CN": "天元",
+          "en-US": "Tengen",
+          "ja-JP": "天元",
+          "ko-KR": "천원"
+        },
+        "desc": {
+          "zh-CN": "开局 5 手，AI 会优先靠近天元与星位落子",
+          "en-US": "For its first 3 moves, the AI is pulled toward the center and star points.",
+          "ja-JP": "序盤5手、AIは天元と星に近い着手を優先します。",
+          "ko-KR": "초반 5수 동안 AI가 천원과 화점 근처 착수를 우선합니다."
+        },
+        "icon": "◎"
+      },
+      "dice": {
+        "name": {
+          "zh-CN": "掷骰",
+          "en-US": "Dice Roll",
+          "ja-JP": "サイコロ",
+          "ko-KR": "주사위"
+        },
+        "desc": {
+          "zh-CN": "AI 每手有 10% 概率直接虚手",
+          "en-US": "Each AI move has a 10% chance of being skipped entirely.",
+          "ja-JP": "AIの各手に10%の確率でパスが発生します。",
+          "ko-KR": "AI가 매 수 10% 확률로 바로 패스합니다."
+        },
+        "icon": "🎉"
+      },
+      "erosion": {
+        "name": {
+          "zh-CN": "蚕食",
+          "en-US": "Erosion",
+          "ja-JP": "侵食",
+          "ko-KR": "잠식"
+        },
+        "desc": {
+          "zh-CN": "每提 1 子，贴目向有利方偏移 4 目",
+          "en-US": "Every capture shifts komi by 4 points in the captor's favor.",
+          "ja-JP": "1子取るたびに、コミが有利な側へ4目動きます。",
+          "ko-KR": "돌을 1개 따낼 때마다 덤이 유리한 쪽으로 4집 이동합니다."
+        },
+        "icon": "🌑"
+      },
+      "puppet": {
+        "name": {
+          "zh-CN": "傀儡术",
+          "en-US": "Puppet",
+          "ja-JP": "傀儡術",
+          "ko-KR": "꼭두각시"
+        },
+        "desc": {
+          "zh-CN": "先选定 AI 下一手的落点；你先正常落子，随后 AI 会被迫下在那里（限 1 次）",
+          "en-US": "Mark the AI's next forced point first. You play your move, then the AI must answer there (once per game).",
+          "ja-JP": "先にAIの次の着点を指定します。あなたが通常どおり着手したあと、AIはその点に打たされます。1局1回。",
+          "ko-KR": "AI의 다음 착점부터 지정합니다. 내가 정상 착수한 뒤 AI는 그 점에 강제로 둡니다. 한 판 1회."
+        },
+        "icon": "🎁",
+        "uses": 1
+      },
+      "seal": {
+        "name": {
+          "zh-CN": "封印术",
+          "en-US": "Seal",
+          "ja-JP": "封印術",
+          "ko-KR": "봉인술"
+        },
+        "desc": {
+          "zh-CN": "指定 4 个禁着点，整局 AI 都不能下在这些点",
+          "en-US": "Mark 4 forbidden points the AI cannot touch for the whole game.",
+          "ja-JP": "禁じ手の点を4か所指定し、AIは終局までそこへ打てません。",
+          "ko-KR": "금수점 4곳을 지정해 AI가 대국 내내 그곳에 둘 수 없게 합니다."
+        },
+        "icon": "🔀"
+      },
+      "twin": {
+        "name": {
+          "zh-CN": "连击",
+          "en-US": "Combo",
+          "ja-JP": "連撃",
+          "ko-KR": "연격"
+        },
+        "desc": {
+          "zh-CN": "本回合可连续落两手（限 1 次）",
+          "en-US": "Play two moves in a single turn once per game for a local follow-up.",
+          "ja-JP": "この手番で2手連続して打てます。1局1回。",
+          "ko-KR": "이번 차례에 두 수를 연속으로 둘 수 있습니다. 한 판 1회."
+        },
+        "icon": "✦",
+        "uses": 1
+      },
+      "nerf": {
+        "name": {
+          "zh-CN": "弱化",
+          "en-US": "Nerf",
+          "ja-JP": "弱体化",
+          "ko-KR": "약화"
+        },
+        "desc": {
+          "zh-CN": "AI 大约下降 8 段，搜索算力只剩约 5%，前 12 手更容易误选备选点",
+          "en-US": "Drop the AI by about 8 ranks, crush its search power to roughly 5%, and make its first 12 moves much more likely to mis-pick backup options.",
+          "ja-JP": "AIの棋力を約8段落とし、探索量を約5%に下げます。序盤12手は候補手の選択を誤りやすくなります。",
+          "ko-KR": "AI 기력을 약 8단 낮추고 탐색량을 약 5%로 줄입니다. 초반 12수는 후보 선택을 더 자주 실수합니다."
+        },
+        "icon": "📲"
+      },
+      "komi_relief": {
+        "name": {
+          "zh-CN": "贴目减半",
+          "en-US": "Komi Cut",
+          "ja-JP": "コミ半減",
+          "ko-KR": "덤 완화"
+        },
+        "desc": {
+          "zh-CN": "贴目会朝你有利的方向调整 7 目",
+          "en-US": "Komi shifts 7 points in your favor.",
+          "ja-JP": "コミをあなたに有利な方向へ7目調整します。",
+          "ko-KR": "덤을 내게 유리한 방향으로 7집 조정합니다."
+        },
+        "icon": "✘️"
+      },
+      "time_press": {
+        "name": {
+          "zh-CN": "限时压制",
+          "en-US": "Time Crunch",
+          "ja-JP": "秒読み圧迫",
+          "ko-KR": "시간 압박"
+        },
+        "desc": {
+          "zh-CN": "AI 大约下降 5 段，且每手最多思考 0.10 秒，前 12 手更容易仓促误判",
+          "en-US": "Drop the AI by about 5 ranks, cap it at 0.10 seconds per move, and make its first 12 moves much more likely to misread under time pressure.",
+          "ja-JP": "AIの棋力を約5段落とし、1手の思考を最大0.10秒に制限します。序盤12手は早打ちで読み違えやすくなります。",
+          "ko-KR": "AI 기력을 약 5단 낮추고 한 수 최대 사고 시간을 0.10초로 제한합니다. 초반 12수는 시간 압박으로 오판하기 쉬워집니다."
+        },
+        "icon": "⏱️"
+      },
+      "lowline": {
+        "name": {
+          "zh-CN": "低空飞行",
+          "en-US": "Low Sweep",
+          "ja-JP": "低空飛行",
+          "ko-KR": "저공비행"
+        },
+        "desc": {
+          "zh-CN": "AI 前 8 手偏向二三路低位",
+          "en-US": "The AI hugs the 2nd–3rd lines for 6 moves.",
+          "ja-JP": "AIの序盤8手は二線・三線の低い着点を好みます。",
+          "ko-KR": "AI의 초반 8수가 2선과 3선의 낮은 착점을 선호합니다."
+        },
+        "icon": "🦊"
+      },
+      "suboptimal": {
+        "name": {
+          "zh-CN": "次优之选",
+          "en-US": "Second Best",
+          "ja-JP": "次善手",
+          "ko-KR": "차선책"
+        },
+        "desc": {
+          "zh-CN": "AI 前 8 手更容易从后几名的候选点里随机挑一手",
+          "en-US": "For its first 8 moves, the AI is much more likely to choose weaker backup options.",
+          "ja-JP": "AIの序盤8手は下位候補からランダムに選びやすくなります。",
+          "ko-KR": "AI의 초반 8수가 하위 후보에서 랜덤으로 선택될 가능성이 커집니다."
+        },
+        "icon": "🚍"
+      },
+      "mirror": {
+        "name": {
+          "zh-CN": "镜像",
+          "en-US": "Mirror",
+          "ja-JP": "ミラー",
+          "ko-KR": "거울"
+        },
+        "desc": {
+          "zh-CN": "AI 有 16% 概率按棋盘对称位置镜像模仿你的上一手",
+          "en-US": "16% chance the AI mirrors your last move across the board.",
+          "ja-JP": "AIが16%の確率で、あなたの前手を盤面対称の点にまねます。",
+          "ko-KR": "AI가 16% 확률로 내 직전 수를 대칭점에 따라 둡니다."
+        },
+        "icon": "🪞"
+      },
+      "slip": {
+        "name": {
+          "zh-CN": "手滑了",
+          "en-US": "Butterfingers",
+          "ja-JP": "手滑り",
+          "ko-KR": "손 미끄러짐"
+        },
+        "desc": {
+          "zh-CN": "AI 有 14% 概率手滑到相邻的点位",
+          "en-US": "14% chance the AI slips to a straight-adjacent point.",
+          "ja-JP": "AIが14%の確率で隣接点へ手滑りします。",
+          "ko-KR": "AI가 14% 확률로 인접한 점에 미끄러져 둡니다."
+        },
+        "icon": "😾"
+      },
+      "blackhole": {
+        "name": {
+          "zh-CN": "黑洞",
+          "en-US": "Black Hole",
+          "ja-JP": "ブラックホール",
+          "ko-KR": "블랙홀"
+        },
+        "desc": {
+          "zh-CN": "棋盘中心 13 子区域对 AI 前 6 手禁入",
+          "en-US": "The central 13-point zone is off-limits to the AI for its first 6 moves.",
+          "ja-JP": "盤の中央13点は、AIの序盤6手の禁じ手になります。",
+          "ko-KR": "중앙 13점 영역이 AI의 초반 6수 금수 구역이 됩니다."
+        },
+        "icon": "🕳️"
+      },
+      "exchange": {
+        "name": {
+          "zh-CN": "乾坤挪移",
+          "en-US": "Turn Steal",
+          "ja-JP": "手番奪取",
+          "ko-KR": "차례 강탈"
+        },
+        "desc": {
+          "zh-CN": "强制 AI 虚手，你继续行棋（限 1 次）",
+          "en-US": "Force the AI to pass — you keep playing (once per game).",
+          "ja-JP": "AIを強制パスさせ、あなたが続けて打ちます。1局1回。",
+          "ko-KR": "AI를 강제로 패스시키고 내가 계속 둡니다. 한 판 1회."
+        },
+        "icon": "🔄",
+        "uses": 1
+      },
+      "fog": {
+        "name": {
+          "zh-CN": "战争迷雾",
+          "en-US": "Fog of War",
+          "ja-JP": "戦場の霧",
+          "ko-KR": "전장의 안개"
+        },
+        "desc": {
+          "zh-CN": "AI 前 11 手每手前会刷新一个 3×3 禁区遮罩；之后每回合随机封锁 2 个 AI 禁着点",
+          "en-US": "For the AI's first 11 moves, a drifting 3×3 no-go zone appears. After that, each turn blocks 2 random legal points.",
+          "ja-JP": "AIの序盤11手は、毎手ごとに3×3の禁じ手エリアが移動します。その後は各手番でAIの合法点2か所をランダムに封鎖します。",
+          "ko-KR": "AI의 초반 11수마다 3×3 금수 마스크가 새로 생깁니다. 이후 매 차례 AI의 합법점 2곳을 무작위로 봉쇄합니다."
+        },
+        "icon": "🌫️"
+      },
+      "gravity": {
+        "name": {
+          "zh-CN": "星位引力",
+          "en-US": "Gravity Well",
+          "ja-JP": "星の引力",
+          "ko-KR": "화점 인력"
+        },
+        "desc": {
+          "zh-CN": "AI 前 7 手被星位磁场牵引",
+          "en-US": "The AI is pulled toward star points for 5 moves.",
+          "ja-JP": "AIの序盤7手は星へ引き寄せられます。",
+          "ko-KR": "AI의 초반 7수가 화점으로 끌립니다."
+        },
+        "icon": "🌃"
+      },
+      "golden_corner": {
+        "name": {
+          "zh-CN": "黄金角",
+          "en-US": "Golden Corner",
+          "ja-JP": "黄金の隅",
+          "ko-KR": "황금 귀"
+        },
+        "desc": {
+          "zh-CN": "随机封锁一角 4×4 区域，AI 前 10 手禁入",
+          "en-US": "A random 4×4 corner is sealed off from the AI for its first 10 moves.",
+          "ja-JP": "ランダムな隅の4×4範囲を封鎖し、AIの序盤10手は入れません。",
+          "ko-KR": "무작위 귀의 4×4 영역을 봉쇄해 AI가 초반 10수 동안 들어가지 못합니다."
+        },
+        "icon": "🪙"
+      },
+      "sansan": {
+        "name": {
+          "zh-CN": "三三开局",
+          "en-US": "3-3 Rush",
+          "ja-JP": "三々布石",
+          "ko-KR": "삼삼 포석"
+        },
+        "desc": {
+          "zh-CN": "强制 AI 在开局前 2 手去抢四个三三点中的位置，也就是开局硬走三三；之后 2 手暂时避开角上 4×4 区域",
+          "en-US": "For its first 2 moves, the AI is forced to open on the four 3-3 points, then avoids corner 4×4 zones for 2 moves.",
+          "ja-JP": "AIの最初の2手を四隅の三々に誘導します。その後2手は隅の4×4範囲を避けます。",
+          "ko-KR": "AI의 첫 2수를 네 귀 삼삼 중 한 곳으로 강제합니다. 이후 2수는 귀 4×4 영역을 잠시 피합니다."
+        },
+        "icon": "◎"
+      },
+      "shadow": {
+        "name": {
+          "zh-CN": "影子",
+          "en-US": "Shadow",
+          "ja-JP": "影",
+          "ko-KR": "그림자"
+        },
+        "desc": {
+          "zh-CN": "AI 前 3 手有 70% 概率紧跟自己的上一手",
+          "en-US": "On its first 2 moves, the AI has a high chance to cling to its previous stone.",
+          "ja-JP": "AIの序盤3手は70%の確率で、自分の前手の近くに続けて打ちます。",
+          "ko-KR": "AI의 초반 3수는 70% 확률로 자신의 직전 수 근처를 따라갑니다."
+        },
+        "icon": "👁"
+      },
+      "sprout": {
+        "name": {
+          "zh-CN": "萌芽",
+          "en-US": "Sprout",
+          "ja-JP": "芽吹き",
+          "ko-KR": "싹트기"
+        },
+        "desc": {
+          "zh-CN": "每次提子后，都会在附近自动长出 1 颗己棋",
+          "en-US": "Each capture spawns a bonus friendly stone nearby.",
+          "ja-JP": "石を取るたびに、近くの空点へ自分の石が1子生えます。",
+          "ko-KR": "돌을 따낼 때마다 근처 빈 점에 내 돌 1개가 자동으로 생깁니다."
+        },
+        "icon": "🌱"
+      },
+      "joseki_ocd": {
+        "name": {
+          "zh-CN": "定式强迫症",
+          "en-US": "Joseki OCD",
+          "ja-JP": "定石強迫",
+          "ko-KR": "정석 강박"
+        },
+        "desc": {
+          "zh-CN": "开局亮出 7 个目标点，只要下中 4 个，剩下的 3 个会自动补成你的棋子",
+          "en-US": "7 target points appear. Hit any 4 of them to auto-fill the remaining 3 with your stones.",
+          "ja-JP": "序盤に7つの目標点が表示されます。4点に打つと、残り3点が自動であなたの石になります。",
+          "ko-KR": "초반 목표점 7곳을 표시합니다. 그중 4곳을 맞히면 남은 3곳이 자동으로 내 돌이 됩니다."
+        },
+        "icon": "📻"
+      },
+      "handicap_quest": {
+        "name": {
+          "zh-CN": "让子任务",
+          "en-US": "Handicap Quest",
+          "ja-JP": "置き石クエスト",
+          "ko-KR": "접바둑 과제"
+        },
+        "desc": {
+          "zh-CN": "先虚手 1 次，之后每满 8 手奖励 AI 虚手一次，最多触发 3 次",
+          "en-US": "Pass once to start; after every 8 moves you force an AI pass, up to 3 times.",
+          "ja-JP": "最初に1回パスします。その後8手ごとにAIのパス報酬を得ます。最大3回。",
+          "ko-KR": "먼저 1회 패스합니다. 이후 8수마다 AI 패스 보상을 얻으며 최대 3회 발동합니다."
+        },
+        "icon": "🎵"
+      },
+      "god_hand": {
+        "name": {
+          "zh-CN": "神之一手",
+          "en-US": "Hand of God",
+          "ja-JP": "神の一手",
+          "ko-KR": "신의 한 수"
+        },
+        "desc": {
+          "zh-CN": "踩中隐藏菱形区，周围 3×3 内随机爆出 3 颗己棋，只会落在空点",
+          "en-US": "Step on a hidden diamond zone — 3 friendly stones burst into nearby empty points inside a 3×3 area.",
+          "ja-JP": "隠れた菱形エリアを踏むと、周囲3×3の空点に自分の石が3子出現します。",
+          "ko-KR": "숨은 마름모 영역을 밟으면 주변 3×3 빈 점에 내 돌 3개가 터져 나옵니다."
+        },
+        "icon": "✨"
+      },
+      "sansan_trap": {
+        "name": {
+          "zh-CN": "三三陷阱",
+          "en-US": "3-3 Trap",
+          "ja-JP": "三々トラップ",
+          "ko-KR": "삼삼 함정"
+        },
+        "desc": {
+          "zh-CN": "只有对手第 1 手正好下在四个三三点之一时才会触发，并在那手棋周围反生 8 颗我方棋",
+          "en-US": "Only if the opponent's very first move lands on any 3-3 point, you immediately gain 8 nearby counter-stones.",
+          "ja-JP": "相手の第1手が三々だった場合だけ発動し、その手の周囲に自分の石を8子反発生させます。",
+          "ko-KR": "상대 첫 수가 정확히 네 삼삼 중 하나일 때만 발동하며, 그 수 주변에 내 돌 8개가 반격으로 생깁니다."
+        },
+        "icon": "🪤"
+      },
+      "corner_helper": {
+        "name": {
+          "zh-CN": "守角辅助",
+          "en-US": "Corner Guard",
+          "ja-JP": "隅守り",
+          "ko-KR": "귀 지킴"
+        },
+        "desc": {
+          "zh-CN": "每个角各算一次：任一角的 5×5 区域里有 4 颗己子时，就会在那个角补 1 颗援军",
+          "en-US": "Each corner can trigger once. If any corner's 5×5 area has 4 of your stones, that corner gains 1 reinforcement.",
+          "ja-JP": "各隅で1回ずつ判定します。隅の5×5に自分の石が4子あると、その隅に援軍を1子補います。",
+          "ko-KR": "각 귀마다 1회 판정합니다. 귀 5×5 영역에 내 돌 4개가 있으면 그 귀에 지원군 1개를 둡니다."
+        },
+        "icon": "🏯"
+      },
+      "sanrensei": {
+        "name": {
+          "zh-CN": "三连星",
+          "en-US": "Three Stars",
+          "ja-JP": "三連星",
+          "ko-KR": "삼연성"
+        },
+        "desc": {
+          "zh-CN": "若你前 2 手都落在星位，会自动补出第 3 颗星位棋，并再长出 2 颗援军",
+          "en-US": "If your first 2 moves both land on star points, the game auto-fills a 3rd star point stone and adds 2 nearby support stones.",
+          "ja-JP": "あなたの最初の2手がどちらも星なら、3つ目の星を自動で補い、さらに援軍を2子置きます。",
+          "ko-KR": "내 첫 2수가 모두 화점이면 세 번째 화점을 자동으로 보충하고 지원군 2개를 더 둡니다."
+        },
+        "icon": "⭐"
+      },
+      "no_regret": {
+        "name": {
+          "zh-CN": "永不悔棋",
+          "en-US": "No Regrets",
+          "ja-JP": "待ったなし",
+          "ko-KR": "무르기 금지"
+        },
+        "desc": {
+          "zh-CN": "禁用悔棋，但每手 12% 概率白送一子",
+          "en-US": "Undo disabled — but each move has a 12% chance to add a free stone.",
+          "ja-JP": "待ったを禁止しますが、各手に12%の確率で石を1子もらえます。",
+          "ko-KR": "무르기를 금지하지만 매 수 12% 확률로 공짜 돌 1개를 얻습니다."
+        },
+        "icon": "🚫"
+      },
+      "quickthink": {
+        "name": {
+          "zh-CN": "快速思考",
+          "en-US": "Quick Think",
+          "ja-JP": "早打ち",
+          "ko-KR": "빠른 생각"
+        },
+        "desc": {
+          "zh-CN": "4 秒内落子可追加 2 秒连击窗口；选中后禁用推荐点位与悔棋",
+          "en-US": "Play within 3s to unlock a 1s bonus move window. Hints and undo are disabled while this card is active.",
+          "ja-JP": "4秒以内に打つと2秒の連撃窓が開きます。選択中は推薦点と待ったが無効になります。",
+          "ko-KR": "4초 안에 착수하면 2초 연격 창이 열립니다. 선택 중에는 추천점과 무르기가 비활성화됩니다."
+        },
+        "icon": "⚡"
+      },
+      "foolish_wisdom": {
+        "name": {
+          "zh-CN": "大智若愚",
+          "en-US": "Wise Fool",
+          "ja-JP": "愚形の知恵",
+          "ko-KR": "우형의 지혜"
+        },
+        "desc": {
+          "zh-CN": "摆出愚形，附近 5×5 内随机长出 2 颗己棋",
+          "en-US": "Form an ugly shape to sprout 2 bonus stones in the nearby 5×5 area.",
+          "ja-JP": "愚形を作ると、近くの5×5範囲に自分の石が2子生えます。",
+          "ko-KR": "우형을 만들면 근처 5×5 영역에 내 돌 2개가 생깁니다."
+        },
+        "icon": "🧠"
+      },
+      "five_in_row": {
+        "name": {
+          "zh-CN": "五子连珠",
+          "en-US": "Five in a Row",
+          "ja-JP": "五目並べ",
+          "ko-KR": "오목 연주"
+        },
+        "desc": {
+          "zh-CN": "这是五子棋，不是围棋。每当我方横、竖、斜正好连成 5 颗同色棋，就会优先在首尾补子；若首尾被堵住，则改在两端附近补子，并在连线附近再补 4 颗援军",
+          "en-US": "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, it extends the ends if possible; blocked ends become nearby support stones, plus 4 extra support stones near the line.",
+          "ja-JP": "これは囲碁ではなく五目並べです。自分の石がちょうど5連になるたび、両端を優先して補い、線の近くに援軍4子を置きます。",
+          "ko-KR": "이건 바둑이 아니라 오목입니다. 내 돌이 정확히 5개로 이어질 때마다 양끝을 우선 보강하고 선 주변에 지원군 4개를 둡니다."
+        },
+        "icon": "🎯"
+      },
+      "coach_mode": {
+        "name": {
+          "zh-CN": "代练上号",
+          "en-US": "Coach Login",
+          "ja-JP": "代打ログイン",
+          "ko-KR": "대리 접속"
+        },
+        "desc": {
+          "zh-CN": "主动技能：后 30 手由更强的 AI 代打；若下完后胜率仍低于 50%，则额外再代打 10 手",
+          "en-US": "Active: a stronger AI plays the next 30 turns for you. If your winrate stays below 50% after that, it plays 10 extra turns.",
+          "ja-JP": "能動スキル：以後30手を強いAIが代打します。終了時の勝率が50%未満なら、さらに10手代打します。",
+          "ko-KR": "액티브 스킬: 이후 30수를 더 강한 AI가 대신 둡니다. 끝난 뒤 승률이 50% 미만이면 추가로 10수 더 대리합니다."
+        },
+        "icon": "🎗"
+      },
+      "capture_foul": {
+        "name": {
+          "zh-CN": "提子犯规",
+          "en-US": "Capture Foul",
+          "ja-JP": "取り石反則",
+          "ko-KR": "따냄 반칙"
+        },
+        "desc": {
+          "zh-CN": "若对手单次或累计提子达到 4 颗，就会触发“提子未放在棋盒”，被惩罚方罚 4 目，随后重新计数",
+          "en-US": "When the opponent's single capture or running capture total reaches 4 stones, a foul triggers automatically. The offender loses 4 points, then the counter resets.",
+          "ja-JP": "相手が1回または累計で4子取ると反則判定が発生し、反則側に4目の罰が入ってカウントをリセットします。",
+          "ko-KR": "상대가 한 번에 또는 누적으로 4개 이상 따내면 반칙 판정이 발생해 반칙 쪽에 4집 벌점을 주고 카운트를 초기화합니다."
+        },
+        "icon": "🧺"
+      },
+      "last_stand": {
+        "name": {
+          "zh-CN": "起死回生",
+          "en-US": "Last Stand",
+          "ja-JP": "起死回生",
+          "ko-KR": "기사회생"
+        },
+        "desc": {
+          "zh-CN": "当我方胜率跌到 26% 以下时，仅触发 1 次：在上一手周围 3×3 内随机消掉 1 颗敌子，并随机补 1 颗己棋（不会落在禁着点）",
+          "en-US": "Once per game, if your winrate drops below 26%, remove 1 enemy stone and add 1 friendly stone inside the last move's 3×3 area without landing on forbidden points.",
+          "ja-JP": "自分の勝率が26%未満になったとき1回だけ発動します。前手の周囲3×3で敵石1子を消し、自分の石1子を補います。",
+          "ko-KR": "내 승률이 26% 아래로 떨어질 때 한 번만 발동합니다. 직전 수 주변 3×3에서 상대 돌 1개를 지우고 내 돌 1개를 보충합니다."
+        },
+        "icon": "🫀"
+      }
+    },
+    "ultimate": {
+      "chain": {
+        "name": {
+          "zh-CN": "连珠棋",
+          "en-US": "Chain Strike",
+          "ja-JP": "連珠棋",
+          "ko-KR": "연주기"
+        },
+        "desc": {
+          "zh-CN": "每手 65% 概率触发追加行动",
+          "en-US": "Every move has a 65% chance to grant an extra turn.",
+          "ja-JP": "各手65%の確率で追加手番が発生します。",
+          "ko-KR": "매 수 65% 확률로 추가 행동이 발동합니다."
+        },
+        "icon": "🔥"
+      },
+      "proliferate": {
+        "name": {
+          "zh-CN": "无限增殖",
+          "en-US": "Infinite Bloom",
+          "ja-JP": "無限増殖",
+          "ko-KR": "무한 증식"
+        },
+        "desc": {
+          "zh-CN": "落子后 5×5 范围内爆出 5 颗同色棋",
+          "en-US": "After you play, 5 same-color stones bloom in a 5×5 zone.",
+          "ja-JP": "着手後、5×5範囲に同色の石が5子出現します。",
+          "ko-KR": "착수 후 5×5 범위에 같은 색 돌 5개가 생깁니다."
+        },
+        "icon": "🌸"
+      },
+      "double": {
+        "name": {
+          "zh-CN": "双刀流",
+          "en-US": "Dual Blades",
+          "ja-JP": "二刀流",
+          "ko-KR": "쌍검류"
+        },
+        "desc": {
+          "zh-CN": "每回合固定连下 2 手，但整回合只计 1 手数",
+          "en-US": "Every turn becomes a 2-move combo, but the whole burst only counts as 1 move.",
+          "ja-JP": "毎手番で必ず2手連続して打ちますが、手数は1手として数えます。",
+          "ko-KR": "매 차례 고정으로 2수를 연속 착수하지만 전체 차례는 1수로 계산합니다."
+        },
+        "icon": "⚔️"
+      },
+      "wildgrow": {
+        "name": {
+          "zh-CN": "狂野生长",
+          "en-US": "Wild Growth",
+          "ja-JP": "野生の成長",
+          "ko-KR": "야생 성장"
+        },
+        "desc": {
+          "zh-CN": "4 颗己子向四周蔓延扩张",
+          "en-US": "4 of your stones spread outward into empty space.",
+          "ja-JP": "自分の石4子が周囲へ広がります。",
+          "ko-KR": "내 돌 4개가 사방으로 번져 나갑니다."
+        },
+        "icon": "🌿"
+      },
+      "rejection": {
+        "name": {
+          "zh-CN": "排异反应",
+          "en-US": "Repulsion",
+          "ja-JP": "排斥反応",
+          "ko-KR": "배척 반응"
+        },
+        "desc": {
+          "zh-CN": "落点 5×5 内敌子被推开或摧毁",
+          "en-US": "Enemy stones in the 5×5 zone are pushed away or destroyed.",
+          "ja-JP": "着点の5×5範囲にある敵石を押し出すか破壊します。",
+          "ko-KR": "착점 5×5 안의 상대 돌을 밀어내거나 파괴합니다."
+        },
+        "icon": "💥"
+      },
+      "territory": {
+        "name": {
+          "zh-CN": "绝对领地",
+          "en-US": "Absolute Zone",
+          "ja-JP": "絶対領域",
+          "ko-KR": "절대 영역"
+        },
+        "desc": {
+          "zh-CN": "落点周围 4 格形成禁入结界",
+          "en-US": "Create a 4-step forbidden barrier around your move.",
+          "ja-JP": "着点の周囲4路に侵入不可の結界を作ります。",
+          "ko-KR": "착점 주변 4칸에 진입 금지 결계를 만듭니다."
+        },
+        "icon": "🛡️"
+      },
+      "shadow_clone": {
+        "name": {
+          "zh-CN": "影分身",
+          "en-US": "Shadow Clone",
+          "ja-JP": "影分身",
+          "ko-KR": "그림자 분신"
+        },
+        "desc": {
+          "zh-CN": "先生成一颗镜像棋；下一回合会按原落点和镜像点强制连成一整条线，就算两端棋子被提掉也照样连线",
+          "en-US": "Create a mirrored stone now. One turn later, the original point and mirror point are forced into a full line even if either endpoint was removed.",
+          "ja-JP": "まず鏡像の石を1子生成します。次の手番で元の着点と鏡像点を結ぶ線を強制的に作ります。",
+          "ko-KR": "먼저 거울 분신 돌을 만들고, 다음 차례에 원래 착점과 분신점을 한 줄로 강제 연결합니다."
+        },
+        "icon": "👥"
+      },
+      "plague": {
+        "name": {
+          "zh-CN": "瘟疫",
+          "en-US": "Plague",
+          "ja-JP": "疫病",
+          "ko-KR": "역병"
+        },
+        "desc": {
+          "zh-CN": "3×3 内所有敌子转化为己方",
+          "en-US": "Convert every enemy stone in the 3×3 area to your color.",
+          "ja-JP": "3×3内の敵石すべてを自分の色に変えます。",
+          "ko-KR": "3×3 안의 모든 상대 돌을 내 색으로 바꿉니다."
+        },
+        "icon": "☣️"
+      },
+      "meteor": {
+        "name": {
+          "zh-CN": "陨石雨",
+          "en-US": "Meteor Strike",
+          "ja-JP": "隕石雨",
+          "ko-KR": "유성우"
+        },
+        "desc": {
+          "zh-CN": "随机轰掉 5 颗对方棋子",
+          "en-US": "Randomly obliterate 5 enemy stones anywhere on the board.",
+          "ja-JP": "盤上の相手石をランダムに5子破壊します。",
+          "ko-KR": "상대 돌 5개를 전장 무작위로 제거합니다."
+        },
+        "icon": "☄️"
+      },
+      "quantum": {
+        "name": {
+          "zh-CN": "量子纠缠",
+          "en-US": "Quantum Surge",
+          "ja-JP": "量子もつれ",
+          "ko-KR": "양자 얽힘"
+        },
+        "desc": {
+          "zh-CN": "全盘随机位置生成 5 颗同色棋",
+          "en-US": "5 same-color stones materialize at random positions.",
+          "ja-JP": "盤上のランダムな位置に同色の石を5子生成します。",
+          "ko-KR": "전장 무작위 위치에 같은 색 돌 5개가 생깁니다."
+        },
+        "icon": "🌀"
+      },
+      "devour": {
+        "name": {
+          "zh-CN": "吞噬",
+          "en-US": "Devour",
+          "ja-JP": "呑み込み",
+          "ko-KR": "포식"
+        },
+        "desc": {
+          "zh-CN": "5×5 范围内敌子全部清空",
+          "en-US": "Erase every enemy stone in the surrounding 5×5 area.",
+          "ja-JP": "5×5範囲の敵石をすべて消します。",
+          "ko-KR": "5×5 범위 안의 상대 돌을 모두 지웁니다."
+        },
+        "icon": "🦷"
+      },
+      "timewarp": {
+        "name": {
+          "zh-CN": "时空裂缝",
+          "en-US": "Time Rift",
+          "ja-JP": "時空裂け目",
+          "ko-KR": "시공 균열"
+        },
+        "desc": {
+          "zh-CN": "85% 概率抹去对手最近 2 手",
+          "en-US": "85% chance to erase the opponent's last 2 moves from existence.",
+          "ja-JP": "85%の確率で相手の直近2手を消します。",
+          "ko-KR": "85% 확률로 상대의 최근 2수를 지웁니다."
+        },
+        "icon": "🕰️"
+      },
+      "blackout": {
+        "name": {
+          "zh-CN": "天崩地裂",
+          "en-US": "Cataclysm",
+          "ja-JP": "天変地異",
+          "ko-KR": "천지붕괴"
+        },
+        "desc": {
+          "zh-CN": "十字方向清除所有敌子",
+          "en-US": "Wipe all enemy stones in a cross pattern from your move.",
+          "ja-JP": "十字方向の敵石をすべて消します。",
+          "ko-KR": "십자 방향의 모든 상대 돌을 제거합니다."
+        },
+        "icon": "🌋"
+      },
+      "magnet": {
+        "name": {
+          "zh-CN": "磁力吸附",
+          "en-US": "Magnet Pull",
+          "ja-JP": "磁力吸着",
+          "ko-KR": "자력 흡착"
+        },
+        "desc": {
+          "zh-CN": "己方棋子飞速聚拢，碾碎路径上的敌子",
+          "en-US": "Your stones rush toward the point, crushing enemies in their path.",
+          "ja-JP": "自分の石が高速で集まり、移動経路上の敵石を砕きます。",
+          "ko-KR": "내 돌들이 빠르게 모이며 경로의 상대 돌을 짓밟습니다."
+        },
+        "icon": "🧲"
+      },
+      "necro": {
+        "name": {
+          "zh-CN": "亡灵召唤",
+          "en-US": "Necromancy",
+          "ja-JP": "亡霊召喚",
+          "ko-KR": "망령 소환"
+        },
+        "desc": {
+          "zh-CN": "召唤 3 颗己棋 + 策反 2 颗敌棋",
+          "en-US": "Summon 3 friendly stones and convert 2 enemy stones.",
+          "ja-JP": "自分の石を3子召喚し、敵石2子を寝返らせます。",
+          "ko-KR": "내 돌 3개를 소환하고 상대 돌 2개를 전향시킵니다."
+        },
+        "icon": "💀"
+      },
+      "wall": {
+        "name": {
+          "zh-CN": "万里长城",
+          "en-US": "Great Wall",
+          "ja-JP": "万里の長城",
+          "ko-KR": "만리장성"
+        },
+        "desc": {
+          "zh-CN": "有 60% 概率发动：整行或整列筑起一面不可逾越的棋墙",
+          "en-US": "60% chance to trigger. Fill an entire row or column with an impassable stone wall.",
+          "ja-JP": "60%の確率で発動します。行または列全体に越えられない石の壁を築きます。",
+          "ko-KR": "60% 확률로 발동합니다. 한 행 또는 한 열 전체에 넘을 수 없는 돌벽을 세웁니다."
+        },
+        "icon": "🧱"
+      },
+      "joseki_burst": {
+        "name": {
+          "zh-CN": "定式爆发",
+          "en-US": "Joseki Burst",
+          "ja-JP": "定石爆発",
+          "ko-KR": "정석 폭발"
+        },
+        "desc": {
+          "zh-CN": "命中定式后补满目标，并额外爆出 50 颗同色棋",
+          "en-US": "Complete joseki points, then detonate 50 bonus stones.",
+          "ja-JP": "定石目標を命中させると目標点を埋め、さらに同色の石を50子爆発的に置きます。",
+          "ko-KR": "정석 목표를 맞히면 목표점을 채우고 같은 색 돌 50개를 추가로 터뜨립니다."
+        },
+        "icon": "📐"
+      },
+      "god_hand": {
+        "name": {
+          "zh-CN": "神之一手",
+          "en-US": "Hand of God",
+          "ja-JP": "神の一手",
+          "ko-KR": "신의 한 수"
+        },
+        "desc": {
+          "zh-CN": "踩中 5×5 隐藏菱形，清空敌子并铺满 50 颗己棋",
+          "en-US": "Trigger the hidden diamond — wipe enemies and flood the board with 50 stones.",
+          "ja-JP": "隠れた5×5の菱形を踏むと、敵石を消して自分の石を50子敷き詰めます。",
+          "ko-KR": "숨은 5×5 마름모를 밟으면 상대 돌을 비우고 내 돌 50개를 깔아 둡니다."
+        },
+        "icon": "✨"
+      },
+      "corner_helper": {
+        "name": {
+          "zh-CN": "守角要塞",
+          "en-US": "Corner Fortress",
+          "ja-JP": "隅の要塞",
+          "ko-KR": "귀 요새"
+        },
+        "desc": {
+          "zh-CN": "四个角分别独立结算：某个角的 5×5 区域里有 2 颗己子时，就会封满该角 8×8 边界并清掉里面的敌子",
+          "en-US": "Each corner can trigger once. If a corner's 5×5 area has 2 of your stones, that corner's 8×8 boundary is filled and enemies inside are cleared.",
+          "ja-JP": "四隅を独立して判定します。隅5×5に自分の石が2子あると、その隅の8×8境界を埋め、内側の敵石を消します。",
+          "ko-KR": "네 귀를 각각 판정합니다. 귀 5×5에 내 돌 2개가 있으면 해당 귀 8×8 경계를 채우고 안의 상대 돌을 제거합니다."
+        },
+        "icon": "🏯"
+      },
+      "sanrensei": {
+        "name": {
+          "zh-CN": "三连星爆发",
+          "en-US": "Star Ignition",
+          "ja-JP": "三連星爆発",
+          "ko-KR": "삼연성 폭발"
+        },
+        "desc": {
+          "zh-CN": "前 3 手全落星位，引爆全盘星位势力",
+          "en-US": "Play your first 3 moves on star points to ignite star-point influence across the board.",
+          "ja-JP": "最初の3手をすべて星に打つと、盤全体の星の勢力が爆発します。",
+          "ko-KR": "앞의 3수를 모두 화점에 두면 전장의 화점 세력이 폭발합니다."
+        },
+        "icon": "⭐"
+      },
+      "quickthink": {
+        "name": {
+          "zh-CN": "极速风暴",
+          "en-US": "Speed Storm",
+          "ja-JP": "疾風の早打ち",
+          "ko-KR": "초고속 폭풍"
+        },
+        "desc": {
+          "zh-CN": "5 秒内不限次数连续落子，结束后 AI 再读盘，整段只计 1 手数",
+          "en-US": "Place unlimited stones for 5 seconds — then the AI reads the board. The whole burst counts as 1 move.",
+          "ja-JP": "5秒間、何度でも連続着手できます。終了後にAIが盤面を読みます。この間は全体で1手扱いです。",
+          "ko-KR": "5초 동안 제한 없이 연속 착수합니다. 종료 후 AI가 판을 읽으며 전체 구간은 1수로 계산됩니다."
+        },
+        "icon": "⚡"
+      },
+      "foolish_wisdom": {
+        "name": {
+          "zh-CN": "愚形连锁",
+          "en-US": "Fool's Chain",
+          "ja-JP": "愚形連鎖",
+          "ko-KR": "우형 연쇄"
+        },
+        "desc": {
+          "zh-CN": "检测到愚形就连锁生成，最多铺满 20 颗己棋",
+          "en-US": "Ugly-shape chain reaction spawns up to 20 stones until it stops.",
+          "ja-JP": "愚形を検出すると連鎖的に石を生成し、最大20子まで敷き詰めます。",
+          "ko-KR": "우형을 감지하면 연쇄 생성이 일어나 최대 20개까지 내 돌을 채웁니다."
+        },
+        "icon": "🧩"
+      },
+      "five_in_row": {
+        "name": {
+          "zh-CN": "五子连珠爆发",
+          "en-US": "Five in a Row Burst",
+          "ja-JP": "五目並べ爆発",
+          "ko-KR": "오목 폭발"
+        },
+        "desc": {
+          "zh-CN": "这是五子棋，不是围棋。每当我方横、竖、斜正好连成 5 颗同色棋，就会随机清除对方 30 颗棋子，并在全盘随机补下 30 颗己棋；该效果可连锁触发",
+          "en-US": "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, remove 30 enemy stones and drop 30 friendly stones across the board. This effect can chain.",
+          "ja-JP": "これは囲碁ではなく五目並べです。自分の石がちょうど5連になるたび、相手石30子をランダムに消し、自分の石30子をランダムに置きます。",
+          "ko-KR": "이건 바둑이 아니라 오목입니다. 내 돌이 정확히 5개로 이어질 때마다 상대 돌 30개를 무작위로 지우고 내 돌 30개를 무작위로 둡니다."
+        },
+        "icon": "🎯"
+      },
+      "capture_foul": {
+        "name": {
+          "zh-CN": "提子犯规",
+          "en-US": "Capture Foul",
+          "ja-JP": "取り石反則",
+          "ko-KR": "따냄 반칙"
+        },
+        "desc": {
+          "zh-CN": "若对手提子或技能消除棋子累计超过 5 颗，则 100% 触发“提子未放在棋盒”，被惩罚方立刻罚 50 目；每次触发后重新计数，之后仍可重复触发",
+          "en-US": "Whenever the opponent captures or removes more than 5 stones (including card effects), the foul triggers with 100% certainty. The offender immediately loses 50 points, then the counter resets and can trigger again.",
+          "ja-JP": "相手が取った石やスキルで消した石の累計が5子を超えると重罰が発生し、50目の罰を与えてカウントをリセットします。",
+          "ko-KR": "상대가 따내거나 스킬로 제거한 돌이 누적 5개를 넘으면 중벌이 발동해 50집 벌점을 주고 카운트를 초기화합니다."
+        },
+        "icon": "🧺"
+      },
+      "last_stand": {
+        "name": {
+          "zh-CN": "起死回生",
+          "en-US": "Last Stand",
+          "ja-JP": "起死回生",
+          "ko-KR": "기사회생"
+        },
+        "desc": {
+          "zh-CN": "当我方胜率跌到 30% 以下时：全盘随机清除对方 30 颗棋子，并随机补下 30 颗己棋",
+          "en-US": "If your winrate drops below 30%, clear 30 enemy stones and add 30 friendly stones across the entire board.",
+          "ja-JP": "自分の勝率が30%未満になると、盤上の相手石30子をランダムに消し、自分の石30子をランダムに置きます。",
+          "ko-KR": "내 승률이 30% 아래로 떨어지면 전장 무작위로 상대 돌 30개를 지우고 내 돌 30개를 둡니다."
+        },
+        "icon": "🫀"
+      }
+    }
+  },
+  "meta": {
+    "rogue_defaults": {
+      "tier": "B",
+      "category": "规则改写",
+      "complexity": "中"
+    },
+    "ultimate_defaults": {
+      "tier": "S",
+      "category": "大招",
+      "complexity": "中"
+    },
+    "rogue": {
+      "puppet": {
+        "tier": "S",
+        "category": "主动",
+        "complexity": "高"
+      },
+      "twin": {
+        "tier": "A",
+        "category": "主动",
+        "complexity": "中"
+      },
+      "exchange": {
+        "tier": "A",
+        "category": "主动",
+        "complexity": "低"
+      },
+      "coach_mode": {
+        "tier": "S",
+        "category": "主动",
+        "complexity": "中"
+      },
+      "dice": {
+        "tier": "B+",
+        "category": "AI干扰",
+        "complexity": "低"
+      },
+      "mirror": {
+        "tier": "B+",
+        "category": "AI干扰",
+        "complexity": "低"
+      },
+      "slip": {
+        "tier": "B+",
+        "category": "AI干扰",
+        "complexity": "低"
+      },
+      "god_hand": {
+        "tier": "A",
+        "category": "爆发",
+        "complexity": "中"
+      },
+      "sansan_trap": {
+        "tier": "A",
+        "category": "陷阱",
+        "complexity": "中"
+      },
+      "sanrensei": {
+        "tier": "A",
+        "category": "开局构筑",
+        "complexity": "中"
+      },
+      "joseki_ocd": {
+        "tier": "A",
+        "category": "任务",
+        "complexity": "中"
+      },
+      "no_regret": {
+        "tier": "B+",
+        "category": "风险收益",
+        "complexity": "低"
+      },
+      "quickthink": {
+        "tier": "A",
+        "category": "节奏",
+        "complexity": "高"
+      },
+      "five_in_row": {
+        "tier": "A",
+        "category": "连线构筑",
+        "complexity": "高"
+      }
+    },
+    "ultimate": {
+      "chain": {
+        "tier": "S",
+        "category": "连动",
+        "complexity": "低"
+      },
+      "double": {
+        "tier": "S",
+        "category": "连动",
+        "complexity": "低"
+      },
+      "quickthink": {
+        "tier": "S",
+        "category": "节奏",
+        "complexity": "高"
+      },
+      "joseki_burst": {
+        "tier": "S",
+        "category": "任务爆发",
+        "complexity": "中"
+      },
+      "god_hand": {
+        "tier": "S",
+        "category": "爆发",
+        "complexity": "中"
+      },
+      "five_in_row": {
+        "tier": "S",
+        "category": "连线构筑",
+        "complexity": "高"
+      }
+    }
+  },
+  "pools": {
+    "rogue_featured": [
+      "corner_helper",
+      "capture_foul",
+      "no_regret",
+      "sansan_trap",
+      "last_stand",
+      "foolish_wisdom",
+      "coach_mode",
+      "sanrensei",
+      "god_hand",
+      "quickthink",
+      "five_in_row"
+    ],
+    "ultimate_featured": [
+      "corner_helper",
+      "capture_foul",
+      "joseki_burst",
+      "last_stand",
+      "foolish_wisdom",
+      "sanrensei",
+      "god_hand",
+      "quickthink",
+      "five_in_row"
+    ],
+    "challenge_beta": [
+      "dice",
+      "nerf",
+      "time_press",
+      "suboptimal",
+      "seal",
+      "blackhole",
+      "golden_corner",
+      "fog",
+      "sprout",
+      "joseki_ocd",
+      "corner_helper",
+      "sanrensei",
+      "foolish_wisdom",
+      "five_in_row",
+      "sansan_trap",
+      "god_hand",
+      "twin",
+      "exchange",
+      "capture_foul",
+      "last_stand"
+    ],
+    "two_player_rogue": [
+      "erosion",
+      "sprout",
+      "joseki_ocd",
+      "god_hand",
+      "sansan_trap",
+      "corner_helper",
+      "sanrensei",
+      "foolish_wisdom",
+      "five_in_row",
+      "capture_foul"
+    ],
+    "ai_rogue": [
+      "blackhole",
+      "golden_corner",
+      "fog",
+      "sansan_trap"
+    ],
+    "ai_ultimate": [
+      "proliferate",
+      "meteor",
+      "quantum",
+      "devour",
+      "necro",
+      "wall",
+      "blackout",
+      "wildgrow",
+      "plague"
+    ]
+  },
+  "challenge": {
+    "handicaps": {
+      "1": 0,
+      "2": 2
+    },
+    "categories": {
+      "sanrensei": "derivative",
+      "foolish_wisdom": "derivative",
+      "five_in_row": "derivative",
+      "sansan_trap": "trap",
+      "god_hand": "trap",
+      "blackhole": "zone",
+      "golden_corner": "zone",
+      "fog": "zone",
+      "seal": "zone",
+      "dice": "restriction",
+      "nerf": "restriction",
+      "time_press": "restriction",
+      "suboptimal": "restriction",
+      "twin": "active",
+      "exchange": "active"
+    },
+    "allowed_categories": [
+      "derivative",
+      "trap",
+      "zone",
+      "restriction",
+      "active"
+    ]
+  },
+  "tuning": {
+    "ROGUE_MAX_VISITS": {
+      "group": "Engine",
+      "card": "",
+      "label": {
+        "zh-CN": "Rogue 搜索上限",
+        "en-US": "Rogue Max Visits",
+        "ja-JP": "Rogue 搜索上限",
+        "ko-KR": "Rogue 搜索上限"
+      },
+      "min": 50,
+      "max": 5000,
+      "step": 50,
+      "value": 800
+    },
+    "ULTIMATE_MAX_VISITS": {
+      "group": "Engine",
+      "card": "",
+      "label": {
+        "zh-CN": "Ultimate 搜索上限",
+        "en-US": "Ultimate Max Visits",
+        "ja-JP": "Ultimate 搜索上限",
+        "ko-KR": "Ultimate 搜索上限"
+      },
+      "min": 50,
+      "max": 5000,
+      "step": 50,
+      "value": 400
+    },
+    "CPU_MAX_VISITS": {
+      "group": "Engine",
+      "card": "",
+      "label": {
+        "zh-CN": "CPU 搜索上限",
+        "en-US": "Cpu Max Visits",
+        "ja-JP": "CPU 搜索上限",
+        "ko-KR": "CPU 搜索上限"
+      },
+      "min": 20,
+      "max": 2000,
+      "step": 10,
+      "value": 250
+    },
+    "ROGUE_DICE_PASS_CHANCE": {
+      "group": "Rogue",
+      "card": "dice",
+      "label": {
+        "zh-CN": "掷骰虚手概率",
+        "en-US": "Rogue Dice Pass Chance",
+        "ja-JP": "掷骰虚手概率",
+        "ko-KR": "掷骰虚手概率"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.1
+    },
+    "ROGUE_SLIP_CHANCE": {
+      "group": "Rogue",
+      "card": "slip",
+      "label": {
+        "zh-CN": "手滑偏移概率",
+        "en-US": "Rogue Slip Chance",
+        "ja-JP": "手滑偏移概率",
+        "ko-KR": "手滑偏移概率"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.14
+    },
+    "ROGUE_MIRROR_CHANCE": {
+      "group": "Rogue",
+      "card": "mirror",
+      "label": {
+        "zh-CN": "镜像触发概率",
+        "en-US": "Rogue Mirror Chance",
+        "ja-JP": "镜像触发概率",
+        "ko-KR": "镜像触发概率"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.16
+    },
+    "ROGUE_NERF_FACTOR": {
+      "group": "Rogue",
+      "card": "nerf",
+      "label": {
+        "zh-CN": "弱化搜索倍率",
+        "en-US": "Rogue Nerf Factor",
+        "ja-JP": "弱化搜索倍率",
+        "ko-KR": "弱化搜索倍率"
+      },
+      "min": 0.01,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.05
+    },
+    "ROGUE_NERF_BACKUP_CHANCE": {
+      "group": "Rogue",
+      "card": "nerf",
+      "label": {
+        "zh-CN": "弱化误选概率",
+        "en-US": "Rogue Nerf Backup Chance",
+        "ja-JP": "弱化误选概率",
+        "ko-KR": "弱化误选概率"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.6
+    },
+    "ROGUE_NERF_BACKUP_AI_MOVES": {
+      "group": "Rogue",
+      "card": "nerf",
+      "label": {
+        "zh-CN": "弱化影响手数",
+        "en-US": "Rogue Nerf Backup Ai Moves",
+        "ja-JP": "弱化影响手数",
+        "ko-KR": "弱化影响手数"
+      },
+      "min": 1,
+      "max": 80,
+      "step": 1,
+      "value": 12
+    },
+    "ROGUE_EROSION_SHIFT": {
+      "group": "Rogue",
+      "card": "erosion",
+      "label": {
+        "zh-CN": "蚕食贴目偏移",
+        "en-US": "Rogue Erosion Shift",
+        "ja-JP": "蚕食贴目偏移",
+        "ko-KR": "蚕食贴目偏移"
+      },
+      "min": 0,
+      "max": 20,
+      "step": 0.5,
+      "value": 4.0
+    },
+    "ROGUE_TENGEN_AI_MOVES": {
+      "group": "Rogue",
+      "card": "tengen",
+      "label": {
+        "zh-CN": "天元牵引手数",
+        "en-US": "Rogue Tengen Ai Moves",
+        "ja-JP": "天元牵引手数",
+        "ko-KR": "天元牵引手数"
+      },
+      "min": 1,
+      "max": 40,
+      "step": 1,
+      "value": 5
+    },
+    "ROGUE_FOG_MASK_RADIUS": {
+      "group": "Rogue",
+      "card": "fog",
+      "label": {
+        "zh-CN": "战争迷雾半径",
+        "en-US": "Rogue Fog Mask Radius",
+        "ja-JP": "战争迷雾半径",
+        "ko-KR": "战争迷雾半径"
+      },
+      "min": 0,
+      "max": 4,
+      "step": 1,
+      "value": 1
+    },
+    "ROGUE_FOG_AI_MOVES": {
+      "group": "Rogue",
+      "card": "fog",
+      "label": {
+        "zh-CN": "战争迷雾前期手数",
+        "en-US": "Rogue Fog Ai Moves",
+        "ja-JP": "战争迷雾前期手数",
+        "ko-KR": "战争迷雾前期手数"
+      },
+      "min": 1,
+      "max": 80,
+      "step": 1,
+      "value": 11
+    },
+    "ROGUE_FOG_POST_MASK_POINTS": {
+      "group": "Rogue",
+      "card": "fog",
+      "label": {
+        "zh-CN": "战争迷雾后期禁点",
+        "en-US": "Rogue Fog Post Mask Points",
+        "ja-JP": "战争迷雾后期禁点",
+        "ko-KR": "战争迷雾后期禁点"
+      },
+      "min": 0,
+      "max": 12,
+      "step": 1,
+      "value": 2
+    },
+    "ROGUE_BLACKHOLE_AI_MOVES": {
+      "group": "Rogue",
+      "card": "blackhole",
+      "label": {
+        "zh-CN": "黑洞禁入手数",
+        "en-US": "Rogue Blackhole Ai Moves",
+        "ja-JP": "黑洞禁入手数",
+        "ko-KR": "黑洞禁入手数"
+      },
+      "min": 1,
+      "max": 80,
+      "step": 1,
+      "value": 6
+    },
+    "ROGUE_GOLDEN_CORNER_AI_MOVES": {
+      "group": "Rogue",
+      "card": "golden_corner",
+      "label": {
+        "zh-CN": "黄金角禁入手数",
+        "en-US": "Rogue Golden Corner Ai Moves",
+        "ja-JP": "黄金角禁入手数",
+        "ko-KR": "黄金角禁入手数"
+      },
+      "min": 1,
+      "max": 80,
+      "step": 1,
+      "value": 10
+    },
+    "ROGUE_GOLDEN_CORNER_SPAN": {
+      "group": "Rogue",
+      "card": "golden_corner",
+      "label": {
+        "zh-CN": "黄金角封锁宽度",
+        "en-US": "Rogue Golden Corner Span",
+        "ja-JP": "黄金角封锁宽度",
+        "ko-KR": "黄金角封锁宽度"
+      },
+      "min": 1,
+      "max": 9,
+      "step": 1,
+      "value": 4
+    },
+    "ROGUE_GRAVITY_AI_MOVES": {
+      "group": "Rogue",
+      "card": "gravity",
+      "label": {
+        "zh-CN": "星位引力手数",
+        "en-US": "Rogue Gravity Ai Moves",
+        "ja-JP": "星位引力手数",
+        "ko-KR": "星位引力手数"
+      },
+      "min": 1,
+      "max": 80,
+      "step": 1,
+      "value": 7
+    },
+    "ROGUE_LOWLINE_AI_MOVES": {
+      "group": "Rogue",
+      "card": "lowline",
+      "label": {
+        "zh-CN": "低空飞行手数",
+        "en-US": "Rogue Lowline Ai Moves",
+        "ja-JP": "低空飞行手数",
+        "ko-KR": "低空飞行手数"
+      },
+      "min": 1,
+      "max": 80,
+      "step": 1,
+      "value": 8
+    },
+    "ROGUE_SHADOW_CHANCE": {
+      "group": "Rogue",
+      "card": "shadow",
+      "label": {
+        "zh-CN": "影子跟手概率",
+        "en-US": "Rogue Shadow Chance",
+        "ja-JP": "影子跟手概率",
+        "ko-KR": "影子跟手概率"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.7
+    },
+    "ROGUE_SUBOPTIMAL_AI_MOVES": {
+      "group": "Rogue",
+      "card": "suboptimal",
+      "label": {
+        "zh-CN": "次优之选手数",
+        "en-US": "Rogue Suboptimal Ai Moves",
+        "ja-JP": "次优之选手数",
+        "ko-KR": "次优之选手数"
+      },
+      "min": 1,
+      "max": 80,
+      "step": 1,
+      "value": 8
+    },
+    "ROGUE_TIME_PRESS_MAX_TIME": {
+      "group": "Rogue",
+      "card": "time_press",
+      "label": {
+        "zh-CN": "限时压制秒数",
+        "en-US": "Rogue Time Press Max Time",
+        "ja-JP": "限时压制秒数",
+        "ko-KR": "限时压制秒数"
+      },
+      "min": 0.01,
+      "max": 5,
+      "step": 0.01,
+      "value": 0.1
+    },
+    "ROGUE_TIME_PRESS_MAX_VISITS": {
+      "group": "Rogue",
+      "card": "time_press",
+      "label": {
+        "zh-CN": "限时压制访问数",
+        "en-US": "Rogue Time Press Max Visits",
+        "ja-JP": "限时压制访问数",
+        "ko-KR": "限时压制访问数"
+      },
+      "min": 1,
+      "max": 1000,
+      "step": 1,
+      "value": 20
+    },
+    "ROGUE_TIME_PRESS_BACKUP_CHANCE": {
+      "group": "Rogue",
+      "card": "time_press",
+      "label": {
+        "zh-CN": "限时误选概率",
+        "en-US": "Rogue Time Press Backup Chance",
+        "ja-JP": "限时误选概率",
+        "ko-KR": "限时误选概率"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.6
+    },
+    "ROGUE_TIME_PRESS_BACKUP_AI_MOVES": {
+      "group": "Rogue",
+      "card": "time_press",
+      "label": {
+        "zh-CN": "限时误选手数",
+        "en-US": "Rogue Time Press Backup Ai Moves",
+        "ja-JP": "限时误选手数",
+        "ko-KR": "限时误选手数"
+      },
+      "min": 1,
+      "max": 80,
+      "step": 1,
+      "value": 12
+    },
+    "ROGUE_FOOLISH_FILL_COUNT": {
+      "group": "Rogue",
+      "card": "foolish_wisdom",
+      "label": {
+        "zh-CN": "大智若愚补子",
+        "en-US": "Rogue Foolish Fill Count",
+        "ja-JP": "大智若愚补子",
+        "ko-KR": "大智若愚补子"
+      },
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "value": 2
+    },
+    "ROGUE_HANDICAP_REQUIRED_PASSES": {
+      "group": "Rogue",
+      "card": "handicap_quest",
+      "label": {
+        "zh-CN": "让子任务虚手",
+        "en-US": "Rogue Handicap Required Passes",
+        "ja-JP": "让子任务虚手",
+        "ko-KR": "让子任务虚手"
+      },
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "value": 1
+    },
+    "ROGUE_HANDICAP_BONUS_INTERVAL": {
+      "group": "Rogue",
+      "card": "handicap_quest",
+      "label": {
+        "zh-CN": "让子任务间隔",
+        "en-US": "Rogue Handicap Bonus Interval",
+        "ja-JP": "让子任务间隔",
+        "ko-KR": "让子任务间隔"
+      },
+      "min": 1,
+      "max": 50,
+      "step": 1,
+      "value": 8
+    },
+    "ROGUE_HANDICAP_MAX_BONUSES": {
+      "group": "Rogue",
+      "card": "handicap_quest",
+      "label": {
+        "zh-CN": "让子任务奖励次数",
+        "en-US": "Rogue Handicap Max Bonuses",
+        "ja-JP": "让子任务奖励次数",
+        "ko-KR": "让子任务奖励次数"
+      },
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "value": 3
+    },
+    "ROGUE_JOSEKI_TARGET_COUNT": {
+      "group": "Rogue",
+      "card": "joseki_ocd",
+      "label": {
+        "zh-CN": "定式目标数",
+        "en-US": "Rogue Joseki Target Count",
+        "ja-JP": "定式目标数",
+        "ko-KR": "定式目标数"
+      },
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "value": 7
+    },
+    "ROGUE_JOSEKI_REQUIRED_HITS": {
+      "group": "Rogue",
+      "card": "joseki_ocd",
+      "label": {
+        "zh-CN": "定式命中数",
+        "en-US": "Rogue Joseki Required Hits",
+        "ja-JP": "定式命中数",
+        "ko-KR": "定式命中数"
+      },
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "value": 4
+    },
+    "ROGUE_GODHAND_FILL_COUNT": {
+      "group": "Rogue",
+      "card": "god_hand",
+      "label": {
+        "zh-CN": "神之一手补子",
+        "en-US": "Rogue Godhand Fill Count",
+        "ja-JP": "神之一手补子",
+        "ko-KR": "神之一手补子"
+      },
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "value": 3
+    },
+    "ROGUE_GODHAND_RADIUS": {
+      "group": "Rogue",
+      "card": "god_hand",
+      "label": {
+        "zh-CN": "神之一手半径",
+        "en-US": "Rogue Godhand Radius",
+        "ja-JP": "神之一手半径",
+        "ko-KR": "神之一手半径"
+      },
+      "min": 0,
+      "max": 5,
+      "step": 1,
+      "value": 1
+    },
+    "ROGUE_CORNER_HELPER_TRIGGER_STONES": {
+      "group": "Rogue",
+      "card": "corner_helper",
+      "label": {
+        "zh-CN": "守角触发子数",
+        "en-US": "Rogue Corner Helper Trigger Stones",
+        "ja-JP": "守角触发子数",
+        "ko-KR": "守角触发子数"
+      },
+      "min": 1,
+      "max": 20,
+      "step": 1,
+      "value": 4
+    },
+    "ROGUE_CORNER_HELPER_STONES": {
+      "group": "Rogue",
+      "card": "corner_helper",
+      "label": {
+        "zh-CN": "守角援军子数",
+        "en-US": "Rogue Corner Helper Stones",
+        "ja-JP": "守角援军子数",
+        "ko-KR": "守角援军子数"
+      },
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "value": 1
+    },
+    "ROGUE_SANRENSEI_REQUIRED_STARS": {
+      "group": "Rogue",
+      "card": "sanrensei",
+      "label": {
+        "zh-CN": "三连星所需星位",
+        "en-US": "Rogue Sanrensei Required Stars",
+        "ja-JP": "三连星所需星位",
+        "ko-KR": "三连星所需星位"
+      },
+      "min": 1,
+      "max": 9,
+      "step": 1,
+      "value": 2
+    },
+    "ROGUE_SANRENSEI_OPENING_MOVES": {
+      "group": "Rogue",
+      "card": "sanrensei",
+      "label": {
+        "zh-CN": "三连星开局窗口",
+        "en-US": "Rogue Sanrensei Opening Moves",
+        "ja-JP": "三连星开局窗口",
+        "ko-KR": "三连星开局窗口"
+      },
+      "min": 1,
+      "max": 20,
+      "step": 1,
+      "value": 2
+    },
+    "ROGUE_SANRENSEI_BONUS_STONES": {
+      "group": "Rogue",
+      "card": "sanrensei",
+      "label": {
+        "zh-CN": "三连星补星位",
+        "en-US": "Rogue Sanrensei Bonus Stones",
+        "ja-JP": "三连星补星位",
+        "ko-KR": "三连星补星位"
+      },
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "value": 1
+    },
+    "ROGUE_SANRENSEI_SUPPORT_STONES": {
+      "group": "Rogue",
+      "card": "sanrensei",
+      "label": {
+        "zh-CN": "三连星援军",
+        "en-US": "Rogue Sanrensei Support Stones",
+        "ja-JP": "三连星援军",
+        "ko-KR": "三连星援军"
+      },
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "value": 2
+    },
+    "ROGUE_NO_REGRET_CHANCE": {
+      "group": "Rogue",
+      "card": "no_regret",
+      "label": {
+        "zh-CN": "永不悔棋白送概率",
+        "en-US": "Rogue No Regret Chance",
+        "ja-JP": "永不悔棋白送概率",
+        "ko-KR": "永不悔棋白送概率"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.12
+    },
+    "ROGUE_QUICKTHINK_FIRST_SECONDS": {
+      "group": "Rogue",
+      "card": "quickthink",
+      "label": {
+        "zh-CN": "快速思考首段秒数",
+        "en-US": "Rogue Quickthink First Seconds",
+        "ja-JP": "快速思考首段秒数",
+        "ko-KR": "快速思考首段秒数"
+      },
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "value": 4
+    },
+    "ROGUE_QUICKTHINK_SECOND_SECONDS": {
+      "group": "Rogue",
+      "card": "quickthink",
+      "label": {
+        "zh-CN": "快速思考连击秒数",
+        "en-US": "Rogue Quickthink Second Seconds",
+        "ja-JP": "快速思考连击秒数",
+        "ko-KR": "快速思考连击秒数"
+      },
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "value": 2
+    },
+    "ROGUE_SANSAN_TRAP_STONES": {
+      "group": "Rogue",
+      "card": "sansan_trap",
+      "label": {
+        "zh-CN": "三三陷阱反生子",
+        "en-US": "Rogue Sansan Trap Stones",
+        "ja-JP": "三三陷阱反生子",
+        "ko-KR": "三三陷阱反生子"
+      },
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "value": 8
+    },
+    "ROGUE_SEAL_POINT_COUNT": {
+      "group": "Rogue",
+      "card": "seal",
+      "label": {
+        "zh-CN": "封印点数量",
+        "en-US": "Rogue Seal Point Count",
+        "ja-JP": "封印点数量",
+        "ko-KR": "封印点数量"
+      },
+      "min": 1,
+      "max": 20,
+      "step": 1,
+      "value": 4
+    },
+    "ROGUE_FIVE_IN_ROW_SUPPORT_STONES": {
+      "group": "Rogue",
+      "card": "five_in_row",
+      "label": {
+        "zh-CN": "五子连珠援军",
+        "en-US": "Rogue Five In Row Support Stones",
+        "ja-JP": "五子连珠援军",
+        "ko-KR": "五子连珠援军"
+      },
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "value": 4
+    },
+    "ROGUE_CAPTURE_FOUL_THRESHOLD": {
+      "group": "Rogue",
+      "card": "capture_foul",
+      "label": {
+        "zh-CN": "提子犯规阈值",
+        "en-US": "Rogue Capture Foul Threshold",
+        "ja-JP": "提子犯规阈值",
+        "ko-KR": "提子犯规阈值"
+      },
+      "min": 1,
+      "max": 50,
+      "step": 1,
+      "value": 4
+    },
+    "ROGUE_CAPTURE_FOUL_KOMI_PENALTY": {
+      "group": "Rogue",
+      "card": "capture_foul",
+      "label": {
+        "zh-CN": "提子犯规罚目",
+        "en-US": "Rogue Capture Foul Komi Penalty",
+        "ja-JP": "提子犯规罚目",
+        "ko-KR": "提子犯规罚目"
+      },
+      "min": 0,
+      "max": 50,
+      "step": 0.5,
+      "value": 4.0
+    },
+    "ROGUE_COACH_BASE_TURNS": {
+      "group": "Rogue",
+      "card": "coach_mode",
+      "label": {
+        "zh-CN": "代练基础手数",
+        "en-US": "Rogue Coach Base Turns",
+        "ja-JP": "代练基础手数",
+        "ko-KR": "代练基础手数"
+      },
+      "min": 1,
+      "max": 120,
+      "step": 1,
+      "value": 30
+    },
+    "ROGUE_COACH_BONUS_TURNS": {
+      "group": "Rogue",
+      "card": "coach_mode",
+      "label": {
+        "zh-CN": "代练追加手数",
+        "en-US": "Rogue Coach Bonus Turns",
+        "ja-JP": "代练追加手数",
+        "ko-KR": "代练追加手数"
+      },
+      "min": 0,
+      "max": 120,
+      "step": 1,
+      "value": 10
+    },
+    "ROGUE_COACH_BONUS_THRESHOLD": {
+      "group": "Rogue",
+      "card": "coach_mode",
+      "label": {
+        "zh-CN": "代练追加阈值",
+        "en-US": "Rogue Coach Bonus Threshold",
+        "ja-JP": "代练追加阈值",
+        "ko-KR": "代练追加阈值"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.5
+    },
+    "ROGUE_COACH_VISITS": {
+      "group": "Rogue",
+      "card": "coach_mode",
+      "label": {
+        "zh-CN": "代练访问数",
+        "en-US": "Rogue Coach Visits",
+        "ja-JP": "代练访问数",
+        "ko-KR": "代练访问数"
+      },
+      "min": 100,
+      "max": 50000,
+      "step": 100,
+      "value": 20000
+    },
+    "ROGUE_LAST_STAND_THRESHOLD": {
+      "group": "Rogue",
+      "card": "last_stand",
+      "label": {
+        "zh-CN": "起死回生胜率阈值",
+        "en-US": "Rogue Last Stand Threshold",
+        "ja-JP": "起死回生胜率阈值",
+        "ko-KR": "起死回生胜率阈值"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.26
+    },
+    "ROGUE_LAST_STAND_CLEAR_COUNT": {
+      "group": "Rogue",
+      "card": "last_stand",
+      "label": {
+        "zh-CN": "起死回生清子",
+        "en-US": "Rogue Last Stand Clear Count",
+        "ja-JP": "起死回生清子",
+        "ko-KR": "起死回生清子"
+      },
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "value": 1
+    },
+    "ROGUE_LAST_STAND_SPAWN_COUNT": {
+      "group": "Rogue",
+      "card": "last_stand",
+      "label": {
+        "zh-CN": "起死回生补子",
+        "en-US": "Rogue Last Stand Spawn Count",
+        "ja-JP": "起死回生补子",
+        "ko-KR": "起死回生补子"
+      },
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "value": 1
+    },
+    "ULTIMATE_CHAIN_EXTRA_TURN_CHANCE": {
+      "group": "Ultimate",
+      "card": "chain",
+      "label": {
+        "zh-CN": "连珠棋追加概率",
+        "en-US": "Ultimate Chain Extra Turn Chance",
+        "ja-JP": "连珠棋追加概率",
+        "ko-KR": "连珠棋追加概率"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.65
+    },
+    "ULTIMATE_WILDGROW_MAX_GROWTH": {
+      "group": "Ultimate",
+      "card": "wildgrow",
+      "label": {
+        "zh-CN": "狂野生长扩张数",
+        "en-US": "Ultimate Wildgrow Max Growth",
+        "ja-JP": "狂野生长扩张数",
+        "ko-KR": "狂野生长扩张数"
+      },
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "value": 4
+    },
+    "ULTIMATE_METEOR_DESTROY_COUNT": {
+      "group": "Ultimate",
+      "card": "meteor",
+      "label": {
+        "zh-CN": "陨石雨摧毁数",
+        "en-US": "Ultimate Meteor Destroy Count",
+        "ja-JP": "陨石雨摧毁数",
+        "ko-KR": "陨石雨摧毁数"
+      },
+      "min": 0,
+      "max": 80,
+      "step": 1,
+      "value": 5
+    },
+    "ULTIMATE_QUANTUM_PLACE_COUNT": {
+      "group": "Ultimate",
+      "card": "quantum",
+      "label": {
+        "zh-CN": "量子纠缠落子数",
+        "en-US": "Ultimate Quantum Place Count",
+        "ja-JP": "量子纠缠落子数",
+        "ko-KR": "量子纠缠落子数"
+      },
+      "min": 0,
+      "max": 80,
+      "step": 1,
+      "value": 5
+    },
+    "ULTIMATE_TIMEWARP_TRIGGER_CHANCE": {
+      "group": "Ultimate",
+      "card": "timewarp",
+      "label": {
+        "zh-CN": "时空裂缝概率",
+        "en-US": "Ultimate Timewarp Trigger Chance",
+        "ja-JP": "时空裂缝概率",
+        "ko-KR": "时空裂缝概率"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.85
+    },
+    "ULTIMATE_TERRITORY_RADIUS": {
+      "group": "Ultimate",
+      "card": "territory",
+      "label": {
+        "zh-CN": "绝对领地半径",
+        "en-US": "Ultimate Territory Radius",
+        "ja-JP": "绝对领地半径",
+        "ko-KR": "绝对领地半径"
+      },
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "value": 4
+    },
+    "ULTIMATE_JOSEKI_TARGET_COUNT": {
+      "group": "Ultimate",
+      "card": "joseki_burst",
+      "label": {
+        "zh-CN": "定式爆发目标数",
+        "en-US": "Ultimate Joseki Target Count",
+        "ja-JP": "定式爆发目标数",
+        "ko-KR": "定式爆发目标数"
+      },
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "value": 7
+    },
+    "ULTIMATE_JOSEKI_REQUIRED_HITS": {
+      "group": "Ultimate",
+      "card": "joseki_burst",
+      "label": {
+        "zh-CN": "定式爆发命中数",
+        "en-US": "Ultimate Joseki Required Hits",
+        "ja-JP": "定式爆发命中数",
+        "ko-KR": "定式爆发命中数"
+      },
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "value": 3
+    },
+    "ULTIMATE_JOSEKI_BONUS_STONES": {
+      "group": "Ultimate",
+      "card": "joseki_burst",
+      "label": {
+        "zh-CN": "定式爆发补子",
+        "en-US": "Ultimate Joseki Bonus Stones",
+        "ja-JP": "定式爆发补子",
+        "ko-KR": "定式爆发补子"
+      },
+      "min": 0,
+      "max": 160,
+      "step": 1,
+      "value": 50
+    },
+    "ULTIMATE_GODHAND_FILL_COUNT": {
+      "group": "Ultimate",
+      "card": "god_hand",
+      "label": {
+        "zh-CN": "神之一手铺子",
+        "en-US": "Ultimate Godhand Fill Count",
+        "ja-JP": "神之一手铺子",
+        "ko-KR": "神之一手铺子"
+      },
+      "min": 0,
+      "max": 160,
+      "step": 1,
+      "value": 50
+    },
+    "ULTIMATE_QUICKTHINK_SECONDS": {
+      "group": "Ultimate",
+      "card": "quickthink",
+      "label": {
+        "zh-CN": "极速风暴秒数",
+        "en-US": "Ultimate Quickthink Seconds",
+        "ja-JP": "极速风暴秒数",
+        "ko-KR": "极速风暴秒数"
+      },
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "value": 5
+    },
+    "ULTIMATE_WALL_TRIGGER_CHANCE": {
+      "group": "Ultimate",
+      "card": "wall",
+      "label": {
+        "zh-CN": "万里长城概率",
+        "en-US": "Ultimate Wall Trigger Chance",
+        "ja-JP": "万里长城概率",
+        "ko-KR": "万里长城概率"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.6
+    },
+    "ULTIMATE_CAPTURE_FOUL_THRESHOLD": {
+      "group": "Ultimate",
+      "card": "capture_foul",
+      "label": {
+        "zh-CN": "提子犯规阈值",
+        "en-US": "Ultimate Capture Foul Threshold",
+        "ja-JP": "提子犯规阈值",
+        "ko-KR": "提子犯规阈值"
+      },
+      "min": 1,
+      "max": 80,
+      "step": 1,
+      "value": 5
+    },
+    "ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY": {
+      "group": "Ultimate",
+      "card": "capture_foul",
+      "label": {
+        "zh-CN": "提子犯规罚目",
+        "en-US": "Ultimate Capture Foul Score Penalty",
+        "ja-JP": "提子犯规罚目",
+        "ko-KR": "提子犯规罚目"
+      },
+      "min": 0,
+      "max": 200,
+      "step": 1,
+      "value": 50.0
+    },
+    "ULTIMATE_LAST_STAND_THRESHOLD": {
+      "group": "Ultimate",
+      "card": "last_stand",
+      "label": {
+        "zh-CN": "起死回生胜率阈值",
+        "en-US": "Ultimate Last Stand Threshold",
+        "ja-JP": "起死回生胜率阈值",
+        "ko-KR": "起死回生胜率阈值"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.3
+    },
+    "ULTIMATE_LAST_STAND_CLEAR_COUNT": {
+      "group": "Ultimate",
+      "card": "last_stand",
+      "label": {
+        "zh-CN": "起死回生清子",
+        "en-US": "Ultimate Last Stand Clear Count",
+        "ja-JP": "起死回生清子",
+        "ko-KR": "起死回生清子"
+      },
+      "min": 0,
+      "max": 160,
+      "step": 1,
+      "value": 30
+    },
+    "ULTIMATE_LAST_STAND_SPAWN_COUNT": {
+      "group": "Ultimate",
+      "card": "last_stand",
+      "label": {
+        "zh-CN": "起死回生补子",
+        "en-US": "Ultimate Last Stand Spawn Count",
+        "ja-JP": "起死回生补子",
+        "ko-KR": "起死回生补子"
+      },
+      "min": 0,
+      "max": 160,
+      "step": 1,
+      "value": 30
+    },
+    "ULTIMATE_FIVE_IN_ROW_CLEAR_COUNT": {
+      "group": "Ultimate",
+      "card": "five_in_row",
+      "label": {
+        "zh-CN": "五子连珠清子",
+        "en-US": "Ultimate Five In Row Clear Count",
+        "ja-JP": "五子连珠清子",
+        "ko-KR": "五子连珠清子"
+      },
+      "min": 0,
+      "max": 160,
+      "step": 1,
+      "value": 30
+    },
+    "ULTIMATE_FIVE_IN_ROW_SPAWN_COUNT": {
+      "group": "Ultimate",
+      "card": "five_in_row",
+      "label": {
+        "zh-CN": "五子连珠补子",
+        "en-US": "Ultimate Five In Row Spawn Count",
+        "ja-JP": "五子连珠补子",
+        "ko-KR": "五子连珠补子"
+      },
+      "min": 0,
+      "max": 160,
+      "step": 1,
+      "value": 30
+    },
+    "CHALLENGE_STAGE_BIAS_WEIGHT": {
+      "group": "Challenge",
+      "card": "",
+      "label": {
+        "zh-CN": "闯关阶段权重",
+        "en-US": "Challenge Stage Bias Weight",
+        "ja-JP": "闯关阶段权重",
+        "ko-KR": "闯关阶段权重"
+      },
+      "min": 0,
+      "max": 10,
+      "step": 0.1,
+      "value": 2.6
+    },
+    "CHALLENGE_SET_MIN_COUNT": {
+      "group": "Challenge",
+      "card": "",
+      "label": {
+        "zh-CN": "闯关套组保底",
+        "en-US": "Challenge Set Min Count",
+        "ja-JP": "闯关套组保底",
+        "ko-KR": "闯关套组保底"
+      },
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "value": 2
+    },
+    "CHALLENGE_DERIVATIVE_BONUS_CHANCE": {
+      "group": "Challenge",
+      "card": "",
+      "label": {
+        "zh-CN": "闯关衍生奖励概率",
+        "en-US": "Challenge Derivative Bonus Chance",
+        "ja-JP": "闯关衍生奖励概率",
+        "ko-KR": "闯关衍生奖励概率"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.5
+    },
+    "CHALLENGE_TRAP_EXTRA_TURN_CHANCE": {
+      "group": "Challenge",
+      "card": "",
+      "label": {
+        "zh-CN": "闯关陷阱追加概率",
+        "en-US": "Challenge Trap Extra Turn Chance",
+        "ja-JP": "闯关陷阱追加概率",
+        "ko-KR": "闯关陷阱追加概率"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 1.0
+    },
+    "CHALLENGE_ZONE_EXPAND_RADIUS": {
+      "group": "Challenge",
+      "card": "",
+      "label": {
+        "zh-CN": "闯关区域扩张半径",
+        "en-US": "Challenge Zone Expand Radius",
+        "ja-JP": "闯关区域扩张半径",
+        "ko-KR": "闯关区域扩张半径"
+      },
+      "min": 0,
+      "max": 5,
+      "step": 1,
+      "value": 1
+    },
+    "CHALLENGE_RESTRICTION_DECAY_CHANCE": {
+      "group": "Challenge",
+      "card": "",
+      "label": {
+        "zh-CN": "闯关限制衰减概率",
+        "en-US": "Challenge Restriction Decay Chance",
+        "ja-JP": "闯关限制衰减概率",
+        "ko-KR": "闯关限制衰减概率"
+      },
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "value": 0.05
+    },
+    "CHALLENGE_ACTIVE_USE_BONUS": {
+      "group": "Challenge",
+      "card": "",
+      "label": {
+        "zh-CN": "闯关主动次数奖励",
+        "en-US": "Challenge Active Use Bonus",
+        "ja-JP": "闯关主动次数奖励",
+        "ko-KR": "闯关主动次数奖励"
+      },
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "value": 1
+    }
+  }
+}

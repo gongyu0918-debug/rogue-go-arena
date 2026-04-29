@@ -1,0 +1,1004 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rogue Go Arena Card Editor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #120d09;
+      --panel: rgba(28, 20, 14, 0.9);
+      --panel-2: rgba(39, 29, 20, 0.88);
+      --line: rgba(226, 171, 83, 0.22);
+      --line-strong: rgba(237, 191, 105, 0.52);
+      --text: #f6ead7;
+      --muted: #b9a891;
+      --gold: #f0c567;
+      --green: #78c391;
+      --red: #e07062;
+      --blue: #8fb0df;
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 18px;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 6%, rgba(219, 151, 57, 0.13), transparent 24rem),
+        radial-gradient(circle at 92% 4%, rgba(90, 121, 146, 0.12), transparent 28rem),
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 7px),
+        linear-gradient(135deg, #100a07 0%, #24150d 48%, #0f0b09 100%);
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 0 12px;
+      background: linear-gradient(180deg, rgba(81, 55, 29, 0.9), rgba(30, 22, 16, 0.96));
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    button:hover { border-color: rgba(240, 197, 103, 0.86); }
+    button:disabled { opacity: 0.46; cursor: default; }
+    button.primary {
+      background: linear-gradient(180deg, rgba(223, 170, 74, 0.96), rgba(106, 70, 27, 0.98));
+      color: #1d1308;
+      font-weight: 800;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid rgba(226, 171, 83, 0.2);
+      border-radius: 6px;
+      background: rgba(8, 10, 12, 0.78);
+      color: var(--text);
+      outline: none;
+    }
+
+    input,
+    select { min-height: 36px; padding: 0 10px; }
+    textarea { min-height: 74px; resize: vertical; padding: 9px 10px; line-height: 1.45; }
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: rgba(240, 197, 103, 0.78);
+      box-shadow: 0 0 0 2px rgba(240, 197, 103, 0.12);
+    }
+
+    input[type="checkbox"] {
+      width: auto;
+      min-height: auto;
+      accent-color: var(--gold);
+    }
+
+    input[type="range"] {
+      padding: 0;
+      accent-color: var(--gold);
+    }
+
+    .shell {
+      width: min(1380px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: end;
+      padding-bottom: 13px;
+      border-bottom: 1px solid rgba(237, 191, 105, 0.34);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(25px, 4vw, 40px);
+      line-height: 1.05;
+      color: var(--gold);
+    }
+
+    .subtitle {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(86px, auto));
+      gap: 8px;
+      align-items: center;
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .side,
+    .work {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.38);
+    }
+
+    .side {
+      position: sticky;
+      top: 14px;
+      padding: 13px;
+      display: grid;
+      gap: 13px;
+    }
+
+    .lang-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 7px;
+    }
+
+    .tab-grid {
+      display: grid;
+      gap: 7px;
+    }
+
+    .tab {
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      box-shadow: none;
+    }
+
+    .tab.active {
+      border-color: rgba(240, 197, 103, 0.86);
+      background: linear-gradient(180deg, rgba(102, 69, 34, 0.94), rgba(39, 27, 17, 0.96));
+      color: var(--gold);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .stat {
+      padding: 9px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .stat b {
+      display: block;
+      color: var(--gold);
+      font-size: 22px;
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .filters {
+      display: grid;
+      gap: 8px;
+    }
+
+    .path {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      padding-top: 11px;
+    }
+
+    .work {
+      overflow: hidden;
+      min-height: 640px;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 15px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(0,0,0,0.2);
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .section-head span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .list {
+      display: grid;
+    }
+
+    .card-row,
+    .tune-row {
+      display: grid;
+      gap: 12px;
+      padding: 14px 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.018);
+    }
+
+    .card-row {
+      grid-template-columns: minmax(200px, 0.82fr) minmax(260px, 1.2fr) minmax(220px, 0.76fr);
+    }
+
+    .tune-row {
+      grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.2fr) 104px;
+      align-items: center;
+    }
+
+    .card-row.changed,
+    .tune-row.changed {
+      background: linear-gradient(90deg, rgba(240, 197, 103, 0.1), rgba(255,255,255,0.018));
+    }
+
+    .identity {
+      display: grid;
+      grid-template-columns: 46px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+
+    .icon {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      background: rgba(0,0,0,0.3);
+      font-size: 22px;
+    }
+
+    .idline {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .idline strong {
+      font-size: 16px;
+      overflow-wrap: anywhere;
+    }
+
+    .mono {
+      color: #928472;
+      font: 12px Consolas, "Cascadia Mono", monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .checks {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .checkline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      min-height: 24px;
+    }
+
+    .pill {
+      display: inline-block;
+      width: max-content;
+      max-width: 100%;
+      padding: 3px 8px;
+      border-radius: 99px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .json-panel {
+      display: grid;
+      gap: 10px;
+      padding: 14px 15px;
+    }
+
+    .json-panel textarea {
+      min-height: 520px;
+      font: 12px/1.5 Consolas, "Cascadia Mono", monospace;
+      white-space: pre;
+      overflow: auto;
+    }
+
+    .errorbox {
+      padding: 12px 15px;
+      border-bottom: 1px solid rgba(224, 112, 98, 0.32);
+      background: rgba(224, 112, 98, 0.12);
+      color: #ffd7d0;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .empty {
+      padding: 28px 16px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      max-width: min(440px, calc(100vw - 40px));
+      padding: 12px 14px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: rgba(18, 12, 8, 0.96);
+      color: var(--text);
+      box-shadow: 0 14px 32px rgba(0,0,0,0.5);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+      z-index: 20;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1050px) {
+      .topbar,
+      .main,
+      .card-row,
+      .tune-row {
+        grid-template-columns: 1fr;
+      }
+      .side { position: static; }
+      .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 560px) {
+      body { padding: 12px; }
+      .grid2,
+      .stats,
+      .lang-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <h1>Rogue Go Arena Card Editor</h1>
+        <div class="subtitle" id="sourceLine"></div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="saveBtn" type="button"></button>
+        <button id="resetBtn" type="button"></button>
+        <button id="reloadBtn" type="button"></button>
+        <button id="exportBtn" type="button"></button>
+        <button id="applyJsonBtn" type="button"></button>
+      </div>
+    </header>
+
+    <section class="main">
+      <aside class="side">
+        <div class="lang-grid" id="langGrid"></div>
+        <div class="tab-grid" id="tabs"></div>
+        <div class="stats">
+          <div class="stat"><b id="rogueCount">0</b><span id="rogueCountLabel"></span></div>
+          <div class="stat"><b id="ultimateCount">0</b><span id="ultimateCountLabel"></span></div>
+          <div class="stat"><b id="tuningCount">0</b><span id="tuningCountLabel"></span></div>
+          <div class="stat"><b id="changedCount">0</b><span id="changedCountLabel"></span></div>
+        </div>
+        <div class="filters">
+          <input id="searchBox" type="text">
+          <label class="checkline"><input id="changedOnly" type="checkbox"><span id="changedOnlyLabel"></span></label>
+        </div>
+        <div class="path" id="pathBox"></div>
+      </aside>
+
+      <section class="work">
+        <div class="section-head">
+          <div>
+            <h2 id="sectionTitle"></h2>
+            <span id="sectionSub"></span>
+          </div>
+          <span id="saveState"></span>
+        </div>
+        <div id="errorBox"></div>
+        <div id="content"></div>
+      </section>
+    </section>
+  </main>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const localeMap = { zh: "zh-CN", en: "en-US", ja: "ja-JP", ko: "ko-KR" };
+    const langLabels = { zh: "中文", en: "English", ja: "日本語", ko: "한국어" };
+    const dict = {
+      zh: {
+        save: "保存配置", reset: "恢复基准", reload: "重新加载", export: "导出 JSON", applyJson: "应用 JSON",
+        rogue: "Rogue 卡", ultimate: "Ultimate 卡", tuning: "数值参数", json: "原始 JSON",
+        search: "搜索 ID、名称、描述、参数", changedOnly: "只看已修改", sourceBase: "当前使用基准配置",
+        sourceUser: "当前使用本机配置", rogueCount: "Rogue", ultimateCount: "Ultimate", tuningCount: "参数", changedCount: "改动",
+        name: "名称", desc: "说明", icon: "图标", uses: "使用次数", tier: "强度", category: "类别", complexity: "理解成本",
+        featured: "精选池", challenge: "闯关池", twoPlayer: "双人池", aiPool: "AI 池", challengeCategory: "闯关分类",
+        value: "数值", min: "最小", max: "最大", step: "步进", group: "分组", card: "卡牌", key: "键名",
+        saved: "已保存并重新加载", resetDone: "已恢复基准配置", jsonApplied: "JSON 已应用到表单", loadFailed: "载入失败",
+        saveFailed: "保存失败", noMatch: "没有匹配项", dirty: "已修改", base: "基准", user: "本机", active: "当前", schema: "Schema",
+        cardsSub: "编辑卡牌文本、图标、卡池和元信息", tuningSub: "编辑实际影响强度的数值参数", jsonSub: "明文配置视图，可直接粘贴完整 JSON"
+      },
+      en: {
+        save: "Save", reset: "Reset Base", reload: "Reload", export: "Export JSON", applyJson: "Apply JSON",
+        rogue: "Rogue Cards", ultimate: "Ultimate Cards", tuning: "Tuning", json: "Raw JSON",
+        search: "Search ID, name, description, tuning", changedOnly: "Changed only", sourceBase: "Using base config",
+        sourceUser: "Using local config", rogueCount: "Rogue", ultimateCount: "Ultimate", tuningCount: "Tuning", changedCount: "Changed",
+        name: "Name", desc: "Description", icon: "Icon", uses: "Uses", tier: "Tier", category: "Category", complexity: "Read Cost",
+        featured: "Featured", challenge: "Challenge Pool", twoPlayer: "Two-player Pool", aiPool: "AI Pool", challengeCategory: "Challenge Category",
+        value: "Value", min: "Min", max: "Max", step: "Step", group: "Group", card: "Card", key: "Key",
+        saved: "Saved and reloaded", resetDone: "Base config restored", jsonApplied: "JSON applied to form", loadFailed: "Load failed",
+        saveFailed: "Save failed", noMatch: "No matches", dirty: "Changed", base: "Base", user: "Local", active: "Active", schema: "Schema",
+        cardsSub: "Edit card text, icon, pools, and metadata", tuningSub: "Edit numeric values that affect card strength", jsonSub: "Plain config view; paste a complete JSON file here"
+      },
+      ja: {
+        save: "保存", reset: "基準に戻す", reload: "再読込", export: "JSON出力", applyJson: "JSON適用",
+        rogue: "Rogueカード", ultimate: "必殺カード", tuning: "調整値", json: "生JSON",
+        search: "ID、名前、説明、調整値を検索", changedOnly: "変更のみ", sourceBase: "基準設定を使用中",
+        sourceUser: "ローカル設定を使用中", rogueCount: "Rogue", ultimateCount: "必殺", tuningCount: "調整", changedCount: "変更",
+        name: "名前", desc: "説明", icon: "アイコン", uses: "使用回数", tier: "強さ", category: "カテゴリ", complexity: "理解コスト",
+        featured: "注目枠", challenge: "チャレンジ枠", twoPlayer: "二人枠", aiPool: "AI枠", challengeCategory: "チャレンジ分類",
+        value: "値", min: "最小", max: "最大", step: "刻み", group: "分類", card: "カード", key: "キー",
+        saved: "保存して再読込しました", resetDone: "基準設定に戻しました", jsonApplied: "JSONをフォームへ適用しました", loadFailed: "読込失敗",
+        saveFailed: "保存失敗", noMatch: "一致なし", dirty: "変更済み", base: "基準", user: "ローカル", active: "現在", schema: "Schema",
+        cardsSub: "カード文言、アイコン、プール、メタ情報を編集", tuningSub: "カード強度に効く数値を編集", jsonSub: "明文設定ビュー。完全なJSONを貼り付け可能"
+      },
+      ko: {
+        save: "저장", reset: "기준 복원", reload: "다시 불러오기", export: "JSON 내보내기", applyJson: "JSON 적용",
+        rogue: "Rogue 카드", ultimate: "궁극기 카드", tuning: "수치 조정", json: "원본 JSON",
+        search: "ID, 이름, 설명, 수치 검색", changedOnly: "변경만 보기", sourceBase: "기준 설정 사용 중",
+        sourceUser: "로컬 설정 사용 중", rogueCount: "Rogue", ultimateCount: "궁극기", tuningCount: "수치", changedCount: "변경",
+        name: "이름", desc: "설명", icon: "아이콘", uses: "사용 횟수", tier: "강도", category: "분류", complexity: "이해 비용",
+        featured: "추천 풀", challenge: "도전 풀", twoPlayer: "2인 풀", aiPool: "AI 풀", challengeCategory: "도전 분류",
+        value: "값", min: "최소", max: "최대", step: "단위", group: "그룹", card: "카드", key: "키",
+        saved: "저장 후 다시 불러왔습니다", resetDone: "기준 설정을 복원했습니다", jsonApplied: "JSON을 폼에 적용했습니다", loadFailed: "불러오기 실패",
+        saveFailed: "저장 실패", noMatch: "일치 항목 없음", dirty: "변경됨", base: "기준", user: "로컬", active: "현재", schema: "Schema",
+        cardsSub: "카드 문구, 아이콘, 풀, 메타 정보를 편집", tuningSub: "카드 강도에 영향을 주는 숫자 편집", jsonSub: "명시적 설정 보기. 완전한 JSON 붙여넣기 가능"
+      }
+    };
+
+    const state = {
+      lang: normalizeLang(localStorage.getItem("card_editor_lang") || localStorage.getItem("goai_lang") || navigator.language || "zh"),
+      tab: "rogue",
+      query: "",
+      changedOnly: false,
+      payload: null,
+      config: null,
+      base: null,
+      originalText: "",
+      jsonDirty: false
+    };
+
+    const els = {
+      sourceLine: document.getElementById("sourceLine"),
+      saveBtn: document.getElementById("saveBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      reloadBtn: document.getElementById("reloadBtn"),
+      exportBtn: document.getElementById("exportBtn"),
+      applyJsonBtn: document.getElementById("applyJsonBtn"),
+      langGrid: document.getElementById("langGrid"),
+      tabs: document.getElementById("tabs"),
+      searchBox: document.getElementById("searchBox"),
+      changedOnly: document.getElementById("changedOnly"),
+      changedOnlyLabel: document.getElementById("changedOnlyLabel"),
+      pathBox: document.getElementById("pathBox"),
+      sectionTitle: document.getElementById("sectionTitle"),
+      sectionSub: document.getElementById("sectionSub"),
+      saveState: document.getElementById("saveState"),
+      errorBox: document.getElementById("errorBox"),
+      content: document.getElementById("content"),
+      rogueCount: document.getElementById("rogueCount"),
+      ultimateCount: document.getElementById("ultimateCount"),
+      tuningCount: document.getElementById("tuningCount"),
+      changedCount: document.getElementById("changedCount"),
+      rogueCountLabel: document.getElementById("rogueCountLabel"),
+      ultimateCountLabel: document.getElementById("ultimateCountLabel"),
+      tuningCountLabel: document.getElementById("tuningCountLabel"),
+      changedCountLabel: document.getElementById("changedCountLabel"),
+      toast: document.getElementById("toast")
+    };
+
+    function t(key) { return dict[state.lang]?.[key] || dict.zh[key] || key; }
+    function normalizeLang(value) {
+      const raw = String(value || "").toLowerCase();
+      if (raw.startsWith("en")) return "en";
+      if (raw.startsWith("ja")) return "ja";
+      if (raw.startsWith("ko") || raw.startsWith("kr")) return "ko";
+      return "zh";
+    }
+    function locale() { return localeMap[state.lang] || "zh-CN"; }
+    function clone(value) { return JSON.parse(JSON.stringify(value)); }
+    function textOf(value) {
+      if (typeof value === "string") return value;
+      if (!value || typeof value !== "object") return "";
+      return value[locale()] || value["zh-CN"] || value["en-US"] || Object.values(value).find(v => typeof v === "string") || "";
+    }
+    function setLocalized(target, value) {
+      if (!target || typeof target !== "object") return;
+      target[locale()] = value;
+    }
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      })[char]);
+    }
+    function isChanged(path) {
+      const active = getAt(state.config, path);
+      const base = getAt(state.base, path);
+      return JSON.stringify(active) !== JSON.stringify(base);
+    }
+    function getAt(root, path) {
+      return path.reduce((value, key) => value?.[key], root);
+    }
+    function setPool(poolName, cardId, enabled) {
+      const pool = state.config.pools[poolName] || (state.config.pools[poolName] = []);
+      const idx = pool.indexOf(cardId);
+      if (enabled && idx < 0) pool.push(cardId);
+      if (!enabled && idx >= 0) pool.splice(idx, 1);
+    }
+    function poolHas(poolName, cardId) {
+      return (state.config.pools[poolName] || []).includes(cardId);
+    }
+    function changedCount() {
+      if (!state.config || !state.base) return 0;
+      let count = 0;
+      for (const mode of ["rogue", "ultimate"]) {
+        for (const id of Object.keys(state.config.cards?.[mode] || {})) {
+          if (isChanged(["cards", mode, id]) || isChanged(["meta", mode, id])) count += 1;
+        }
+      }
+      for (const key of Object.keys(state.config.tuning || {})) {
+        if (isChanged(["tuning", key])) count += 1;
+      }
+      if (isChanged(["pools"])) count += 1;
+      if (isChanged(["challenge"])) count += 1;
+      return count;
+    }
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 2300);
+    }
+    function formatNumber(value, step) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return "";
+      const decimals = Number(step) < 1 ? Math.min(4, String(step).split(".")[1]?.length || 2) : 0;
+      return decimals ? n.toFixed(decimals).replace(/\.?0+$/, "") : String(Math.round(n));
+    }
+
+    async function loadPayload() {
+      const response = await fetch("/api/card-config", { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      state.payload = await response.json();
+      state.config = clone(state.payload.config);
+      state.base = clone(state.payload.base_config);
+      state.originalText = JSON.stringify(state.config, null, 2);
+      state.jsonDirty = false;
+      render();
+    }
+
+    async function savePayload() {
+      const jsonArea = document.getElementById("jsonText");
+      if (state.tab === "json" && jsonArea && state.jsonDirty) applyJsonText();
+      const response = await fetch("/api/card-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config: state.config })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        if (result.payload) {
+          state.payload = result.payload;
+        }
+        renderErrors(result.errors || [t("saveFailed")]);
+        showToast((result.errors || [t("saveFailed")]).join("; "));
+        return;
+      }
+      state.payload = result.payload;
+      state.config = clone(result.payload.config);
+      state.base = clone(result.payload.base_config);
+      state.originalText = JSON.stringify(state.config, null, 2);
+      state.jsonDirty = false;
+      render();
+      showToast(t("saved"));
+    }
+
+    async function resetPayload() {
+      const response = await fetch("/api/card-config/reset", { method: "POST" });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        renderErrors(result.errors || [t("saveFailed")]);
+        return;
+      }
+      state.payload = result.payload;
+      state.config = clone(result.payload.config);
+      state.base = clone(result.payload.base_config);
+      state.originalText = JSON.stringify(state.config, null, 2);
+      state.jsonDirty = false;
+      render();
+      showToast(t("resetDone"));
+    }
+
+    function applyJsonText() {
+      const jsonArea = document.getElementById("jsonText");
+      if (!jsonArea) return;
+      state.config = JSON.parse(jsonArea.value);
+      state.jsonDirty = false;
+      render();
+      showToast(t("jsonApplied"));
+    }
+
+    function exportJson() {
+      const blob = new Blob([JSON.stringify(state.config, null, 2) + "\n"], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "rogue-go-arena-cards.json";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function renderChrome() {
+      document.documentElement.lang = locale();
+      els.saveBtn.textContent = t("save");
+      els.resetBtn.textContent = t("reset");
+      els.reloadBtn.textContent = t("reload");
+      els.exportBtn.textContent = t("export");
+      els.applyJsonBtn.textContent = t("applyJson");
+      els.applyJsonBtn.style.display = state.tab === "json" ? "" : "none";
+      els.searchBox.placeholder = t("search");
+      els.changedOnlyLabel.textContent = t("changedOnly");
+      els.rogueCountLabel.textContent = t("rogueCount");
+      els.ultimateCountLabel.textContent = t("ultimateCount");
+      els.tuningCountLabel.textContent = t("tuningCount");
+      els.changedCountLabel.textContent = t("changedCount");
+      const sourceText = state.payload?.source === "user" ? t("sourceUser") : t("sourceBase");
+      els.sourceLine.textContent = sourceText;
+      const paths = state.payload?.paths || {};
+      els.pathBox.innerHTML = [
+        `${t("base")}: ${escapeHtml(paths.base || "")}`,
+        `${t("user")}: ${escapeHtml(paths.user || "")}`,
+        `${t("active")}: ${escapeHtml(paths.active || "")}`,
+        `${t("schema")}: ${escapeHtml(paths.schema || "")}`,
+      ].join("<br>");
+      els.langGrid.innerHTML = Object.keys(langLabels).map(lang => (
+        `<button type="button" class="tab${state.lang === lang ? " active" : ""}" data-lang="${lang}"><span>${langLabels[lang]}</span></button>`
+      )).join("");
+      els.langGrid.querySelectorAll("button").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.lang = btn.dataset.lang;
+          localStorage.setItem("card_editor_lang", state.lang);
+          render();
+        });
+      });
+      const tabs = [
+        ["rogue", t("rogue"), Object.keys(state.config?.cards?.rogue || {}).length],
+        ["ultimate", t("ultimate"), Object.keys(state.config?.cards?.ultimate || {}).length],
+        ["tuning", t("tuning"), Object.keys(state.config?.tuning || {}).length],
+        ["json", t("json"), "{}"],
+      ];
+      els.tabs.innerHTML = tabs.map(([key, label, count]) => (
+        `<button type="button" class="tab${state.tab === key ? " active" : ""}" data-tab="${key}"><span>${label}</span><span>${count}</span></button>`
+      )).join("");
+      els.tabs.querySelectorAll("button").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.tab = btn.dataset.tab;
+          state.jsonDirty = false;
+          render();
+        });
+      });
+      els.rogueCount.textContent = Object.keys(state.config?.cards?.rogue || {}).length;
+      els.ultimateCount.textContent = Object.keys(state.config?.cards?.ultimate || {}).length;
+      els.tuningCount.textContent = Object.keys(state.config?.tuning || {}).length;
+      els.changedCount.textContent = changedCount();
+      els.saveState.textContent = changedCount() > 0 ? t("dirty") : "";
+    }
+
+    function renderErrors(errors = state.payload?.errors || []) {
+      if (!errors.length) {
+        els.errorBox.innerHTML = "";
+        return;
+      }
+      els.errorBox.innerHTML = `<div class="errorbox">${errors.map(item => `<div>${escapeHtml(item)}</div>`).join("")}</div>`;
+    }
+
+    function itemMatches(values) {
+      const query = state.query.trim().toLowerCase();
+      if (!query) return true;
+      return values.join(" ").toLowerCase().includes(query);
+    }
+
+    function renderCards(mode) {
+      const cards = state.config.cards[mode] || {};
+      const metaMap = state.config.meta?.[mode] || {};
+      const baseCards = state.base.cards?.[mode] || {};
+      const rows = Object.entries(cards).filter(([id, card]) => {
+        const changed = JSON.stringify(card) !== JSON.stringify(baseCards[id]) || isChanged(["meta", mode, id]);
+        if (state.changedOnly && !changed) return false;
+        return itemMatches([id, textOf(card.name), textOf(card.desc), metaMap[id]?.tier, metaMap[id]?.category, metaMap[id]?.complexity]);
+      });
+      els.sectionTitle.textContent = mode === "rogue" ? t("rogue") : t("ultimate");
+      els.sectionSub.textContent = t("cardsSub");
+      if (!rows.length) {
+        els.content.innerHTML = `<div class="empty">${t("noMatch")}</div>`;
+        return;
+      }
+      els.content.innerHTML = `<div class="list">${rows.map(([id, card]) => cardRow(mode, id, card)).join("")}</div>`;
+      bindCardRows(mode);
+    }
+
+    function cardRow(mode, id, card) {
+      const meta = state.config.meta?.[mode]?.[id] || {};
+      const changed = isChanged(["cards", mode, id]) || isChanged(["meta", mode, id]);
+      const category = state.config.challenge?.categories?.[id] || "";
+      return `
+        <article class="card-row${changed ? " changed" : ""}" data-id="${escapeHtml(id)}">
+          <div class="identity">
+            <div class="icon">${escapeHtml(card.icon || "?")}</div>
+            <div class="idline">
+              <strong>${escapeHtml(textOf(card.name) || id)}</strong>
+              <span class="mono">${escapeHtml(id)}</span>
+              ${changed ? `<span class="pill">${t("dirty")}</span>` : ""}
+            </div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>${t("name")}</label><input data-field="name" value="${escapeHtml(textOf(card.name))}"></div>
+            <div class="field"><label>${t("icon")}</label><input data-field="icon" value="${escapeHtml(card.icon || "")}"></div>
+            <div class="field" style="grid-column:1/-1"><label>${t("desc")}</label><textarea data-field="desc">${escapeHtml(textOf(card.desc))}</textarea></div>
+            <div class="field"><label>${t("uses")}</label><input data-field="uses" type="number" min="0" step="1" value="${card.uses ?? ""}"></div>
+            <div class="field"><label>${t("tier")}</label><input data-meta="tier" value="${escapeHtml(meta.tier || "")}"></div>
+            <div class="field"><label>${t("category")}</label><input data-meta="category" value="${escapeHtml(meta.category || "")}"></div>
+            <div class="field"><label>${t("complexity")}</label><input data-meta="complexity" value="${escapeHtml(meta.complexity || "")}"></div>
+          </div>
+          <div class="checks">
+            <label class="checkline"><input type="checkbox" data-pool="${mode === "rogue" ? "rogue_featured" : "ultimate_featured"}" ${poolHas(mode === "rogue" ? "rogue_featured" : "ultimate_featured", id) ? "checked" : ""}>${t("featured")}</label>
+            ${mode === "rogue" ? `
+              <label class="checkline"><input type="checkbox" data-pool="challenge_beta" ${poolHas("challenge_beta", id) ? "checked" : ""}>${t("challenge")}</label>
+              <label class="checkline"><input type="checkbox" data-pool="two_player_rogue" ${poolHas("two_player_rogue", id) ? "checked" : ""}>${t("twoPlayer")}</label>
+              <label class="checkline"><input type="checkbox" data-pool="ai_rogue" ${poolHas("ai_rogue", id) ? "checked" : ""}>${t("aiPool")}</label>
+              <div class="field"><label>${t("challengeCategory")}</label><select data-challenge-category>
+                <option value=""></option>
+                ${(state.config.challenge?.allowed_categories || []).map(item => `<option value="${escapeHtml(item)}" ${category === item ? "selected" : ""}>${escapeHtml(item)}</option>`).join("")}
+              </select></div>
+            ` : `
+              <label class="checkline"><input type="checkbox" data-pool="ai_ultimate" ${poolHas("ai_ultimate", id) ? "checked" : ""}>${t("aiPool")}</label>
+            `}
+          </div>
+        </article>
+      `;
+    }
+
+    function bindCardRows(mode) {
+      els.content.querySelectorAll(".card-row").forEach(row => {
+        const id = row.dataset.id;
+        const card = state.config.cards[mode][id];
+        row.querySelectorAll("[data-field]").forEach(input => {
+          input.addEventListener("input", () => {
+            const field = input.dataset.field;
+            if (field === "name" || field === "desc") {
+              if (!card[field] || typeof card[field] !== "object") card[field] = {};
+              setLocalized(card[field], input.value);
+            } else if (field === "uses") {
+              if (input.value === "") delete card.uses;
+              else card.uses = Math.max(0, Math.round(Number(input.value) || 0));
+            } else {
+              card[field] = input.value;
+            }
+            renderChrome();
+          });
+        });
+        row.querySelectorAll("[data-meta]").forEach(input => {
+          input.addEventListener("input", () => {
+            const meta = state.config.meta[mode][id] || (state.config.meta[mode][id] = {});
+            meta[input.dataset.meta] = input.value;
+            renderChrome();
+          });
+        });
+        row.querySelectorAll("[data-pool]").forEach(input => {
+          input.addEventListener("change", () => {
+            setPool(input.dataset.pool, id, input.checked);
+            renderCards(mode);
+          });
+        });
+        const category = row.querySelector("[data-challenge-category]");
+        if (category) {
+          category.addEventListener("change", () => {
+            if (!state.config.challenge.categories) state.config.challenge.categories = {};
+            if (category.value) state.config.challenge.categories[id] = category.value;
+            else delete state.config.challenge.categories[id];
+            renderCards(mode);
+          });
+        }
+      });
+    }
+
+    function renderTuning() {
+      const entries = Object.entries(state.config.tuning || {}).filter(([key, spec]) => {
+        const changed = isChanged(["tuning", key]);
+        if (state.changedOnly && !changed) return false;
+        return itemMatches([key, textOf(spec.label), spec.group, spec.card]);
+      });
+      els.sectionTitle.textContent = t("tuning");
+      els.sectionSub.textContent = t("tuningSub");
+      if (!entries.length) {
+        els.content.innerHTML = `<div class="empty">${t("noMatch")}</div>`;
+        return;
+      }
+      els.content.innerHTML = `<div class="list">${entries.map(([key, spec]) => {
+        const changed = isChanged(["tuning", key]);
+        const value = Number(spec.value);
+        return `
+          <article class="tune-row${changed ? " changed" : ""}" data-key="${escapeHtml(key)}">
+            <div>
+              <strong>${escapeHtml(textOf(spec.label) || key)}</strong>
+              <div class="mono">${escapeHtml(key)}</div>
+              <div><span class="pill">${escapeHtml(spec.group || "")}</span> ${spec.card ? `<span class="pill">${escapeHtml(spec.card)}</span>` : ""}</div>
+            </div>
+            <div class="grid2">
+              <div class="field"><label>${t("value")}</label><input data-tune="value" type="range" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${value}"></div>
+              <div class="field"><label>${t("value")}</label><input data-tune-number type="number" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${formatNumber(value, spec.step)}"></div>
+              <div class="field"><label>${t("min")}</label><input data-tune="min" type="number" step="any" value="${spec.min ?? ""}"></div>
+              <div class="field"><label>${t("max")}</label><input data-tune="max" type="number" step="any" value="${spec.max ?? ""}"></div>
+              <div class="field"><label>${t("step")}</label><input data-tune="step" type="number" step="any" value="${spec.step ?? 1}"></div>
+              <div class="field"><label>${t("group")}</label><input data-tune="group" value="${escapeHtml(spec.group || "")}"></div>
+            </div>
+            <button type="button" data-reset-tune>${t("reset")}</button>
+          </article>
+        `;
+      }).join("")}</div>`;
+      bindTuningRows();
+    }
+
+    function bindTuningRows() {
+      els.content.querySelectorAll(".tune-row").forEach(row => {
+        const key = row.dataset.key;
+        const spec = state.config.tuning[key];
+        row.querySelectorAll("[data-tune]").forEach(input => {
+          input.addEventListener("input", () => {
+            const field = input.dataset.tune;
+            if (field === "value" || field === "min" || field === "max" || field === "step") {
+              spec[field] = input.value === "" && field !== "value" ? null : Number(input.value);
+            } else {
+              spec[field] = input.value;
+            }
+            const number = row.querySelector("[data-tune-number]");
+            const range = row.querySelector('[data-tune="value"]');
+            if (field === "value" && number) number.value = formatNumber(spec.value, spec.step);
+            if (field === "value" && range) range.value = String(spec.value);
+            renderChrome();
+          });
+        });
+        const number = row.querySelector("[data-tune-number]");
+        if (number) {
+          number.addEventListener("input", () => {
+            spec.value = Number(number.value);
+            const range = row.querySelector('[data-tune="value"]');
+            if (range) range.value = String(spec.value);
+            renderChrome();
+          });
+        }
+        const reset = row.querySelector("[data-reset-tune]");
+        if (reset) {
+          reset.addEventListener("click", () => {
+            state.config.tuning[key] = clone(state.base.tuning[key]);
+            renderTuning();
+          });
+        }
+      });
+    }
+
+    function renderJson() {
+      els.sectionTitle.textContent = t("json");
+      els.sectionSub.textContent = t("jsonSub");
+      els.content.innerHTML = `
+        <div class="json-panel">
+          <textarea id="jsonText" spellcheck="false">${escapeHtml(JSON.stringify(state.config, null, 2))}</textarea>
+        </div>
+      `;
+      const area = document.getElementById("jsonText");
+      area.addEventListener("input", () => {
+        state.jsonDirty = true;
+      });
+    }
+
+    function renderContent() {
+      if (!state.config) return;
+      if (state.tab === "rogue") renderCards("rogue");
+      else if (state.tab === "ultimate") renderCards("ultimate");
+      else if (state.tab === "tuning") renderTuning();
+      else renderJson();
+    }
+
+    function render() {
+      renderChrome();
+      renderErrors();
+      renderContent();
+    }
+
+    els.searchBox.addEventListener("input", event => {
+      state.query = event.target.value;
+      renderContent();
+    });
+    els.changedOnly.addEventListener("change", event => {
+      state.changedOnly = event.target.checked;
+      renderContent();
+    });
+    els.saveBtn.addEventListener("click", () => savePayload().catch(error => showToast(error.message)));
+    els.resetBtn.addEventListener("click", () => resetPayload().catch(error => showToast(error.message)));
+    els.reloadBtn.addEventListener("click", () => loadPayload().catch(error => showToast(`${t("loadFailed")}: ${error.message}`)));
+    els.exportBtn.addEventListener("click", exportJson);
+    els.applyJsonBtn.addEventListener("click", () => {
+      try { applyJsonText(); } catch (error) { showToast(error.message); }
+    });
+
+    loadPayload().catch(error => {
+      showToast(`${t("loadFailed")}: ${error.message}`);
+    });
+  </script>
+</body>
+</html>
