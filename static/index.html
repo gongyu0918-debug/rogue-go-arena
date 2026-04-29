@@ -1321,6 +1321,9 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   min-height: 42px;
   margin-top: 4px;
 }
+.drawer-tool-section {
+  margin-top: 12px;
+}
 
 /* Color badge */
 .my-color-badge {
@@ -2809,7 +2812,6 @@ header::before { display: none; }
           <option value="ko">한국어</option>
         </select>
       </div>
-      <button class="btn-purple drawer-tool-button" id="btn-card-editor" type="button">卡牌编辑器</button>
     </div>
 
     <div class="panel-card">
@@ -2840,13 +2842,15 @@ header::before { display: none; }
         <span class="spinner"></span>AI 思考中…
       </div>
 
-      <div class="settings-divider"></div>
       <h3 class="sgf-section-title">复盘/棋谱</h3>
       <div class="sgf-row">
         <button class="btn-purple" id="btn-sgf-save">保存棋谱</button>
         <button class="btn-purple" id="btn-sgf-load">导入棋谱</button>
         <input type="file" id="sgf-file-input" accept=".sgf,.SGF">
       </div>
+      <div class="settings-divider"></div>
+      <h3 class="sgf-section-title" id="card-editor-section-title">卡牌配置</h3>
+      <button class="btn-purple drawer-tool-button" id="btn-card-editor" type="button">卡牌编辑器</button>
     </div>
 
     <!-- Info -->
@@ -4182,6 +4186,7 @@ function applyLanguage() {
   if (panelTitles[2]) panelTitles[2].textContent = ui("复盘/棋谱", "Review / SGF", "検討 / SGF", "복기 / 기보");
   if (panelTitles[3]) panelTitles[3].textContent = ui("对局信息", "Game Info", "対局情報", "대국 정보");
   if (panelTitles[4]) panelTitles[4].textContent = ui("棋谱记录", "Game Log", "棋譜記録", "기보 기록");
+  setText("#card-editor-section-title", ui("卡牌配置", "Card Config", "カード設定", "카드 설정"));
 
   const settingsLabels = Array.from(document.querySelectorAll("#settings-drawer .form-row label"))
     .filter(el => el.id !== "lang-panel-label");
