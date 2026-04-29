@@ -2628,7 +2628,7 @@ async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
     elif card_id == "quickthink" and game.current_player == game.player_color:
         game.rogue_quickthink_stage = 1
     elif card_id == "coach_mode":
-        game.rogue_uses["coach_mode"] = 1
+        game.rogue_uses.setdefault("coach_mode", 1)
 
     await send_fn({"type": "rogue_card_selected",
                    "card_id": card_id,
@@ -2718,7 +2718,7 @@ async def _apply_challenge_rogue_loadout(game: GoGame, send_fn):
         elif card_id == "quickthink" and game.current_player == game.player_color:
             game.rogue_quickthink_stage = 1
         elif card_id == "coach_mode":
-            game.rogue_uses["coach_mode"] = 1
+            game.rogue_uses.setdefault("coach_mode", 1 + _challenge_active_use_bonus(game, card_id))
 
     if engine.ready:
         await run_in_executor(engine.send_command, f"komi {game.komi}")
@@ -2931,7 +2931,7 @@ async def _apply_ai_rogue_response_effects(game: GoGame, send_fn,
                 if game.board[ny][nx] == 0
             ]
             random.shuffle(nearby)
-            changed = _spawn_bonus_points(game, nearby[:3], game.ai_color)
+            changed = _spawn_bonus_points(game, nearby[:ROGUE_SANSAN_TRAP_STONES], game.ai_color)
             if changed:
                 game.ai_rogue_sansan_trap_done = True
                 if engine.ready:
@@ -4070,7 +4070,7 @@ async def _ai_move(game: GoGame, send_fn):
         player_color = game.player_color
         nearby = [(nx, ny) for nx, ny in _adjacent8_points(coord[0], coord[1], game.size) if game.board[ny][nx] == 0]
         random.shuffle(nearby)
-        changed = _spawn_bonus_points(game, nearby[:3], player_color)
+        changed = _spawn_bonus_points(game, nearby[:ROGUE_SANSAN_TRAP_STONES], player_color)
         if changed:
             game.rogue_sansan_trap_done = True
             extra_board_change = True
