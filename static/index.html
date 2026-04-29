@@ -1316,6 +1316,11 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   margin: 2px 0 8px;
   letter-spacing: .14em;
 }
+.drawer-tool-button {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 4px;
+}
 
 /* Color badge */
 .my-color-badge {
@@ -2804,6 +2809,7 @@ header::before { display: none; }
           <option value="ko">한국어</option>
         </select>
       </div>
+      <button class="btn-purple drawer-tool-button" id="btn-card-editor" type="button">卡牌编辑器</button>
     </div>
 
     <div class="panel-card">
@@ -4181,6 +4187,8 @@ function applyLanguage() {
     .filter(el => el.id !== "lang-panel-label");
   if (settingsLabels[0]) settingsLabels[0].textContent = ui("落子模式", "Placement", "着手方式", "착수 방식");
   setText("#settings-stage-label", ui("画面尺寸", "Display Size", "画面サイズ", "화면 크기"));
+  setText("#btn-card-editor", ui("卡牌编辑器", "Card Editor", "カード編集", "카드 편집기"));
+  setTitle("#btn-card-editor", ui("打开卡牌强度编辑器", "Open Card Editor", "カード編集を開く", "카드 편집기 열기"));
   const toggleLabels = Array.from(document.querySelectorAll("#settings-drawer .toggle-label"))
     .filter(el => !el.id || !el.id.startsWith("settings-"));
   if (toggleLabels[0]) toggleLabels[0].textContent = ui("显示推荐落点", "Show Suggested Moves", "推薦着点を表示", "추천 착점 표시");
@@ -7592,6 +7600,11 @@ document.getElementById("lang-toggle").addEventListener("change", (e) => {
 
 document.getElementById("settings-language-select").addEventListener("change", (e) => {
   void setLanguage(e.target.value || "zh");
+});
+
+document.getElementById("btn-card-editor")?.addEventListener("click", () => {
+  const opened = window.open("/card-editor", "_blank");
+  if (!opened) window.location.href = "/card-editor";
 });
 
 document.getElementById("btn-pass").addEventListener("click", () => {
