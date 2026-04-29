@@ -440,6 +440,7 @@
       <aside class="side">
         <div class="lang-grid" id="langGrid"></div>
         <div class="tab-grid" id="tabs"></div>
+        <button class="tab" id="advancedJsonBtn" type="button"></button>
         <div class="stats">
           <div class="stat"><b id="rogueCount">0</b><span id="rogueCountLabel"></span></div>
           <div class="stat"><b id="ultimateCount">0</b><span id="ultimateCountLabel"></span></div>
@@ -473,7 +474,7 @@
     const langLabels = { zh: "中文", en: "English", ja: "日本語", ko: "한국어" };
     const dict = {
       zh: {
-        save: "保存配置", reset: "恢复基准", reload: "重新加载", export: "导出 JSON", applyJson: "应用 JSON",
+        save: "保存配置", reset: "恢复基准", reload: "重新加载", export: "导出 JSON", applyJson: "应用 JSON", advancedJson: "高级：明文 JSON",
         rogue: "Rogue 卡", ultimate: "Ultimate 卡", tuning: "数值参数", json: "原始 JSON",
         search: "搜索 ID、名称、描述、参数", changedOnly: "只看已修改", sourceBase: "当前使用基准配置",
         sourceUser: "当前使用本机配置", rogueCount: "Rogue", ultimateCount: "Ultimate", tuningCount: "参数", changedCount: "改动",
@@ -485,7 +486,7 @@
         cardsSub: "编辑卡牌文本、图标、卡池和元信息", tuningSub: "编辑实际影响强度的数值参数", jsonSub: "明文配置视图，可直接粘贴完整 JSON"
       },
       en: {
-        save: "Save", reset: "Reset Base", reload: "Reload", export: "Export JSON", applyJson: "Apply JSON",
+        save: "Save", reset: "Reset Base", reload: "Reload", export: "Export JSON", applyJson: "Apply JSON", advancedJson: "Advanced: Raw JSON",
         rogue: "Rogue Cards", ultimate: "Ultimate Cards", tuning: "Tuning", json: "Raw JSON",
         search: "Search ID, name, description, tuning", changedOnly: "Changed only", sourceBase: "Using base config",
         sourceUser: "Using local config", rogueCount: "Rogue", ultimateCount: "Ultimate", tuningCount: "Tuning", changedCount: "Changed",
@@ -497,7 +498,7 @@
         cardsSub: "Edit card text, icon, pools, and metadata", tuningSub: "Edit numeric values that affect card strength", jsonSub: "Plain config view; paste a complete JSON file here"
       },
       ja: {
-        save: "保存", reset: "基準に戻す", reload: "再読込", export: "JSON出力", applyJson: "JSON適用",
+        save: "保存", reset: "基準に戻す", reload: "再読込", export: "JSON出力", applyJson: "JSON適用", advancedJson: "上級：生JSON",
         rogue: "Rogueカード", ultimate: "必殺カード", tuning: "調整値", json: "生JSON",
         search: "ID、名前、説明、調整値を検索", changedOnly: "変更のみ", sourceBase: "基準設定を使用中",
         sourceUser: "ローカル設定を使用中", rogueCount: "Rogue", ultimateCount: "必殺", tuningCount: "調整", changedCount: "変更",
@@ -509,7 +510,7 @@
         cardsSub: "カード文言、アイコン、プール、メタ情報を編集", tuningSub: "カード強度に効く数値を編集", jsonSub: "明文設定ビュー。完全なJSONを貼り付け可能"
       },
       ko: {
-        save: "저장", reset: "기준 복원", reload: "다시 불러오기", export: "JSON 내보내기", applyJson: "JSON 적용",
+        save: "저장", reset: "기준 복원", reload: "다시 불러오기", export: "JSON 내보내기", applyJson: "JSON 적용", advancedJson: "고급: 원본 JSON",
         rogue: "Rogue 카드", ultimate: "궁극기 카드", tuning: "수치 조정", json: "원본 JSON",
         search: "ID, 이름, 설명, 수치 검색", changedOnly: "변경만 보기", sourceBase: "기준 설정 사용 중",
         sourceUser: "로컬 설정 사용 중", rogueCount: "Rogue", ultimateCount: "궁극기", tuningCount: "수치", changedCount: "변경",
@@ -541,6 +542,7 @@
       reloadBtn: document.getElementById("reloadBtn"),
       exportBtn: document.getElementById("exportBtn"),
       applyJsonBtn: document.getElementById("applyJsonBtn"),
+      advancedJsonBtn: document.getElementById("advancedJsonBtn"),
       langGrid: document.getElementById("langGrid"),
       tabs: document.getElementById("tabs"),
       searchBox: document.getElementById("searchBox"),
@@ -711,6 +713,8 @@
       els.exportBtn.textContent = t("export");
       els.applyJsonBtn.textContent = t("applyJson");
       els.applyJsonBtn.style.display = state.tab === "json" ? "" : "none";
+      els.advancedJsonBtn.innerHTML = `<span>${t("advancedJson")}</span><span>{}</span>`;
+      els.advancedJsonBtn.classList.toggle("active", state.tab === "json");
       els.searchBox.placeholder = t("search");
       els.changedOnlyLabel.textContent = t("changedOnly");
       els.rogueCountLabel.textContent = t("rogueCount");
@@ -740,7 +744,6 @@
         ["rogue", t("rogue"), Object.keys(state.config?.cards?.rogue || {}).length],
         ["ultimate", t("ultimate"), Object.keys(state.config?.cards?.ultimate || {}).length],
         ["tuning", t("tuning"), Object.keys(state.config?.tuning || {}).length],
-        ["json", t("json"), "{}"],
       ];
       els.tabs.innerHTML = tabs.map(([key, label, count]) => (
         `<button type="button" class="tab${state.tab === key ? " active" : ""}" data-tab="${key}"><span>${label}</span><span>${count}</span></button>`
@@ -992,6 +995,11 @@
     els.resetBtn.addEventListener("click", () => resetPayload().catch(error => showToast(error.message)));
     els.reloadBtn.addEventListener("click", () => loadPayload().catch(error => showToast(`${t("loadFailed")}: ${error.message}`)));
     els.exportBtn.addEventListener("click", exportJson);
+    els.advancedJsonBtn.addEventListener("click", () => {
+      state.tab = "json";
+      state.jsonDirty = false;
+      render();
+    });
     els.applyJsonBtn.addEventListener("click", () => {
       try { applyJsonText(); } catch (error) { showToast(error.message); }
     });
