@@ -1474,6 +1474,50 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 .overlay-modal.show .modal-content .ultimate-card:nth-child(2) { animation-delay: .05s; }
 .overlay-modal.show .modal-content .rogue-card:nth-child(3),
 .overlay-modal.show .modal-content .ultimate-card:nth-child(3) { animation-delay: .1s; }
+#card-editor-modal {
+  z-index: 2600;
+  padding: 18px;
+}
+#card-editor-modal .card-editor-shell {
+  width: min(1560px, 96vw);
+  height: min(960px, 94vh);
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  display: grid;
+  grid-template-rows: 54px minmax(0, 1fr);
+}
+.card-editor-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px 0 20px;
+  background:
+    linear-gradient(180deg, rgba(22,17,13,.92), rgba(9,9,10,.94)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a');
+  border-bottom: 1px solid rgba(229,185,83,.28);
+}
+.card-editor-modal-title {
+  color: #f4e2a3;
+  font-weight: 800;
+  letter-spacing: .05em;
+}
+#card-editor-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #101216;
+}
+#card-editor-modal .modal-close {
+  position: static;
+  width: 36px;
+  height: 36px;
+  color: #d7c7a4;
+  font-size: 1.15rem;
+}
 .modal-content {
   background:
     linear-gradient(180deg, rgba(13,11,9,.74), rgba(7,8,10,.82)),
@@ -3064,6 +3108,17 @@ header::before { display: none; }
   </div>
 </div>
 
+<!-- Card Editor Overlay -->
+<div id="card-editor-modal" class="overlay-modal">
+  <div class="modal-content card-editor-shell">
+    <div class="card-editor-modal-head">
+      <span class="card-editor-modal-title" id="card-editor-modal-title">卡牌编辑器</span>
+      <button class="modal-close" id="card-editor-modal-close" type="button" title="关闭">✕</button>
+    </div>
+    <iframe id="card-editor-frame" title="Card Editor"></iframe>
+  </div>
+</div>
+
 <!-- Rogue Card Selection Overlay -->
 <div id="rogue-overlay" class="overlay-modal">
   <div class="modal-content card-draft-modal">
@@ -4184,8 +4239,8 @@ function applyLanguage() {
   if (panelTitles[0]) panelTitles[0].textContent = ui("界面选项", "Interface", "画面設定", "화면 옵션");
   if (panelTitles[1]) panelTitles[1].textContent = ui("辅助分析", "Analysis", "補助分析", "보조 분석");
   if (panelTitles[2]) panelTitles[2].textContent = ui("复盘/棋谱", "Review / SGF", "検討 / SGF", "복기 / 기보");
-  if (panelTitles[3]) panelTitles[3].textContent = ui("对局信息", "Game Info", "対局情報", "대국 정보");
-  if (panelTitles[4]) panelTitles[4].textContent = ui("棋谱记录", "Game Log", "棋譜記録", "기보 기록");
+  if (panelTitles[4]) panelTitles[4].textContent = ui("对局信息", "Game Info", "対局情報", "대국 정보");
+  if (panelTitles[5]) panelTitles[5].textContent = ui("棋谱记录", "Game Log", "棋譜記録", "기보 기록");
   setText("#card-editor-section-title", ui("卡牌配置", "Card Config", "カード設定", "카드 설정"));
 
   const settingsLabels = Array.from(document.querySelectorAll("#settings-drawer .form-row label"))
@@ -4194,6 +4249,8 @@ function applyLanguage() {
   setText("#settings-stage-label", ui("画面尺寸", "Display Size", "画面サイズ", "화면 크기"));
   setText("#btn-card-editor", ui("卡牌编辑器", "Card Editor", "カード編集", "카드 편집기"));
   setTitle("#btn-card-editor", ui("打开卡牌强度编辑器", "Open Card Editor", "カード編集を開く", "카드 편집기 열기"));
+  setText("#card-editor-modal-title", ui("卡牌编辑器", "Card Editor", "カード編集", "카드 편집기"));
+  setTitle("#card-editor-modal-close", ui("关闭", "Close", "閉じる", "닫기"));
   const toggleLabels = Array.from(document.querySelectorAll("#settings-drawer .toggle-label"))
     .filter(el => !el.id || !el.id.startsWith("settings-"));
   if (toggleLabels[0]) toggleLabels[0].textContent = ui("显示推荐落点", "Show Suggested Moves", "推薦着点を表示", "추천 착점 표시");
@@ -7607,10 +7664,26 @@ document.getElementById("settings-language-select").addEventListener("change", (
   void setLanguage(e.target.value || "zh");
 });
 
-document.getElementById("btn-card-editor")?.addEventListener("click", () => {
-  const opened = window.open("/card-editor", "_blank");
-  if (!opened) window.location.href = "/card-editor";
-});
+function openCardEditorPanel() {
+  const modal = document.getElementById("card-editor-modal");
+  const frame = document.getElementById("card-editor-frame");
+  if (!modal || !frame) return;
+  const url = new URL("/card-editor", window.location.href);
+  url.searchParams.set("embed", "1");
+  url.searchParams.set("ts", String(Date.now()));
+  frame.src = url.href;
+  modal.classList.add("show");
+}
+
+function closeCardEditorPanel() {
+  const modal = document.getElementById("card-editor-modal");
+  const frame = document.getElementById("card-editor-frame");
+  if (modal) modal.classList.remove("show");
+  if (frame) frame.src = "about:blank";
+}
+
+document.getElementById("btn-card-editor")?.addEventListener("click", openCardEditorPanel);
+document.getElementById("card-editor-modal-close")?.addEventListener("click", closeCardEditorPanel);
 
 document.getElementById("btn-pass").addEventListener("click", () => {
   if (!twoPlayerMode && !isMyTurn) return;

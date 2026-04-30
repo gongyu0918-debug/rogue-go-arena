@@ -11,15 +11,17 @@ def create_shortcut():
         desktop = shell.SpecialFolders("Desktop")
         lnk_path = os.path.join(desktop, "GoAI 围棋AI.lnk")
 
-        exe_path  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist", "GoAI.exe")
         work_dir  = os.path.dirname(os.path.abspath(__file__))
+        exe_path = os.path.join(work_dir, "GoAI.exe")
+        if not os.path.exists(exe_path):
+            exe_path = os.path.join(work_dir, "dist", "GoAI.exe")
         icon_path = os.path.join(work_dir, "goai.ico")
 
         shortcut = shell.CreateShortCut(lnk_path)
         shortcut.Targetpath      = exe_path
         shortcut.WorkingDirectory = work_dir
         shortcut.IconLocation    = icon_path + ",0"
-        shortcut.Description     = "GoAI 围棋AI — KataGo + RTX 5090"
+        shortcut.Description     = "Rogue Go Arena - KataGo Go AI"
         shortcut.save()
         print(f"快捷方式已创建: {lnk_path}")
         return True

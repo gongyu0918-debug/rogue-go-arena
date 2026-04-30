@@ -24,7 +24,7 @@ from urllib.parse import urlencode
 SERVER_PORT = 8000
 LOOPBACK_HOST = "127.0.0.1"
 SERVER_URL = f"http://{LOOPBACK_HOST}:{SERVER_PORT}"
-EXPECTED_SERVER_REV = "20260424-client-shell-rogue"
+EXPECTED_SERVER_REV = "20260430-card-editor-shell"
 NATIVE_WINDOW_SIZE = "1500,1000"
 EDGE_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "GoAI" / "edge-app-profile"
 WEBVIEW_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "GoAI" / "webview-profile"

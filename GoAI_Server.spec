@@ -5,7 +5,10 @@ a = Analysis(
     ['server.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ('app/data/cards.json', 'app/data'),
+        ('app/data/cards.schema.json', 'app/data'),
+    ],
     hiddenimports=[
         'uvicorn',
         'uvicorn.logging',
