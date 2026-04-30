@@ -24,7 +24,7 @@ def _local_card_config_path() -> Path:
         return Path(explicit)
     local_appdata = os.environ.get("LOCALAPPDATA")
     if local_appdata:
-        return Path(local_appdata) / "GoAI" / "cards.json"
+        return Path(local_appdata) / "rogue-go-arena" / "cards.json"
     return Path.home() / ".rogue-go-arena" / "cards.json"
 
 

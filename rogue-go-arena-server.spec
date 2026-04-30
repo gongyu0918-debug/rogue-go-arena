@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller spec for GoAI Server (FastAPI + uvicorn)
+# PyInstaller spec for rogue-go-arena server (FastAPI + uvicorn)
 
 a = Analysis(
     ['server.py'],
@@ -56,7 +56,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='GoAI_Server',
+    name='rogue-go-arena-server',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -67,7 +67,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['goai.ico'],
+    icon=['rogue-go-arena.ico'],
 )
 
 coll = COLLECT(
@@ -77,5 +77,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='GoAI_Server',
+    name='rogue-go-arena-server',
 )

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>GoAI | Rogue Go Arena</title>
-<link rel="icon" type="image/png" href="assets/goai-favicon.png?v=20260423b">
+<title>rogue-go-arena</title>
+<link rel="icon" type="image/png" href="assets/rogue-go-arena-favicon.png?v=20260430a">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -2156,7 +2156,7 @@ header::before { display: none; }
   background: rgba(255,232,176,.045);
 }
 .client-command-deck {
-  width: min(var(--goai-stage-width, 1180px), calc(100% - 52px));
+  width: min(var(--arena-stage-width, 1180px), calc(100% - 52px));
   min-height: 54px;
   margin: 10px auto 0;
   position: relative;
@@ -2289,7 +2289,7 @@ header::before { display: none; }
   padding: clamp(6px, .8vh, 12px) 0 18px;
 }
 #board-container {
-  width: var(--goai-stage-width, min(82vw, 1600px));
+  width: var(--arena-stage-width, min(82vw, 1600px));
   flex: 0 0 auto;
   padding: var(--stage-pad-top, 6.8%) var(--stage-pad-right, 14%) var(--stage-pad-bottom, 11%) var(--stage-pad-left, 14%);
   isolation: isolate;
@@ -2633,7 +2633,7 @@ header::before { display: none; }
     padding: 0 9px;
   }
   #board-container {
-    width: min(var(--goai-stage-width, 100%), calc(100vw - 20px));
+    width: min(var(--arena-stage-width, 100%), calc(100vw - 20px));
   }
   .board-toolbar {
     width: calc(100vw - 28px);
@@ -2679,7 +2679,7 @@ header::before { display: none; }
   <div id="header-main">
     <div id="status-dot" title="Connecting..." aria-label="Connecting..."></div>
     <div class="title-stack">
-      <span class="brand-kicker">GOAI</span>
+      <span class="brand-kicker">rogue-go-arena</span>
       <h1>围棋对弈场</h1>
       <span id="status-text">连接中…</span>
     </div>
@@ -2688,9 +2688,9 @@ header::before { display: none; }
   </div>
 </header>
 
-<section id="client-command-deck" class="client-command-deck" aria-label="GoAI client command deck">
+<section id="client-command-deck" class="client-command-deck" aria-label="rogue-go-arena client command deck">
   <div class="client-identity">
-    <span class="client-title" id="client-title">GoAI</span>
+    <span class="client-title" id="client-title">rogue-go-arena</span>
     <span class="client-kicker" id="client-kicker">ROGUE</span>
   </div>
   <div id="top-winrate-slot" class="top-winrate-slot active">
@@ -3214,7 +3214,7 @@ function normalizeLang(lang) {
 }
 
 const urlLang = new URLSearchParams(window.location.search).get("lang");
-let currentLang = normalizeLang(urlLang || localStorage.getItem("goai_lang") || navigator.language || "zh");
+let currentLang = normalizeLang(urlLang || localStorage.getItem("rogue_go_arena_lang") || navigator.language || "zh");
 const LOCALE_FILES = {
   zh: "zh-CN.json",
   en: "en-US.json",
@@ -3308,8 +3308,8 @@ function rankGroupLabel(label) {
 }
 
 const COLS = "ABCDEFGHJKLMNOPQRST".split("");
-let gameId = localStorage.getItem("goai_game_id") || Math.random().toString(36).slice(2);
-localStorage.setItem("goai_game_id", gameId);
+let gameId = localStorage.getItem("rogue_go_arena_game_id") || Math.random().toString(36).slice(2);
+localStorage.setItem("rogue_go_arena_game_id", gameId);
 let ws = null;
 let intentionalClose = false;
 let gameState = null;
@@ -3326,7 +3326,7 @@ let showHints = false;
 let showTerritory = true;
 let showMoveNumbers = false;
 let startMode = "normal";
-let stagePreset = localStorage.getItem("goai_stage_preset") || "auto";
+let stagePreset = localStorage.getItem("rogue_go_arena_stage_preset") || "auto";
 let analysis = { winrate: 0.5, score: 0, top_moves: [], ownership: [], analysis_ready: false };
 let analysisReady = false;
 let winrateHistory = [];
@@ -3426,7 +3426,7 @@ let aiRogueSeals = [];
 async function setLanguage(lang) {
   closeWoodSelectMenu();
   currentLang = normalizeLang(lang);
-  localStorage.setItem("goai_lang", currentLang);
+  localStorage.setItem("rogue_go_arena_lang", currentLang);
   await ensureLocale(currentLang);
   applyLanguage();
 }
@@ -3942,7 +3942,7 @@ function syncClientShell() {
   const hudCard = document.getElementById("hud-card");
   const hudEngine = document.getElementById("hud-engine");
   const connected = !!ws && ws.readyState === WebSocket.OPEN;
-  const net = window.__goaiNetworkStatus || {};
+  const net = window.__rogueGoArenaNetworkStatus || {};
   const modeLabel = currentModeLabel();
   const turnLabel = currentTurnLabel();
   const moveText = String(gameState?.move_number || 0);
@@ -4170,7 +4170,7 @@ function rebuildCurveLegend() {
 
 function applyLanguage() {
   document.documentElement.lang = { zh: "zh-CN", en: "en", ja: "ja", ko: "ko" }[currentLang] || "zh-CN";
-  document.title = ui("GoAI | 围棋对弈场", "GoAI | Rogue Go Arena", "GoAI | 囲碁対局場", "GoAI | 바둑 대국장");
+  document.title = ui("rogue-go-arena", "rogue-go-arena", "rogue-go-arena", "rogue-go-arena");
 
   ensureLanguageControl();
   rebuildCurveLegend();
@@ -4185,7 +4185,7 @@ function applyLanguage() {
 
   setText("#header-main h1", ui("围棋对弈场", "Rogue Go Arena", "囲碁対局場", "바둑 대국장"));
   setText("#client-kicker", ui("ROGUE", "ROGUE"));
-  setText("#client-title", ui("GoAI", "GoAI"));
+  setText("#client-title", ui("rogue-go-arena", "rogue-go-arena", "rogue-go-arena", "rogue-go-arena"));
   setText("#quick-rogue", ui("Rogue", "Rogue"));
   setText("#quick-setup", ui("开始", "Start"));
   setText("#quick-fullscreen", ui("全屏", "Fullscreen"));
@@ -5138,7 +5138,7 @@ function exportSgf() {
   const km = reviewMode ? reviewKomi : (gameState?.komi || 7.5);
   const dt = new Date().toISOString().slice(0, 10);
 
-  let sgf = `(;GM[1]FF[4]CA[UTF-8]AP[GoAI:1.0]SZ[${sz}]KM[${km}]DT[${dt}]\n`;
+  let sgf = `(;GM[1]FF[4]CA[UTF-8]AP[rogue-go-arena:1.0]SZ[${sz}]KM[${km}]DT[${dt}]\n`;
   for (const m of moves) {
     const gtp = m.gtp || m[1];
     const color = m.color || m[0];
@@ -5156,7 +5156,7 @@ function exportSgf() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `goai_${dt}.sgf`;
+  a.download = `rogue-go-arena_${dt}.sgf`;
   a.click();
   URL.revokeObjectURL(url);
   logI18n("棋谱已保存", "SGF saved", "棋譜を保存しました", "기보 저장됨");
@@ -5316,7 +5316,7 @@ document.getElementById("sel-time-mode").addEventListener("change", (e) => {
 
 document.getElementById("sel-stage-preset").addEventListener("change", (e) => {
   stagePreset = e.target.value || "auto";
-  localStorage.setItem("goai_stage_preset", stagePreset);
+  localStorage.setItem("rogue_go_arena_stage_preset", stagePreset);
   _boardCacheParams = "";
   _offScreenBoard = null;
   resizeBoard(reviewMode ? reviewBoardSize : (gameState?.size || boardSize || 19));
@@ -5356,7 +5356,7 @@ function syncBoardFitFrame() {
 }
 
 function updateNetworkBadge(status) {
-  window.__goaiNetworkStatus = status || null;
+  window.__rogueGoArenaNetworkStatus = status || null;
 }
 
 async function refreshNetworkInfo() {
@@ -5440,7 +5440,7 @@ function resizeBoard(size) {
     syncBoardFitFrame();
     return;
   }
-  document.documentElement.style.setProperty("--goai-stage-width", `${stageWidth}px`);
+  document.documentElement.style.setProperty("--arena-stage-width", `${stageWidth}px`);
   if (boardContainer) {
     boardContainer.style.width = `${stageWidth}px`;
     boardContainer.style.setProperty("--stage-pad-left", `${boardLeft}px`);
@@ -7618,7 +7618,7 @@ document.getElementById("btn-new").addEventListener("click", () => {
   stopTimerTick();
 
   gameId = Math.random().toString(36).slice(2);
-  localStorage.setItem("goai_game_id", gameId);
+  localStorage.setItem("rogue_go_arena_game_id", gameId);
 
   resetRogueState();
   intentionalClose = true;

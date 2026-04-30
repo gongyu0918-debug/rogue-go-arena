@@ -1,5 +1,5 @@
 """
-GoAI setup helper.
+rogue-go-arena setup helper.
 
 Downloads the current Windows KataGo OpenCL + CPU binaries used by this
 project, plus a default neural net model when the local runtime files are
@@ -45,7 +45,7 @@ MODEL_URL_SMALL = (
 )
 MODEL_FILE = KATAGO_DIR / "model.bin.gz"
 
-MINIMAL_OPENCL_CONFIG = """# GoAI generated fallback KataGo config
+MINIMAL_OPENCL_CONFIG = """# rogue-go-arena generated fallback KataGo config
 numSearchThreads = 6
 maxVisits = 800
 reportAnalysisWinratesAs = BLACK
@@ -53,7 +53,7 @@ logAllGTPCommunication = false
 logSearchInfo = false
 """
 
-MINIMAL_CPU_CONFIG = """# GoAI generated fallback KataGo CPU config
+MINIMAL_CPU_CONFIG = """# rogue-go-arena generated fallback KataGo CPU config
 numSearchThreads = 4
 maxVisits = 400
 reportAnalysisWinratesAs = BLACK
@@ -229,7 +229,7 @@ def check_dependencies() -> None:
 
 def main() -> None:
     print("=" * 60)
-    print("  GoAI 安装向导 — KataGo OpenCL / CPU")
+    print("  rogue-go-arena 安装向导 — KataGo OpenCL / CPU")
     print("=" * 60)
 
     check_dependencies()

@@ -1,5 +1,5 @@
 """
-GoAI Server - KataGo-powered Go AI with FastAPI WebSocket backend
+rogue-go-arena server - KataGo-powered board game with FastAPI WebSocket backend
 """
 import argparse
 import asyncio
@@ -175,10 +175,10 @@ args, _ = parser.parse_known_args()
 NO_KATAGO = args.no_katago
 
 if getattr(sys, 'frozen', False):
-    BASE_DIR = Path(sys.executable).parent.parent  # GoAI_Server/GoAI_Server.exe -> GoAI/
+    BASE_DIR = Path(sys.executable).parent.parent
 else:
     BASE_DIR = Path(__file__).parent
-USER_DATA_DIR = Path(os.environ.get("LOCALAPPDATA", str(BASE_DIR))) / "GoAI"
+USER_DATA_DIR = Path(os.environ.get("LOCALAPPDATA", str(BASE_DIR))) / "rogue-go-arena"
 USER_KATAGO_DIR = USER_DATA_DIR / "katago"
 USER_KATAGO_HOME = USER_KATAGO_DIR / "KataGoData"
 USER_RUNTIME_CONFIG_DIR = USER_KATAGO_DIR / "runtime"
@@ -459,7 +459,7 @@ def generate_sgf(game: GoGame) -> str:
     """Generate SGF string from a GoGame."""
     import datetime
     dt = datetime.date.today().isoformat()
-    header = (f"(;GM[1]FF[4]CA[UTF-8]AP[GoAI:1.0]"
+    header = (f"(;GM[1]FF[4]CA[UTF-8]AP[rogue-go-arena:1.0]"
               f"SZ[{game.size}]KM[{game.komi}]"
               f"DT[{dt}]PB[{('Player' if game.player_color == 'B' else 'AI')}]"
               f"PW[{('Player' if game.player_color == 'W' else 'AI')}]"
@@ -777,7 +777,7 @@ async def export_sgf(game_id: str):
     return Response(
         content=sgf,
         media_type="application/x-go-sgf",
-        headers={"Content-Disposition": f'attachment; filename="goai_{game_id}.sgf"'},
+        headers={"Content-Disposition": f'attachment; filename="rogue-go-arena_{game_id}.sgf"'},
     )
 
 

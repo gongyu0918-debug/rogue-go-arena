@@ -1,4 +1,4 @@
-# GoAI UI Optimization Walkthrough
+# rogue-go-arena UI Optimization Walkthrough
 
 ## 1. Web Frontend (HTML/CSS) Enhancements
 **File Modified**: `static/index.html`
@@ -13,9 +13,9 @@
 
 ## 3. Executable Rebuild
 **Action Taken**: 
-Ran `pyinstaller GoAI.spec` to successfully package the newly optimized `launcher.py` logic.
-- **Output Generated**: The updated, standalone Windows executable is now available at `dist/GoAI.exe`. 
+Ran `pyinstaller rogue-go-arena.spec` to successfully package the newly optimized `launcher.py` logic.
+- **Output Generated**: The updated, standalone Windows executable is now available at `dist/rogue-go-arena.exe`. 
 
 ## Next Steps
-- **Manual Verification (Requested)**: Please run `dist\GoAI.exe` on your desktop to evaluate the modern aesthetic of the launcher window.
+- **Manual Verification (Requested)**: Please run `dist\rogue-go-arena.exe` on your desktop to evaluate the modern aesthetic of the launcher window.
 - **Browser Check**: Click 'Start' in the launcher to verify the web interface rendering in your browser (preferably test both full screen and mobile simulated views).

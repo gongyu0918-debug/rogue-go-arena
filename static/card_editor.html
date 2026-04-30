@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Rogue Go Arena Card Editor</title>
+  <title>rogue-go-arena Card Editor</title>
   <style>
     :root {
       color-scheme: dark;
@@ -424,7 +424,7 @@
   <main class="shell">
     <header class="topbar">
       <div>
-        <h1>Rogue Go Arena Card Editor</h1>
+        <h1>rogue-go-arena Card Editor</h1>
         <div class="subtitle" id="sourceLine"></div>
       </div>
       <div class="actions">
@@ -524,7 +524,7 @@
     };
 
     const state = {
-      lang: normalizeLang(localStorage.getItem("card_editor_lang") || localStorage.getItem("goai_lang") || navigator.language || "zh"),
+      lang: normalizeLang(localStorage.getItem("card_editor_lang") || localStorage.getItem("rogue_go_arena_lang") || navigator.language || "zh"),
       tab: "rogue",
       query: "",
       changedOnly: false,

@@ -10,9 +10,9 @@ This file only documents third-party components and their attribution / licensin
 - Project: `KataGo`
 - Upstream: [https://github.com/lightvector/KataGo](https://github.com/lightvector/KataGo)
 - Author: David J Wu (`lightvector`) and contributors
-- Purpose in this project: Go AI engine backend
+- Purpose in this project: KataGo engine backend
 
-The GoAI project is not affiliated with or endorsed by the KataGo project.
+The rogue-go-arena project is not affiliated with or endorsed by the KataGo project.
 
 The official KataGo repository states that, aside from certain bundled external libraries and noted exceptions, the remaining repository content is available under an MIT-style license. A copy of the upstream license text used for attribution in this repository is included below.
 

@@ -1,19 +1,19 @@
 @echo off
 chcp 65001 >nul
 setlocal
-title GoAI - 围棋AI
+title rogue-go-arena
 
 cd /d "%~dp0"
 
 echo ============================================================
-echo   GoAI 围棋 AI — 当前源码启动器
+echo   rogue-go-arena — 当前源码启动器
 echo ============================================================
 echo.
 
 set "ENGINE_OPENCL=katago\katago_opencl.exe"
 set "ENGINE_CPU=katago\katago_cpu.exe"
 set "MODEL_FILE=katago\model.bin.gz"
-set "SERVER_EXE=GoAI_Server\GoAI_Server.exe"
+set "SERVER_EXE=rogue-go-arena-server\rogue-go-arena-server.exe"
 
 if not exist "%MODEL_FILE%" (
     echo [!] 模型不存在，正在运行 setup.py ...
@@ -37,7 +37,7 @@ if not exist "%ENGINE_OPENCL%" if not exist "%ENGINE_CPU%" (
     exit /b 1
 )
 
-echo 启动 GoAI 服务...
+echo 启动 rogue-go-arena 服务...
 if exist "%SERVER_EXE%" (
     echo [i] 使用已打包服务端: %SERVER_EXE%
 ) else (

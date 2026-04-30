@@ -1,8 +1,8 @@
-; GoAI Installer - Inno Setup Script
+; rogue-go-arena Installer - Inno Setup Script
 
-#define MyAppName "GoAI"
-#define MyAppPublisher "GoAI"
-#define MyAppExeName "GoAI.exe"
+#define MyAppName "rogue-go-arena"
+#define MyAppPublisher "rogue-go-arena"
+#define MyAppExeName "rogue-go-arena.exe"
 #ifndef MyAppVersion
   #define MyAppVersion GetDateTimeString('yyyy.mm.dd', '-', ':')
 #endif
@@ -26,8 +26,8 @@ UsePreviousAppDir=no
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir={#ReleaseDir}
-OutputBaseFilename=GoAI_Setup_{#MyAppVersion}
-SetupIconFile={#RepoRoot}\goai.ico
+OutputBaseFilename=rogue-go-arena_Setup_{#MyAppVersion}
+SetupIconFile={#RepoRoot}\rogue-go-arena.ico
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -37,19 +37,119 @@ PrivilegesRequiredOverridesAllowed=dialog
 [Languages]
 Name: "chinesesimplified"; MessagesFile: "{#RepoRoot}\ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
+Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
+[CustomMessages]
+chinesesimplified.ReadmeIcon=使用说明
+english.ReadmeIcon=README
+japanese.ReadmeIcon=README
+korean.ReadmeIcon=README
+chinesesimplified.RunReadme=查看使用说明
+english.RunReadme=View README
+japanese.RunReadme=README を表示
+korean.RunReadme=README 보기
+chinesesimplified.RunApp=启动 rogue-go-arena
+english.RunApp=Launch rogue-go-arena
+japanese.RunApp=rogue-go-arena を起動
+korean.RunApp=rogue-go-arena 실행
+chinesesimplified.GpuHeader=rogue-go-arena 环境检测
+english.GpuHeader=rogue-go-arena environment check
+japanese.GpuHeader=rogue-go-arena 環境チェック
+korean.GpuHeader=rogue-go-arena 환경 검사
+chinesesimplified.GpuMissing=⚠ 未检测到 NVIDIA 显卡
+english.GpuMissing=⚠ NVIDIA GPU was not detected
+japanese.GpuMissing=⚠ NVIDIA GPU が検出されませんでした
+korean.GpuMissing=⚠ NVIDIA GPU를 감지하지 못했습니다
+chinesesimplified.CpuFallback=不用担心，内置 CPU 引擎仍可运行：
+english.CpuFallback=The built-in CPU engine can still run:
+japanese.CpuFallback=内蔵 CPU エンジンでも実行できます:
+korean.CpuFallback=내장 CPU 엔진으로도 실행할 수 있습니다:
+chinesesimplified.KyuPlayable=✓ 级位对弈 (18级~1级) — 流畅
+english.KyuPlayable=✓ Kyu games (18k to 1k) — smooth
+japanese.KyuPlayable=✓ 級位対局 (18級〜1級) — 快適
+korean.KyuPlayable=✓ 급수 대국 (18급~1급) — 원활
+chinesesimplified.RoguePlayable=✓ Rogue 模式 — 流畅
+english.RoguePlayable=✓ Rogue mode — smooth
+japanese.RoguePlayable=✓ Rogue モード — 快適
+korean.RoguePlayable=✓ Rogue 모드 — 원활
+chinesesimplified.UltimatePlayable=✓ Ultimate 模式 — 流畅
+english.UltimatePlayable=✓ Ultimate mode — smooth
+japanese.UltimatePlayable=✓ Ultimate モード — 快適
+korean.UltimatePlayable=✓ Ultimate 모드 — 원활
+chinesesimplified.DanSlow=⚠ 段位对弈 — 推理较慢
+english.DanSlow=⚠ Dan games — slower analysis
+japanese.DanSlow=⚠ 段位対局 — 解析は遅め
+korean.DanSlow=⚠ 단위 대국 — 분석이 느릴 수 있음
+chinesesimplified.CheckDriver=如有 NVIDIA 显卡请确认已安装驱动。
+english.CheckDriver=If this machine has an NVIDIA GPU, check that the driver is installed.
+japanese.CheckDriver=NVIDIA GPU がある場合は、ドライバーのインストールを確認してください。
+korean.CheckDriver=NVIDIA GPU가 있다면 드라이버 설치 상태를 확인하세요.
+chinesesimplified.ContinueInstall=是否继续安装？
+english.ContinueInstall=Continue installation?
+japanese.ContinueInstall=インストールを続行しますか？
+korean.ContinueInstall=설치를 계속할까요?
+chinesesimplified.GpuLabel=✓ 显卡: 
+english.GpuLabel=✓ GPU: 
+japanese.GpuLabel=✓ GPU: 
+korean.GpuLabel=✓ GPU: 
+chinesesimplified.DriverOld=✗ 驱动: 
+english.DriverOld=✗ Driver: 
+japanese.DriverOld=✗ ドライバー: 
+korean.DriverOld=✗ 드라이버: 
+chinesesimplified.DriverOldNote=  (版本过旧!)
+english.DriverOldNote=  (too old!)
+japanese.DriverOldNote=  (古すぎます)
+korean.DriverOldNote=  (너무 오래됨)
+chinesesimplified.DriverNeed=GPU 加速需要驱动版本 ≥ 527.41
+english.DriverNeed=GPU acceleration requires driver version 527.41 or newer
+japanese.DriverNeed=GPU アクセラレーションには 527.41 以上のドライバーが必要です
+korean.DriverNeed=GPU 가속에는 527.41 이상의 드라이버가 필요합니다
+chinesesimplified.DriverUpdate=请前往 https://www.nvidia.com/drivers 更新驱动
+english.DriverUpdate=Update the driver at https://www.nvidia.com/drivers
+japanese.DriverUpdate=https://www.nvidia.com/drivers からドライバーを更新してください
+korean.DriverUpdate=https://www.nvidia.com/drivers 에서 드라이버를 업데이트하세요
+chinesesimplified.CpuStillWorks=即使不更新，仍可使用内置 CPU 引擎对弈。
+english.CpuStillWorks=You can still play with the built-in CPU engine.
+japanese.CpuStillWorks=更新しなくても内蔵 CPU エンジンで対局できます。
+korean.CpuStillWorks=업데이트하지 않아도 내장 CPU 엔진으로 대국할 수 있습니다.
+chinesesimplified.DriverWarn=⚠ 驱动: 
+english.DriverWarn=⚠ Driver: 
+japanese.DriverWarn=⚠ ドライバー: 
+korean.DriverWarn=⚠ 드라이버: 
+chinesesimplified.DriverWarnNote=  (建议更新)
+english.DriverWarnNote=  (update recommended)
+japanese.DriverWarnNote=  (更新推奨)
+korean.DriverWarnNote=  (업데이트 권장)
+chinesesimplified.DriverRecommend=建议更新至 ≥ 528.00 以获得最佳 CUDA 12 支持
+english.DriverRecommend=Driver 528.00 or newer is recommended for best CUDA 12 support
+japanese.DriverRecommend=CUDA 12 を安定して使うには 528.00 以上を推奨します
+korean.DriverRecommend=CUDA 12 지원을 위해 528.00 이상을 권장합니다
+chinesesimplified.DriverOk=✓ 驱动: 
+english.DriverOk=✓ Driver: 
+japanese.DriverOk=✓ ドライバー: 
+korean.DriverOk=✓ 드라이버: 
+chinesesimplified.CudaOk=✓ CUDA 支持: 正常
+english.CudaOk=✓ CUDA support: ready
+japanese.CudaOk=✓ CUDA サポート: 正常
+korean.CudaOk=✓ CUDA 지원: 정상
+chinesesimplified.SystemReady=您的系统满足运行要求!
+english.SystemReady=Your system meets the runtime requirements.
+japanese.SystemReady=このシステムは実行要件を満たしています。
+korean.SystemReady=시스템이 실행 요구 사항을 충족합니다.
+
 [Files]
-Source: "{#DistDir}\GoAI.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#DistDir}\GoAI_Server\*"; DestDir: "{app}\GoAI_Server"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#DistDir}\rogue-go-arena.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#DistDir}\rogue-go-arena-server\*"; DestDir: "{app}\rogue-go-arena-server"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#RepoRoot}\app\*"; DestDir: "{app}\app"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
 Source: "{#RepoRoot}\static\*"; DestDir: "{app}\static"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "assets\icons\cards-tech-featured\*,assets\icons\cards-tech\*-sheet.png,assets\icons\cards-tech\featured-card-sheet-tech-v1.png,assets\icons\toolbar-tech\toolbar-sheet-tech-*.png,assets\textures\board-tech-classic-v1.png,assets\textures\stone-materials-tech-v2.png"
 Source: "{#RepoRoot}\katago\*"; DestDir: "{app}\katago"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "katago.exe.new,model.bin.gz,kata_log.txt"
 Source: "{#RepoRoot}\server.py"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#RepoRoot}\goai.ico"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#RepoRoot}\goai.png"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RepoRoot}\rogue-go-arena.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RepoRoot}\rogue-go-arena.png"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\launcher_bg_app.png"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\README.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
 Source: "{#RepoRoot}\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
@@ -72,14 +172,14 @@ Type: files; Name: "{app}\static\assets\textures\board-tech-classic-v1.png"
 Type: files; Name: "{app}\static\assets\textures\stone-materials-tech-v2.png"
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\goai.ico"
-Name: "{group}\使用说明"; Filename: "{app}\README.md"
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\rogue-go-arena.ico"
+Name: "{group}\{cm:ReadmeIcon}"; Filename: "{app}\README.md"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\goai.ico"; Tasks: desktopicon
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\rogue-go-arena.ico"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\README.md"; Description: "查看使用说明"; Flags: nowait postinstall shellexec skipifsilent unchecked
-Filename: "{app}\{#MyAppExeName}"; Description: "启动 GoAI"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\README.md"; Description: "{cm:RunReadme}"; Flags: nowait postinstall shellexec skipifsilent unchecked
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:RunApp}"; Flags: nowait postinstall skipifsilent
 
 [Code]
 var
@@ -124,6 +224,18 @@ begin
   end;
 end;
 
+function T(const Key: String): String;
+begin
+  Result := ExpandConstant('{cm:' + Key + '}');
+end;
+
+function GpuHeaderBox(): String;
+begin
+  Result := '╔══════════════════════════════╗' + #13#10 +
+            '║    ' + T('GpuHeader') + #13#10 +
+            '╚══════════════════════════════╝';
+end;
+
 function RunPowerShellCapture(const Command: String; const TmpFile: String): Boolean;
 var
   ResultCode: Integer;
@@ -146,7 +258,7 @@ var
   PipePos: Integer;
 begin
   Result := False;
-  TmpFile := ExpandConstant('{tmp}\goai_gpu_ps.txt');
+  TmpFile := ExpandConstant('{tmp}\rogue_go_arena_gpu_ps.txt');
   if not RunPowerShellCapture(
     '$gpu = Get-CimInstance Win32_VideoController | Where-Object { $_.Name -match ''NVIDIA'' } | ' +
     'Select-Object -First 1 Name,DriverVersion; ' +
@@ -185,7 +297,7 @@ begin
   GpuName := '';
   DriverVersion := '';
   DriverVersionRaw := '';
-  TmpFile := ExpandConstant('{tmp}\goai_gpu.txt');
+  TmpFile := ExpandConstant('{tmp}\rogue_go_arena_gpu.txt');
 
   NvSmiPath := ExpandConstant('{commonpf}\NVIDIA Corporation\NVSMI\nvidia-smi.exe');
   if not FileExists(NvSmiPath) then
@@ -251,17 +363,15 @@ begin
 
   if not GpuDetected then
   begin
-    Msg := '╔══════════════════════════════╗' + #13#10 +
-           '║    GoAI 环境检测             ║' + #13#10 +
-           '╚══════════════════════════════╝' + #13#10#13#10 +
-           '⚠ 未检测到 NVIDIA 显卡' + #13#10#13#10 +
-           '不用担心! GoAI 内置了 CPU 引擎:' + #13#10 +
-           '  ✓ 级位对弈 (18级~1级) — 流畅' + #13#10 +
-           '  ✓ Rogue 模式 — 流畅' + #13#10 +
-           '  ✓ 大招模式 — 流畅' + #13#10 +
-           '  ⚠ 段位对弈 — 推理较慢' + #13#10#13#10 +
-           '如有 NVIDIA 显卡请确认已安装驱动。' + #13#10#13#10 +
-           '是否继续安装?';
+    Msg := GpuHeaderBox() + #13#10#13#10 +
+           T('GpuMissing') + #13#10#13#10 +
+           T('CpuFallback') + #13#10 +
+           '  ' + T('KyuPlayable') + #13#10 +
+           '  ' + T('RoguePlayable') + #13#10 +
+           '  ' + T('UltimatePlayable') + #13#10 +
+           '  ' + T('DanSlow') + #13#10#13#10 +
+           T('CheckDriver') + #13#10#13#10 +
+           T('ContinueInstall');
     Result := (MsgBox(Msg, mbConfirmation, MB_YESNO) = IDYES);
   end else
   begin
@@ -269,35 +379,29 @@ begin
 
     if DriverMajor < 520 then
     begin
-      Msg := '╔══════════════════════════════╗' + #13#10 +
-             '║    GoAI 环境检测             ║' + #13#10 +
-             '╚══════════════════════════════╝' + #13#10#13#10 +
-             '✓ 显卡: ' + GpuName + #13#10 +
-             '✗ 驱动: ' + DriverVersion + '  (版本过旧!)' + #13#10#13#10 +
-             'GoAI 的 GPU 加速需要驱动版本 ≥ 527.41' + #13#10 +
-             '请前往 https://www.nvidia.com/drivers 更新驱动' + #13#10#13#10 +
-             '即使不更新, 仍可使用内置 CPU 引擎对弈。' + #13#10#13#10 +
-             '是否继续安装?';
+      Msg := GpuHeaderBox() + #13#10#13#10 +
+             T('GpuLabel') + GpuName + #13#10 +
+             T('DriverOld') + DriverVersion + T('DriverOldNote') + #13#10#13#10 +
+             T('DriverNeed') + #13#10 +
+             T('DriverUpdate') + #13#10#13#10 +
+             T('CpuStillWorks') + #13#10#13#10 +
+             T('ContinueInstall');
       Result := (MsgBox(Msg, mbConfirmation, MB_YESNO) = IDYES);
     end else if DriverMajor < 528 then
     begin
-      Msg := '╔══════════════════════════════╗' + #13#10 +
-             '║    GoAI 环境检测             ║' + #13#10 +
-             '╚══════════════════════════════╝' + #13#10#13#10 +
-             '✓ 显卡: ' + GpuName + #13#10 +
-             '⚠ 驱动: ' + DriverVersion + '  (建议更新)' + #13#10#13#10 +
-             '建议更新至 ≥ 528.00 以获得最佳 CUDA 12 支持' + #13#10#13#10 +
-             '是否继续安装?';
+      Msg := GpuHeaderBox() + #13#10#13#10 +
+             T('GpuLabel') + GpuName + #13#10 +
+             T('DriverWarn') + DriverVersion + T('DriverWarnNote') + #13#10#13#10 +
+             T('DriverRecommend') + #13#10#13#10 +
+             T('ContinueInstall');
       Result := (MsgBox(Msg, mbConfirmation, MB_YESNO) = IDYES);
     end else
     begin
-      MsgBox('╔══════════════════════════════╗' + #13#10 +
-             '║    GoAI 环境检测             ║' + #13#10 +
-             '╚══════════════════════════════╝' + #13#10#13#10 +
-             '✓ 显卡: ' + GpuName + #13#10 +
-             '✓ 驱动: ' + DriverVersion + #13#10 +
-             '✓ CUDA 支持: 正常' + #13#10#13#10 +
-             '您的系统完全满足运行要求!',
+      MsgBox(GpuHeaderBox() + #13#10#13#10 +
+             T('GpuLabel') + GpuName + #13#10 +
+             T('DriverOk') + DriverVersion + #13#10 +
+             T('CudaOk') + #13#10#13#10 +
+             T('SystemReady'),
              mbInformation, MB_OK);
     end;
   end;

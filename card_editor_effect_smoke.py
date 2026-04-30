@@ -22,8 +22,8 @@ from playwright.async_api import async_playwright
 ROOT = Path(__file__).resolve().parent
 ARTIFACT_DIR = Path(
     os.environ.get(
-        "GOAI_ARTIFACT_DIR",
-        r"F:\Workspaces\Playground\artifacts\GoAI\card-editor-effect-smoke",
+        "ROGUE_GO_ARENA_ARTIFACT_DIR",
+        r"F:\Workspaces\Playground\artifacts\rogue-go-arena\card-editor-effect-smoke",
     )
 )
 

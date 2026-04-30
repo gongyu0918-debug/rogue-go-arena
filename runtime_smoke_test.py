@@ -375,7 +375,7 @@ async def run_smoke(base_url: str) -> dict:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run GoAI runtime smoke tests.")
+    parser = argparse.ArgumentParser(description="Run rogue-go-arena runtime smoke tests.")
     parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--output", default="")
     args = parser.parse_args()

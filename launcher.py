@@ -1,4 +1,4 @@
-"""GoAI native client entrypoint.
+"""rogue-go-arena native client entrypoint.
 
 Starts the bundled server sidecar and opens the game in a desktop WebView2
 window. Edge app-window and system browser fallbacks are kept for machines
@@ -26,8 +26,8 @@ LOOPBACK_HOST = "127.0.0.1"
 SERVER_URL = f"http://{LOOPBACK_HOST}:{SERVER_PORT}"
 EXPECTED_SERVER_REV = "20260430-card-editor-shell"
 NATIVE_WINDOW_SIZE = "1500,1000"
-EDGE_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "GoAI" / "edge-app-profile"
-WEBVIEW_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "GoAI" / "webview-profile"
+EDGE_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "rogue-go-arena" / "edge-app-profile"
+WEBVIEW_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "rogue-go-arena" / "webview-profile"
 CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 DETACHED_PROCESS = getattr(subprocess, "DETACHED_PROCESS", 0)
 DESKTOP_SHELLS = {"webview", "edge", "browser"}
@@ -54,9 +54,9 @@ def _find_server_base() -> Path:
 
 BASE_DIR = _find_server_base()
 SERVER_SCRIPT = BASE_DIR / "server.py"
-SERVER_EXE = BASE_DIR / "GoAI_Server" / "GoAI_Server.exe"
+SERVER_EXE = BASE_DIR / "rogue-go-arena-server" / "rogue-go-arena-server.exe"
 if not SERVER_EXE.exists():
-    SERVER_EXE = BASE_DIR / "GoAI_Server.exe"
+    SERVER_EXE = BASE_DIR / "rogue-go-arena-server.exe"
 
 
 def _creationflags_no_window() -> int:
@@ -149,7 +149,9 @@ def _pid_image_name(pid: int) -> str:
 def _stop_stale_server_on_port(port=SERVER_PORT) -> None:
     for pid in _listener_pids(port):
         image_name = _pid_image_name(pid)
-        if not (image_name.startswith("python") or image_name in {"goai.exe", "goai_server.exe"}):
+        legacy_prefix = "go" + "ai"
+        legacy_names = {f"{legacy_prefix}.exe", f"{legacy_prefix}_server.exe"}
+        if not (image_name.startswith("python") or image_name in {"rogue-go-arena.exe", "rogue-go-arena-server.exe"} or image_name in legacy_names):
             continue
         try:
             subprocess.check_call(
@@ -193,7 +195,7 @@ def _open_webview_window(url: str) -> bool:
     try:
         WEBVIEW_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
         webview.create_window(
-            "GoAI",
+            "rogue-go-arena",
             url,
             width=width,
             height=height,
@@ -205,7 +207,7 @@ def _open_webview_window(url: str) -> bool:
             gui="edgechromium",
             private_mode=False,
             storage_path=str(WEBVIEW_PROFILE_DIR),
-            icon=str(BASE_DIR / "goai.ico"),
+            icon=str(BASE_DIR / "rogue-go-arena.ico"),
         )
         _stop_katago_runtime()
         return True
@@ -281,14 +283,14 @@ def _start_server() -> bool:
         return True
     except Exception as exc:
         try:
-            messagebox.showerror("GoAI", f"启动失败: {exc}")
+            messagebox.showerror("rogue-go-arena", f"启动失败: {exc}")
         except Exception:
             pass
         return False
 
 
 def _resolve_shell(shell: str | None) -> str:
-    selected = (shell or os.environ.get("GOAI_DESKTOP_SHELL") or "webview").strip().lower()
+    selected = (shell or os.environ.get("ROGUE_GO_ARENA_DESKTOP_SHELL") or "webview").strip().lower()
     return selected if selected in DESKTOP_SHELLS else "webview"
 
 
@@ -304,7 +306,7 @@ def run_native_client(shell: str | None = None) -> int:
         return 1
     if not _wait_frontend_ready():
         try:
-            messagebox.showerror("GoAI", f"服务未能在 {SERVER_PORT} 端口就绪")
+            messagebox.showerror("rogue-go-arena", f"服务未能在 {SERVER_PORT} 端口就绪")
         except Exception:
             pass
         return 1
@@ -312,7 +314,7 @@ def run_native_client(shell: str | None = None) -> int:
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Start the GoAI desktop client.")
+    parser = argparse.ArgumentParser(description="Start the rogue-go-arena desktop client.")
     parser.add_argument(
         "--shell",
         choices=sorted(DESKTOP_SHELLS),

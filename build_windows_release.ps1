@@ -48,10 +48,10 @@ New-Item -ItemType Directory -Force -Path $ReleaseDir | Out-Null
 Push-Location $RepoRoot
 try {
     Write-Host "==> Building launcher EXE"
-    python -m PyInstaller --noconfirm --distpath $DistDir --workpath $BuildDir GoAI.spec
+    python -m PyInstaller --noconfirm --distpath $DistDir --workpath $BuildDir rogue-go-arena.spec
 
     Write-Host "==> Building server EXE bundle"
-    python -m PyInstaller --noconfirm --distpath $DistDir --workpath $BuildDir GoAI_Server.spec
+    python -m PyInstaller --noconfirm --distpath $DistDir --workpath $BuildDir rogue-go-arena-server.spec
 
     $iscc = Resolve-Iscc
     Write-Host "==> Building installer with Inno Setup"
@@ -60,7 +60,7 @@ try {
         "/DRepoRoot=$RepoRoot" `
         "/DDistDir=$DistDir" `
         "/DReleaseDir=$ReleaseDir" `
-        (Join-Path $RepoRoot "GoAI_Setup.iss")
+        (Join-Path $RepoRoot "rogue-go-arena_Setup.iss")
 }
 finally {
     Pop-Location

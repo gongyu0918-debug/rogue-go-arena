@@ -9,7 +9,7 @@ from PIL import Image
 
 def main() -> None:
     root = Path(__file__).resolve().parent
-    source = root / "goai.png"
+    source = root / "rogue-go-arena.png"
     image = Image.open(source).convert("RGBA")
     sizes = [256, 128, 64, 48, 32, 24, 16]
     frames = [
@@ -17,15 +17,15 @@ def main() -> None:
         for size in sizes
     ]
     frames[0].save(
-        root / "goai.ico",
+        root / "rogue-go-arena.ico",
         format="ICO",
         sizes=[(size, size) for size in sizes],
         append_images=frames[1:],
     )
     (root / "static" / "assets").mkdir(parents=True, exist_ok=True)
-    image.save(root / "static" / "assets" / "goai-favicon.png", format="PNG")
-    print(f"Icon saved: {root / 'goai.ico'}")
-    print(f"Favicon saved: {root / 'static' / 'assets' / 'goai-favicon.png'}")
+    image.save(root / "static" / "assets" / "rogue-go-arena-favicon.png", format="PNG")
+    print(f"Icon saved: {root / 'rogue-go-arena.ico'}")
+    print(f"Favicon saved: {root / 'static' / 'assets' / 'rogue-go-arena-favicon.png'}")
 
 
 if __name__ == "__main__":
