@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parent
 ARTIFACT_DIR = Path(
     os.environ.get(
         "ROGUE_GO_ARENA_ARTIFACT_DIR",
-        r"F:\Workspaces\Playground\artifacts\rogue-go-arena\card-editor-effect-smoke",
+        str(ROOT / "output" / "card-editor-effect-smoke"),
     )
 )
 
