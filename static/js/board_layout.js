@@ -64,21 +64,26 @@ function resizeBoard(size) {
     Math.max(compact ? 64 : 58, stageHeight * (compact ? 0.075 : 0.058))
   ));
   const toolbarClear = Math.max(toolbarBaseClear, toolbarSafeClear);
-  const boardTarget = Math.max(
-    compact ? 280 : 520,
-    Math.min(stageWidth * (compact ? 0.7 : 0.54), stageHeight - boardTop - toolbarClear)
+  const boardHeightLimit = Math.max(compact ? 260 : 360, stageHeight - boardTop - toolbarClear);
+  const preferredBoardTarget = Math.min(
+    stageWidth * (compact ? 0.7 : 0.54),
+    boardHeightLimit
   );
+  const minimumBoardTarget = compact
+    ? Math.min(280, boardHeightLimit)
+    : Math.min(520, Math.max(360, boardHeightLimit));
+  const boardTarget = Math.max(minimumBoardTarget, preferredBoardTarget);
   const padRatio = 1.3;
   const denominator = 2 * padRatio + size - 1;
   CELL = Math.floor(boardTarget / denominator);
-  const minCell = compact ? (boardTarget < 310 ? 13 : 15) : 22;
+  const minCell = compact ? (boardTarget < 310 ? 13 : 15) : (boardTarget < 460 ? 18 : 22);
   CELL = Math.max(minCell, Math.min(CELL, compact ? 30 : 96));
   PAD = Math.floor(CELL * padRatio);
-  const minBoardTotal = compact ? Math.min(280, boardTarget) : 520;
+  const minBoardTotal = compact ? Math.min(280, boardTarget) : minimumBoardTarget;
   const total = Math.max(minBoardTotal, PAD * 2 + CELL * (size - 1));
   const boardLeft = Math.round((stageWidth - total) / 2);
   const boardRight = Math.max(0, stageWidth - boardLeft - total);
-  const boardBottom = Math.max(0, stageHeight - boardTop - total);
+  const boardBottom = Math.max(toolbarClear, stageHeight - boardTop - total);
   const nextDpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
   const layoutUnchanged =
     boardContainer &&

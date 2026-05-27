@@ -8,7 +8,8 @@
     "build": "tsc -p tsconfig.json && vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "preview": "vite preview --host 127.0.0.1",
-    "smoke:react-preview": "node scripts/react-preview-smoke.mjs"
+    "smoke:react-preview": "node scripts/react-preview-smoke.mjs",
+    "smoke:legacy-responsive": "node scripts/legacy-responsive-smoke.mjs"
   },
   "dependencies": {
     "react": "^19.0.0",

@@ -1620,16 +1620,26 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   width: min(94vw, 1120px);
   max-width: 1120px;
   max-height: min(88vh, 920px);
+  padding: 22px 24px 24px;
+  border-radius: 18px;
+  border-color: rgba(150,102,48,.52);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(212,175,55,.16), transparent 40%),
+    linear-gradient(180deg, rgba(13,11,9,.78), rgba(7,8,10,.88)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(180deg, #24180f, #090a0c) !important;
+  background-size: auto, auto, cover, auto;
 }
 #rogue-wiki-modal .wiki-shell {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 #rogue-wiki-modal .wiki-intro {
-  color: #9eb0c2;
+  color: #b5aa90;
   font-size: .88rem;
   line-height: 1.7;
+  margin-right: 34px;
 }
 #rogue-wiki-modal .wiki-mode-grid,
 #rogue-wiki-modal .wiki-card-grid {
@@ -1645,25 +1655,28 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
 }
 #rogue-wiki-modal .wiki-mode-card,
 #rogue-wiki-modal .wiki-card-item {
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  border: 1px solid rgba(150,102,48,.48);
   background:
-    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)),
-    linear-gradient(180deg, #141b26, #0d1219);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    radial-gradient(circle at 50% 18%, rgba(212,175,55,.14), transparent 34%),
+    linear-gradient(180deg, rgba(14,11,8,.56), rgba(6,7,8,.74)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(180deg, #2b1b10, #090a0c);
+  background-size: auto, auto, cover, auto;
+  box-shadow: 0 14px 26px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,230,170,.06);
 }
 #rogue-wiki-modal .wiki-mode-card {
   padding: 16px 18px;
 }
 #rogue-wiki-modal .wiki-mode-card h3,
 #rogue-wiki-modal .wiki-card-copy h4 {
-  color: #f7f2d6;
+  color: #f0ead8;
   font-size: .98rem;
   margin-bottom: 8px;
 }
 #rogue-wiki-modal .wiki-mode-card p,
 #rogue-wiki-modal .wiki-card-copy p {
-  color: #9eabb8;
+  color: #a8a090;
   font-size: .84rem;
   line-height: 1.68;
 }
@@ -1675,8 +1688,8 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   align-items: center;
 }
 #rogue-wiki-modal .wiki-card-item .rc-icon {
-  width: 74px;
-  height: 96px;
+  width: 78px;
+  height: 78px;
   margin: 0;
 }
 #rogue-wiki-modal .wiki-card-item .rc-icon.rc-icon-art {
@@ -1707,6 +1720,10 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   #rogue-wiki-modal .wiki-card-item {
     grid-template-columns: 70px minmax(0, 1fr);
     gap: 12px;
+  }
+  #rogue-wiki-modal .wiki-card-item .rc-icon {
+    width: 70px;
+    height: 70px;
   }
 }
 .modal-close {
@@ -3192,7 +3209,7 @@ header::before { display: none; }
 <script src="/static/js/card_turn_timer.js?v=20260430b"></script>
 <script src="/static/js/shell_ui.js?v=20260430h"></script>
 <script src="/static/js/game_log.js?v=20260430i"></script>
-<script src="/static/js/board_layout.js?v=20260430c"></script>
+<script src="/static/js/board_layout.js?v=20260527a"></script>
 <script src="/static/js/board_input.js?v=20260430f"></script>
 <script src="/static/js/board_assets.js?v=20260430d"></script>
 <script src="/static/js/board_renderer.js?v=20260430e"></script>
