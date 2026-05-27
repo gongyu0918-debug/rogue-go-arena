@@ -129,6 +129,103 @@ class EngineStartupManager:
                 models.append(candidate)
         return models
 
+    def models_for_candidate(self, candidate: dict, models: list[Path]) -> list[Path]:
+        """Order model attempts by backend capability.
+
+        CUDA can usually benefit from a large model. CPU and older OpenCL systems
+        should become playable quickly, so they try compact/default models before
+        spending startup time on large models.
+        """
+        if candidate.get("cpu_mode"):
+            preferred = (
+                self.paths.model_small,
+                self.paths.model_default,
+                self.paths.user_model_large,
+                self.paths.model_large,
+            )
+        elif candidate.get("backend") == "opencl":
+            preferred = (
+                self.paths.model_default,
+                self.paths.model_small,
+                self.paths.user_model_large,
+                self.paths.model_large,
+            )
+        else:
+            preferred = (
+                self.paths.user_model_large,
+                self.paths.model_large,
+                self.paths.model_default,
+                self.paths.model_small,
+            )
+
+        available_by_key = {str(path.resolve()).casefold(): path for path in models}
+        ordered: list[Path] = []
+        seen: set[str] = set()
+        for path in preferred:
+            key = str(path.resolve()).casefold()
+            if key in available_by_key and key not in seen:
+                ordered.append(available_by_key[key])
+                seen.add(key)
+        for path in models:
+            key = str(path.resolve()).casefold()
+            if key not in seen:
+                ordered.append(path)
+                seen.add(key)
+        return ordered
+
+    def build_startup_attempt_plan(
+        self,
+        candidates: list[dict],
+        models: list[Path],
+    ) -> list[tuple[dict, Path]]:
+        """Build a fallback plan that gives CPU a timely chance.
+
+        CUDA keeps the normal high-performance priority. OpenCL gets one
+        preferred model attempt before CPU is tried, because broken OpenCL
+        stacks are common on older machines and should not block the CPU path
+        behind every model combination.
+        """
+        plan: list[tuple[dict, Path]] = []
+        deferred_gpu: list[tuple[dict, Path]] = []
+        deferred_cpu: list[tuple[dict, Path]] = []
+        cpu_candidates: list[tuple[dict, list[Path]]] = []
+
+        def add_once(target: list[tuple[dict, Path]], candidate: dict, model: Path) -> None:
+            key = (id(candidate), str(model.resolve()).casefold())
+            for existing_candidate, existing_model in plan + deferred_gpu + deferred_cpu + target:
+                existing_key = (id(existing_candidate), str(existing_model.resolve()).casefold())
+                if existing_key == key:
+                    return
+            target.append((candidate, model))
+
+        for candidate in candidates:
+            ordered_models = self.models_for_candidate(candidate, models)
+            if not ordered_models:
+                continue
+
+            if candidate.get("cpu_mode"):
+                cpu_candidates.append((candidate, ordered_models))
+                continue
+
+            if candidate.get("backend") == "opencl":
+                add_once(plan, candidate, ordered_models[0])
+                for model in ordered_models[1:]:
+                    add_once(deferred_gpu, candidate, model)
+                continue
+
+            for model in ordered_models:
+                add_once(plan, candidate, model)
+
+        for candidate, ordered_models in cpu_candidates:
+            for model in ordered_models[:2]:
+                add_once(plan, candidate, model)
+            for model in ordered_models[2:]:
+                add_once(deferred_cpu, candidate, model)
+
+        plan.extend(deferred_gpu)
+        plan.extend(deferred_cpu)
+        return plan
+
     def has_model_files(self) -> bool:
         return any(
             path.exists()
@@ -204,6 +301,7 @@ class EngineStartupManager:
                 {
                     "exe": self.paths.cuda_exe,
                     "config": self.paths.config,
+                    "backend": "cuda",
                     "cpu_mode": False,
                     "label": "CUDA(升级包)",
                     "startup_timeout": 60.0,
@@ -215,6 +313,7 @@ class EngineStartupManager:
                 {
                     "exe": self.paths.legacy_exe,
                     "config": self.paths.config,
+                    "backend": "cuda",
                     "cpu_mode": False,
                     "label": "CUDA",
                     "startup_timeout": 60.0,
@@ -226,10 +325,11 @@ class EngineStartupManager:
                 {
                     "exe": self.paths.opencl_exe,
                     "config": self.paths.config,
+                    "backend": "opencl",
                     "cpu_mode": False,
                     "label": "OpenCL",
-                    "startup_timeout": 150.0,
-                    "stall_timeout": 45.0,
+                    "startup_timeout": 180.0,
+                    "stall_timeout": 60.0,
                 }
             )
         if self.paths.cpu_exe.exists():
@@ -237,10 +337,11 @@ class EngineStartupManager:
                 {
                     "exe": self.paths.cpu_exe,
                     "config": self.paths.cpu_config if self.paths.cpu_config.exists() else self.paths.config,
+                    "backend": "cpu",
                     "cpu_mode": True,
                     "label": "CPU",
-                    "startup_timeout": 45.0,
-                    "stall_timeout": 20.0,
+                    "startup_timeout": 120.0,
+                    "stall_timeout": 45.0,
                 }
             )
         return has_gpu, candidates
@@ -328,44 +429,79 @@ class EngineStartupManager:
                 self.log_event(f"{trigger}: no engine found")
                 return
 
+            attempt_plan = self.build_startup_attempt_plan(candidates, models)
+            first_candidate, first_model = attempt_plan[0]
             attempts = []
             self._set_state(
                 phase="initializing",
-                message=f"正在准备模型 {models[0].name}",
-                active_backend=None,
-                active_backend_exe=None,
-                active_model=models[0].name,
+                message=f"正在准备 {first_candidate['label']} + {first_model.name}",
+                active_backend=first_candidate["label"],
+                active_backend_exe=first_candidate["exe"].name,
+                active_model=first_model.name,
                 last_error=None,
                 attempts=attempts,
-                candidates=[f"{item['label']} + {model.name}" for item in candidates for model in models],
+                candidates=[
+                    f"{item['label']} + {model.name}"
+                    for item, model in attempt_plan
+                ],
                 nvidia_detected=has_gpu,
             )
             self.log_event(f"{trigger}: available models {', '.join(model.name for model in models)}")
 
-            total_attempts = len(candidates) * len(models)
+            total_attempts = len(attempt_plan)
             current_attempt = 0
-            for candidate in candidates:
-                for model in models:
-                    current_attempt += 1
-                    if not self._token_is_current(token):
-                        self.log_event(f"{trigger}: startup cancelled before {candidate['label']}")
-                        return
+            for candidate, model in attempt_plan:
+                current_attempt += 1
+                if not self._token_is_current(token):
+                    self.log_event(f"{trigger}: startup cancelled before {candidate['label']}")
+                    return
 
-                    exe = candidate["exe"]
-                    cfg = candidate["config"]
-                    is_cpu = candidate["cpu_mode"]
-                    label = candidate["label"]
-                    attempt = {
-                        "label": f"{label} + {model.name}",
-                        "exe": exe.name,
-                        "config": cfg.name,
-                        "model": model.name,
-                        "status": "starting",
-                    }
-                    attempts.append(attempt)
+                exe = candidate["exe"]
+                cfg = candidate["config"]
+                is_cpu = candidate["cpu_mode"]
+                label = candidate["label"]
+                attempt = {
+                    "label": f"{label} + {model.name}",
+                    "exe": exe.name,
+                    "config": cfg.name,
+                    "model": model.name,
+                    "status": "starting",
+                }
+                attempts.append(attempt)
+                self._set_state(
+                    phase="initializing",
+                    message=f"尝试启动 {label} + {model.name} ({current_attempt}/{total_attempts})",
+                    active_backend=label,
+                    active_backend_exe=exe.name,
+                    active_model=model.name,
+                    last_error=None,
+                    attempts=attempts,
+                    nvidia_detected=has_gpu,
+                )
+                self.log_event(f"Trying {label}: {exe.name} with {model.name}")
+                try:
+                    self.engine.start(
+                        exe,
+                        cfg,
+                        model,
+                        startup_timeout=float(candidate.get("startup_timeout", 120.0)),
+                        stall_timeout=float(candidate.get("stall_timeout", 45.0)),
+                        stderr_callback=lambda line, current_label=label: self._progress_callback(
+                            current_label, token, line
+                        ),
+                    )
+                    self.engine.ready = False
+                    self._validate_ready_engine(label, model)
+                    if not self._token_is_current(token):
+                        self.engine.stop()
+                        self.log_event(f"{trigger}: startup cancelled after {label} became ready")
+                        return
+                    attempt["status"] = "ready"
+                    self._set_cpu_mode(is_cpu)
+                    self.engine.ready = True
                     self._set_state(
-                        phase="initializing",
-                        message=f"尝试启动 {label} + {model.name} ({current_attempt}/{total_attempts})",
+                        phase="ready",
+                        message=f"{label} 引擎已就绪",
                         active_backend=label,
                         active_backend_exe=exe.name,
                         active_model=model.name,
@@ -373,63 +509,32 @@ class EngineStartupManager:
                         attempts=attempts,
                         nvidia_detected=has_gpu,
                     )
-                    self.log_event(f"Trying {label}: {exe.name} with {model.name}")
-                    try:
-                        self.engine.start(
-                            exe,
-                            cfg,
-                            model,
-                            startup_timeout=float(candidate.get("startup_timeout", 120.0)),
-                            stall_timeout=float(candidate.get("stall_timeout", 45.0)),
-                            stderr_callback=lambda line, current_label=label: self._progress_callback(
-                                current_label, token, line
-                            ),
-                        )
-                        self.engine.ready = False
-                        self._validate_ready_engine(label, model)
-                        if not self._token_is_current(token):
-                            self.engine.stop()
-                            self.log_event(f"{trigger}: startup cancelled after {label} became ready")
-                            return
-                        attempt["status"] = "ready"
-                        self._set_cpu_mode(is_cpu)
-                        self.engine.ready = True
-                        self._set_state(
-                            phase="ready",
-                            message=f"{label} 引擎已就绪",
-                            active_backend=label,
-                            active_backend_exe=exe.name,
-                            active_model=model.name,
-                            last_error=None,
-                            attempts=attempts,
-                            nvidia_detected=has_gpu,
-                        )
-                        self.log_event(f"{label} ready with model {model.name}")
+                    self.log_event(f"{label} ready with model {model.name}")
+                    return
+                except Exception as exc:
+                    attempt["status"] = "failed"
+                    attempt["error"] = str(exc)
+                    self._set_cpu_mode(False)
+                    self.log_event(f"{label} with {model.name} failed: {exc}")
+                    self.engine.stop()
+                    if not self._token_is_current(token):
+                        self.log_event(f"{trigger}: startup cancelled after {label} failure")
                         return
-                    except Exception as exc:
-                        attempt["status"] = "failed"
-                        attempt["error"] = str(exc)
-                        self._set_cpu_mode(False)
-                        self.log_event(f"{label} with {model.name} failed: {exc}")
-                        self.engine.stop()
-                        if not self._token_is_current(token):
-                            self.log_event(f"{trigger}: startup cancelled after {label} failure")
-                            return
-                        has_more = current_attempt < total_attempts
-                        self._set_state(
-                            phase="initializing" if has_more else "failed",
-                            message=(
-                                f"{label} + {model.name} 启动失败，正在尝试下一个组合"
-                                if has_more
-                                else "所有引擎启动失败，当前仅支持纯对弈"
-                            ),
-                            active_backend=label,
-                            active_backend_exe=exe.name,
-                            active_model=model.name,
-                            last_error=str(exc),
-                            attempts=attempts,
-                            nvidia_detected=has_gpu,
-                        )
+                    has_more = current_attempt < total_attempts
+                    self._set_state(
+                        phase="initializing" if has_more else "failed",
+                        message=(
+                            f"{label} + {model.name} 启动失败，正在尝试下一个组合"
+                            if has_more
+                            else "所有引擎启动失败，当前仅支持纯对弈"
+                        ),
+                        active_backend=label,
+                        active_backend_exe=exe.name,
+                        active_model=model.name,
+                        last_error=str(exc),
+                        attempts=attempts,
+                        nvidia_detected=has_gpu,
+                    )
 
             self._set_cpu_mode(False)
             self._set_state(
