@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 
@@ -26,6 +27,12 @@ ARGS = parse_args()
 sys.argv = [sys.argv[0]]
 
 import server as s  # noqa: E402
+from app.gameplay.card_balance_scoring import (  # noqa: E402
+    CardBalanceInputs,
+    MoveEligibilitySample,
+    score_card_balance,
+)
+from app.gameplay.effect_utils import is_lowline  # noqa: E402
 
 
 DEFAULT_ROGUE_CARDS = [
@@ -92,6 +99,13 @@ ROGUE_AI_WEAKENER_WEIGHTS = {
 
 ROGUE_TARGET_MIN = 5.0
 ROGUE_TARGET_MAX = 10.0
+
+CARD_AI_SEARCH_SCALE = {
+    "nerf": 0.05,
+    "time_press": 0.08,
+    "suboptimal": 0.55,
+    "dice": 0.94,
+}
 
 
 def choose_backend() -> tuple[Path, Path, str]:
@@ -361,12 +375,13 @@ def guided_rogue_targets(
 
 
 async def play_player_rogue_turn(game: s.GoGame, strategy: str = "guided"):
+    tempo = {"extra_turns": 0, "skipped_ai_turns": 0}
     color = game.player_color
     card = game.rogue_card
 
     await maybe_use_rogue_ability(game)
     if game.current_player != color:
-        return
+        return tempo
 
     if (card == "handicap_quest"
             and not game.rogue_handicap_active
@@ -379,7 +394,7 @@ async def play_player_rogue_turn(game: s.GoGame, strategy: str = "guided"):
         if game.rogue_handicap_passes >= s.ROGUE_HANDICAP_REQUIRED_PASSES:
             game.rogue_handicap_active = True
         await s._ai_move(game, noop_send)
-        return
+        return tempo
 
     prefer_targets = guided_rogue_targets(game, color, card, strategy)
 
@@ -396,12 +411,24 @@ async def play_player_rogue_turn(game: s.GoGame, strategy: str = "guided"):
     if coord:
         await s._apply_player_rogue_move_effects(game, noop_send, coord[0], coord[1], color, captured)
 
+    if card == "quickthink" and not game.two_player:
+        if game.rogue_quickthink_stage == 1:
+            game.rogue_quickthink_stage = 2
+            game.current_player = game.player_color
+            tempo["extra_turns"] += 1
+            tempo["skipped_ai_turns"] += 1
+            return tempo
+        game.rogue_quickthink_stage = 0
+
     if game.rogue_skip_ai:
         game.rogue_skip_ai = False
         game.current_player = game.player_color
-        return
+        tempo["extra_turns"] += 1
+        tempo["skipped_ai_turns"] += 1
+        return tempo
 
     await s._ai_move(game, noop_send)
+    return tempo
 
 
 async def evaluate_rogue_card(card_id: str | None, player_color: str, strategy: str = "guided") -> dict:
@@ -417,14 +444,23 @@ async def evaluate_rogue_card(card_id: str | None, player_color: str, strategy: 
         await s._activate_rogue_card(game, noop_send, card_id)
         await auto_setup_seal(game)
 
+    eligibility_samples = [sample_rogue_move_eligibility(game, card_id)]
+
     if game.ai_color == game.current_player:
         await s._ai_move(game, noop_send)
+        eligibility_samples.append(sample_rogue_move_eligibility(game, card_id))
 
     while not game.game_over and len(game.moves) < ARGS.rogue_plies:
+        tempo = {"extra_turns": 0, "skipped_ai_turns": 0}
         if game.current_player != game.player_color:
             await s._ai_move(game, noop_send)
         else:
-            await play_player_rogue_turn(game, strategy)
+            tempo = await play_player_rogue_turn(game, strategy)
+        if len(eligibility_samples) < 6:
+            eligibility_samples.append(with_tempo(
+                sample_rogue_move_eligibility(game, card_id),
+                **tempo,
+            ))
 
     analysis = await analyze_top_moves(game, game.current_player, 500)
     black_score = float(analysis.get("score", 0.0))
@@ -435,10 +471,12 @@ async def evaluate_rogue_card(card_id: str | None, player_color: str, strategy: 
         "moves": len(game.moves),
         "black_score": round(black_score, 1),
         "holder_advantage": round(holder_advantage, 1),
+        "eligibility_samples": [sample.__dict__ for sample in eligibility_samples],
     }
 
 
 async def play_player_ultimate_turn(game: s.GoGame):
+    tempo = {"extra_turns": 0, "skipped_ai_turns": 0}
     color = game.player_color
     forbidden = set()
     if game.ultimate_ai_card == "territory":
@@ -454,7 +492,7 @@ async def play_player_ultimate_turn(game: s.GoGame):
         forbidden=forbidden,
     )
 
-    game.ultimate_move_count += 1
+    s._record_ultimate_player_action(game)
     game.moves.append((color, gtp))
     if gtp.upper() != "PASS" and coord:
         game.place_stone(coord[0], coord[1], color)
@@ -462,6 +500,33 @@ async def play_player_ultimate_turn(game: s.GoGame):
     else:
         game.passed[color] = True
     game.current_player = game.ai_color
+
+    if game.ultimate_player_card == "quickthink":
+        if not game.ultimate_quickthink_active:
+            game.ultimate_quickthink_token += 1
+        game.ultimate_quickthink_active = True
+        if not hasattr(game, "_balance_quickthink_bonus_budget"):
+            setattr(game, "_balance_quickthink_bonus_budget", ultimate_quickthink_bonus_budget(game))
+        burst_moves = getattr(game, "_balance_quickthink_burst_moves", 0) + 1
+        setattr(game, "_balance_quickthink_burst_moves", burst_moves)
+        if (
+            burst_moves <= getattr(game, "_balance_quickthink_bonus_budget", 0)
+            and game.ultimate_move_count < 20
+        ):
+            game.current_player = game.player_color
+            tempo["extra_turns"] += 1
+            tempo["skipped_ai_turns"] += 1
+            return tempo
+        s._finish_ultimate_quickthink_turn(game)
+        setattr(game, "_balance_quickthink_burst_moves", 0)
+        if hasattr(game, "_balance_quickthink_bonus_budget"):
+            delattr(game, "_balance_quickthink_bonus_budget")
+        game.current_player = game.ai_color
+        if game.ultimate_move_count >= 20:
+            await s._ultimate_force_score(game, noop_send)
+        else:
+            await s._ultimate_ai_move(game, noop_send)
+        return tempo
 
     board_modified = False
     if coord and gtp.upper() != "PASS" and game.ultimate_player_card:
@@ -473,7 +538,7 @@ async def play_player_ultimate_turn(game: s.GoGame):
 
     if game.ultimate_move_count >= 20:
         await s._ultimate_force_score(game, noop_send)
-        return
+        return tempo
 
     if (
         game.ultimate_player_card == "chain"
@@ -481,15 +546,20 @@ async def play_player_ultimate_turn(game: s.GoGame):
         and s.random.random() < s.ULTIMATE_CHAIN_EXTRA_TURN_CHANCE
     ):
         game.current_player = game.player_color
-        return
+        tempo["extra_turns"] += 1
+        tempo["skipped_ai_turns"] += 1
+        return tempo
 
     if game.ultimate_player_card == "double" and not game.ultimate_double_pending:
         game.ultimate_double_pending = True
         game.current_player = game.player_color
-        return
+        tempo["extra_turns"] += 1
+        tempo["skipped_ai_turns"] += 1
+        return tempo
 
     game.ultimate_double_pending = False
     await s._ultimate_ai_move(game, noop_send)
+    return tempo
 
 
 async def evaluate_ultimate_card(card_id: str | None, player_color: str) -> dict:
@@ -504,17 +574,28 @@ async def evaluate_ultimate_card(card_id: str | None, player_color: str) -> dict
     game.ultimate_player_card = card_id
     game.ultimate_ai_card = None
     game.ultimate_move_count = 0
+    if card_id == "quickthink" and game.current_player == game.player_color:
+        game.ultimate_quickthink_token += 1
+        game.ultimate_quickthink_active = True
 
     await clear_engine_board(game.komi)
+    eligibility_samples = [sample_ultimate_move_eligibility(game, card_id)]
 
     if game.ai_color == game.current_player:
         await s._ultimate_ai_move(game, noop_send)
+        eligibility_samples.append(sample_ultimate_move_eligibility(game, card_id))
 
     while not game.game_over and game.ultimate_move_count < 20:
+        tempo = {"extra_turns": 0, "skipped_ai_turns": 0}
         if game.current_player != game.player_color:
             await s._ultimate_ai_move(game, noop_send)
         else:
-            await play_player_ultimate_turn(game)
+            tempo = await play_player_ultimate_turn(game)
+        if len(eligibility_samples) < 6:
+            eligibility_samples.append(with_tempo(
+                sample_ultimate_move_eligibility(game, card_id),
+                **tempo,
+            ))
 
     if not game.game_over:
         await s._ultimate_force_score(game, noop_send)
@@ -539,6 +620,7 @@ async def evaluate_ultimate_card(card_id: str | None, player_color: str) -> dict
         "player_color": player_color,
         "score": score_str,
         "holder_advantage": round(holder_advantage, 1),
+        "eligibility_samples": [sample.__dict__ for sample in eligibility_samples],
     }
 
 
@@ -562,6 +644,153 @@ def rogue_balance_verdict(score: float) -> str:
     return "ok"
 
 
+def empty_points(game: s.GoGame) -> int:
+    return sum(1 for row in game.board for cell in row if cell == 0)
+
+
+def legal_point_set(game: s.GoGame, color: str) -> set[tuple[int, int]]:
+    return {
+        (x, y)
+        for y in range(game.size)
+        for x in range(game.size)
+        if game.board[y][x] == 0 and game.is_legal_move(x, y, color)
+    }
+
+
+def count_legal_subset(
+    legal_points: set[tuple[int, int]],
+    points: list[tuple[int, int]] | set[tuple[int, int]],
+) -> int:
+    return len(legal_points.intersection(set(points)))
+
+
+def ultimate_quickthink_bonus_budget(game: s.GoGame) -> int:
+    """Estimate bonus click opportunities from the runtime quickthink timer."""
+    seconds = max(1, int(getattr(s, "ULTIMATE_QUICKTHINK_SECONDS", 1)))
+    player_legal = legal_point_set(game, game.player_color)
+    return min(max(0, seconds - 1), max(0, len(player_legal) - 1))
+
+
+def with_tempo(
+    sample: MoveEligibilitySample,
+    *,
+    extra_turns: int = 0,
+    skipped_ai_turns: int = 0,
+) -> MoveEligibilitySample:
+    return replace(
+        sample,
+        extra_turns=sample.extra_turns + extra_turns,
+        skipped_ai_turns=sample.skipped_ai_turns + skipped_ai_turns,
+    )
+
+
+def sample_rogue_move_eligibility(game: s.GoGame, card_id: str | None) -> MoveEligibilitySample:
+    card = card_id or ""
+    ai_move_count = sum(
+        1 for color, move in game.moves
+        if color == game.ai_color and move.upper() != "PASS"
+    )
+    ai_legal = legal_point_set(game, game.ai_color)
+    player_legal = legal_point_set(game, game.player_color)
+    legal_points = max(1, len(ai_legal))
+    ai_forbidden = set(s._get_ai_rogue_forbidden_points(game))
+    ai_allowed: int | None = None
+    forced_points = 0
+
+    if card in {"seal", "fog", "golden_corner"} and game.rogue_seal_points:
+        ai_forbidden.update(tuple(point) for point in game.rogue_seal_points)
+    elif card == "blackhole":
+        ai_forbidden.update(s._get_blackhole_points(game.size))
+
+    if card == "tengen":
+        if ai_move_count == 0:
+            c = game.size // 2
+            forced_points = count_legal_subset(ai_legal, [(c, c)])
+            ai_allowed = forced_points
+        elif ai_move_count < s.gameplay_config.ROGUE_TENGEN_AI_MOVES:
+            c = game.size // 2
+            ai_allowed = count_legal_subset(ai_legal, s._diamond_points(c, c, 2, game.size))
+    elif card == "gravity" and ai_move_count < s.gameplay_config.ROGUE_GRAVITY_AI_MOVES:
+        ai_allowed = count_legal_subset(ai_legal, s._get_star_points(game.size))
+    elif card == "sansan" and ai_move_count < 3:
+        sansan_points = [
+            (x, y)
+            for base_x in (0, game.size - 3)
+            for base_y in (0, game.size - 3)
+            for y in range(base_y, base_y + 3)
+            for x in range(base_x, base_x + 3)
+        ]
+        ai_allowed = count_legal_subset(ai_legal, sansan_points)
+    elif card == "lowline" and ai_move_count < s.gameplay_config.ROGUE_LOWLINE_AI_MOVES:
+        ai_allowed = count_legal_subset(ai_legal, [
+            (x, y)
+            for x in range(game.size)
+            for y in range(game.size)
+            if is_lowline(x, y, game.size)
+        ])
+    elif card == "shadow":
+        previous_ai = None
+        for color, move in reversed(game.moves):
+            if color == game.ai_color and move.upper() != "PASS":
+                previous_ai = s.gtp_to_coord(move, game.size)
+                break
+        adjacent_allowed = 0
+        if previous_ai:
+            adjacent_allowed = count_legal_subset(
+                ai_legal,
+                s._adjacent_points(previous_ai[0], previous_ai[1], game.size),
+            )
+        if adjacent_allowed > 0:
+            expected_ratio = (
+                s.gameplay_config.ROGUE_SHADOW_CHANCE * (adjacent_allowed / legal_points)
+                + (1.0 - s.gameplay_config.ROGUE_SHADOW_CHANCE)
+            )
+            ai_allowed = max(1, round(legal_points * expected_ratio))
+
+    return MoveEligibilitySample(
+        legal_points=legal_points,
+        ai_forbidden_points=count_legal_subset(ai_legal, ai_forbidden),
+        ai_allowed_points=ai_allowed,
+        forced_ai_points=forced_points,
+        player_legal_points=max(1, len(player_legal)),
+        ai_search_scale=CARD_AI_SEARCH_SCALE.get(card, 1.0),
+    )
+
+
+def sample_ultimate_move_eligibility(game: s.GoGame, card_id: str | None) -> MoveEligibilitySample:
+    card = card_id or ""
+    ai_legal = legal_point_set(game, game.ai_color)
+    player_legal = legal_point_set(game, game.player_color)
+    legal_points = max(1, len(ai_legal))
+    ai_forbidden = 0
+    if card == "territory":
+        ai_forbidden = count_legal_subset(
+            ai_legal,
+            s._ultimate_get_territory_forbidden(game, 1 if game.ai_color == "B" else 2),
+        )
+    forced_points = 4 if card == "wall" else 0
+    return MoveEligibilitySample(
+        legal_points=legal_points,
+        ai_forbidden_points=ai_forbidden,
+        forced_ai_points=forced_points,
+        player_legal_points=max(1, len(player_legal)),
+    )
+
+
+def merge_scored_runs(card_id: str, runs: list[dict], *, ultimate: bool = False) -> dict:
+    samples = [
+        MoveEligibilitySample(**sample)
+        for run in runs
+        for sample in run.get("eligibility_samples", [])
+    ]
+    return score_card_balance(CardBalanceInputs(
+        card_id=card_id,
+        holder_advantage_points=avg_advantage(runs),
+        eligibility_samples=samples,
+        ai_search_scale=1.0 if ultimate else CARD_AI_SEARCH_SCALE.get(card_id, 1.0),
+    ))
+
+
 async def run_mode(mode: str):
     results = []
 
@@ -576,6 +805,7 @@ async def run_mode(mode: str):
         results.append({
             "mode": "rogue",
             "card": "baseline",
+            "ai_rating": merge_scored_runs("baseline", baseline_engine_runs + baseline_guided_runs),
             "layers": {
                 "engine": {"runs": baseline_engine_runs, "avg_advantage": avg_advantage(baseline_engine_runs)},
                 "guided": {"runs": baseline_guided_runs, "avg_advantage": avg_advantage(baseline_guided_runs)},
@@ -597,6 +827,7 @@ async def run_mode(mode: str):
                 "card": card_id,
                 "target_band": [ROGUE_TARGET_MIN, ROGUE_TARGET_MAX],
                 "verdict": rogue_balance_verdict(blended),
+                "ai_rating": merge_scored_runs(card_id, engine_runs + guided_runs),
                 "layers": {
                     "engine": {"runs": engine_runs, "avg_advantage": engine_avg},
                     "guided": {"runs": guided_runs, "avg_advantage": guided_avg},
@@ -615,6 +846,7 @@ async def run_mode(mode: str):
             "card": "baseline",
             "runs": baseline_runs,
             "avg_advantage": avg_advantage(baseline_runs),
+            "ai_rating": merge_scored_runs("baseline", baseline_runs, ultimate=True),
         })
         for card_id in cards:
             runs = []
@@ -626,6 +858,7 @@ async def run_mode(mode: str):
                 "card": card_id,
                 "runs": runs,
                 "avg_advantage": avg_advantage(runs),
+                "ai_rating": merge_scored_runs(card_id, runs, ultimate=True),
             })
 
     print(json.dumps(results, ensure_ascii=False, indent=2))
