@@ -140,6 +140,10 @@ chinesesimplified.SystemReady=您的系统满足运行要求!
 english.SystemReady=Your system meets the runtime requirements.
 japanese.SystemReady=このシステムは実行要件を満たしています。
 korean.SystemReady=시스템이 실행 요구 사항을 충족합니다.
+chinesesimplified.RemoveUserDataPrompt=是否同时删除本机用户数据？%n%n这会移除 WebView/Edge 配置、本地 KataGo 缓存、下载模型、日志和卡牌编辑器配置。%n%n选择“否”将只卸载程序文件并保留用户数据。
+english.RemoveUserDataPrompt=Remove local user data too?%n%nThis removes WebView/Edge profiles, local KataGo cache, downloaded models, logs, and card editor settings.%n%nChoose No to uninstall program files only and keep user data.
+japanese.RemoveUserDataPrompt=ローカルユーザーデータも削除しますか？%n%nWebView/Edge プロファイル、ローカル KataGo キャッシュ、ダウンロード済みモデル、ログ、カードエディター設定が削除されます。%n%n「いいえ」を選ぶと、プログラムファイルのみを削除してユーザーデータは保持します。
+korean.RemoveUserDataPrompt=로컬 사용자 데이터도 삭제할까요?%n%nWebView/Edge 프로필, 로컬 KataGo 캐시, 다운로드한 모델, 로그, 카드 편집기 설정이 삭제됩니다.%n%n아니요를 선택하면 프로그램 파일만 제거하고 사용자 데이터는 보관합니다.
 
 [Files]
 Source: "{#DistDir}\rogue-go-arena.exe"; DestDir: "{app}"; Flags: ignoreversion
@@ -171,6 +175,11 @@ Type: files; Name: "{app}\static\assets\icons\toolbar-tech\toolbar-sheet-tech-v2
 Type: files; Name: "{app}\static\assets\textures\board-tech-classic-v1.png"
 Type: files; Name: "{app}\static\assets\textures\stone-materials-tech-v2.png"
 
+[UninstallDelete]
+Type: filesandordirs; Name: "{app}\__pycache__"
+Type: files; Name: "{app}\katago\is-*.tmp"
+Type: files; Name: "{app}\katago\katago.exe.new"
+
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\rogue-go-arena.ico"
 Name: "{group}\{cm:ReadmeIcon}"; Filename: "{app}\README.md"
@@ -187,6 +196,7 @@ var
   GpuName: String;
   DriverVersion: String;
   DriverVersionRaw: String;
+  RemoveUserDataOnUninstall: Boolean;
 
 function GetPowerShellPath(): String;
 begin
@@ -434,4 +444,31 @@ end;
 procedure DeinitializeSetup();
 begin
   DeleteKatagoInstallTemps();
+end;
+
+function InitializeUninstall(): Boolean;
+begin
+  Result := True;
+  RemoveUserDataOnUninstall := False;
+  if UninstallSilent then
+    Exit;
+
+  RemoveUserDataOnUninstall :=
+    MsgBox(T('RemoveUserDataPrompt'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  UserDataDir: String;
+begin
+  if (CurUninstallStep = usPostUninstall) and RemoveUserDataOnUninstall then
+  begin
+    DelTree(ExpandConstant('{app}\gtp_logs'), True, True, True);
+    DelTree(ExpandConstant('{app}\output'), True, True, True);
+    DeleteFile(ExpandConstant('{app}\katago\kata_log.txt'));
+    DeleteFile(ExpandConstant('{app}\katago\model.bin.gz'));
+    UserDataDir := ExpandConstant('{localappdata}\rogue-go-arena');
+    if DirExists(UserDataDir) then
+      DelTree(UserDataDir, True, True, True);
+  end;
 end;
