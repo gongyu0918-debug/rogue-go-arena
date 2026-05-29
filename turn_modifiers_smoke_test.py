@@ -1,3 +1,4 @@
+import asyncio
 import random
 
 import app.config.gameplay as gameplay_config
@@ -181,6 +182,174 @@ def test_finish_ultimate_ai_normal_turn_prepares_player_and_pushes_history() -> 
     assert game._history[-1]["rogue_quickthink_stage"] == 1
 
 
+def test_choose_ultimate_ai_bonus_turn_picks_chain_bonus() -> None:
+    game = make_game()
+
+    bonus = turn_modifiers.choose_ultimate_ai_bonus_turn(
+        game,
+        ai_card="chain",
+        gtp_move="D4",
+        allow_double_bonus=True,
+        chain_random=lambda: 0.0,
+        chain_chance=0.5,
+    )
+
+    assert bonus is not None
+    assert bonus.kind == "chain"
+    assert bonus.message == "AI 的连珠棋触发，AI 将继续落子"
+    assert bonus.next_allow_double_bonus is True
+
+
+def test_choose_ultimate_ai_bonus_turn_skips_chain_miss() -> None:
+    game = make_game()
+
+    assert turn_modifiers.choose_ultimate_ai_bonus_turn(
+        game,
+        ai_card="chain",
+        gtp_move="D4",
+        allow_double_bonus=True,
+        chain_random=lambda: 0.5,
+        chain_chance=0.5,
+    ) is None
+
+
+def test_choose_ultimate_ai_bonus_turn_picks_double_bonus_once() -> None:
+    game = make_game()
+
+    bonus = turn_modifiers.choose_ultimate_ai_bonus_turn(
+        game,
+        ai_card="double",
+        gtp_move="D4",
+        allow_double_bonus=True,
+        chain_random=lambda: 1.0,
+        chain_chance=0.5,
+    )
+    blocked = turn_modifiers.choose_ultimate_ai_bonus_turn(
+        game,
+        ai_card="double",
+        gtp_move="D4",
+        allow_double_bonus=False,
+        chain_random=lambda: 1.0,
+        chain_chance=0.5,
+    )
+
+    assert bonus is not None
+    assert bonus.kind == "double"
+    assert bonus.message == "AI 的双刀流触发，AI 将继续落子"
+    assert bonus.next_allow_double_bonus is False
+    assert blocked is None
+
+
+def test_choose_ultimate_ai_bonus_turn_blocks_pass_and_game_over() -> None:
+    game = make_game()
+
+    assert turn_modifiers.choose_ultimate_ai_bonus_turn(
+        game,
+        ai_card="chain",
+        gtp_move="pass",
+        allow_double_bonus=True,
+        chain_random=lambda: 0.0,
+        chain_chance=1.0,
+    ) is None
+
+    game.game_over = True
+    assert turn_modifiers.choose_ultimate_ai_bonus_turn(
+        game,
+        ai_card="double",
+        gtp_move="D4",
+        allow_double_bonus=True,
+        chain_random=lambda: 0.0,
+        chain_chance=1.0,
+    ) is None
+
+
+def test_start_ultimate_ai_bonus_turn_sets_state() -> None:
+    game = make_game()
+    game.current_player = game.player_color
+
+    turn_modifiers.start_ultimate_ai_bonus_turn(game, "W")
+
+    assert game.ultimate_extra_turn is True
+    assert game.current_player == "W"
+
+
+async def _server_ultimate_ai_bonus_turn_sends_state_and_recurses() -> None:
+    game = make_game()
+    game.ultimate = True
+    game.ultimate_move_count = 3
+    sent = []
+    calls = []
+    bonus = turn_modifiers.UltimateAiBonusTurn(
+        kind="double",
+        message="AI 的双刀流触发，AI 将继续落子",
+        next_allow_double_bonus=False,
+    )
+    old_ai_move = s._ultimate_ai_move
+    try:
+        async def send(payload):
+            sent.append(payload)
+
+        async def fake_ai_move(game_arg, send_fn, allow_double_bonus=True):
+            calls.append((game_arg, send_fn, allow_double_bonus))
+
+        s._ultimate_ai_move = fake_ai_move
+        recursed = await s._run_ultimate_ai_bonus_turn(game, send, "W", bonus)
+    finally:
+        s._ultimate_ai_move = old_ai_move
+
+    assert recursed is True
+    assert game.ultimate_extra_turn is True
+    assert game.current_player == "W"
+    assert sent[0] == {"type": "rogue_event", "msg": "AI 的双刀流触发，AI 将继续落子"}
+    assert sent[1]["type"] == "game_state"
+    assert sent[1]["ultimate_extra_turn"] is True
+    assert sent[1]["current_player"] == "W"
+    assert len(calls) == 1
+    assert calls[0][0] is game
+    assert calls[0][1] is send
+    assert calls[0][2] is False
+
+
+def test_server_ultimate_ai_bonus_turn_sends_state_and_recurses() -> None:
+    asyncio.run(_server_ultimate_ai_bonus_turn_sends_state_and_recurses())
+
+
+async def _server_ultimate_ai_bonus_turn_stops_at_move_limit() -> None:
+    game = make_game()
+    game.ultimate = True
+    game.ultimate_move_count = 20
+    sent = []
+    calls = []
+    bonus = turn_modifiers.UltimateAiBonusTurn(
+        kind="chain",
+        message="AI 的连珠棋触发，AI 将继续落子",
+        next_allow_double_bonus=True,
+    )
+    old_ai_move = s._ultimate_ai_move
+    try:
+        async def send(payload):
+            sent.append(payload)
+
+        async def fake_ai_move(*args, **kwargs):
+            calls.append((args, kwargs))
+
+        s._ultimate_ai_move = fake_ai_move
+        recursed = await s._run_ultimate_ai_bonus_turn(game, send, "W", bonus)
+    finally:
+        s._ultimate_ai_move = old_ai_move
+
+    assert recursed is False
+    assert calls == []
+    assert game.ultimate_extra_turn is True
+    assert game.current_player == "W"
+    assert sent[0] == {"type": "rogue_event", "msg": "AI 的连珠棋触发，AI 将继续落子"}
+    assert sent[1]["type"] == "game_state"
+
+
+def test_server_ultimate_ai_bonus_turn_stops_at_move_limit() -> None:
+    asyncio.run(_server_ultimate_ai_bonus_turn_stops_at_move_limit())
+
+
 def test_server_wrapper_preserves_fog_monkeypatch() -> None:
     game = make_game()
     game.ai_rogue_enabled = True
@@ -213,5 +382,12 @@ if __name__ == "__main__":
     test_apply_ultimate_ai_move_result_records_pass_without_counting_double_bonus()
     test_apply_ultimate_ai_move_result_treats_missing_coord_as_pass_state()
     test_finish_ultimate_ai_normal_turn_prepares_player_and_pushes_history()
+    test_choose_ultimate_ai_bonus_turn_picks_chain_bonus()
+    test_choose_ultimate_ai_bonus_turn_skips_chain_miss()
+    test_choose_ultimate_ai_bonus_turn_picks_double_bonus_once()
+    test_choose_ultimate_ai_bonus_turn_blocks_pass_and_game_over()
+    test_start_ultimate_ai_bonus_turn_sets_state()
+    test_server_ultimate_ai_bonus_turn_sends_state_and_recurses()
+    test_server_ultimate_ai_bonus_turn_stops_at_move_limit()
     test_server_wrapper_preserves_fog_monkeypatch()
     print("turn_modifiers_smoke_test passed")

@@ -3,10 +3,18 @@ from __future__ import annotations
 import random
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 import app.config.gameplay as gameplay_config
 from app.gameplay.effect_utils import get_square_points
+
+
+@dataclass(frozen=True)
+class UltimateAiBonusTurn:
+    kind: str
+    message: str
+    next_allow_double_bonus: bool
 
 
 def pick_fog_mask(size: int, rng: random.Random) -> list[tuple[int, int]]:
@@ -145,6 +153,37 @@ def finish_ultimate_ai_normal_turn(
     game.current_player = game.player_color
     prepare_player_turn_modifiers_fn(game)
     game.push_history()
+
+
+def choose_ultimate_ai_bonus_turn(
+    game: Any,
+    *,
+    ai_card: str | None,
+    gtp_move: str,
+    allow_double_bonus: bool,
+    chain_random: Callable[[], float],
+    chain_chance: float,
+) -> UltimateAiBonusTurn | None:
+    if game.game_over or gtp_move.upper() == "PASS":
+        return None
+    if ai_card == "chain" and chain_random() < chain_chance:
+        return UltimateAiBonusTurn(
+            kind="chain",
+            message="AI 的连珠棋触发，AI 将继续落子",
+            next_allow_double_bonus=True,
+        )
+    if ai_card == "double" and allow_double_bonus:
+        return UltimateAiBonusTurn(
+            kind="double",
+            message="AI 的双刀流触发，AI 将继续落子",
+            next_allow_double_bonus=False,
+        )
+    return None
+
+
+def start_ultimate_ai_bonus_turn(game: Any, color: str) -> None:
+    game.ultimate_extra_turn = True
+    game.current_player = color
 
 
 def clear_player_turn_modifiers(

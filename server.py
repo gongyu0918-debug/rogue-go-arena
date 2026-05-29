@@ -122,6 +122,7 @@ from app.gameplay.ai_moves import (
 from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
 from app.gameplay.turn_modifiers import (
     apply_ultimate_ai_move_result as apply_ultimate_ai_move_result_state,
+    choose_ultimate_ai_bonus_turn as choose_ultimate_ai_bonus_turn_state,
     clear_player_turn_modifiers as clear_player_turn_modifiers_state,
     finish_ultimate_quickthink_turn as finish_ultimate_quickthink_turn_state,
     finish_ultimate_ai_normal_turn as finish_ultimate_ai_normal_turn_state,
@@ -133,6 +134,7 @@ from app.gameplay.turn_modifiers import (
     record_ultimate_player_action as record_ultimate_player_action_state,
     record_ultimate_turn as record_ultimate_turn_state,
     refresh_ai_rogue_player_turn as refresh_ai_rogue_player_turn_state,
+    start_ultimate_ai_bonus_turn as start_ultimate_ai_bonus_turn_state,
 )
 from app.gameplay.effect_utils import (
     adjacent8_points as _adjacent8_points,
@@ -1373,6 +1375,20 @@ async def _pick_ranked_legal_move(
     )
 
 
+async def _run_ultimate_ai_bonus_turn(game: GoGame, send_fn, color: str, bonus_turn) -> bool:
+    start_ultimate_ai_bonus_turn_state(game, color)
+    await send_fn({"type": "rogue_event", "msg": bonus_turn.message})
+    await send_fn({"type": "game_state", **game.to_state()})
+    if game.ultimate_move_count < 20:
+        await _ultimate_ai_move(
+            game,
+            send_fn,
+            allow_double_bonus=bonus_turn.next_allow_double_bonus,
+        )
+        return True
+    return False
+
+
 async def _ultimate_ai_move(game: GoGame, send_fn,
                             allow_double_bonus: bool = True):
     """AI move in ultimate mode - generates move, applies AI's card effect."""
@@ -1464,35 +1480,17 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
         if effect_removed > 0:
             await _check_capture_foul(game, send_fn, color, effect_removed, ultimate=True)
 
-    chain_bonus = (
-        ai_card == "chain"
-        and gtp_move.upper() != "PASS"
-        and random.random() < ULTIMATE_CHAIN_EXTRA_TURN_CHANCE
-        and not game.game_over
-    )
-    double_bonus = (
-        ai_card == "double"
-        and allow_double_bonus
-        and not game.game_over
-        and gtp_move.upper() != "PASS"
+    bonus_turn = choose_ultimate_ai_bonus_turn_state(
+        game,
+        ai_card=ai_card,
+        gtp_move=gtp_move,
+        allow_double_bonus=allow_double_bonus,
+        chain_random=random.random,
+        chain_chance=ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
     )
 
-    if chain_bonus:
-        game.ultimate_extra_turn = True
-        game.current_player = color
-        await send_fn({"type": "rogue_event", "msg": "AI 的连珠棋触发，AI 将继续落子"})
-        await send_fn({"type": "game_state", **game.to_state()})
-        if game.ultimate_move_count < 20:
-            await _ultimate_ai_move(game, send_fn)
-            return
-
-    if double_bonus:
-        game.ultimate_extra_turn = True
-        game.current_player = color
-        await send_fn({"type": "rogue_event", "msg": "AI 的双刀流触发，AI 将继续落子"})
-        await send_fn({"type": "game_state", **game.to_state()})
-        if game.ultimate_move_count < 20:
-            await _ultimate_ai_move(game, send_fn, allow_double_bonus=False)
+    if bonus_turn is not None:
+        if await _run_ultimate_ai_bonus_turn(game, send_fn, color, bonus_turn):
             return
 
     finish_ultimate_ai_normal_turn_state(
