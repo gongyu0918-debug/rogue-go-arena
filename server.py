@@ -74,8 +74,6 @@ from app.config.gameplay import (
     ULTIMATE_FOOLISH_FILL_COUNT,
     ULTIMATE_JOSEKI_BONUS_STONES,
     ULTIMATE_JOSEKI_REQUIRED_HITS,
-    ULTIMATE_LAST_STAND_CLEAR_COUNT,
-    ULTIMATE_LAST_STAND_SPAWN_COUNT,
     ULTIMATE_LAST_STAND_THRESHOLD,
     ULTIMATE_QUICKTHINK_SECONDS,
     get_balance_editor_payload,
@@ -178,6 +176,7 @@ from app.gameplay.rogue_effects import (
 )
 from app.services.card_config_service import CardConfigService
 from app.gameplay.ultimate_effects import (
+    apply_ultimate_last_stand,
     apply_ultimate_board_effect,
     apply_ultimate_state_effect,
     get_ultimate_territory_forbidden_points,
@@ -894,17 +893,14 @@ async def _trigger_ultimate_last_stand(game: GoGame, send_fn, color: str):
         return False
     if await _estimate_side_winrate(game, color) >= ULTIMATE_LAST_STAND_THRESHOLD:
         return False
-    rng = random.Random(time.time_ns())
-    cleared = _clear_random_enemy_stones(game, color, ULTIMATE_LAST_STAND_CLEAR_COUNT, rng)
-    changed = _spawn_random_owned_stones(game, color, ULTIMATE_LAST_STAND_SPAWN_COUNT, rng)
-    if not cleared and not changed:
-        return False
-    game.ultimate_last_stand_done[color] = True
-    await send_fn({
-        "type": "rogue_event",
-        "msg": f"🫀 起死回生发动，绝境反扑：清掉 {len(cleared)} 颗敌子，并补下 {len(changed)} 颗己棋",
-    })
-    return bool(cleared or changed)
+    result = apply_ultimate_last_stand(
+        game,
+        color,
+        rng=random.Random(time.time_ns()),
+    )
+    for message in result.messages:
+        await send_fn({"type": "rogue_event", "msg": message})
+    return result.modified
 
 
 async def _trigger_ultimate_five_in_row(game: GoGame, send_fn, color: str):

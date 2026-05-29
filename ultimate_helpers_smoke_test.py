@@ -7,14 +7,20 @@ from app.domain.coordinates import coord_to_gtp
 from app.domain.game_state import GoGame
 from app.gameplay.effect_utils import line_points_between
 from app.gameplay.ultimate_effects import (
+    apply_ultimate_last_stand,
     get_ultimate_territory_forbidden_points,
     resolve_pending_shadow_links,
 )
 from app.gameplay.turn_modifiers import record_ultimate_player_action
 
 
-def make_game() -> GoGame:
-    return GoGame(size=9, player_color="B")
+def make_game(size: int = 9) -> GoGame:
+    return GoGame(size=size, player_color="B")
+
+
+class IdentityRng:
+    def shuffle(self, _items) -> None:
+        return None
 
 
 def test_record_ultimate_player_action_counts_normal_and_double_turns() -> None:
@@ -104,6 +110,69 @@ def test_ultimate_territory_radius_reads_live_config() -> None:
         assert forbidden == {(4, 4), (4, 3), (4, 5), (3, 4), (5, 4)}
     finally:
         gameplay_config.ULTIMATE_TERRITORY_RADIUS = old_radius
+
+
+def test_apply_ultimate_last_stand_marks_done_and_reports_counts() -> None:
+    game = make_game()
+    game.board[0][0] = 2
+    game.board[0][1] = 2
+
+    result = apply_ultimate_last_stand(
+        game,
+        "B",
+        rng=IdentityRng(),
+        clear_count=1,
+        spawn_count=2,
+    )
+
+    assert result.modified is True
+    assert result.messages == ["🫀 起死回生发动，绝境反扑：清掉 1 颗敌子，并补下 2 颗己棋"]
+    assert game.ultimate_last_stand_done["B"] is True
+    assert sum(1 for row in game.board for cell in row if cell == 2) == 1
+    assert sum(1 for row in game.board for cell in row if cell == 1) == 2
+
+    second = apply_ultimate_last_stand(game, "B", rng=IdentityRng(), clear_count=1, spawn_count=2)
+    assert second.modified is False
+    assert second.messages == []
+
+
+def test_apply_ultimate_last_stand_does_not_mark_done_without_changes() -> None:
+    game = make_game(size=5)
+    for y in range(game.size):
+        for x in range(game.size):
+            game.board[y][x] = 1
+
+    result = apply_ultimate_last_stand(
+        game,
+        "B",
+        rng=IdentityRng(),
+        clear_count=1,
+        spawn_count=2,
+    )
+
+    assert result.modified is False
+    assert result.messages == []
+    assert game.ultimate_last_stand_done["B"] is False
+
+
+def test_apply_ultimate_last_stand_reads_live_config_counts() -> None:
+    game = make_game()
+    game.board[0][0] = 2
+
+    old_clear = gameplay_config.ULTIMATE_LAST_STAND_CLEAR_COUNT
+    old_spawn = gameplay_config.ULTIMATE_LAST_STAND_SPAWN_COUNT
+    try:
+        gameplay_config.ULTIMATE_LAST_STAND_CLEAR_COUNT = 0
+        gameplay_config.ULTIMATE_LAST_STAND_SPAWN_COUNT = 1
+        result = apply_ultimate_last_stand(game, "B", rng=IdentityRng())
+    finally:
+        gameplay_config.ULTIMATE_LAST_STAND_CLEAR_COUNT = old_clear
+        gameplay_config.ULTIMATE_LAST_STAND_SPAWN_COUNT = old_spawn
+
+    assert result.modified is True
+    assert result.messages == ["🫀 起死回生发动，绝境反扑：清掉 0 颗敌子，并补下 1 颗己棋"]
+    assert game.board[0][0] == 2
+    assert sum(1 for row in game.board for cell in row if cell == 1) == 1
 
 
 def test_resolve_pending_shadow_links_waits_until_trigger_move() -> None:
@@ -234,6 +303,31 @@ def test_server_resolve_pending_shadow_links_sends_events() -> None:
     asyncio.run(_server_resolve_pending_shadow_links_sends_events())
 
 
+async def _server_ultimate_last_stand_high_winrate_guard() -> None:
+    game = make_game()
+    game.board[0][0] = 2
+    original_board = [row[:] for row in game.board]
+    sent = []
+    old_estimate = s._estimate_side_winrate
+    try:
+        async def high_winrate(_game, _color):
+            return 0.9
+
+        s._estimate_side_winrate = high_winrate
+        result = await s._trigger_ultimate_last_stand(game, sent.append, "B")
+    finally:
+        s._estimate_side_winrate = old_estimate
+
+    assert result is False
+    assert sent == []
+    assert game.board == original_board
+    assert game.ultimate_last_stand_done["B"] is False
+
+
+def test_server_ultimate_last_stand_high_winrate_guard() -> None:
+    asyncio.run(_server_ultimate_last_stand_high_winrate_guard())
+
+
 if __name__ == "__main__":
     test_record_ultimate_player_action_counts_normal_and_double_turns()
     test_record_ultimate_player_action_counts_quickthink_once()
@@ -241,9 +335,13 @@ if __name__ == "__main__":
     test_gameplay_record_ultimate_player_action_resolves_turn_hook_late()
     test_ultimate_territory_forbidden_points_use_opponent_stones()
     test_ultimate_territory_radius_reads_live_config()
+    test_apply_ultimate_last_stand_marks_done_and_reports_counts()
+    test_apply_ultimate_last_stand_does_not_mark_done_without_changes()
+    test_apply_ultimate_last_stand_reads_live_config_counts()
     test_resolve_pending_shadow_links_waits_until_trigger_move()
     test_resolve_pending_shadow_links_draws_line_and_resets_ko()
     test_resolve_pending_shadow_links_clears_triggered_unchanged_link_without_message()
     test_resolve_pending_shadow_links_keeps_only_untriggered_pending_links()
     test_server_resolve_pending_shadow_links_sends_events()
+    test_server_ultimate_last_stand_high_winrate_guard()
     print("ultimate_helpers_smoke_test passed")

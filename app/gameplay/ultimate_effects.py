@@ -8,6 +8,7 @@ from typing import Any
 
 import app.config.gameplay as gameplay_config
 from app.gameplay.effect_utils import (
+    clear_random_enemy_stones,
     collect_joseki_burst_points,
     diamond_points,
     get_corner_boundary_points,
@@ -18,6 +19,7 @@ from app.gameplay.effect_utils import (
     random_hidden_center,
     set_points_to_color,
     spawn_bonus_points,
+    spawn_random_owned_stones,
 )
 
 
@@ -87,6 +89,34 @@ def resolve_pending_shadow_links(
     if modified:
         game.ko_point = None
     return BoardEffectResult(modified=modified, messages=messages)
+
+
+def apply_ultimate_last_stand(
+    game: Any,
+    color: str,
+    *,
+    rng: random.Random | None = None,
+    clear_count: int | None = None,
+    spawn_count: int | None = None,
+) -> BoardEffectResult:
+    if game.ultimate_last_stand_done.get(color):
+        return BoardEffectResult(modified=False, messages=[])
+
+    rng = random.Random(time.time_ns()) if rng is None else rng
+    clear_count = gameplay_config.ULTIMATE_LAST_STAND_CLEAR_COUNT if clear_count is None else clear_count
+    spawn_count = gameplay_config.ULTIMATE_LAST_STAND_SPAWN_COUNT if spawn_count is None else spawn_count
+    cleared = clear_random_enemy_stones(game, color, clear_count, rng)
+    changed = spawn_random_owned_stones(game, color, spawn_count, rng)
+    if not cleared and not changed:
+        return BoardEffectResult(modified=False, messages=[])
+
+    game.ultimate_last_stand_done[color] = True
+    return BoardEffectResult(
+        modified=True,
+        messages=[
+            f"🫀 起死回生发动，绝境反扑：清掉 {len(cleared)} 颗敌子，并补下 {len(changed)} 颗己棋"
+        ],
+    )
 
 
 def reset_ultimate_effect_state(game: Any) -> None:
