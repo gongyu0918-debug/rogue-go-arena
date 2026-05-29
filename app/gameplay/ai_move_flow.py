@@ -17,6 +17,7 @@ RunCoachTurnFn = Callable[[Any, AsyncSend], Awaitable[None]]
 FinishAiMoveFn = Callable[[Any, AsyncSend, str, str | None, str, str | None], Awaitable[None]]
 RandomFloatFn = Callable[[], float]
 SuboptimalMoveFn = Callable[..., Awaitable[str | None]]
+RestrictionFn = Callable[[Any, str, int], Any | None]
 AllowedRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
@@ -227,6 +228,40 @@ async def try_finish_sansan_restriction_move(
         restriction.message,
     )
     return True
+
+
+async def try_finish_shadow_restriction_move(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    card: str | None,
+    rogue_cards: Collection[str],
+    ai_move_count: int,
+    visits: int,
+    time_limit: float,
+    roll_random: RandomFloatFn,
+    choose_restriction: RestrictionFn,
+    choose_allowed_move: AllowedRestrictionMoveFn,
+    finish_ai_move: FinishAiMoveFn,
+) -> bool:
+    if "shadow" not in rogue_cards:
+        return False
+    if roll_random() >= gameplay_config.ROGUE_SHADOW_CHANCE:
+        return False
+
+    restriction = choose_restriction(game, color, ai_move_count)
+    return await try_finish_allowed_restriction_move(
+        game,
+        send_fn,
+        color=color,
+        card=card,
+        restriction=restriction,
+        visits=visits,
+        time_limit=time_limit,
+        choose_allowed_move=choose_allowed_move,
+        finish_ai_move=finish_ai_move,
+    )
 
 
 async def try_finish_suboptimal_rogue_move(

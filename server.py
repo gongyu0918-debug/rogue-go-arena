@@ -60,7 +60,6 @@ from app.config.gameplay import (
     ROGUE_SANRENSEI_REQUIRED_STARS,
     ROGUE_SANRENSEI_SUPPORT_STONES,
     ROGUE_SEAL_POINT_COUNT,
-    ROGUE_SHADOW_CHANCE,
     ROGUE_SLIP_CHANCE,
     ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
     ULTIMATE_FOOLISH_CHAIN_DELAY,
@@ -121,6 +120,7 @@ from app.gameplay.ai_move_flow import (
     try_finalize_forced_ai_stone,
     try_finish_allowed_restriction_move,
     try_finish_sansan_restriction_move,
+    try_finish_shadow_restriction_move,
     try_finish_suboptimal_rogue_move,
 )
 from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
@@ -1673,29 +1673,26 @@ async def _ai_move(game: GoGame, send_fn):
         ):
             return
 
-    if (
-        "shadow" in rogue_cards
-        and random.random() < gameplay_config.ROGUE_SHADOW_CHANCE
-    ):
-        restriction = shadow_followup_points(
-            game,
-            color,
-            ai_move_count,
+    if await try_finish_shadow_restriction_move(
+        game,
+        send_fn,
+        color=color,
+        card=card,
+        rogue_cards=rogue_cards,
+        ai_move_count=ai_move_count,
+        visits=visits,
+        time_limit=time_limit,
+        roll_random=random.random,
+        choose_restriction=lambda game_arg, color_arg, ai_count: shadow_followup_points(
+            game_arg,
+            color_arg,
+            ai_count,
             gtp_to_coord=gtp_to_coord,
-        )
-        if restriction:
-            if await try_finish_allowed_restriction_move(
-                game,
-                send_fn,
-                color=color,
-                card=card,
-                restriction=restriction,
-                visits=visits,
-                time_limit=time_limit,
-                choose_allowed_move=_ai_move_avoid_points_allow_only,
-                finish_ai_move=_finish_ai_move,
-            ):
-                return
+        ),
+        choose_allowed_move=_ai_move_avoid_points_allow_only,
+        finish_ai_move=_finish_ai_move,
+    ):
+        return
 
     if await try_finish_suboptimal_rogue_move(
         game,
