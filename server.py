@@ -10,7 +10,6 @@ import re
 import time
 import os
 import sys
-import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -93,6 +92,11 @@ from app.domain.coordinates import coord_to_gtp, gtp_to_coord
 from app.domain.game_state import GoGame
 from app.domain.sgf import generate_sgf
 from app.runtime.access_urls import get_access_urls as build_access_urls
+from app.runtime.board_sync import (
+    gtp_safe_sync_sgf_path as build_gtp_safe_sync_sgf_path,
+    has_gtp_unsafe_whitespace as check_gtp_unsafe_whitespace,
+    sync_board_to_katago_locked as sync_board_to_katago_locked_state,
+)
 from app.runtime.gpu_info import apply_runtime_gpu_overrides, detect_gpu_info
 from app.runtime.status_payload import build_status_payload
 from app.gameplay.card_selection import (
@@ -1280,52 +1284,16 @@ async def _apply_ai_rogue_response_effects(game: GoGame, send_fn,
 def _sync_board_to_katago_locked(game: GoGame):
     """Reset KataGo board to match game.board using SGF loadsgf.
     Must be called while holding engine.command_lock."""
-    sgf = f"(;GM[1]SZ[{game.size}]KM[{game.komi}]"
-    blacks, whites = [], []
-    for y in range(game.size):
-        for x in range(game.size):
-            if game.board[y][x] == 1:
-                blacks.append(f"{chr(ord('a') + x)}{chr(ord('a') + y)}")
-            elif game.board[y][x] == 2:
-                whites.append(f"{chr(ord('a') + x)}{chr(ord('a') + y)}")
-    if blacks:
-        sgf += "AB" + "".join(f"[{p}]" for p in blacks)
-    if whites:
-        sgf += "AW" + "".join(f"[{p}]" for p in whites)
-    sgf += ")"
-    tmp = _gtp_safe_sync_sgf_path(game)
-    with open(tmp, "w", encoding="utf-8") as f:
-        f.write(sgf)
-    engine._send_command_locked(f"loadsgf {tmp}")
+    sync_board_to_katago_locked_state(game, engine, base_dir=BASE_DIR)
 
 
 def _has_gtp_unsafe_whitespace(path: str) -> bool:
-    return any(ch.isspace() for ch in path)
+    return check_gtp_unsafe_whitespace(path)
 
 
 def _gtp_safe_sync_sgf_path(game: GoGame) -> str:
     """Return a writable SGF path that KataGo GTP will not split on spaces."""
-    base_drive = Path(BASE_DIR).anchor
-    candidates = [
-        os.environ.get("ROGUE_GO_ARENA_GTP_TMP"),
-        tempfile.gettempdir(),
-        os.path.join(base_drive, "rogue-go-arena-gtp") if base_drive else None,
-        os.path.join(os.environ.get("PUBLIC", r"C:\Users\Public"), "rogue-go-arena-gtp"),
-        r"C:\Temp\rogue-go-arena-gtp",
-    ]
-    for candidate in candidates:
-        if not candidate:
-            continue
-        candidate = os.path.abspath(candidate)
-        if _has_gtp_unsafe_whitespace(candidate):
-            continue
-        try:
-            os.makedirs(candidate, exist_ok=True)
-            filename = f"sync-{os.getpid()}-{id(game)}.sgf"
-            return Path(candidate, filename).as_posix()
-        except OSError:
-            continue
-    raise RuntimeError("No whitespace-free writable path available for KataGo SGF sync")
+    return build_gtp_safe_sync_sgf_path(game, base_dir=BASE_DIR)
 
 
 async def _sync_board_to_katago(game: GoGame):
