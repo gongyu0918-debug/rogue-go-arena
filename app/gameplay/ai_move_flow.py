@@ -43,6 +43,12 @@ class AiMoveAdjustment:
     message: str | None = None
 
 
+@dataclass(frozen=True)
+class AiMoveResolution:
+    gtp_move: str
+    completed: bool = False
+
+
 def _unique_points(points: list[tuple[int, int]]) -> list[tuple[int, int]]:
     seen: set[tuple[int, int]] = set()
     return [point for point in points if not (point in seen or seen.add(point))]
@@ -379,6 +385,32 @@ async def retry_ai_move_avoiding_ko(
         )
 
     return AiMoveAdjustment(gtp_move, message=rogue_msg)
+
+
+async def resolve_ai_resign_move(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    gtp_move: str,
+    rogue_cards: Collection[str],
+    no_resign_move: NoResignMoveFn,
+) -> AiMoveResolution:
+    if gtp_move.upper() != "RESIGN":
+        return AiMoveResolution(gtp_move)
+
+    if rogue_cards:
+        return AiMoveResolution(await no_resign_move(game, color))
+
+    game.game_over = True
+    game.winner = game.player_color
+    await send_fn({
+        "type": "game_over",
+        "winner": game.player_color,
+        "score": None,
+        "reason": "ai_resign",
+    })
+    return AiMoveResolution(gtp_move, completed=True)
 
 
 async def try_finish_suboptimal_rogue_move(

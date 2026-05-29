@@ -117,6 +117,7 @@ from app.gameplay.ai_move_flow import (
     finalize_ai_move,
     finalize_forced_ai_pass,
     refresh_fog_restriction_points,
+    resolve_ai_resign_move,
     retry_ai_move_avoiding_ko,
     try_apply_puppet_ai_move,
     try_finalize_forced_ai_stone,
@@ -1743,15 +1744,17 @@ async def _ai_move(game: GoGame, send_fn):
             _engine_log(f"Suspicious early PASS in rogue/normal mode, replaced with {fallback_move}")
             gtp_move = fallback_move
 
-    if gtp_move.upper() == "RESIGN":
-        if rogue_cards:
-            gtp_move = await _ai_move_no_resign(game, color)
-        else:
-            game.game_over = True
-            game.winner = game.player_color
-            await send_fn({"type": "game_over", "winner": game.player_color,
-                            "score": None, "reason": "ai_resign"})
-            return
+    resign_result = await resolve_ai_resign_move(
+        game,
+        send_fn,
+        color=color,
+        gtp_move=gtp_move,
+        rogue_cards=rogue_cards,
+        no_resign_move=_ai_move_no_resign,
+    )
+    if resign_result.completed:
+        return
+    gtp_move = resign_result.gtp_move
 
     slip_msg = None
     needs_sync = False

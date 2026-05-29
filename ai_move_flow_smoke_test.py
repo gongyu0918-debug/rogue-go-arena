@@ -8,9 +8,11 @@ from app.domain.coordinates import gtp_to_coord
 from app.domain.game_state import GoGame
 from app.gameplay.ai_move_flow import (
     AiMoveAdjustment,
+    AiMoveResolution,
     apply_slip_ai_move,
     finalize_ai_move,
     finalize_forced_ai_pass,
+    resolve_ai_resign_move,
     retry_ai_move_avoiding_ko,
     try_apply_puppet_ai_move,
     try_finalize_forced_ai_stone,
@@ -1870,6 +1872,375 @@ def test_server_ai_move_ko_guard_runs_after_slip_and_clears_message() -> None:
     asyncio.run(_server_ai_move_ko_guard_runs_after_slip_and_clears_message())
 
 
+async def _resolve_ai_resign_move_keeps_non_resign_move() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def no_resign(_game, _color):
+        calls.append(("no_resign",))
+        return "D3"
+
+    result = await resolve_ai_resign_move(
+        game,
+        send,
+        color="W",
+        gtp_move="C3",
+        rogue_cards=set(),
+        no_resign_move=no_resign,
+    )
+
+    assert result == AiMoveResolution("C3")
+    assert game.game_over is False
+    assert calls == []
+
+
+def test_resolve_ai_resign_move_keeps_non_resign_move() -> None:
+    asyncio.run(_resolve_ai_resign_move_keeps_non_resign_move())
+
+
+async def _resolve_ai_resign_move_uses_no_resign_with_rogue_card() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def no_resign(game_arg, color):
+        calls.append(("no_resign", game_arg is game, color))
+        return "D3"
+
+    result = await resolve_ai_resign_move(
+        game,
+        send,
+        color="W",
+        gtp_move="RESIGN",
+        rogue_cards={"suboptimal"},
+        no_resign_move=no_resign,
+    )
+
+    assert result == AiMoveResolution("D3")
+    assert game.game_over is False
+    assert calls == [("no_resign", True, "W")]
+
+
+def test_resolve_ai_resign_move_uses_no_resign_with_rogue_card() -> None:
+    asyncio.run(_resolve_ai_resign_move_uses_no_resign_with_rogue_card())
+
+
+async def _resolve_ai_resign_move_ends_game_without_rogue_card() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def no_resign(_game, _color):
+        calls.append(("no_resign",))
+        return "D3"
+
+    result = await resolve_ai_resign_move(
+        game,
+        send,
+        color="W",
+        gtp_move="resign",
+        rogue_cards=set(),
+        no_resign_move=no_resign,
+    )
+
+    assert result == AiMoveResolution("resign", completed=True)
+    assert game.game_over is True
+    assert game.winner == "B"
+    assert game.moves == []
+    assert calls == [
+        ("send", {
+            "type": "game_over",
+            "winner": "B",
+            "score": None,
+            "reason": "ai_resign",
+        }),
+    ]
+
+
+def test_resolve_ai_resign_move_ends_game_without_rogue_card() -> None:
+    asyncio.run(_resolve_ai_resign_move_ends_game_without_rogue_card())
+
+
+async def _server_ai_move_resign_delegates_to_resign_flow_and_returns_when_complete() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= RESIGN"
+
+    async def fake_resign(game_arg, send_fn, **kwargs):
+        calls.append((
+            "resign",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["gtp_move"],
+            kwargs["rogue_cards"],
+            kwargs["no_resign_move"] is s._ai_move_no_resign,
+        ))
+        return AiMoveResolution("RESIGN", completed=True)
+
+    def fake_slip(*_args, **_kwargs):
+        calls.append(("slip",))
+        return AiMoveAdjustment("C3")
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_resign = s.resolve_ai_resign_move
+    original_slip = s.apply_slip_ai_move
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.resolve_ai_resign_move = fake_resign
+    s.apply_slip_ai_move = fake_slip
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        s.resolve_ai_resign_move = original_resign
+        s.apply_slip_ai_move = original_slip
+
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("resign", True, True, "W", "RESIGN", set(), True),
+    ]
+
+
+def test_server_ai_move_resign_delegates_to_resign_flow_and_returns_when_complete() -> None:
+    asyncio.run(_server_ai_move_resign_delegates_to_resign_flow_and_returns_when_complete())
+
+
+async def _server_ai_move_resign_flow_replacement_continues_to_slip() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "suboptimal"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= RESIGN"
+
+    async def fake_suboptimal_flow(*_args, **_kwargs):
+        calls.append(("suboptimal_flow",))
+        return False
+
+    async def fake_resign(game_arg, send_fn, **kwargs):
+        calls.append(("resign", game_arg is game, send_fn is send, kwargs["gtp_move"], "suboptimal" in kwargs["rogue_cards"]))
+        return AiMoveResolution("D3")
+
+    def fake_slip(game_arg, **kwargs):
+        calls.append(("slip", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment(kwargs["gtp_move"])
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_suboptimal_flow = s.try_finish_suboptimal_rogue_move
+    original_resign = s.resolve_ai_resign_move
+    original_slip = s.apply_slip_ai_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.try_finish_suboptimal_rogue_move = fake_suboptimal_flow
+    s.resolve_ai_resign_move = fake_resign
+    s.apply_slip_ai_move = fake_slip
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        s.try_finish_suboptimal_rogue_move = original_suboptimal_flow
+        s.resolve_ai_resign_move = original_resign
+        s.apply_slip_ai_move = original_slip
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "D3")
+    assert game.board[2][3] == 2
+    assert calls == [
+        ("sync", True),
+        ("suboptimal_flow",),
+        ("generate", "W", True, True),
+        ("resign", True, True, "RESIGN", True),
+        ("slip", True, "D3"),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "D3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_resign_flow_replacement_continues_to_slip() -> None:
+    asyncio.run(_server_ai_move_resign_flow_replacement_continues_to_slip())
+
+
+async def _server_ai_move_real_resign_helper_rogue_replacement_continues() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "suboptimal"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= RESIGN"
+
+    async def fake_suboptimal_flow(*_args, **_kwargs):
+        calls.append(("suboptimal_flow",))
+        return False
+
+    async def fake_no_resign(game_arg, color):
+        calls.append(("no_resign", game_arg is game, color))
+        return "D3"
+
+    def fake_slip(game_arg, **kwargs):
+        calls.append(("slip", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment(kwargs["gtp_move"])
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_suboptimal_flow = s.try_finish_suboptimal_rogue_move
+    original_no_resign = s._ai_move_no_resign
+    original_slip = s.apply_slip_ai_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.try_finish_suboptimal_rogue_move = fake_suboptimal_flow
+    s._ai_move_no_resign = fake_no_resign
+    s.apply_slip_ai_move = fake_slip
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        s.try_finish_suboptimal_rogue_move = original_suboptimal_flow
+        s._ai_move_no_resign = original_no_resign
+        s.apply_slip_ai_move = original_slip
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "D3")
+    assert game.board[2][3] == 2
+    assert calls == [
+        ("sync", True),
+        ("suboptimal_flow",),
+        ("generate", "W", True, True),
+        ("no_resign", True, "W"),
+        ("slip", True, "D3"),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "D3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_real_resign_helper_rogue_replacement_continues() -> None:
+    asyncio.run(_server_ai_move_real_resign_helper_rogue_replacement_continues())
+
+
+async def _server_ai_move_real_resign_helper_plain_resign_returns() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= RESIGN"
+
+    def fake_slip(*_args, **_kwargs):
+        calls.append(("slip",))
+        return AiMoveAdjustment("C3")
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_slip = s.apply_slip_ai_move
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.apply_slip_ai_move = fake_slip
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        s.apply_slip_ai_move = original_slip
+
+    assert game.game_over is True
+    assert game.winner == "B"
+    assert game.moves == []
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("send", {
+            "type": "game_over",
+            "winner": "B",
+            "score": None,
+            "reason": "ai_resign",
+        }),
+    ]
+
+
+def test_server_ai_move_real_resign_helper_plain_resign_returns() -> None:
+    asyncio.run(_server_ai_move_real_resign_helper_plain_resign_returns())
+
+
 async def _try_finish_suboptimal_rogue_move_uses_nerf_backup_first() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -2306,6 +2677,13 @@ if __name__ == "__main__":
     test_retry_ai_move_avoiding_ko_preserves_message_when_coord_parse_fails()
     test_retry_ai_move_avoiding_ko_retries_and_clears_message()
     test_server_ai_move_ko_guard_runs_after_slip_and_clears_message()
+    test_resolve_ai_resign_move_keeps_non_resign_move()
+    test_resolve_ai_resign_move_uses_no_resign_with_rogue_card()
+    test_resolve_ai_resign_move_ends_game_without_rogue_card()
+    test_server_ai_move_resign_delegates_to_resign_flow_and_returns_when_complete()
+    test_server_ai_move_resign_flow_replacement_continues_to_slip()
+    test_server_ai_move_real_resign_helper_rogue_replacement_continues()
+    test_server_ai_move_real_resign_helper_plain_resign_returns()
     test_try_finish_suboptimal_rogue_move_uses_nerf_backup_first()
     test_try_finish_suboptimal_rogue_move_keeps_suboptimal_default_signature()
     test_try_finish_suboptimal_rogue_move_continues_after_miss_or_none()
