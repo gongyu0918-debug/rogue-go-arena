@@ -3,10 +3,10 @@ rogue-go-arena server - KataGo-powered board game with FastAPI WebSocket backend
 """
 import argparse
 import asyncio
-import copy
 import json
 import random
 import re
+import traceback
 import time
 import os
 import sys
@@ -80,6 +80,12 @@ from app.domain.coordinates import coord_to_gtp, gtp_to_coord
 from app.domain.game_state import GoGame
 from app.domain.sgf import generate_sgf
 from app.runtime.access_urls import get_access_urls as build_access_urls
+from app.runtime.analysis import (
+    analyze_current_position as analyze_current_position_state,
+    empty_analysis_result as empty_analysis_result_state,
+    estimate_side_winrate as estimate_side_winrate_state,
+    pick_analysis_point as pick_analysis_point_state,
+)
 from app.runtime.board_sync import (
     gtp_safe_sync_sgf_path as build_gtp_safe_sync_sgf_path,
     has_gtp_unsafe_whitespace as check_gtp_unsafe_whitespace,
@@ -762,34 +768,15 @@ def _get_player_bonus_forbidden_points(game: GoGame, color: str) -> set[tuple[in
 
 
 async def _estimate_side_winrate(game: GoGame, color: str) -> float:
-    if not engine.ready:
-        return 0.5
-    await _sync_board_to_katago(game)
-
-    def _analyze():
-        try:
-            lines, ownership = engine.analyze(
-                game.current_player,
-                visits=120,
-                interval=50,
-                duration=0.7,
-                extra_args=["rootInfo", "true", "ownership", "false"],
-            )
-            result = engine.parse_analysis(
-                lines,
-                ownership,
-                game.size,
-                to_move_color=game.current_player,
-            )
-            black_wr = float(result.get("winrate", 0.5))
-            return black_wr if color == "B" else 1.0 - black_wr
-        except Exception:
-            return 0.5
-
-    try:
-        return max(0.0, min(1.0, float(await run_in_executor(_analyze))))
-    except Exception:
-        return 0.5
+    return await estimate_side_winrate_state(
+        game,
+        color,
+        engine_ready=engine.ready,
+        sync_board=_sync_board_to_katago,
+        analyze=engine.analyze,
+        parse_analysis=engine.parse_analysis,
+        run_in_executor=run_in_executor,
+    )
 
 
 async def _trigger_rogue_five_in_row(game: GoGame, send_fn, color: str):
@@ -996,34 +983,17 @@ def _clear_player_turn_modifiers(game: GoGame):
 
 
 async def _pick_analysis_point(game: GoGame, color: str, *, start_index: int = 0) -> Optional[tuple[int, int]]:
-    if not engine.ready:
-        return None
-
-    def _analyze():
-        visits = max(120, min(get_game_visits(game.level, len(game.moves), mode="rogue"), 800))
-        lines, _ = engine.analyze(
-            color,
-            visits=visits,
-            interval=40,
-            duration=1.2,
-            extra_args=["rootInfo", "true"],
-        )
-        result = engine.parse_analysis(lines, [], game.size, to_move_color=color)
-        return result.get("top_moves", [])
-
-    try:
-        top_moves = await run_in_executor(_analyze)
-    except Exception:
-        return None
-
-    for candidate in top_moves[start_index:]:
-        move = candidate.get("move") or candidate.get("gtp")
-        if not move or move.upper() == "PASS":
-            continue
-        coord = gtp_to_coord(move, game.size)
-        if coord and game.board[coord[1]][coord[0]] == 0:
-            return coord
-    return None
+    return await pick_analysis_point_state(
+        game,
+        color,
+        start_index=start_index,
+        engine_ready=engine.ready,
+        get_game_visits=get_game_visits,
+        analyze=engine.analyze,
+        parse_analysis=engine.parse_analysis,
+        run_in_executor=run_in_executor,
+        gtp_to_coord=gtp_to_coord,
+    )
 
 
 async def _pick_second_best_point(game: GoGame, color: str) -> Optional[tuple[int, int]]:
@@ -1248,51 +1218,22 @@ async def _sync_board_to_katago(game: GoGame):
 
 
 def _empty_analysis_result() -> dict:
-    return {
-        "winrate": 0.5,
-        "score": 0.0,
-        "top_moves": [],
-        "ownership": [],
-        "analysis_ready": False,
-    }
+    return empty_analysis_result_state()
 
 
 async def _analyze_current_position(game: GoGame, color: Optional[str] = None) -> dict:
-    if not engine.ready:
-        result = _empty_analysis_result()
-        game.last_analysis = copy.deepcopy(result)
-        return result
-
-    await _sync_board_to_katago(game)
-    analyze_color = color or game.current_player
-    analysis_visits = max(80, min(get_game_visits(game.level, len(game.moves)) // 2, 1000))
-
-    def _analyze():
-        try:
-            lines, ownership = engine.analyze(
-                analyze_color,
-                visits=analysis_visits,
-                interval=50,
-                duration=1.0,
-                extra_args=["rootInfo", "true", "ownership", "true"],
-            )
-            result = engine.parse_analysis(
-                lines,
-                ownership,
-                game.size,
-                to_move_color=analyze_color,
-            )
-            print(f"[Analysis] top_moves={len(result.get('top_moves', []))} winrate={result.get('winrate')}")
-            return result
-        except Exception as ex:
-            import traceback
-            print(f"[Analysis] error: {ex}")
-            traceback.print_exc()
-            return _empty_analysis_result()
-
-    result = await run_in_executor(_analyze)
-    game.last_analysis = copy.deepcopy(result)
-    return result
+    return await analyze_current_position_state(
+        game,
+        color=color,
+        engine_ready=engine.ready,
+        sync_board=_sync_board_to_katago,
+        get_game_visits=get_game_visits,
+        analyze=engine.analyze,
+        parse_analysis=engine.parse_analysis,
+        run_in_executor=run_in_executor,
+        log_fn=print,
+        traceback_fn=traceback.print_exc,
+    )
 
 
 def _ultimate_get_territory_forbidden(game: GoGame, for_color_val: int) -> set:
