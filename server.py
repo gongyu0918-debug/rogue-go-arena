@@ -119,6 +119,7 @@ from app.gameplay.ai_moves import (
     rogue_forbidden_points,
     sansan_opening_restriction,
     shadow_followup_points,
+    snapshot_ai_turn,
     tengen_followup_points,
     weaken_rank,
     weaken_rank_one_step,
@@ -1284,11 +1285,12 @@ async def _ai_move(game: GoGame, send_fn):
 
     await _sync_board_to_katago(game)
 
-    color = game.ai_color
-    card = game.rogue_card
-    rogue_cards = set(_rogue_card_ids(game))
-    move_count = len(game.moves)
-    ai_move_count = sum(1 for c, _ in game.moves if c == color)
+    turn = snapshot_ai_turn(game, _rogue_card_ids)
+    color = turn.color
+    card = turn.card
+    rogue_cards = turn.rogue_cards
+    move_count = turn.move_count
+    ai_move_count = turn.ai_move_count
 
     async def _run_engine_command(command: str) -> str:
         return await run_in_executor(engine.send_command, command)

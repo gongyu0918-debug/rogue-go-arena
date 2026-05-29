@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import time
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Iterable
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
@@ -26,6 +26,15 @@ class AiMovePlan:
     effective_level: str
     visits: int
     time_limit: float
+    move_count: int
+    ai_move_count: int
+
+
+@dataclass(frozen=True)
+class AiTurnSnapshot:
+    color: str
+    card: str | None
+    rogue_cards: set[str]
     move_count: int
     ai_move_count: int
 
@@ -73,6 +82,20 @@ def compute_game_visits(
     ):
         visits = gameplay_config.OPENING_MAX_VISITS
     return visits
+
+
+def snapshot_ai_turn(
+    game: Any,
+    rogue_card_ids: Callable[[Any], Iterable[str]],
+) -> AiTurnSnapshot:
+    color = game.ai_color
+    return AiTurnSnapshot(
+        color=color,
+        card=game.rogue_card,
+        rogue_cards=set(rogue_card_ids(game)),
+        move_count=len(game.moves),
+        ai_move_count=sum(1 for move_color, _move in game.moves if move_color == color),
+    )
 
 
 def weaken_rank(level: str, steps: int = 1) -> str:

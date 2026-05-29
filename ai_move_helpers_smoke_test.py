@@ -5,6 +5,7 @@ from app.gameplay.ai_moves import (
     is_suspicious_ai_pass,
     plan_ultimate_ai_search,
     resolve_occupied_ai_move,
+    snapshot_ai_turn,
 )
 
 
@@ -15,6 +16,48 @@ def make_game(size: int = 9) -> GoGame:
 class FirstChoiceRng:
     def choice(self, items):
         return items[0]
+
+
+def test_snapshot_ai_turn_collects_move_counts_and_cards() -> None:
+    game = make_game()
+    game.rogue_card = "suboptimal"
+    game.moves = [
+        ("B", "E5"),
+        ("W", "D4"),
+        ("W", "pass"),
+        ("B", "C3"),
+    ]
+    calls = []
+
+    def rogue_cards(game_arg):
+        calls.append(game_arg is game)
+        return ["suboptimal", "nerf", "suboptimal"]
+
+    snapshot = snapshot_ai_turn(game, rogue_cards)
+
+    assert snapshot.color == "W"
+    assert snapshot.card == "suboptimal"
+    assert snapshot.rogue_cards == {"suboptimal", "nerf"}
+    assert snapshot.move_count == 4
+    assert snapshot.ai_move_count == 2
+    assert calls == [True]
+
+
+def test_snapshot_ai_turn_uses_black_ai_when_player_is_white() -> None:
+    game = GoGame(size=9, player_color="W")
+    game.moves = [
+        ("B", "D4"),
+        ("W", "E5"),
+        ("B", "Q16"),
+    ]
+
+    snapshot = snapshot_ai_turn(game, lambda _game: [])
+
+    assert snapshot.color == "B"
+    assert snapshot.card is None
+    assert snapshot.rogue_cards == set()
+    assert snapshot.move_count == 3
+    assert snapshot.ai_move_count == 2
 
 
 def test_plan_ultimate_ai_search_uses_ultimate_visits_and_ai_card() -> None:
@@ -187,6 +230,8 @@ def test_suspicious_ai_pass_allows_late_small_board_pass() -> None:
 
 
 if __name__ == "__main__":
+    test_snapshot_ai_turn_collects_move_counts_and_cards()
+    test_snapshot_ai_turn_uses_black_ai_when_player_is_white()
     test_plan_ultimate_ai_search_uses_ultimate_visits_and_ai_card()
     test_plan_ultimate_ai_search_applies_player_territory_forbidden()
     test_plan_ultimate_ai_search_uses_black_color_value_for_black_ai()
