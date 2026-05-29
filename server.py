@@ -112,6 +112,7 @@ from app.gameplay.ai_moves import (
     choose_ai_style_move,
     choose_tengen_target,
     gravity_allowed_points,
+    is_suspicious_ai_pass as is_suspicious_ai_pass_state,
     lowline_allowed_points,
     plan_rogue_ai_search,
     rogue_forbidden_points,
@@ -1443,11 +1444,7 @@ async def _ultimate_force_score(game: GoGame, send_fn):
 
 
 def _is_suspicious_ai_pass(game: GoGame, gtp_move: str, color: str) -> bool:
-    if gtp_move.upper() != "PASS":
-        return False
-    non_pass_moves = sum(1 for c, m in game.moves if c == color and m.upper() != "PASS")
-    empty_points = sum(1 for row in game.board for cell in row if cell == 0)
-    return non_pass_moves < 3 and empty_points > max(20, game.size * 2)
+    return is_suspicious_ai_pass_state(game, gtp_move, color)
 
 
 async def _pick_nonpass_fallback_move(

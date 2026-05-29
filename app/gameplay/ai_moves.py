@@ -77,6 +77,18 @@ def weaken_rank_one_step(level: str) -> str:
     return weaken_rank(level, 1)
 
 
+def is_suspicious_ai_pass(game: Any, gtp_move: str, color: str) -> bool:
+    if gtp_move.upper() != "PASS":
+        return False
+    non_pass_moves = sum(
+        1
+        for move_color, move in game.moves
+        if move_color == color and move.upper() != "PASS"
+    )
+    empty_points = sum(1 for row in game.board for cell in row if cell == 0)
+    return non_pass_moves < 3 and empty_points > max(20, game.size * 2)
+
+
 def plan_rogue_ai_search(
     game: Any,
     rogue_cards: set[str],

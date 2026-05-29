@@ -26,7 +26,7 @@ This plan keeps the current feature baseline stable while reducing the cost of f
 
 4. Move remaining Ultimate orchestration from `server.py`.
    - AI turn flow, force-score, quickthink end, special-card bridges.
-   - Smoke: `ultimate_helpers_smoke_test.py`, `card_smoke_test.py`, `runtime_smoke_test.py`, and Ultimate per-card smoke.
+   - Smoke: `ai_move_helpers_smoke_test.py`, `ultimate_helpers_smoke_test.py`, `card_smoke_test.py`, `runtime_smoke_test.py`, and Ultimate per-card smoke.
 
 5. Reduce WebSocket handler coupling.
    - Keep `WebSocketActionContext`, but group dependencies into smaller service objects.
