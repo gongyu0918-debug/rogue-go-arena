@@ -200,6 +200,7 @@ from app.gameplay.rogue_effects import (
     challenge_remaining as _challenge_remaining,
     challenge_should_bonus_derivative as _challenge_should_bonus_derivative,
     challenge_zone_points as _challenge_zone_points,
+    apply_ai_rogue_response_board_effects,
     apply_player_rogue_board_effects,
     reset_rogue_effect_state,
     rogue_card_ids as _rogue_card_ids,
@@ -1163,25 +1164,17 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
 async def _apply_ai_rogue_response_effects(game: GoGame, send_fn,
                                            x: int, y: int,
                                            color: str):
-    if game.two_player or not game.ai_rogue_enabled:
-        return
-    if game.ai_rogue_card == "sansan_trap":
-        coord = (x, y)
-        if coord in _get_sansan_points(game.size):
-            nearby = [
-                (nx, ny)
-                for nx, ny in _adjacent8_points(coord[0], coord[1], game.size)
-                if game.board[ny][nx] == 0
-            ]
-            random.shuffle(nearby)
-            changed = _spawn_bonus_points(game, nearby[:ROGUE_SANSAN_TRAP_STONES], game.ai_color)
-            if changed:
-                if engine.ready:
-                    await _sync_board_to_katago(game)
-                await send_fn({
-                    "type": "rogue_event",
-                    "msg": f"三三陷阱发动，在 {coord_to_gtp(coord[0], coord[1], game.size)} 相邻点反打 {len(changed)} 子"
-                })
+    board_effect = apply_ai_rogue_response_board_effects(
+        game,
+        x=x,
+        y=y,
+        coord_to_gtp=coord_to_gtp,
+        shuffle_points=random.shuffle,
+    )
+    if board_effect.modified and engine.ready:
+        await _sync_board_to_katago(game)
+    for message in board_effect.messages:
+        await send_fn({"type": "rogue_event", "msg": message})
 
 
 def _sync_board_to_katago_locked(game: GoGame):

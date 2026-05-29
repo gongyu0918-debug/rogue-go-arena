@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 import random
 from typing import Any
@@ -20,6 +21,9 @@ from app.gameplay.effect_utils import (
     spawn_bonus_points,
 )
 from app.data.cards import challenge_card_category, challenge_category_counts
+
+
+ShufflePointsFn = Callable[[list[tuple[int, int]]], None]
 
 
 @dataclass
@@ -358,3 +362,41 @@ def apply_player_rogue_board_effects(
         messages=messages,
         trap_bonus_sources=trap_bonus_sources,
     )
+
+
+def apply_ai_rogue_response_board_effects(
+    game: Any,
+    *,
+    x: int,
+    y: int,
+    coord_to_gtp: Any,
+    shuffle_points: ShufflePointsFn = random.shuffle,
+) -> RogueBoardEffectResult:
+    if game.two_player or not game.ai_rogue_enabled:
+        return RogueBoardEffectResult(False, [], [])
+    if game.ai_rogue_card != "sansan_trap":
+        return RogueBoardEffectResult(False, [], [])
+
+    coord = (x, y)
+    if coord not in get_sansan_points(game.size):
+        return RogueBoardEffectResult(False, [], [])
+
+    nearby = [
+        (nx, ny)
+        for nx, ny in adjacent8_points(coord[0], coord[1], game.size)
+        if game.board[ny][nx] == 0
+    ]
+    shuffle_points(nearby)
+    changed = spawn_bonus_points(
+        game,
+        nearby[:gameplay_config.ROGUE_SANSAN_TRAP_STONES],
+        game.ai_color,
+    )
+    if not changed:
+        return RogueBoardEffectResult(False, [], [])
+
+    message = (
+        f"三三陷阱发动，在 {coord_to_gtp(coord[0], coord[1], game.size)} "
+        f"相邻点反打 {len(changed)} 子"
+    )
+    return RogueBoardEffectResult(True, [message], [])
