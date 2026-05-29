@@ -11,6 +11,7 @@ from app.gameplay.ai_move_flow import (
     finalize_forced_ai_pass,
     try_apply_puppet_ai_move,
     try_finalize_forced_ai_stone,
+    try_finish_suboptimal_rogue_move,
 )
 
 
@@ -1318,6 +1319,351 @@ def test_server_ai_move_puppet_without_target_skips_puppet_flow() -> None:
     asyncio.run(_server_ai_move_puppet_without_target_skips_puppet_flow())
 
 
+async def _try_finish_suboptimal_rogue_move_uses_nerf_backup_first() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def roll_random():
+        calls.append(("roll",))
+        return 0.0
+
+    async def choose_suboptimal_move(game_arg, color, visits, time_limit, *, start_idx, end_idx):
+        calls.append(("choose", game_arg is game, color, visits, time_limit, start_idx, end_idx))
+        return "D3"
+
+    async def finish_ai_move(game_arg, send_fn, color, card, gtp_move, rogue_msg):
+        calls.append(("finish", game_arg is game, send_fn is send, color, card, gtp_move, rogue_msg))
+
+    handled = await try_finish_suboptimal_rogue_move(
+        game,
+        send,
+        color="W",
+        card="nerf",
+        rogue_cards={"nerf", "time_press", "suboptimal"},
+        ai_move_count=0,
+        visits=99,
+        time_limit=0.5,
+        roll_random=roll_random,
+        choose_suboptimal_move=choose_suboptimal_move,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("roll",),
+        ("choose", True, "W", 99, 0.5, 1, 5),
+        ("finish", True, True, "W", "nerf", "D3", "弱化触发，AI 在多个备选点里误选了一手"),
+    ]
+
+
+def test_try_finish_suboptimal_rogue_move_uses_nerf_backup_first() -> None:
+    asyncio.run(_try_finish_suboptimal_rogue_move_uses_nerf_backup_first())
+
+
+async def _try_finish_suboptimal_rogue_move_keeps_suboptimal_default_signature() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def roll_random():
+        calls.append(("roll",))
+        return 0.0
+
+    async def choose_suboptimal_move(game_arg, color, visits, time_limit):
+        calls.append(("choose", game_arg is game, color, visits, time_limit))
+        return "E3"
+
+    async def finish_ai_move(game_arg, send_fn, color, card, gtp_move, rogue_msg):
+        calls.append(("finish", game_arg is game, send_fn is send, color, card, gtp_move, rogue_msg))
+
+    handled = await try_finish_suboptimal_rogue_move(
+        game,
+        send,
+        color="W",
+        card="suboptimal",
+        rogue_cards={"suboptimal"},
+        ai_move_count=0,
+        visits=99,
+        time_limit=0.5,
+        roll_random=roll_random,
+        choose_suboptimal_move=choose_suboptimal_move,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("choose", True, "W", 99, 0.5),
+        ("finish", True, True, "W", "suboptimal", "E3", "次优之选触发，AI 采用了较弱备选点"),
+    ]
+
+
+def test_try_finish_suboptimal_rogue_move_keeps_suboptimal_default_signature() -> None:
+    asyncio.run(_try_finish_suboptimal_rogue_move_keeps_suboptimal_default_signature())
+
+
+async def _try_finish_suboptimal_rogue_move_continues_after_miss_or_none() -> None:
+    game = GoGame(size=5, player_color="B")
+    rolls = iter([1.0, 0.0])
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def roll_random():
+        value = next(rolls)
+        calls.append(("roll", value))
+        return value
+
+    async def choose_suboptimal_move(game_arg, color, visits, time_limit, *, start_idx=2, end_idx=5):
+        calls.append(("choose", game_arg is game, color, visits, time_limit, start_idx, end_idx))
+        if (start_idx, end_idx) == (1, 4):
+            return None
+        return "E3"
+
+    async def finish_ai_move(game_arg, send_fn, color, card, gtp_move, rogue_msg):
+        calls.append(("finish", game_arg is game, send_fn is send, color, card, gtp_move, rogue_msg))
+
+    handled = await try_finish_suboptimal_rogue_move(
+        game,
+        send,
+        color="W",
+        card="suboptimal",
+        rogue_cards={"nerf", "time_press", "suboptimal"},
+        ai_move_count=0,
+        visits=99,
+        time_limit=0.5,
+        roll_random=roll_random,
+        choose_suboptimal_move=choose_suboptimal_move,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("roll", 1.0),
+        ("roll", 0.0),
+        ("choose", True, "W", 99, 0.5, 1, 4),
+        ("choose", True, "W", 99, 0.5, 2, 5),
+        ("finish", True, True, "W", "suboptimal", "E3", "次优之选触发，AI 采用了较弱备选点"),
+    ]
+
+
+def test_try_finish_suboptimal_rogue_move_continues_after_miss_or_none() -> None:
+    asyncio.run(_try_finish_suboptimal_rogue_move_continues_after_miss_or_none())
+
+
+async def _try_finish_suboptimal_rogue_move_continues_after_nerf_none() -> None:
+    game = GoGame(size=5, player_color="B")
+    rolls = iter([0.0, 0.0])
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def roll_random():
+        value = next(rolls)
+        calls.append(("roll", value))
+        return value
+
+    async def choose_suboptimal_move(game_arg, color, visits, time_limit, *, start_idx, end_idx):
+        calls.append(("choose", game_arg is game, color, visits, time_limit, start_idx, end_idx))
+        if (start_idx, end_idx) == (1, 5):
+            return None
+        return "D3"
+
+    async def finish_ai_move(game_arg, send_fn, color, card, gtp_move, rogue_msg):
+        calls.append(("finish", game_arg is game, send_fn is send, color, card, gtp_move, rogue_msg))
+
+    handled = await try_finish_suboptimal_rogue_move(
+        game,
+        send,
+        color="W",
+        card="time_press",
+        rogue_cards={"nerf", "time_press"},
+        ai_move_count=0,
+        visits=99,
+        time_limit=0.5,
+        roll_random=roll_random,
+        choose_suboptimal_move=choose_suboptimal_move,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("roll", 0.0),
+        ("choose", True, "W", 99, 0.5, 1, 5),
+        ("roll", 0.0),
+        ("choose", True, "W", 99, 0.5, 1, 4),
+        ("finish", True, True, "W", "time_press", "D3", "限时压制触发，AI 仓促落在了备选点上"),
+    ]
+
+
+def test_try_finish_suboptimal_rogue_move_continues_after_nerf_none() -> None:
+    asyncio.run(_try_finish_suboptimal_rogue_move_continues_after_nerf_none())
+
+
+async def _try_finish_suboptimal_rogue_move_skips_when_no_attempt_applies() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def roll_random():
+        calls.append(("roll",))
+        return 0.0
+
+    async def choose_suboptimal_move(*_args, **_kwargs):
+        calls.append(("choose",))
+        return "D3"
+
+    async def finish_ai_move(*_args):
+        calls.append(("finish",))
+
+    handled = await try_finish_suboptimal_rogue_move(
+        game,
+        send,
+        color="W",
+        card="suboptimal",
+        rogue_cards={"nerf", "suboptimal"},
+        ai_move_count=max(
+            gameplay_config.ROGUE_NERF_BACKUP_AI_MOVES,
+            gameplay_config.ROGUE_SUBOPTIMAL_AI_MOVES,
+        ),
+        visits=99,
+        time_limit=0.5,
+        roll_random=roll_random,
+        choose_suboptimal_move=choose_suboptimal_move,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is False
+    assert calls == []
+
+
+def test_try_finish_suboptimal_rogue_move_skips_when_no_attempt_applies() -> None:
+    asyncio.run(_try_finish_suboptimal_rogue_move_skips_when_no_attempt_applies())
+
+
+async def _server_ai_move_suboptimal_delegates_to_suboptimal_flow() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "suboptimal"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_suboptimal_flow(game_arg, send_fn, **kwargs):
+        calls.append((
+            "suboptimal_flow",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["card"],
+            "suboptimal" in kwargs["rogue_cards"],
+            kwargs["ai_move_count"],
+            isinstance(kwargs["visits"], int),
+            isinstance(kwargs["time_limit"], float),
+            kwargs["roll_random"] is s.random.random,
+            kwargs["choose_suboptimal_move"] is s._ai_move_suboptimal,
+            kwargs["finish_ai_move"] is s._finish_ai_move,
+        ))
+        return True
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_suboptimal_flow = s.try_finish_suboptimal_rogue_move
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.try_finish_suboptimal_rogue_move = fake_suboptimal_flow
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.try_finish_suboptimal_rogue_move = original_suboptimal_flow
+
+    assert calls == [
+        ("sync", True),
+        ("suboptimal_flow", True, True, "W", "suboptimal", True, 0, True, True, True, True, True),
+    ]
+
+
+def test_server_ai_move_suboptimal_delegates_to_suboptimal_flow() -> None:
+    asyncio.run(_server_ai_move_suboptimal_delegates_to_suboptimal_flow())
+
+
+async def _server_ai_move_suboptimal_flow_false_continues_to_normal_move() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "suboptimal"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_suboptimal_flow(game_arg, send_fn, **kwargs):
+        calls.append(("suboptimal_flow", game_arg is game, send_fn is send, kwargs["card"]))
+        return False
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_suboptimal_flow = s.try_finish_suboptimal_rogue_move
+    original_generate = s._ai_generate_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.try_finish_suboptimal_rogue_move = fake_suboptimal_flow
+    s._ai_generate_move = fake_generate
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.try_finish_suboptimal_rogue_move = original_suboptimal_flow
+        s._ai_generate_move = original_generate
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "C3")
+    assert game.board[2][2] == 2
+    assert calls == [
+        ("sync", True),
+        ("suboptimal_flow", True, True, "suboptimal"),
+        ("generate", "W", True, True),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_suboptimal_flow_false_continues_to_normal_move() -> None:
+    asyncio.run(_server_ai_move_suboptimal_flow_false_continues_to_normal_move())
+
+
 async def _server_finish_ai_move_delegates_to_finalize_flow() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -1396,5 +1742,12 @@ if __name__ == "__main__":
     test_server_ai_move_puppet_delegates_to_puppet_flow()
     test_server_ai_move_puppet_helper_false_falls_back_to_normal_move()
     test_server_ai_move_puppet_without_target_skips_puppet_flow()
+    test_try_finish_suboptimal_rogue_move_uses_nerf_backup_first()
+    test_try_finish_suboptimal_rogue_move_keeps_suboptimal_default_signature()
+    test_try_finish_suboptimal_rogue_move_continues_after_miss_or_none()
+    test_try_finish_suboptimal_rogue_move_continues_after_nerf_none()
+    test_try_finish_suboptimal_rogue_move_skips_when_no_attempt_applies()
+    test_server_ai_move_suboptimal_delegates_to_suboptimal_flow()
+    test_server_ai_move_suboptimal_flow_false_continues_to_normal_move()
     test_server_finish_ai_move_delegates_to_finalize_flow()
     print("ai_move_flow_smoke_test passed")

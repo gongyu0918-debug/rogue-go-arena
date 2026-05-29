@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Collection
 from typing import Any
 
 import app.config.gameplay as gameplay_config
@@ -15,6 +15,8 @@ PreparePlayerTurnFn = Callable[[Any], None]
 EngineCommandFn = Callable[[str], Awaitable[str]]
 RunCoachTurnFn = Callable[[Any, AsyncSend], Awaitable[None]]
 FinishAiMoveFn = Callable[[Any, AsyncSend, str, str | None, str, str | None], Awaitable[None]]
+RandomFloatFn = Callable[[], float]
+SuboptimalMoveFn = Callable[..., Awaitable[str | None]]
 AllowedRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
@@ -225,6 +227,78 @@ async def try_finish_sansan_restriction_move(
         restriction.message,
     )
     return True
+
+
+async def try_finish_suboptimal_rogue_move(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    card: str | None,
+    rogue_cards: Collection[str],
+    ai_move_count: int,
+    visits: int,
+    time_limit: float,
+    roll_random: RandomFloatFn,
+    choose_suboptimal_move: SuboptimalMoveFn,
+    finish_ai_move: FinishAiMoveFn,
+) -> bool:
+    attempts = (
+        (
+            "nerf",
+            gameplay_config.ROGUE_NERF_BACKUP_AI_MOVES,
+            gameplay_config.ROGUE_NERF_BACKUP_CHANCE,
+            1,
+            5,
+            "弱化触发，AI 在多个备选点里误选了一手",
+        ),
+        (
+            "time_press",
+            gameplay_config.ROGUE_TIME_PRESS_BACKUP_AI_MOVES,
+            gameplay_config.ROGUE_TIME_PRESS_BACKUP_CHANCE,
+            1,
+            4,
+            "限时压制触发，AI 仓促落在了备选点上",
+        ),
+        (
+            "suboptimal",
+            gameplay_config.ROGUE_SUBOPTIMAL_AI_MOVES,
+            None,
+            None,
+            None,
+            "次优之选触发，AI 采用了较弱备选点",
+        ),
+    )
+
+    for card_id, max_ai_moves, chance, start_idx, end_idx, message in attempts:
+        if card_id not in rogue_cards or ai_move_count >= max_ai_moves:
+            continue
+        if chance is not None and roll_random() >= chance:
+            continue
+
+        if start_idx is None or end_idx is None:
+            gtp_move = await choose_suboptimal_move(game, color, visits, time_limit)
+        else:
+            gtp_move = await choose_suboptimal_move(
+                game,
+                color,
+                visits,
+                time_limit,
+                start_idx=start_idx,
+                end_idx=end_idx,
+            )
+        if gtp_move:
+            await finish_ai_move(
+                game,
+                send_fn,
+                color,
+                card,
+                gtp_move,
+                message,
+            )
+            return True
+
+    return False
 
 
 async def finalize_ai_move(

@@ -51,8 +51,6 @@ from app.config.gameplay import (
     ROGUE_LAST_STAND_SPAWN_COUNT,
     ROGUE_LAST_STAND_THRESHOLD,
     ROGUE_MIRROR_CHANCE,
-    ROGUE_NERF_BACKUP_AI_MOVES,
-    ROGUE_NERF_BACKUP_CHANCE,
     ROGUE_NO_REGRET_CHANCE,
     ROGUE_QUICKTHINK_FIRST_SECONDS,
     ROGUE_QUICKTHINK_SECOND_SECONDS,
@@ -64,9 +62,6 @@ from app.config.gameplay import (
     ROGUE_SEAL_POINT_COUNT,
     ROGUE_SHADOW_CHANCE,
     ROGUE_SLIP_CHANCE,
-    ROGUE_SUBOPTIMAL_AI_MOVES,
-    ROGUE_TIME_PRESS_BACKUP_AI_MOVES,
-    ROGUE_TIME_PRESS_BACKUP_CHANCE,
     ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
     ULTIMATE_FOOLISH_CHAIN_DELAY,
     ULTIMATE_JOSEKI_BONUS_STONES,
@@ -126,6 +121,7 @@ from app.gameplay.ai_move_flow import (
     try_finalize_forced_ai_stone,
     try_finish_allowed_restriction_move,
     try_finish_sansan_restriction_move,
+    try_finish_suboptimal_rogue_move,
 )
 from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
 from app.gameplay.turn_modifiers import (
@@ -1701,30 +1697,20 @@ async def _ai_move(game: GoGame, send_fn):
             ):
                 return
 
-    if ("nerf" in rogue_cards
-            and ai_move_count < ROGUE_NERF_BACKUP_AI_MOVES
-            and random.random() < ROGUE_NERF_BACKUP_CHANCE):
-        gtp_move = await _ai_move_suboptimal(game, color, visits, time_limit, start_idx=1, end_idx=5)
-        if gtp_move:
-            await _finish_ai_move(game, send_fn, color, card, gtp_move,
-                                  "弱化触发，AI 在多个备选点里误选了一手")
-            return
-
-    if ("time_press" in rogue_cards
-            and ai_move_count < ROGUE_TIME_PRESS_BACKUP_AI_MOVES
-            and random.random() < ROGUE_TIME_PRESS_BACKUP_CHANCE):
-        gtp_move = await _ai_move_suboptimal(game, color, visits, time_limit, start_idx=1, end_idx=4)
-        if gtp_move:
-            await _finish_ai_move(game, send_fn, color, card, gtp_move,
-                                  "限时压制触发，AI 仓促落在了备选点上")
-            return
-
-    if "suboptimal" in rogue_cards and ai_move_count < ROGUE_SUBOPTIMAL_AI_MOVES:
-        gtp_move = await _ai_move_suboptimal(game, color, visits, time_limit)
-        if gtp_move:
-            await _finish_ai_move(game, send_fn, color, card, gtp_move,
-                                  "次优之选触发，AI 采用了较弱备选点")
-            return
+    if await try_finish_suboptimal_rogue_move(
+        game,
+        send_fn,
+        color=color,
+        card=card,
+        rogue_cards=rogue_cards,
+        ai_move_count=ai_move_count,
+        visits=visits,
+        time_limit=time_limit,
+        roll_random=random.random,
+        choose_suboptimal_move=_ai_move_suboptimal,
+        finish_ai_move=_finish_ai_move,
+    ):
+        return
 
     forbidden = rogue_forbidden_points(
         game,
