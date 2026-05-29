@@ -9,6 +9,7 @@ from app.domain.game_state import GoGame
 from app.gameplay.ai_move_flow import (
     finalize_ai_move,
     finalize_forced_ai_pass,
+    try_apply_puppet_ai_move,
     try_finalize_forced_ai_stone,
 )
 
@@ -737,6 +738,375 @@ def test_server_ai_move_mirror_helper_false_falls_back_to_normal_move() -> None:
     asyncio.run(_server_ai_move_mirror_helper_false_falls_back_to_normal_move())
 
 
+async def _try_apply_puppet_ai_move_success_finishes_and_updates_uses() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_puppet_target = (2, 2)
+    game.rogue_uses["puppet"] = 2
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("uses")))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "="
+
+    async def finish_ai_move(game_arg, send_fn, color, card, gtp_move, rogue_msg):
+        calls.append((
+            "finish",
+            game_arg is game,
+            send_fn is send,
+            color,
+            card,
+            gtp_move,
+            rogue_msg,
+            game.rogue_uses["puppet"],
+        ))
+
+    handled = await try_apply_puppet_ai_move(
+        game,
+        send,
+        color="W",
+        card="puppet",
+        target=game.rogue_puppet_target,
+        coord_to_gtp=s.coord_to_gtp,
+        run_engine_command=run_engine_command,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is True
+    assert game.rogue_puppet_target is None
+    assert game.rogue_uses["puppet"] == 1
+    assert calls == [
+        ("engine", "play W C3"),
+        (
+            "finish",
+            True,
+            True,
+            "W",
+            "puppet",
+            "C3",
+            "🎭 傀儡术生效，AI 被迫落子于 C3",
+            1,
+        ),
+        ("send", "rogue_uses_update", {"puppet": 1}),
+    ]
+
+
+def test_try_apply_puppet_ai_move_success_finishes_and_updates_uses() -> None:
+    asyncio.run(_try_apply_puppet_ai_move_success_finishes_and_updates_uses())
+
+
+async def _try_apply_puppet_ai_move_occupied_target_falls_back() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_puppet_target = (2, 2)
+    game.board[2][2] = 1
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("msg")))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "="
+
+    async def finish_ai_move(*_args):
+        calls.append(("finish",))
+
+    handled = await try_apply_puppet_ai_move(
+        game,
+        send,
+        color="W",
+        card="puppet",
+        target=game.rogue_puppet_target,
+        coord_to_gtp=s.coord_to_gtp,
+        run_engine_command=run_engine_command,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is False
+    assert game.rogue_puppet_target is None
+    assert calls == [
+        ("send", "rogue_event", "🎭 傀儡术目标 C3 已被占用，AI 改为正常应手"),
+    ]
+
+
+def test_try_apply_puppet_ai_move_occupied_target_falls_back() -> None:
+    asyncio.run(_try_apply_puppet_ai_move_occupied_target_falls_back())
+
+
+async def _try_apply_puppet_ai_move_illegal_target_falls_back() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_puppet_target = (2, 2)
+    game.is_ko = lambda x, y, color: (x, y, color) == (2, 2, "W")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("msg")))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "="
+
+    async def finish_ai_move(*_args):
+        calls.append(("finish",))
+
+    handled = await try_apply_puppet_ai_move(
+        game,
+        send,
+        color="W",
+        card="puppet",
+        target=game.rogue_puppet_target,
+        coord_to_gtp=s.coord_to_gtp,
+        run_engine_command=run_engine_command,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is False
+    assert game.rogue_puppet_target is None
+    assert calls == [
+        ("send", "rogue_event", "🎭 傀儡术目标 C3 当前不合法，AI 改为正常应手"),
+    ]
+
+
+def test_try_apply_puppet_ai_move_illegal_target_falls_back() -> None:
+    asyncio.run(_try_apply_puppet_ai_move_illegal_target_falls_back())
+
+
+async def _try_apply_puppet_ai_move_engine_error_falls_back() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_puppet_target = (2, 2)
+    game.rogue_uses["puppet"] = 1
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("msg")))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "? illegal move"
+
+    async def finish_ai_move(*_args):
+        calls.append(("finish",))
+
+    handled = await try_apply_puppet_ai_move(
+        game,
+        send,
+        color="W",
+        card="puppet",
+        target=game.rogue_puppet_target,
+        coord_to_gtp=s.coord_to_gtp,
+        run_engine_command=run_engine_command,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is False
+    assert game.rogue_puppet_target is None
+    assert game.rogue_uses["puppet"] == 1
+    assert calls == [
+        ("engine", "play W C3"),
+        ("send", "rogue_event", "🎭 傀儡术目标 C3 执行失败，AI 改为正常应手"),
+    ]
+
+
+def test_try_apply_puppet_ai_move_engine_error_falls_back() -> None:
+    asyncio.run(_try_apply_puppet_ai_move_engine_error_falls_back())
+
+
+async def _server_ai_move_puppet_delegates_to_puppet_flow() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "puppet"
+    game.rogue_puppet_target = (2, 2)
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_puppet_flow(game_arg, send_fn, **kwargs):
+        calls.append((
+            "puppet",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["card"],
+            kwargs["target"],
+            kwargs["coord_to_gtp"] is s.coord_to_gtp,
+            callable(kwargs["run_engine_command"]),
+            kwargs["finish_ai_move"] is s._finish_ai_move,
+        ))
+        return True
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_puppet_flow = s.try_apply_puppet_ai_move
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.try_apply_puppet_ai_move = fake_puppet_flow
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.try_apply_puppet_ai_move = original_puppet_flow
+
+    assert calls == [
+        ("sync", True),
+        (
+            "puppet",
+            True,
+            True,
+            "W",
+            "puppet",
+            (2, 2),
+            True,
+            True,
+            True,
+        ),
+    ]
+
+
+def test_server_ai_move_puppet_delegates_to_puppet_flow() -> None:
+    asyncio.run(_server_ai_move_puppet_delegates_to_puppet_flow())
+
+
+async def _server_ai_move_puppet_helper_false_falls_back_to_normal_move() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "puppet"
+    game.rogue_puppet_target = (2, 2)
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_puppet_flow(game_arg, send_fn, **kwargs):
+        calls.append((
+            "puppet",
+            game_arg is game,
+            send_fn is send,
+            kwargs["target"],
+        ))
+        game.rogue_puppet_target = None
+        return False
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_puppet_flow = s.try_apply_puppet_ai_move
+    original_generate = s._ai_generate_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.try_apply_puppet_ai_move = fake_puppet_flow
+    s._ai_generate_move = fake_generate
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.try_apply_puppet_ai_move = original_puppet_flow
+        s._ai_generate_move = original_generate
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "C3")
+    assert game.board[2][2] == 2
+    assert calls == [
+        ("sync", True),
+        ("puppet", True, True, (2, 2)),
+        ("generate", "W", True, True),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_puppet_helper_false_falls_back_to_normal_move() -> None:
+    asyncio.run(_server_ai_move_puppet_helper_false_falls_back_to_normal_move())
+
+
+async def _server_ai_move_puppet_without_target_skips_puppet_flow() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "puppet"
+    game.rogue_puppet_target = None
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_puppet_flow(*_args, **_kwargs):
+        calls.append(("puppet",))
+        return True
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_puppet_flow = s.try_apply_puppet_ai_move
+    original_generate = s._ai_generate_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.try_apply_puppet_ai_move = fake_puppet_flow
+    s._ai_generate_move = fake_generate
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.try_apply_puppet_ai_move = original_puppet_flow
+        s._ai_generate_move = original_generate
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "C3")
+    assert game.board[2][2] == 2
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_puppet_without_target_skips_puppet_flow() -> None:
+    asyncio.run(_server_ai_move_puppet_without_target_skips_puppet_flow())
+
+
 async def _server_finish_ai_move_delegates_to_finalize_flow() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -805,5 +1175,12 @@ if __name__ == "__main__":
     test_server_ai_move_exchange_clears_skip_and_delegates_to_forced_pass()
     test_server_ai_move_mirror_delegates_to_forced_stone()
     test_server_ai_move_mirror_helper_false_falls_back_to_normal_move()
+    test_try_apply_puppet_ai_move_success_finishes_and_updates_uses()
+    test_try_apply_puppet_ai_move_occupied_target_falls_back()
+    test_try_apply_puppet_ai_move_illegal_target_falls_back()
+    test_try_apply_puppet_ai_move_engine_error_falls_back()
+    test_server_ai_move_puppet_delegates_to_puppet_flow()
+    test_server_ai_move_puppet_helper_false_falls_back_to_normal_move()
+    test_server_ai_move_puppet_without_target_skips_puppet_flow()
     test_server_finish_ai_move_delegates_to_finalize_flow()
     print("ai_move_flow_smoke_test passed")

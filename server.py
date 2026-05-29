@@ -122,6 +122,7 @@ from app.gameplay.ai_moves import (
 from app.gameplay.ai_move_flow import (
     finalize_ai_move,
     finalize_forced_ai_pass,
+    try_apply_puppet_ai_move,
     try_finalize_forced_ai_stone,
 )
 from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
@@ -1555,32 +1556,17 @@ async def _ai_move(game: GoGame, send_fn):
         return
 
     if "puppet" in rogue_cards and game.rogue_puppet_target is not None:
-        tx, ty = game.rogue_puppet_target
-        puppet_gtp = coord_to_gtp(tx, ty, game.size)
-        game.rogue_puppet_target = None
-        if game.board[ty][tx] != 0:
-            await send_fn({"type": "rogue_event",
-                           "msg": f"🎭 傀儡术目标 {puppet_gtp} 已被占用，AI 改为正常应手"})
-        elif game.is_ko(tx, ty, color) or not game.is_legal_move(tx, ty, color):
-            await send_fn({"type": "rogue_event",
-                           "msg": f"🎭 傀儡术目标 {puppet_gtp} 当前不合法，AI 改为正常应手"})
-        else:
-            resp = await run_in_executor(engine.send_command, f"play {color} {puppet_gtp}")
-            if "?" not in resp:
-                if game.rogue_uses.get("puppet", 0) > 0:
-                    game.rogue_uses["puppet"] -= 1
-                await _finish_ai_move(
-                    game,
-                    send_fn,
-                    color,
-                    card,
-                    puppet_gtp,
-                    f"🎭 傀儡术生效，AI 被迫落子于 {puppet_gtp}",
-                )
-                await send_fn({"type": "rogue_uses_update", "uses": game.rogue_uses})
-                return
-            await send_fn({"type": "rogue_event",
-                           "msg": f"🎭 傀儡术目标 {puppet_gtp} 执行失败，AI 改为正常应手"})
+        if await try_apply_puppet_ai_move(
+            game,
+            send_fn,
+            color=color,
+            card=card,
+            target=game.rogue_puppet_target,
+            coord_to_gtp=coord_to_gtp,
+            run_engine_command=_run_engine_command,
+            finish_ai_move=_finish_ai_move,
+        ):
+            return
 
     ai_plan = plan_rogue_ai_search(
         game,

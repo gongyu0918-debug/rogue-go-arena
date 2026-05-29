@@ -14,6 +14,7 @@ CheckCaptureFoulFn = Callable[..., Awaitable[None]]
 PreparePlayerTurnFn = Callable[[Any], None]
 EngineCommandFn = Callable[[str], Awaitable[str]]
 RunCoachTurnFn = Callable[[Any, AsyncSend], Awaitable[None]]
+FinishAiMoveFn = Callable[[Any, AsyncSend, str, str | None, str, str | None], Awaitable[None]]
 
 
 async def finalize_forced_ai_pass(
@@ -73,6 +74,57 @@ async def try_finalize_forced_ai_stone(
         "y": y,
     })
     await send_fn({"type": "rogue_event", "msg": message})
+    return True
+
+
+async def try_apply_puppet_ai_move(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    card: str | None,
+    target: tuple[int, int],
+    coord_to_gtp: Callable[[int, int, int], str | None],
+    run_engine_command: EngineCommandFn,
+    finish_ai_move: FinishAiMoveFn,
+) -> bool:
+    tx, ty = target
+    puppet_gtp = coord_to_gtp(tx, ty, game.size)
+    game.rogue_puppet_target = None
+
+    if game.board[ty][tx] != 0:
+        await send_fn({
+            "type": "rogue_event",
+            "msg": f"🎭 傀儡术目标 {puppet_gtp} 已被占用，AI 改为正常应手",
+        })
+        return False
+
+    if game.is_ko(tx, ty, color) or not game.is_legal_move(tx, ty, color):
+        await send_fn({
+            "type": "rogue_event",
+            "msg": f"🎭 傀儡术目标 {puppet_gtp} 当前不合法，AI 改为正常应手",
+        })
+        return False
+
+    resp = await run_engine_command(f"play {color} {puppet_gtp}")
+    if "?" in resp:
+        await send_fn({
+            "type": "rogue_event",
+            "msg": f"🎭 傀儡术目标 {puppet_gtp} 执行失败，AI 改为正常应手",
+        })
+        return False
+
+    if game.rogue_uses.get("puppet", 0) > 0:
+        game.rogue_uses["puppet"] -= 1
+    await finish_ai_move(
+        game,
+        send_fn,
+        color,
+        card,
+        puppet_gtp,
+        f"🎭 傀儡术生效，AI 被迫落子于 {puppet_gtp}",
+    )
+    await send_fn({"type": "rogue_uses_update", "uses": game.rogue_uses})
     return True
 
 
