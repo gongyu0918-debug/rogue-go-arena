@@ -14,7 +14,7 @@ This plan keeps the current feature baseline stable while reducing the cost of f
 
 1. Move pure domain helpers out of `server.py`.
    - SGF export, scoring helpers, coordinate-only helpers.
-   - Smoke: dedicated pure helper smoke (`sgf_smoke_test.py`, `rank_helpers_smoke_test.py`) plus `runtime_smoke_test.py` for exported SGF.
+   - Smoke: dedicated pure helper smoke (`sgf_smoke_test.py`, `rank_helpers_smoke_test.py`, `move_history_smoke_test.py`) plus `runtime_smoke_test.py` for exported SGF.
 
 2. Move runtime environment helpers out of `server.py`.
    - Access URLs, GPU status, engine status payload shaping.

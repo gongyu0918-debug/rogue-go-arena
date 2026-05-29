@@ -148,6 +148,7 @@ from app.gameplay.effect_utils import (
     line_key as _line_key,
     line_points_between as _line_points_between,
     mirror_coord as _mirror_coord,
+    player_non_pass_coords as player_non_pass_coords_state,
     pick_joseki_targets as _pick_joseki_targets,
     random_hidden_center as _random_hidden_center,
     set_points_to_color as _set_points_to_color,
@@ -935,16 +936,7 @@ async def _trigger_ultimate_five_in_row(game: GoGame, send_fn, color: str):
 
 
 def _player_non_pass_coords(game: GoGame, color: str, limit: Optional[int] = None) -> list[tuple[int, int]]:
-    coords = []
-    for move_color, gtp in game.moves:
-        if move_color != color or gtp.upper() == "PASS":
-            continue
-        coord = gtp_to_coord(gtp, game.size)
-        if coord:
-            coords.append(coord)
-        if limit is not None and len(coords) >= limit:
-            break
-    return coords
+    return player_non_pass_coords_state(game, color, gtp_to_coord, limit=limit)
 
 
 async def _resolve_pending_ultimate_shadow_links(game: GoGame, send_fn) -> bool:

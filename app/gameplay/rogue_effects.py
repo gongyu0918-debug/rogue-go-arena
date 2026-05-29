@@ -14,6 +14,7 @@ from app.gameplay.effect_utils import (
     get_sansan_points,
     get_square_points,
     get_star_points,
+    player_non_pass_coords,
     set_points_to_color,
     shape_center,
     spawn_bonus_points,
@@ -250,7 +251,7 @@ def apply_player_rogue_board_effects(
                 messages.append(f"🏯 守角辅助补强了 {len(changed)} 颗角部援军")
 
     if rogue_has(game, "sanrensei") and not game.rogue_sanrensei_done:
-        player_moves = _player_non_pass_coords(
+        player_moves = player_non_pass_coords(
             game,
             color,
             gtp_to_coord,
@@ -357,22 +358,3 @@ def apply_player_rogue_board_effects(
         messages=messages,
         trap_bonus_sources=trap_bonus_sources,
     )
-
-
-def _player_non_pass_coords(
-    game: Any,
-    color: str,
-    gtp_to_coord: Any,
-    *,
-    limit: int | None = None,
-) -> list[tuple[int, int]]:
-    coords = []
-    for move_color, gtp in game.moves:
-        if move_color != color or gtp.upper() == "PASS":
-            continue
-        coord = gtp_to_coord(gtp, game.size)
-        if coord:
-            coords.append(coord)
-        if limit is not None and len(coords) >= limit:
-            break
-    return coords

@@ -2,7 +2,27 @@ from __future__ import annotations
 
 import random
 import time
+from collections.abc import Callable
 from typing import Any, Optional
+
+
+def player_non_pass_coords(
+    game: Any,
+    color: str,
+    gtp_to_coord: Callable[[str, int], tuple[int, int] | None],
+    *,
+    limit: int | None = None,
+) -> list[tuple[int, int]]:
+    coords = []
+    for move_color, gtp in game.moves:
+        if move_color != color or gtp.upper() == "PASS":
+            continue
+        coord = gtp_to_coord(gtp, game.size)
+        if coord:
+            coords.append(coord)
+        if limit is not None and len(coords) >= limit:
+            break
+    return coords
 
 
 def get_star_points(size: int) -> list[tuple[int, int]]:

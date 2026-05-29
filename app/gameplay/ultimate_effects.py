@@ -13,6 +13,7 @@ from app.gameplay.effect_utils import (
     get_corner_square_points,
     get_star_points,
     pick_joseki_targets,
+    player_non_pass_coords,
     random_hidden_center,
     set_points_to_color,
     spawn_bonus_points,
@@ -455,7 +456,7 @@ def apply_ultimate_state_effect(
 
     elif card == "sanrensei":
         if not game.ultimate_sanrensei_done:
-            first_three = _player_non_pass_coords(game, color, gtp_to_coord, limit=3)
+            first_three = player_non_pass_coords(game, color, gtp_to_coord, limit=3)
             star_set = set(get_star_points(size))
             if len(first_three) >= 3 and all(pt in star_set for pt in first_three[:3]):
                 changed = []
@@ -484,22 +485,3 @@ def apply_ultimate_state_effect(
         return None
 
     return BoardEffectResult(modified=modified, messages=messages)
-
-
-def _player_non_pass_coords(
-    game: Any,
-    color: str,
-    gtp_to_coord: Any,
-    *,
-    limit: int | None = None,
-) -> list[tuple[int, int]]:
-    coords = []
-    for move_color, gtp in game.moves:
-        if move_color != color or gtp.upper() == "PASS":
-            continue
-        coord = gtp_to_coord(gtp, game.size)
-        if coord:
-            coords.append(coord)
-        if limit is not None and len(coords) >= limit:
-            break
-    return coords
