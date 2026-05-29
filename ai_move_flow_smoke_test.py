@@ -5912,6 +5912,29 @@ def test_server_engine_command_helper_binds_runtime_send_command() -> None:
     assert calls == ["final_score"]
 
 
+def test_server_sync_engine_komi_uses_ready_gate_and_runtime_command() -> None:
+    game = GoGame(size=5, komi=6.5, player_color="B")
+    calls = []
+
+    def fake_send_command(command):
+        calls.append(command)
+        return f"= {command}"
+
+    original_ready = s.engine.ready
+    original_send_command = s.engine.send_command
+    s.engine.send_command = fake_send_command
+    try:
+        s.engine.ready = False
+        asyncio.run(s._sync_engine_komi(game))
+        s.engine.ready = True
+        asyncio.run(s._sync_engine_komi(game))
+    finally:
+        s.engine.ready = original_ready
+        s.engine.send_command = original_send_command
+
+    assert calls == ["komi 6.5"]
+
+
 async def _server_generated_turn_helper_binds_runtime_globals() -> None:
     game = GoGame(size=5, player_color="B")
     turn = s.AiTurnSnapshot(
@@ -8584,6 +8607,7 @@ if __name__ == "__main__":
     test_server_ai_move_delegates_to_candidate_helper()
     test_server_generated_ai_move_deps_bind_runtime_globals()
     test_server_engine_command_helper_binds_runtime_send_command()
+    test_server_sync_engine_komi_uses_ready_gate_and_runtime_command()
     test_server_generated_turn_helper_binds_runtime_globals()
     test_server_ai_move_balanced_style_skips_style_helper()
     test_server_ai_move_rogue_cards_skip_style_helper()

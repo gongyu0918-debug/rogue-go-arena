@@ -591,6 +591,11 @@ async def _send_engine_command(command: str) -> str:
     return await run_in_executor(engine.send_command, command)
 
 
+async def _sync_engine_komi(game: GoGame) -> None:
+    if engine.ready:
+        await _send_engine_command(f"komi {game.komi}")
+
+
 ai_move_service = AiMoveService(
     engine=engine,
     run_in_executor=run_in_executor,
@@ -769,8 +774,7 @@ async def _check_capture_foul(game: GoGame, send_fn, offender: str, captured: in
         "type": "rogue_event",
         "msg": result.message,
     })
-    if engine.ready:
-        await run_in_executor(engine.send_command, f"komi {game.komi}")
+    await _sync_engine_komi(game)
 
 
 def _pick_fog_mask(size: int, rng: random.Random) -> list[tuple[int, int]]:
@@ -980,8 +984,7 @@ async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
     for message in result.messages:
         await send_fn({"type": "rogue_event", "msg": message})
     if result.sync_komi:
-        if engine.ready:
-            await run_in_executor(engine.send_command, f"komi {game.komi}")
+        await _sync_engine_komi(game)
 
     await send_fn({"type": "rogue_card_selected",
                    "card_id": card_id,
@@ -1030,8 +1033,7 @@ async def _apply_challenge_rogue_loadout(game: GoGame, send_fn):
         joseki_target_count=ROGUE_JOSEKI_TARGET_COUNT,
         godhand_radius=ROGUE_GODHAND_RADIUS,
     )
-    if engine.ready:
-        await run_in_executor(engine.send_command, f"komi {game.komi}")
+    await _sync_engine_komi(game)
     await _challenge_emit_set_bonus_status(game, send_fn)
 
 
@@ -1046,8 +1048,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
             game.komi -= shift
         else:
             game.komi += shift
-        if engine.ready:
-            await run_in_executor(engine.send_command, f"komi {game.komi}")
+        await _sync_engine_komi(game)
         await send_fn({"type": "rogue_event",
                        "msg": f"蚕食触发：提掉 {captured} 子，当前贴目变为 {game.komi}"})
 
