@@ -79,7 +79,6 @@ from app.config.gameplay import (
     ULTIMATE_LAST_STAND_SPAWN_COUNT,
     ULTIMATE_LAST_STAND_THRESHOLD,
     ULTIMATE_QUICKTHINK_SECONDS,
-    ULTIMATE_TERRITORY_RADIUS,
     get_balance_editor_payload,
     reset_balance_overrides,
     save_balance_overrides,
@@ -127,6 +126,8 @@ from app.gameplay.turn_modifiers import (
     pick_fog_mask as pick_fog_mask_state,
     pick_fog_point as pick_fog_point_state,
     prepare_player_turn_modifiers as prepare_player_turn_modifiers_state,
+    record_ultimate_player_action as record_ultimate_player_action_state,
+    record_ultimate_turn as record_ultimate_turn_state,
     refresh_ai_rogue_player_turn as refresh_ai_rogue_player_turn_state,
 )
 from app.gameplay.effect_utils import (
@@ -171,7 +172,11 @@ from app.gameplay.rogue_effects import (
     rogue_has as _rogue_has,
 )
 from app.services.card_config_service import CardConfigService
-from app.gameplay.ultimate_effects import apply_ultimate_board_effect, apply_ultimate_state_effect
+from app.gameplay.ultimate_effects import (
+    apply_ultimate_board_effect,
+    apply_ultimate_state_effect,
+    get_ultimate_territory_forbidden_points,
+)
 from app.runtime.engine import KataGoEngine
 from app.runtime.game_store import ActiveGameStore
 from app.runtime.startup import EnginePaths, EngineStartupManager
@@ -715,17 +720,14 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
 
 
 def _record_ultimate_turn(game: GoGame) -> None:
-    game.ultimate_move_count += 1
+    record_ultimate_turn_state(game)
 
 
 def _record_ultimate_player_action(game: GoGame) -> None:
-    if game.ultimate_player_card == "quickthink" and game.ultimate_quickthink_active:
-        if not game.ultimate_quickthink_turn_counted:
-            _record_ultimate_turn(game)
-            game.ultimate_quickthink_turn_counted = True
-        return
-    if not game.ultimate_double_pending:
-        _record_ultimate_turn(game)
+    record_ultimate_player_action_state(
+        game,
+        record_ultimate_turn_fn=_record_ultimate_turn,
+    )
 
 
 def _finish_ultimate_quickthink_turn(game: GoGame) -> None:
@@ -1337,18 +1339,7 @@ async def _sync_board_to_katago(game: GoGame):
 def _ultimate_get_territory_forbidden(game: GoGame, for_color_val: int) -> set:
     """Get forbidden points for a color due to opponent's 绝对领地 card.
     for_color_val: the color (1=B,2=W) that wants to PLACE a stone."""
-    forbidden = set()
-    owner_val = 3 - for_color_val  # the card holder's stones
-    for y in range(game.size):
-        for x in range(game.size):
-            if game.board[y][x] == owner_val:
-                for dy in range(-2, 3):
-                    for dx in range(-2, 3):
-                        nx, ny = x + dx, y + dy
-                        if 0 <= nx < game.size and 0 <= ny < game.size:
-                            if abs(dx) + abs(dy) <= ULTIMATE_TERRITORY_RADIUS:
-                                forbidden.add((nx, ny))
-    return forbidden
+    return get_ultimate_territory_forbidden_points(game, for_color_val)
 
 
 async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,

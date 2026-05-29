@@ -42,6 +42,25 @@ def get_player_bonus_forbidden_points(game: Any, color: str) -> set[tuple[int, i
     return set(get_ai_rogue_forbidden_points(game))
 
 
+def record_ultimate_turn(game: Any) -> None:
+    game.ultimate_move_count += 1
+
+
+def record_ultimate_player_action(
+    game: Any,
+    *,
+    record_ultimate_turn_fn: Callable[[Any], None] | None = None,
+) -> None:
+    record_turn = record_ultimate_turn if record_ultimate_turn_fn is None else record_ultimate_turn_fn
+    if game.ultimate_player_card == "quickthink" and game.ultimate_quickthink_active:
+        if not game.ultimate_quickthink_turn_counted:
+            record_turn(game)
+            game.ultimate_quickthink_turn_counted = True
+        return
+    if not game.ultimate_double_pending:
+        record_turn(game)
+
+
 def finish_ultimate_quickthink_turn(game: Any) -> None:
     game.ultimate_quickthink_active = False
     game.ultimate_quickthink_turn_counted = False

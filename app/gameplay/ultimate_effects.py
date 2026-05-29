@@ -26,6 +26,31 @@ class BoardEffectResult:
     messages: list[str]
 
 
+def get_ultimate_territory_forbidden_points(
+    game: Any,
+    for_color_val: int,
+    *,
+    radius: int | None = None,
+    search_span: int = 2,
+) -> set[tuple[int, int]]:
+    """Return points blocked by territory while preserving the legacy 5x5 scan."""
+    territory_radius = gameplay_config.ULTIMATE_TERRITORY_RADIUS if radius is None else radius
+    forbidden = set()
+    owner_val = 3 - for_color_val
+    for y in range(game.size):
+        for x in range(game.size):
+            if game.board[y][x] != owner_val:
+                continue
+            for dy in range(-search_span, search_span + 1):
+                for dx in range(-search_span, search_span + 1):
+                    if abs(dx) + abs(dy) > territory_radius:
+                        continue
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < game.size and 0 <= ny < game.size:
+                        forbidden.add((nx, ny))
+    return forbidden
+
+
 def reset_ultimate_effect_state(game: Any) -> None:
     game.ultimate_joseki_targets = []
     game.ultimate_joseki_hits = 0
