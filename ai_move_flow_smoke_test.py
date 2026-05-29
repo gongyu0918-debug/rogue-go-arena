@@ -4406,6 +4406,195 @@ def test_server_ai_move_delegates_to_rogue_restriction_flow() -> None:
     asyncio.run(_server_ai_move_delegates_to_rogue_restriction_flow())
 
 
+async def _server_rogue_restriction_turn_helper_binds_runtime_globals() -> None:
+    game = GoGame(size=5, player_color="B")
+    turn = s.AiTurnSnapshot(
+        color="W",
+        card="gravity",
+        rogue_cards={"gravity", "lowline"},
+        move_count=4,
+        ai_move_count=2,
+    )
+    ai_plan = s.AiMovePlan(
+        mode="rogue",
+        effective_level="5k",
+        visits=88,
+        time_limit=2.5,
+        move_count=4,
+        ai_move_count=2,
+    )
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def run_engine(command):
+        calls.append(("engine", command))
+        return command
+
+    def fake_tengen(_game, _count):
+        calls.append(("tengen",))
+        return None
+
+    def fake_tengen_followup(_game, _count):
+        calls.append(("tengen_followup",))
+        return None
+
+    def fake_gravity(_game, _count):
+        calls.append(("gravity",))
+        return None
+
+    def fake_lowline(_game, _count):
+        calls.append(("lowline",))
+        return None
+
+    def fake_sansan(_game, _count):
+        calls.append(("sansan",))
+        return None
+
+    def fake_coord_to_gtp(_x, _y, _size):
+        return "C3"
+
+    async def fake_forced_stone(*_args, **_kwargs):
+        calls.append(("forced_stone",))
+        return False
+
+    def fake_prepare(_game):
+        calls.append(("prepare",))
+
+    async def fake_allowed(*_args, **_kwargs):
+        calls.append(("allowed",))
+        return None
+
+    async def fake_avoid(*_args, **_kwargs):
+        calls.append(("avoid",))
+        return None
+
+    async def fake_finish(*_args, **_kwargs):
+        calls.append(("finish",))
+
+    async def fake_allowed_finish(*_args, **_kwargs):
+        calls.append(("allowed_finish",))
+        return False
+
+    async def fake_sansan_finish(*_args, **_kwargs):
+        calls.append(("sansan_finish",))
+        return False
+
+    async def fake_restriction_flow(game_arg, send_fn, **kwargs):
+        calls.append((
+            "restriction_flow",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["card"],
+            kwargs["rogue_cards"],
+            kwargs["ai_move_count"],
+            kwargs["visits"],
+            kwargs["time_limit"],
+            kwargs["choose_tengen_target"] is fake_tengen,
+            kwargs["tengen_followup_points"] is fake_tengen_followup,
+            kwargs["gravity_allowed_points"] is fake_gravity,
+            kwargs["lowline_allowed_points"] is fake_lowline,
+            kwargs["sansan_opening_restriction"] is fake_sansan,
+            kwargs["coord_to_gtp"] is fake_coord_to_gtp,
+            kwargs["finalize_forced_stone"] is fake_forced_stone,
+            kwargs["prepare_player_turn_modifiers"] is fake_prepare,
+            kwargs["run_engine_command"] is run_engine,
+            kwargs["choose_allowed_move"] is fake_allowed,
+            kwargs["choose_avoid_move"] is fake_avoid,
+            kwargs["finish_ai_move"] is fake_finish,
+            kwargs["finish_allowed_restriction_move"] is fake_allowed_finish,
+            kwargs["finish_sansan_restriction_move"] is fake_sansan_finish,
+        ))
+        return True
+
+    originals = {
+        "restriction_flow": s.try_finish_rogue_restriction_ai_move,
+        "tengen": s.choose_tengen_target,
+        "tengen_followup": s.tengen_followup_points,
+        "gravity": s.gravity_allowed_points,
+        "lowline": s.lowline_allowed_points,
+        "sansan": s.sansan_opening_restriction,
+        "coord_to_gtp": s.coord_to_gtp,
+        "forced_stone": s.try_finalize_forced_ai_stone,
+        "prepare": s._prepare_player_turn_modifiers,
+        "allowed": s._ai_move_avoid_points_allow_only,
+        "avoid": s._ai_move_avoid_points,
+        "finish": s._finish_ai_move,
+        "allowed_finish": s.try_finish_allowed_restriction_move,
+        "sansan_finish": s.try_finish_sansan_restriction_move,
+    }
+    s.try_finish_rogue_restriction_ai_move = fake_restriction_flow
+    s.choose_tengen_target = fake_tengen
+    s.tengen_followup_points = fake_tengen_followup
+    s.gravity_allowed_points = fake_gravity
+    s.lowline_allowed_points = fake_lowline
+    s.sansan_opening_restriction = fake_sansan
+    s.coord_to_gtp = fake_coord_to_gtp
+    s.try_finalize_forced_ai_stone = fake_forced_stone
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._ai_move_avoid_points_allow_only = fake_allowed
+    s._ai_move_avoid_points = fake_avoid
+    s._finish_ai_move = fake_finish
+    s.try_finish_allowed_restriction_move = fake_allowed_finish
+    s.try_finish_sansan_restriction_move = fake_sansan_finish
+    try:
+        handled = await s._try_finish_rogue_restriction_ai_turn(
+            game,
+            send,
+            turn,
+            ai_plan,
+            run_engine,
+        )
+    finally:
+        s.try_finish_rogue_restriction_ai_move = originals["restriction_flow"]
+        s.choose_tengen_target = originals["tengen"]
+        s.tengen_followup_points = originals["tengen_followup"]
+        s.gravity_allowed_points = originals["gravity"]
+        s.lowline_allowed_points = originals["lowline"]
+        s.sansan_opening_restriction = originals["sansan"]
+        s.coord_to_gtp = originals["coord_to_gtp"]
+        s.try_finalize_forced_ai_stone = originals["forced_stone"]
+        s._prepare_player_turn_modifiers = originals["prepare"]
+        s._ai_move_avoid_points_allow_only = originals["allowed"]
+        s._ai_move_avoid_points = originals["avoid"]
+        s._finish_ai_move = originals["finish"]
+        s.try_finish_allowed_restriction_move = originals["allowed_finish"]
+        s.try_finish_sansan_restriction_move = originals["sansan_finish"]
+
+    assert handled is True
+    assert calls == [(
+        "restriction_flow",
+        True,
+        True,
+        "W",
+        "gravity",
+        {"gravity", "lowline"},
+        2,
+        88,
+        2.5,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+    )]
+
+
+def test_server_rogue_restriction_turn_helper_binds_runtime_globals() -> None:
+    asyncio.run(_server_rogue_restriction_turn_helper_binds_runtime_globals())
+
+
 async def _try_apply_puppet_ai_move_success_finishes_and_updates_uses() -> None:
     game = GoGame(size=5, player_color="B")
     game.rogue_puppet_target = (2, 2)
@@ -8029,6 +8218,7 @@ if __name__ == "__main__":
     test_try_finish_rogue_restriction_ai_move_lowline_after_gravity_miss()
     test_try_finish_rogue_restriction_ai_move_sansan_uses_avoid()
     test_server_ai_move_delegates_to_rogue_restriction_flow()
+    test_server_rogue_restriction_turn_helper_binds_runtime_globals()
     test_try_apply_puppet_ai_move_success_finishes_and_updates_uses()
     test_try_apply_puppet_ai_move_occupied_target_falls_back()
     test_try_apply_puppet_ai_move_illegal_target_falls_back()
