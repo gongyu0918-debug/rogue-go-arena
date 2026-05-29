@@ -43,6 +43,9 @@ DoublePassFn = Callable[..., Awaitable[bool]]
 AiMoveResponseFn = Callable[..., Awaitable[None]]
 PlacementEffectsFn = Callable[..., Awaitable["AiMovePlacement"]]
 FinishAiTurnResponseFn = Callable[..., Awaitable[bool]]
+AiMoveCandidateFn = Callable[..., Awaitable["AiMoveCandidate"]]
+PrepareGeneratedAiMoveFn = Callable[..., Awaitable["AiMovePreparation"]]
+FinishPreparedAiMoveFn = Callable[..., Awaitable[bool]]
 MirrorCoordFn = Callable[[int, int, int], tuple[int, int]]
 FinalizeForcedPassFn = Callable[..., Awaitable[None]]
 FinalizeForcedStoneFn = Callable[..., Awaitable[bool]]
@@ -97,6 +100,69 @@ class AiMovePreparation:
     needs_sync: bool = False
     message: str | None = None
     completed: bool = False
+
+
+@dataclass(frozen=True)
+class GeneratedMoveCandidateDeps:
+    choose_candidate: AiMoveCandidateFn
+    choose_avoid_move: AvoidRestrictionMoveFn
+    analyze_position: AnalyzePositionFn
+    choose_style_move: ChooseStyleMoveFn
+    generate_move: GenerateMoveFn
+    gtp_to_coord: CoordParser
+    log_error: LogFn
+
+
+@dataclass(frozen=True)
+class GeneratedMovePreparationDeps:
+    prepare_move: PrepareGeneratedAiMoveFn
+    apply_suspicious_pass_fallback_fn: Callable[..., Awaitable[str]]
+    is_suspicious_pass: SuspiciousPassFn
+    pick_nonpass_fallback_move: FallbackMoveFn
+    log_event: LogFn
+    resolve_resign_move: Callable[..., Awaitable[AiMoveResolution]]
+    no_resign_move: NoResignMoveFn
+    apply_slip_move: Callable[..., AiMoveAdjustment]
+    roll_random: RandomFloatFn
+    choose_point: ChoosePointFn
+    gtp_to_coord: CoordParser
+    coord_to_gtp: CoordFormatter
+    adjacent_points: AdjacentPointsFn
+    retry_ko_move: Callable[..., Awaitable[AiMoveAdjustment]]
+    retry_avoiding_ko: RetryAvoidingKoFn
+
+
+@dataclass(frozen=True)
+class GeneratedMoveFinishDeps:
+    finish_move: FinishPreparedAiMoveFn
+    apply_placement_effects: PlacementEffectsFn
+    finish_turn_response: FinishAiTurnResponseFn
+    gtp_to_coord: CoordParser
+    sync_board_to_engine: SyncBoardFn
+    engine_is_ready: EngineReadyFn
+    apply_move_to_board: ApplyMoveToBoardFn
+    apply_sansan_trap_counter: SansanTrapCounterFn
+    try_no_regret_bonus: NoRegretBonusFn
+    trap_stones: int
+    get_sansan_points: PointListFn
+    adjacent_points: AdjacentPointsFn
+    shuffle_points: ShufflePointsFn
+    spawn_bonus_points: SpawnBonusPointsFn
+    coord_to_gtp: CoordFormatter
+    apply_trap_bonus: TrapBonusFn
+    no_regret_chance: float
+    roll_random: RandomFloatFn
+    has_rogue_card: RogueHasFn
+    pick_best_point: PickBestPointFn
+    prepare_player_turn_modifiers: PreparePlayerTurnFn
+    apply_erosion_counter: ErosionCounterFn
+    erosion_shift: float
+    run_erosion_command: EngineCommandFn
+    erosion_message: ErosionMessageFn
+    finalize_double_pass: DoublePassFn
+    run_double_pass_command: EngineCommandFn
+    send_ai_move_response: AiMoveResponseFn
+    run_coach_turn_if_needed: RunCoachTurnFn
 
 
 def _unique_points(points: list[tuple[int, int]]) -> list[tuple[int, int]]:
@@ -1075,6 +1141,97 @@ async def finish_prepared_ai_move(
         run_double_pass_command=run_double_pass_command,
         send_ai_move_response=send_ai_move_response,
         run_coach_turn_if_needed=run_coach_turn_if_needed,
+    )
+
+
+async def try_finish_generated_ai_move(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    card: str | None,
+    rogue_cards: Collection[str],
+    forbidden: list[tuple[int, int]],
+    visits: int,
+    time_limit: float,
+    candidate_deps: GeneratedMoveCandidateDeps,
+    preparation_deps: GeneratedMovePreparationDeps,
+    finish_deps: GeneratedMoveFinishDeps,
+) -> bool:
+    candidate = await candidate_deps.choose_candidate(
+        game,
+        color=color,
+        visits=visits,
+        time_limit=time_limit,
+        rogue_cards=rogue_cards,
+        forbidden=forbidden,
+        choose_avoid_move=candidate_deps.choose_avoid_move,
+        analyze_position=candidate_deps.analyze_position,
+        choose_style_move=candidate_deps.choose_style_move,
+        generate_move=candidate_deps.generate_move,
+        gtp_to_coord=candidate_deps.gtp_to_coord,
+        log_error=candidate_deps.log_error,
+    )
+    if candidate.completed:
+        return True
+
+    prepared_move = await preparation_deps.prepare_move(
+        game,
+        send_fn,
+        color=color,
+        gtp_move=candidate.gtp_move,
+        visits=visits,
+        rogue_cards=rogue_cards,
+        apply_suspicious_pass_fallback_fn=preparation_deps.apply_suspicious_pass_fallback_fn,
+        is_suspicious_pass=preparation_deps.is_suspicious_pass,
+        pick_nonpass_fallback_move=preparation_deps.pick_nonpass_fallback_move,
+        log_event=preparation_deps.log_event,
+        resolve_resign_move=preparation_deps.resolve_resign_move,
+        no_resign_move=preparation_deps.no_resign_move,
+        apply_slip_move=preparation_deps.apply_slip_move,
+        roll_random=preparation_deps.roll_random,
+        choose_point=preparation_deps.choose_point,
+        gtp_to_coord=preparation_deps.gtp_to_coord,
+        coord_to_gtp=preparation_deps.coord_to_gtp,
+        adjacent_points=preparation_deps.adjacent_points,
+        retry_ko_move=preparation_deps.retry_ko_move,
+        retry_avoiding_ko=preparation_deps.retry_avoiding_ko,
+    )
+
+    return await finish_deps.finish_move(
+        game,
+        send_fn,
+        color=color,
+        card=card,
+        prepared_move=prepared_move,
+        apply_placement_effects=finish_deps.apply_placement_effects,
+        finish_turn_response=finish_deps.finish_turn_response,
+        gtp_to_coord=finish_deps.gtp_to_coord,
+        sync_board_to_engine=finish_deps.sync_board_to_engine,
+        engine_is_ready=finish_deps.engine_is_ready,
+        apply_move_to_board=finish_deps.apply_move_to_board,
+        apply_sansan_trap_counter=finish_deps.apply_sansan_trap_counter,
+        try_no_regret_bonus=finish_deps.try_no_regret_bonus,
+        trap_stones=finish_deps.trap_stones,
+        get_sansan_points=finish_deps.get_sansan_points,
+        adjacent_points=finish_deps.adjacent_points,
+        shuffle_points=finish_deps.shuffle_points,
+        spawn_bonus_points=finish_deps.spawn_bonus_points,
+        coord_to_gtp=finish_deps.coord_to_gtp,
+        apply_trap_bonus=finish_deps.apply_trap_bonus,
+        no_regret_chance=finish_deps.no_regret_chance,
+        roll_random=finish_deps.roll_random,
+        has_rogue_card=finish_deps.has_rogue_card,
+        pick_best_point=finish_deps.pick_best_point,
+        prepare_player_turn_modifiers=finish_deps.prepare_player_turn_modifiers,
+        apply_erosion_counter=finish_deps.apply_erosion_counter,
+        erosion_shift=finish_deps.erosion_shift,
+        run_erosion_command=finish_deps.run_erosion_command,
+        erosion_message=finish_deps.erosion_message,
+        finalize_double_pass=finish_deps.finalize_double_pass,
+        run_double_pass_command=finish_deps.run_double_pass_command,
+        send_ai_move_response=finish_deps.send_ai_move_response,
+        run_coach_turn_if_needed=finish_deps.run_coach_turn_if_needed,
     )
 
 

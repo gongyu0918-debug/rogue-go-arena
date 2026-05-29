@@ -136,6 +136,9 @@ from app.gameplay.ai_move_flow import (
     finalize_forced_ai_pass,
     finish_ai_turn_response,
     finish_prepared_ai_move,
+    GeneratedMoveCandidateDeps,
+    GeneratedMoveFinishDeps,
+    GeneratedMovePreparationDeps,
     refresh_fog_restriction_points,
     resolve_ai_resign_move,
     prepare_generated_ai_move,
@@ -150,6 +153,7 @@ from app.gameplay.ai_move_flow import (
     try_finish_sansan_restriction_move,
     try_finalize_double_pass,
     try_finalize_forced_ai_stone,
+    try_finish_generated_ai_move,
     try_finish_shadow_restriction_move,
     try_finish_suboptimal_rogue_move,
 )
@@ -1407,13 +1411,8 @@ async def _ai_move(game: GoGame, send_fn):
         challenge_zone_points=_challenge_zone_points,
     )
 
-    candidate = await choose_ai_move_candidate(
-        game,
-        color=color,
-        visits=visits,
-        time_limit=time_limit,
-        rogue_cards=rogue_cards,
-        forbidden=forbidden,
+    candidate_deps = GeneratedMoveCandidateDeps(
+        choose_candidate=choose_ai_move_candidate,
         choose_avoid_move=_ai_move_avoid_points,
         analyze_position=_analyze_current_position,
         choose_style_move=choose_ai_style_move,
@@ -1421,15 +1420,8 @@ async def _ai_move(game: GoGame, send_fn):
         gtp_to_coord=gtp_to_coord,
         log_error=print,
     )
-    if candidate.completed:
-        return
-    prepared_move = await prepare_generated_ai_move(
-        game,
-        send_fn,
-        color=color,
-        gtp_move=candidate.gtp_move,
-        visits=visits,
-        rogue_cards=rogue_cards,
+    preparation_deps = GeneratedMovePreparationDeps(
+        prepare_move=prepare_generated_ai_move,
         apply_suspicious_pass_fallback_fn=apply_suspicious_pass_fallback,
         is_suspicious_pass=_is_suspicious_ai_pass,
         pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
@@ -1445,12 +1437,8 @@ async def _ai_move(game: GoGame, send_fn):
         retry_ko_move=retry_ai_move_avoiding_ko,
         retry_avoiding_ko=_ai_retry_avoiding_ko,
     )
-    if await finish_prepared_ai_move(
-        game,
-        send_fn,
-        color=color,
-        card=card,
-        prepared_move=prepared_move,
+    finish_deps = GeneratedMoveFinishDeps(
+        finish_move=finish_prepared_ai_move,
         apply_placement_effects=apply_ai_move_placement_effects,
         finish_turn_response=finish_ai_turn_response,
         gtp_to_coord=gtp_to_coord,
@@ -1479,6 +1467,20 @@ async def _ai_move(game: GoGame, send_fn):
         run_double_pass_command=_run_engine_command,
         send_ai_move_response=send_ai_move_and_run_coach,
         run_coach_turn_if_needed=_run_coach_turn_if_needed,
+    )
+
+    if await try_finish_generated_ai_move(
+        game,
+        send_fn,
+        color=color,
+        card=card,
+        rogue_cards=rogue_cards,
+        forbidden=forbidden,
+        visits=visits,
+        time_limit=time_limit,
+        candidate_deps=candidate_deps,
+        preparation_deps=preparation_deps,
+        finish_deps=finish_deps,
     ):
         return
 
