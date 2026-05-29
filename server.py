@@ -122,6 +122,7 @@ from app.gameplay.ai_move_flow import (
     resolve_ai_resign_move,
     retry_ai_move_avoiding_ko,
     try_apply_puppet_ai_move,
+    try_apply_sansan_trap_counter,
     try_finalize_forced_ai_stone,
     try_finish_allowed_restriction_move,
     try_finish_sansan_restriction_move,
@@ -1814,17 +1815,19 @@ async def _ai_move(game: GoGame, send_fn):
     coord = placement.coord
     captured = placement.captured
 
-    extra_board_change = False
-    if card == "sansan_trap" and coord in _get_sansan_points(game.size):
-        player_color = game.player_color
-        nearby = [(nx, ny) for nx, ny in _adjacent8_points(coord[0], coord[1], game.size) if game.board[ny][nx] == 0]
-        random.shuffle(nearby)
-        changed = _spawn_bonus_points(game, nearby[:ROGUE_SANSAN_TRAP_STONES], player_color)
-        if changed:
-            extra_board_change = True
-            await send_fn({"type": "rogue_event",
-                           "msg": f"△ 三三陷阱发动，在 {coord_to_gtp(coord[0], coord[1], game.size)} 相邻点反打 {len(changed)} 子"})
-            await _challenge_apply_trap_bonus(game, send_fn, "三三陷阱")
+    extra_board_change = await try_apply_sansan_trap_counter(
+        game,
+        send_fn,
+        card=card,
+        coord=coord,
+        stones=ROGUE_SANSAN_TRAP_STONES,
+        get_sansan_points=_get_sansan_points,
+        adjacent_points=_adjacent8_points,
+        shuffle_points=random.shuffle,
+        spawn_bonus_points=_spawn_bonus_points,
+        coord_to_gtp=coord_to_gtp,
+        apply_trap_bonus=_challenge_apply_trap_bonus,
+    )
 
     if (needs_sync or extra_board_change) and engine.ready:
         await _sync_board_to_katago(game)

@@ -18,6 +18,7 @@ from app.gameplay.ai_move_flow import (
     resolve_ai_resign_move,
     retry_ai_move_avoiding_ko,
     try_apply_puppet_ai_move,
+    try_apply_sansan_trap_counter,
     try_finalize_forced_ai_stone,
     try_finish_suboptimal_rogue_move,
 )
@@ -134,6 +135,222 @@ def test_apply_ai_move_to_board_appends_before_parse_and_place() -> None:
     ]
     assert game.moves == [("W", "C3")]
     assert game.passed["W"] is False
+
+
+async def _try_apply_sansan_trap_counter_skips_without_card_or_target() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def get_sansan_points(size):
+        calls.append(("sansan", size))
+        return [(2, 2)]
+
+    def adjacent_points(*_args):
+        calls.append(("adjacent",))
+        return []
+
+    def shuffle_points(_points):
+        calls.append(("shuffle",))
+
+    def spawn_bonus_points(*_args):
+        calls.append(("spawn",))
+        return []
+
+    async def apply_trap_bonus(*_args):
+        calls.append(("trap_bonus",))
+
+    skipped_card = await try_apply_sansan_trap_counter(
+        game,
+        send,
+        card=None,
+        coord=(2, 2),
+        stones=2,
+        get_sansan_points=get_sansan_points,
+        adjacent_points=adjacent_points,
+        shuffle_points=shuffle_points,
+        spawn_bonus_points=spawn_bonus_points,
+        coord_to_gtp=s.coord_to_gtp,
+        apply_trap_bonus=apply_trap_bonus,
+    )
+    skipped_coord = await try_apply_sansan_trap_counter(
+        game,
+        send,
+        card="sansan_trap",
+        coord=None,
+        stones=2,
+        get_sansan_points=get_sansan_points,
+        adjacent_points=adjacent_points,
+        shuffle_points=shuffle_points,
+        spawn_bonus_points=spawn_bonus_points,
+        coord_to_gtp=s.coord_to_gtp,
+        apply_trap_bonus=apply_trap_bonus,
+    )
+
+    assert skipped_card is False
+    assert skipped_coord is False
+    assert calls == []
+
+
+def test_try_apply_sansan_trap_counter_skips_without_card_or_target() -> None:
+    asyncio.run(_try_apply_sansan_trap_counter_skips_without_card_or_target())
+
+
+async def _try_apply_sansan_trap_counter_skips_non_sansan_point() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def get_sansan_points(size):
+        calls.append(("sansan", size))
+        return [(1, 1)]
+
+    def adjacent_points(*_args):
+        calls.append(("adjacent",))
+        return []
+
+    def shuffle_points(_points):
+        calls.append(("shuffle",))
+
+    def spawn_bonus_points(*_args):
+        calls.append(("spawn",))
+        return []
+
+    async def apply_trap_bonus(*_args):
+        calls.append(("trap_bonus",))
+
+    changed = await try_apply_sansan_trap_counter(
+        game,
+        send,
+        card="sansan_trap",
+        coord=(2, 2),
+        stones=2,
+        get_sansan_points=get_sansan_points,
+        adjacent_points=adjacent_points,
+        shuffle_points=shuffle_points,
+        spawn_bonus_points=spawn_bonus_points,
+        coord_to_gtp=s.coord_to_gtp,
+        apply_trap_bonus=apply_trap_bonus,
+    )
+
+    assert changed is False
+    assert calls == [("sansan", 5)]
+
+
+def test_try_apply_sansan_trap_counter_skips_non_sansan_point() -> None:
+    asyncio.run(_try_apply_sansan_trap_counter_skips_non_sansan_point())
+
+
+async def _try_apply_sansan_trap_counter_applies_bonus_and_trap_bonus() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.board[1][1] = 2
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("msg")))
+
+    def get_sansan_points(size):
+        calls.append(("sansan", size))
+        return [(2, 2)]
+
+    def adjacent_points(x, y, size):
+        calls.append(("adjacent", x, y, size))
+        return [(1, 1), (2, 1), (3, 1)]
+
+    def shuffle_points(points):
+        calls.append(("shuffle", list(points)))
+        points.reverse()
+
+    def spawn_bonus_points(game_arg, points, color):
+        calls.append(("spawn", game_arg is game, list(points), color))
+        return points[:1]
+
+    async def apply_trap_bonus(game_arg, send_fn, source_name):
+        calls.append(("trap_bonus", game_arg is game, send_fn is send, source_name))
+
+    changed = await try_apply_sansan_trap_counter(
+        game,
+        send,
+        card="sansan_trap",
+        coord=(2, 2),
+        stones=2,
+        get_sansan_points=get_sansan_points,
+        adjacent_points=adjacent_points,
+        shuffle_points=shuffle_points,
+        spawn_bonus_points=spawn_bonus_points,
+        coord_to_gtp=s.coord_to_gtp,
+        apply_trap_bonus=apply_trap_bonus,
+    )
+
+    assert changed is True
+    assert calls == [
+        ("sansan", 5),
+        ("adjacent", 2, 2, 5),
+        ("shuffle", [(2, 1), (3, 1)]),
+        ("spawn", True, [(3, 1), (2, 1)], "B"),
+        ("send", "rogue_event", "△ 三三陷阱发动，在 C3 相邻点反打 1 子"),
+        ("trap_bonus", True, True, "三三陷阱"),
+    ]
+
+
+def test_try_apply_sansan_trap_counter_applies_bonus_and_trap_bonus() -> None:
+    asyncio.run(_try_apply_sansan_trap_counter_applies_bonus_and_trap_bonus())
+
+
+async def _try_apply_sansan_trap_counter_keeps_state_without_bonus_points() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def get_sansan_points(_size):
+        calls.append(("sansan",))
+        return [(2, 2)]
+
+    def adjacent_points(_x, _y, _size):
+        calls.append(("adjacent",))
+        return [(1, 1)]
+
+    def shuffle_points(points):
+        calls.append(("shuffle", list(points)))
+
+    def spawn_bonus_points(_game, points, color):
+        calls.append(("spawn", list(points), color))
+        return []
+
+    async def apply_trap_bonus(*_args):
+        calls.append(("trap_bonus",))
+
+    changed = await try_apply_sansan_trap_counter(
+        game,
+        send,
+        card="sansan_trap",
+        coord=(2, 2),
+        stones=2,
+        get_sansan_points=get_sansan_points,
+        adjacent_points=adjacent_points,
+        shuffle_points=shuffle_points,
+        spawn_bonus_points=spawn_bonus_points,
+        coord_to_gtp=s.coord_to_gtp,
+        apply_trap_bonus=apply_trap_bonus,
+    )
+
+    assert changed is False
+    assert calls == [
+        ("sansan",),
+        ("adjacent",),
+        ("shuffle", [(1, 1)]),
+        ("spawn", [(1, 1)], "B"),
+    ]
+
+
+def test_try_apply_sansan_trap_counter_keeps_state_without_bonus_points() -> None:
+    asyncio.run(_try_apply_sansan_trap_counter_keeps_state_without_bonus_points())
 
 
 async def _finalize_ai_move_places_stone_and_sends_message() -> None:
@@ -2639,6 +2856,114 @@ def test_server_ai_move_applies_final_move_through_board_helper() -> None:
     asyncio.run(_server_ai_move_applies_final_move_through_board_helper())
 
 
+async def _server_ai_move_delegates_sansan_trap_counter_and_syncs() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "sansan_trap"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_slip(game_arg, **kwargs):
+        calls.append(("slip", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment(kwargs["gtp_move"])
+
+    async def fake_retry(game_arg, **kwargs):
+        calls.append(("retry", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment(kwargs["gtp_move"], message=kwargs["rogue_msg"])
+
+    async def fake_sansan_counter(game_arg, send_fn, **kwargs):
+        assert game.board[2][2] == 2
+        calls.append((
+            "sansan_counter",
+            game_arg is game,
+            send_fn is send,
+            kwargs["card"],
+            kwargs["coord"],
+            kwargs["stones"] == s.ROGUE_SANSAN_TRAP_STONES,
+            kwargs["get_sansan_points"] is s._get_sansan_points,
+            kwargs["adjacent_points"] is s._adjacent8_points,
+            kwargs["shuffle_points"] is s.random.shuffle,
+            kwargs["spawn_bonus_points"] is s._spawn_bonus_points,
+            kwargs["coord_to_gtp"] is s.coord_to_gtp,
+            kwargs["apply_trap_bonus"] is s._challenge_apply_trap_bonus,
+        ))
+        return True
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_slip = s.apply_slip_ai_move
+    original_retry = s.retry_ai_move_avoiding_ko
+    original_sansan_counter = s.try_apply_sansan_trap_counter
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.apply_slip_ai_move = fake_slip
+    s.retry_ai_move_avoiding_ko = fake_retry
+    s.try_apply_sansan_trap_counter = fake_sansan_counter
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        s.apply_slip_ai_move = original_slip
+        s.retry_ai_move_avoiding_ko = original_retry
+        s.try_apply_sansan_trap_counter = original_sansan_counter
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "C3")
+    assert game.board[2][2] == 2
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("slip", True, "C3"),
+        ("retry", True, "C3"),
+        (
+            "sansan_counter",
+            True,
+            True,
+            "sansan_trap",
+            (2, 2),
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+        ),
+        ("sync", True),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_delegates_sansan_trap_counter_and_syncs() -> None:
+    asyncio.run(_server_ai_move_delegates_sansan_trap_counter_and_syncs())
+
+
 async def _resolve_ai_resign_move_keeps_non_resign_move() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -3413,6 +3738,10 @@ if __name__ == "__main__":
     test_apply_ai_move_to_board_preserves_invalid_non_pass_as_move()
     test_apply_ai_move_to_board_returns_capture_count()
     test_apply_ai_move_to_board_appends_before_parse_and_place()
+    test_try_apply_sansan_trap_counter_skips_without_card_or_target()
+    test_try_apply_sansan_trap_counter_skips_non_sansan_point()
+    test_try_apply_sansan_trap_counter_applies_bonus_and_trap_bonus()
+    test_try_apply_sansan_trap_counter_keeps_state_without_bonus_points()
     test_finalize_ai_move_places_stone_and_sends_message()
     test_finalize_ai_move_resign_without_card_ends_game()
     test_finalize_ai_move_resign_with_card_uses_no_resign_move()
@@ -3458,6 +3787,7 @@ if __name__ == "__main__":
     test_retry_ai_move_avoiding_ko_retries_and_clears_message()
     test_server_ai_move_ko_guard_runs_after_slip_and_clears_message()
     test_server_ai_move_applies_final_move_through_board_helper()
+    test_server_ai_move_delegates_sansan_trap_counter_and_syncs()
     test_resolve_ai_resign_move_keeps_non_resign_move()
     test_resolve_ai_resign_move_uses_no_resign_with_rogue_card()
     test_resolve_ai_resign_move_ends_game_without_rogue_card()

@@ -26,6 +26,10 @@ PickFogPointFn = Callable[[Any, Any], list[tuple[int, int]]]
 CoordFormatter = Callable[[int, int, int], str | None]
 AdjacentPointsFn = Callable[[int, int, int], list[tuple[int, int]]]
 ChoosePointFn = Callable[[list[tuple[int, int]]], tuple[int, int]]
+ShufflePointsFn = Callable[[list[tuple[int, int]]], None]
+PointListFn = Callable[[int], list[tuple[int, int]]]
+SpawnBonusPointsFn = Callable[[Any, list[tuple[int, int]], str], list[tuple[int, int]]]
+TrapBonusFn = Callable[[Any, AsyncSend, str], Awaitable[None]]
 AllowedRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
@@ -373,6 +377,43 @@ def apply_ai_move_to_board(
         captured = game.place_stone(coord[0], coord[1], color)
     game.passed[color] = False
     return AiMovePlacement(coord=coord, captured=captured)
+
+
+async def try_apply_sansan_trap_counter(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    card: str | None,
+    coord: tuple[int, int] | None,
+    stones: int,
+    get_sansan_points: PointListFn,
+    adjacent_points: AdjacentPointsFn,
+    shuffle_points: ShufflePointsFn,
+    spawn_bonus_points: SpawnBonusPointsFn,
+    coord_to_gtp: CoordFormatter,
+    apply_trap_bonus: TrapBonusFn,
+) -> bool:
+    if card != "sansan_trap" or coord is None:
+        return False
+    if coord not in get_sansan_points(game.size):
+        return False
+
+    nearby = [
+        (nx, ny)
+        for nx, ny in adjacent_points(coord[0], coord[1], game.size)
+        if game.board[ny][nx] == 0
+    ]
+    shuffle_points(nearby)
+    changed = spawn_bonus_points(game, nearby[:stones], game.player_color)
+    if not changed:
+        return False
+
+    await send_fn({
+        "type": "rogue_event",
+        "msg": f"△ 三三陷阱发动，在 {coord_to_gtp(coord[0], coord[1], game.size)} 相邻点反打 {len(changed)} 子",
+    })
+    await apply_trap_bonus(game, send_fn, "三三陷阱")
+    return True
 
 
 def apply_slip_ai_move(
