@@ -100,6 +100,11 @@ from app.gameplay.card_selection import (
     pick_rogue_choices,
     pick_ultimate_choices,
 )
+from app.gameplay.challenge_effects import (
+    apply_challenge_level_decay,
+    apply_challenge_trap_bonus,
+    challenge_set_bonus_status_message,
+)
 from app.gameplay.ai_moves import (
     AiMoveService,
     compute_game_visits,
@@ -192,8 +197,6 @@ from app.gameplay.effect_utils import (
 from app.gameplay.rogue_effects import (
     apply_rogue_card_uses,
     challenge_active_use_bonus as _challenge_active_use_bonus,
-    challenge_category_counts_for_game as _challenge_category_counts,
-    challenge_has_set as _challenge_has_set,
     challenge_remaining as _challenge_remaining,
     challenge_should_bonus_derivative as _challenge_should_bonus_derivative,
     challenge_zone_points as _challenge_zone_points,
@@ -912,52 +915,39 @@ def _get_ai_rogue_forbidden_points(game: GoGame) -> list[tuple[int, int]]:
 
 
 async def _challenge_apply_trap_bonus(game: GoGame, send_fn, source_name: str) -> None:
-    if not _challenge_has_set(game, "trap"):
-        return
-    if random.random() > CHALLENGE_TRAP_EXTRA_TURN_CHANCE:
-        return
-    game.rogue_skip_ai = True
-    await send_fn({
-        "type": "rogue_event",
-        "msg": f"陷阱套装触发：{source_name} 额外夺得一次落子权",
-    })
+    message = apply_challenge_trap_bonus(
+        game,
+        source_name,
+        roll_random=random.random,
+        chance=CHALLENGE_TRAP_EXTRA_TURN_CHANCE,
+    )
+    if message:
+        await send_fn({"type": "rogue_event", "msg": message})
 
 
 async def _challenge_maybe_reduce_ai_level(game: GoGame, send_fn) -> None:
-    if not _challenge_has_set(game, "restriction"):
+    result = apply_challenge_level_decay(
+        game,
+        roll_random=random.random,
+        weaken_rank_one_step=weaken_rank_one_step,
+        rank_labels=RANK_LABELS,
+        chance=CHALLENGE_RESTRICTION_DECAY_CHANCE,
+    )
+    if result is None:
         return
-    if random.random() >= CHALLENGE_RESTRICTION_DECAY_CHANCE:
-        return
-    new_level = weaken_rank_one_step(game.level)
-    if new_level == game.level:
-        return
-    game.level = new_level
     if engine.ready:
         visits = get_game_visits(game.level, len(game.moves), mode="rogue")
         await run_in_executor(engine.set_visits, visits)
-    await send_fn({
-        "type": "rogue_event",
-        "msg": f"限制套装触发：AI 临时下调至 {RANK_LABELS.get(game.level, game.level)}",
-    })
+    await send_fn({"type": "rogue_event", "msg": result.message})
 
 
 async def _challenge_emit_set_bonus_status(game: GoGame, send_fn) -> None:
-    if not getattr(game, "challenge_beta", False):
-        return
-    counts = _challenge_category_counts(game)
-    labels = {
-        "derivative": "衍生",
-        "trap": "陷阱",
-        "zone": "限位",
-        "restriction": "限制",
-        "active": "主动",
-    }
-    active = [labels[key] for key, count in counts.items() if count >= CHALLENGE_SET_MIN_COUNT]
-    if active:
-        await send_fn({
-            "type": "rogue_event",
-            "msg": f"闯关套装已激活：{' / '.join(active)}",
-        })
+    message = challenge_set_bonus_status_message(
+        game,
+        min_count=CHALLENGE_SET_MIN_COUNT,
+    )
+    if message:
+        await send_fn({"type": "rogue_event", "msg": message})
 
 
 def _refresh_ai_rogue_player_turn(game: GoGame):
