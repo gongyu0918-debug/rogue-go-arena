@@ -12,31 +12,49 @@ from urllib.parse import urlparse
 import websockets
 
 
-ROGUE_SMOKE_DIRECT_AI_CARDS = {
+WS_MAX_SIZE = 10_000_000
+WS_OPEN_TIMEOUT = 45
+WS_PING_TIMEOUT = 45
+WS_CLOSE_TIMEOUT = 10
+ROGUE_SMOKE_ATTEMPTS = 24
+# Keep runtime smoke on cards that exercise a real AI reply without long
+# conditional triggers; card_smoke_test.py covers the full card catalog.
+ROGUE_SMOKE_FAST_AI_CARDS = (
     "tengen",
-    "dice",
-    "erosion",
-    "nerf",
-    "komi_relief",
     "time_press",
-    "lowline",
+    "nerf",
     "suboptimal",
-    "mirror",
-    "slip",
-    "blackhole",
-    "fog",
     "gravity",
-    "golden_corner",
+    "lowline",
     "sansan",
-    "shadow",
-    "sprout",
-    "god_hand",
-    "corner_helper",
-    "no_regret",
-    "foolish_wisdom",
-    "capture_foul",
-    "last_stand",
-}
+)
+
+
+def websocket_connect(base_ws: str, game_id: str):
+    return websockets.connect(
+        f"{base_ws}/ws/{game_id}",
+        max_size=WS_MAX_SIZE,
+        open_timeout=WS_OPEN_TIMEOUT,
+        ping_timeout=WS_PING_TIMEOUT,
+        close_timeout=WS_CLOSE_TIMEOUT,
+    )
+
+
+def message_brief(message: dict) -> dict:
+    keep = ("type", "message", "gtp", "color", "x", "y", "card_id", "selected_card")
+    return {key: message.get(key) for key in keep if key in message}
+
+
+def transcript_tail(transcript: list[dict], limit: int = 6) -> list[dict]:
+    return [message_brief(message) for message in transcript[-limit:]]
+
+
+def pick_rogue_smoke_card(cards: list[dict]) -> dict | None:
+    by_id = {card.get("id"): card for card in cards}
+    for card_id in ROGUE_SMOKE_FAST_AI_CARDS:
+        if card_id in by_id:
+            return by_id[card_id]
+    return None
 
 
 def coord_to_gtp(x: int, y: int, size: int) -> str:
@@ -45,10 +63,15 @@ def coord_to_gtp(x: int, y: int, size: int) -> str:
 
 
 def gtp_to_sgf(gtp: str, size: int) -> str:
+    if gtp.upper() == "PASS":
+        return ""
     cols = "ABCDEFGHJKLMNOPQRST"
-    col = cols.index(gtp[0].upper())
-    row = size - int(gtp[1:])
-    return chr(ord("a") + col) + chr(ord("a") + row)
+    try:
+        col = cols.index(gtp[0].upper())
+        row = size - int(gtp[1:])
+        return chr(ord("a") + col) + chr(ord("a") + row)
+    except (ValueError, IndexError):
+        return ""
 
 
 def http_text(base_url: str, path: str) -> str:
@@ -65,7 +88,9 @@ async def recv_until(ws, predicate, *, timeout: float, transcript: list[dict]) -
     while True:
         remaining = deadline - time.monotonic()
         if remaining <= 0:
-            raise TimeoutError("timed out waiting for websocket message")
+            raise TimeoutError(
+                f"timed out waiting for websocket message; recent={transcript_tail(transcript)}"
+            )
         msg = json.loads(await asyncio.wait_for(ws.recv(), remaining))
         transcript.append(msg)
         if predicate(msg):
@@ -75,7 +100,7 @@ async def recv_until(ws, predicate, *, timeout: float, transcript: list[dict]) -
 async def normal_smoke(base_http: str, base_ws: str) -> dict:
     game_id = "runtime-normal-" + uuid.uuid4().hex[:8]
     transcript: list[dict] = []
-    async with websockets.connect(f"{base_ws}/ws/{game_id}", max_size=10_000_000) as ws:
+    async with websocket_connect(base_ws, game_id) as ws:
         await ws.send(json.dumps({
             "action": "new_game",
             "size": 9,
@@ -108,24 +133,26 @@ async def normal_smoke(base_http: str, base_ws: str) -> dict:
     sgf = http_text(base_http, f"/sgf/{game_id}")
     player_gtp = coord_to_gtp(4, 4, 9)
     ai_gtp = ai_move.get("gtp") or ""
+    sgf_has_player = f";B[{gtp_to_sgf(player_gtp, 9)}]" in sgf
+    sgf_has_ai = f";W[{gtp_to_sgf(ai_gtp, 9)}]" in sgf if ai_gtp else False
     return {
         "game_id": game_id,
         "player_move": player_gtp,
         "ai_move": ai_gtp,
         "analysis_top_moves": len(analysis.get("top_moves") or []),
         "analysis_ownership": len(analysis.get("ownership") or []),
-        "sgf_has_player": f";B[{gtp_to_sgf(player_gtp, 9)}]" in sgf,
-        "sgf_has_ai": f";W[{gtp_to_sgf(ai_gtp, 9)}]" in sgf if ai_gtp else False,
-        "status": "passed",
+        "sgf_has_player": sgf_has_player,
+        "sgf_has_ai": sgf_has_ai,
+        "status": "passed" if sgf_has_player and sgf_has_ai else "failed",
     }
 
 
 async def rogue_smoke(base_ws: str) -> dict:
     skipped_offers: list[list[str]] = []
-    for _attempt in range(8):
+    for _attempt in range(ROGUE_SMOKE_ATTEMPTS):
         game_id = "runtime-rogue-" + uuid.uuid4().hex[:8]
         transcript: list[dict] = []
-        async with websockets.connect(f"{base_ws}/ws/{game_id}", max_size=10_000_000) as ws:
+        async with websocket_connect(base_ws, game_id) as ws:
             await ws.send(json.dumps({
                 "action": "new_game",
                 "size": 9,
@@ -143,7 +170,7 @@ async def rogue_smoke(base_ws: str) -> dict:
             await recv_until(ws, lambda m: m.get("type") == "game_start", timeout=20, transcript=transcript)
             offer = await recv_until(ws, lambda m: m.get("type") == "rogue_offer", timeout=20, transcript=transcript)
             cards = offer.get("cards") or []
-            chosen = next((card for card in cards if card.get("id") in ROGUE_SMOKE_DIRECT_AI_CARDS), None)
+            chosen = pick_rogue_smoke_card(cards)
             if not chosen:
                 skipped_offers.append([card.get("id") for card in cards])
                 continue
@@ -184,14 +211,14 @@ async def rogue_smoke(base_ws: str) -> dict:
                 "status": "passed",
             }
 
-    raise RuntimeError(f"no direct-AI rogue smoke card was offered: {skipped_offers}")
+    raise RuntimeError(f"no fast rogue smoke card was offered: {skipped_offers}")
 
 
 async def ultimate_smoke(base_ws: str) -> dict:
     game_id = "runtime-ultimate-" + uuid.uuid4().hex[:8]
     transcript: list[dict] = []
     avoid = {"quickthink", "chain", "double"}
-    async with websockets.connect(f"{base_ws}/ws/{game_id}", max_size=10_000_000) as ws:
+    async with websocket_connect(base_ws, game_id) as ws:
         await ws.send(json.dumps({
             "action": "new_game",
             "size": 9,
@@ -264,7 +291,7 @@ async def capture_smoke(base_ws: str) -> dict:
         (4, 3),
         (1, 2),
     ]
-    async with websockets.connect(f"{base_ws}/ws/{game_id}", max_size=10_000_000) as ws:
+    async with websocket_connect(base_ws, game_id) as ws:
         await ws.send(json.dumps({
             "action": "new_game",
             "size": 5,
@@ -310,7 +337,7 @@ async def ko_smoke(base_ws: str) -> dict:
         (1, 3),
         (1, 2),
     ]
-    async with websockets.connect(f"{base_ws}/ws/{game_id}", max_size=10_000_000) as ws:
+    async with websocket_connect(base_ws, game_id) as ws:
         await ws.send(json.dumps({
             "action": "new_game",
             "size": 5,

@@ -108,6 +108,7 @@ from app.data.cards import (
 )
 from app.domain.coordinates import coord_to_gtp, gtp_to_coord
 from app.domain.game_state import GoGame
+from app.domain.sgf import generate_sgf
 from app.gameplay.card_selection import (
     pick_ai_rogue_card,
     pick_ai_ultimate_card,
@@ -322,39 +323,6 @@ def get_access_urls(host: str = SERVER_HOST, port: int = SERVER_PORT) -> dict:
         ],
         "lan": [f"http://{ip}:{port}" for ip in sorted(lan_ips)],
     }
-
-
-def gtp_to_sgf(gtp_move: str, size: int = 19) -> str:
-    """Convert GTP coordinate (e.g. 'D4') to SGF coordinate (e.g. 'dd')."""
-    if gtp_move.upper() == "PASS":
-        return ""
-    cols = "ABCDEFGHJKLMNOPQRST"
-    try:
-        col = cols.index(gtp_move[0].upper())
-        row = size - int(gtp_move[1:])
-        return chr(ord('a') + col) + chr(ord('a') + row)
-    except (ValueError, IndexError):
-        return ""
-
-
-def generate_sgf(game: GoGame) -> str:
-    """Generate SGF string from a GoGame."""
-    import datetime
-    dt = datetime.date.today().isoformat()
-    header = (f"(;GM[1]FF[4]CA[UTF-8]AP[rogue-go-arena:1.0]"
-              f"SZ[{game.size}]KM[{game.komi}]"
-              f"DT[{dt}]PB[{('Player' if game.player_color == 'B' else 'AI')}]"
-              f"PW[{('Player' if game.player_color == 'W' else 'AI')}]"
-              f"RE[{('B' if game.winner == 'B' else 'W') + '+' if game.winner else '?'}]")
-    if game.handicap > 0:
-        header += f"HA[{game.handicap}]"
-    header += "\n"
-    body = ""
-    for color, gtp in game.moves:
-        sgf_coord = gtp_to_sgf(gtp, game.size)
-        prop = "B" if color == "B" else "W"
-        body += f";{prop}[{sgf_coord}]\n"
-    return header + body + ")\n"
 
 
 # ─── FastAPI App ─────────────────────────────────────────────────────────────
