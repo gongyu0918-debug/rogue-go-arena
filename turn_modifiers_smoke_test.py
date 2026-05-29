@@ -97,6 +97,90 @@ def test_prepare_and_clear_quickthink_turns() -> None:
     assert game.ultimate_quickthink_turn_counted is False
 
 
+def test_apply_ultimate_ai_move_result_records_stone_move() -> None:
+    game = make_game()
+    turn_calls: list[GoGame] = []
+
+    captured = turn_modifiers.apply_ultimate_ai_move_result(
+        game,
+        "W",
+        "A9",
+        (0, 0),
+        count_turn=True,
+        record_ultimate_turn_fn=turn_calls.append,
+    )
+
+    assert captured == 0
+    assert turn_calls == [game]
+    assert game.moves == [("W", "A9")]
+    assert game.board[0][0] == 2
+    assert game.passed["W"] is False
+
+
+def test_apply_ultimate_ai_move_result_records_pass_without_counting_double_bonus() -> None:
+    game = make_game()
+    turn_calls: list[GoGame] = []
+
+    captured = turn_modifiers.apply_ultimate_ai_move_result(
+        game,
+        "W",
+        "pass",
+        None,
+        count_turn=False,
+        record_ultimate_turn_fn=turn_calls.append,
+    )
+
+    assert captured == 0
+    assert turn_calls == []
+    assert game.moves == [("W", "pass")]
+    assert game.passed["W"] is True
+
+
+def test_apply_ultimate_ai_move_result_treats_missing_coord_as_pass_state() -> None:
+    game = make_game()
+    turn_calls: list[GoGame] = []
+
+    captured = turn_modifiers.apply_ultimate_ai_move_result(
+        game,
+        "W",
+        "D4",
+        None,
+        count_turn=True,
+        record_ultimate_turn_fn=turn_calls.append,
+    )
+
+    assert captured == 0
+    assert turn_calls == [game]
+    assert game.moves == [("W", "D4")]
+    assert game.passed["W"] is True
+    assert all(cell == 0 for row in game.board for cell in row)
+
+
+def test_finish_ultimate_ai_normal_turn_prepares_player_and_pushes_history() -> None:
+    game = make_game()
+    game.ultimate = True
+    game.current_player = "W"
+    game.ultimate_extra_turn = True
+    history_len = len(game._history)
+    prepare_calls: list[GoGame] = []
+
+    def prepare(game_arg):
+        prepare_calls.append(game_arg)
+        game_arg.rogue_quickthink_stage = 1
+
+    turn_modifiers.finish_ultimate_ai_normal_turn(
+        game,
+        prepare_player_turn_modifiers_fn=prepare,
+    )
+
+    assert game.ultimate_extra_turn is False
+    assert game.current_player == game.player_color
+    assert prepare_calls == [game]
+    assert len(game._history) == history_len + 1
+    assert game._history[-1]["current_player"] == game.player_color
+    assert game._history[-1]["rogue_quickthink_stage"] == 1
+
+
 def test_server_wrapper_preserves_fog_monkeypatch() -> None:
     game = make_game()
     game.ai_rogue_enabled = True
@@ -125,5 +209,9 @@ if __name__ == "__main__":
     test_player_bonus_forbidden_points()
     test_refresh_ai_rogue_fog_mask_and_point_modes()
     test_prepare_and_clear_quickthink_turns()
+    test_apply_ultimate_ai_move_result_records_stone_move()
+    test_apply_ultimate_ai_move_result_records_pass_without_counting_double_bonus()
+    test_apply_ultimate_ai_move_result_treats_missing_coord_as_pass_state()
+    test_finish_ultimate_ai_normal_turn_prepares_player_and_pushes_history()
     test_server_wrapper_preserves_fog_monkeypatch()
     print("turn_modifiers_smoke_test passed")

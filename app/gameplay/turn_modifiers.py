@@ -46,6 +46,29 @@ def record_ultimate_turn(game: Any) -> None:
     game.ultimate_move_count += 1
 
 
+def apply_ultimate_ai_move_result(
+    game: Any,
+    color: str,
+    gtp_move: str,
+    coord: tuple[int, int] | None,
+    *,
+    count_turn: bool,
+    record_ultimate_turn_fn: Callable[[Any], None] | None = None,
+) -> int:
+    record_turn = record_ultimate_turn if record_ultimate_turn_fn is None else record_ultimate_turn_fn
+    if count_turn:
+        record_turn(game)
+    game.moves.append((color, gtp_move))
+
+    if gtp_move.upper() != "PASS" and coord is not None:
+        captured = game.place_stone(coord[0], coord[1], color)
+        game.passed[color] = False
+        return captured
+
+    game.passed[color] = True
+    return 0
+
+
 def record_ultimate_player_action(
     game: Any,
     *,
@@ -111,6 +134,17 @@ def prepare_player_turn_modifiers(
     if game.ultimate and game.ultimate_player_card == "quickthink" and not game.ultimate_quickthink_active:
         game.ultimate_quickthink_token += 1
         game.ultimate_quickthink_active = True
+
+
+def finish_ultimate_ai_normal_turn(
+    game: Any,
+    *,
+    prepare_player_turn_modifiers_fn: Callable[[Any], None] = prepare_player_turn_modifiers,
+) -> None:
+    game.ultimate_extra_turn = False
+    game.current_player = game.player_color
+    prepare_player_turn_modifiers_fn(game)
+    game.push_history()
 
 
 def clear_player_turn_modifiers(

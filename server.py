@@ -121,8 +121,10 @@ from app.gameplay.ai_moves import (
 )
 from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
 from app.gameplay.turn_modifiers import (
+    apply_ultimate_ai_move_result as apply_ultimate_ai_move_result_state,
     clear_player_turn_modifiers as clear_player_turn_modifiers_state,
     finish_ultimate_quickthink_turn as finish_ultimate_quickthink_turn_state,
+    finish_ultimate_ai_normal_turn as finish_ultimate_ai_normal_turn_state,
     get_ai_rogue_forbidden_points as get_ai_rogue_forbidden_points_state,
     get_player_bonus_forbidden_points as get_player_bonus_forbidden_points_state,
     pick_fog_mask as pick_fog_mask_state,
@@ -1431,16 +1433,14 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
         gtp_move = await _ai_retry_avoiding_ko(game, color)
         coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
 
-    if allow_double_bonus:
-        _record_ultimate_turn(game)
-    game.moves.append((color, gtp_move))
-
-    captured = 0
-    if gtp_move.upper() != "PASS" and coord:
-        captured = game.place_stone(coord[0], coord[1], color)
-        game.passed[color] = False
-    else:
-        game.passed[color] = True
+    captured = apply_ultimate_ai_move_result_state(
+        game,
+        color,
+        gtp_move,
+        coord,
+        count_turn=allow_double_bonus,
+        record_ultimate_turn_fn=_record_ultimate_turn,
+    )
     await _check_capture_foul(game, send_fn, color, captured, ultimate=True)
 
     await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color,
@@ -1495,10 +1495,10 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
             await _ultimate_ai_move(game, send_fn, allow_double_bonus=False)
             return
 
-    game.ultimate_extra_turn = False
-    game.current_player = game.player_color
-    _prepare_player_turn_modifiers(game)
-    game.push_history()
+    finish_ultimate_ai_normal_turn_state(
+        game,
+        prepare_player_turn_modifiers_fn=_prepare_player_turn_modifiers,
+    )
     await send_fn({"type": "game_state", **game.to_state()})
 
     if game.ultimate_move_count >= 20:
