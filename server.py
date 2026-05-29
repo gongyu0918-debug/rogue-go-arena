@@ -1664,6 +1664,19 @@ async def _run_coach_turn_if_needed(game: GoGame, send_fn):
         await _ai_move(game, send_fn)
 
 
+async def _finish_observer_double_pass(game: GoGame, send_fn) -> bool:
+    if not (game.passed["B"] and game.passed["W"]):
+        return False
+
+    resp_score = await _send_engine_command("final_score")
+    score_str = resp_score.replace("=", "").strip()
+    winner = "B" if score_str.startswith("B") else "W"
+    game.game_over = True
+    game.winner = winner
+    await send_fn({"type": "game_over", "winner": winner, "score": score_str, "reason": "double_pass"})
+    return True
+
+
 async def _run_ai_observer_loop(game: GoGame, send_fn):
     try:
         while not game.game_over and game.ai_observer and engine.ready:
@@ -1689,13 +1702,7 @@ async def _run_ai_observer_loop(game: GoGame, send_fn):
             game.current_player = "W" if color == "B" else "B"
             game.push_history()
             await send_fn({"type": "game_state", **game.to_state()})
-            if game.passed["B"] and game.passed["W"]:
-                resp_score = await run_in_executor(engine.send_command, "final_score")
-                score_str = resp_score.replace("=", "").strip()
-                winner = "B" if score_str.startswith("B") else "W"
-                game.game_over = True
-                game.winner = winner
-                await send_fn({"type": "game_over", "winner": winner, "score": score_str, "reason": "double_pass"})
+            if await _finish_observer_double_pass(game, send_fn):
                 break
             await asyncio.sleep(0.35)
     except WebSocketDisconnect:

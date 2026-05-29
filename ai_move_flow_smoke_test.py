@@ -5935,6 +5935,46 @@ def test_server_sync_engine_komi_uses_ready_gate_and_runtime_command() -> None:
     assert calls == ["komi 6.5"]
 
 
+async def _server_finish_observer_double_pass_scores_once() -> None:
+    calls = []
+    game = GoGame(size=5, player_color="B")
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_send_command(command):
+        calls.append(("engine", command))
+        return "= W+2.5"
+
+    original_send_command = s._send_engine_command
+    s._send_engine_command = fake_send_command
+    try:
+        skipped = await s._finish_observer_double_pass(game, send)
+        game.passed["B"] = True
+        game.passed["W"] = True
+        finished = await s._finish_observer_double_pass(game, send)
+    finally:
+        s._send_engine_command = original_send_command
+
+    assert skipped is False
+    assert finished is True
+    assert game.game_over is True
+    assert game.winner == "W"
+    assert calls == [
+        ("engine", "final_score"),
+        ("send", {
+            "type": "game_over",
+            "winner": "W",
+            "score": "W+2.5",
+            "reason": "double_pass",
+        }),
+    ]
+
+
+def test_server_finish_observer_double_pass_scores_once() -> None:
+    asyncio.run(_server_finish_observer_double_pass_scores_once())
+
+
 async def _server_generated_turn_helper_binds_runtime_globals() -> None:
     game = GoGame(size=5, player_color="B")
     turn = s.AiTurnSnapshot(
@@ -8608,6 +8648,7 @@ if __name__ == "__main__":
     test_server_generated_ai_move_deps_bind_runtime_globals()
     test_server_engine_command_helper_binds_runtime_send_command()
     test_server_sync_engine_komi_uses_ready_gate_and_runtime_command()
+    test_server_finish_observer_double_pass_scores_once()
     test_server_generated_turn_helper_binds_runtime_globals()
     test_server_ai_move_balanced_style_skips_style_helper()
     test_server_ai_move_rogue_cards_skip_style_helper()
