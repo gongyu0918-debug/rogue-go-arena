@@ -5,6 +5,7 @@ import threading
 
 import server as s
 from app.data import cards as card_data
+from app.gameplay.effect_utils import clear_random_enemy_stones, get_square_points
 from app.runtime.ws_actions import WebSocketActionContext, handle_rogue_use_exchange, handle_rogue_use_puppet
 
 s.gameplay_config.apply_balance_values(s.gameplay_config.BALANCE_DEFAULTS)
@@ -426,7 +427,7 @@ async def smoke_new_rogue_cards():
 
     assert game.rogue_godhand_done is True
     assert synced["count"] == 1
-    assert sum(1 for x, y in s._get_square_points(4, 4, s.ROGUE_GODHAND_RADIUS, game.size) if game.board[y][x] == 1) >= 1
+    assert sum(1 for x, y in get_square_points(4, 4, s.ROGUE_GODHAND_RADIUS, game.size) if game.board[y][x] == 1) >= 1
 
     game = make_game()
     game.rogue_card = "corner_helper"
@@ -865,7 +866,7 @@ async def smoke_magic_effects_clear_ko():
     game.board[0][0] = 2
     game.board[1][0] = 2
     game.ko_point = (1, 1, 2)
-    cleared = s._clear_random_enemy_stones(game, "B", 1, random.Random(0))
+    cleared = clear_random_enemy_stones(game, "B", 1, random.Random(0))
     assert len(cleared) == 1
     assert game.ko_point is None
 

@@ -170,18 +170,14 @@ from app.gameplay.turn_modifiers import (
 from app.gameplay.effect_utils import (
     adjacent8_points as _adjacent8_points,
     adjacent_points as _adjacent_points,
-    clear_random_enemy_stones as _clear_random_enemy_stones,
     count_stones as _count_stones,
     diamond_points as _diamond_points,
-    find_exact_five_lines as _find_exact_five_lines,
     find_corner_with_min_stones as _find_corner_with_min_stones,
     get_blackhole_points as _get_blackhole_points,
     get_corner_helper_spawn_points as _get_corner_helper_spawn_points,
     get_golden_corner_points as _get_golden_corner_points,
     get_sansan_points as _get_sansan_points,
-    get_square_points as _get_square_points,
     get_star_points as _get_star_points,
-    line_endpoints as _line_endpoints,
     line_key as _line_key,
     line_points_between as _line_points_between,
     mirror_coord as _mirror_coord,
@@ -191,7 +187,6 @@ from app.gameplay.effect_utils import (
     set_points_to_color as _set_points_to_color,
     shape_center as _shape_center,
     spawn_bonus_points as _spawn_bonus_points,
-    spawn_random_owned_stones as _spawn_random_owned_stones,
     try_spawn_bonus_stone as _try_spawn_bonus_stone,
 )
 from app.gameplay.rogue_effects import (
@@ -201,6 +196,8 @@ from app.gameplay.rogue_effects import (
     challenge_zone_points as _challenge_zone_points,
     apply_challenge_rogue_loadout as apply_challenge_rogue_loadout_state,
     apply_ai_rogue_card_activation,
+    apply_rogue_five_in_row,
+    apply_rogue_last_stand,
     apply_rogue_card_activation,
     apply_ai_rogue_response_board_effects,
     apply_player_rogue_board_effects,
@@ -785,57 +782,17 @@ async def _estimate_side_winrate(game: GoGame, color: str) -> float:
 
 
 async def _trigger_rogue_five_in_row(game: GoGame, send_fn, color: str):
-    current_lines = set(_find_exact_five_lines(game, color))
-    game.rogue_five_in_row_seen.intersection_update(current_lines)
-    new_lines = [
-        line
-        for line in current_lines
-        if line not in game.rogue_five_in_row_seen
-    ]
-    if not new_lines:
-        return
-    endpoints = []
-    for line in new_lines:
-        game.rogue_five_in_row_seen.add(line)
-        sorted_line = sorted(line)
-        x1, y1 = sorted_line[0]
-        x2, y2 = sorted_line[1]
-        dx, dy = x2 - x1, y2 - y1
-        perp = (-dy, dx)
-        start, end = _line_endpoints(line)
-        for point, anchor in ((start, sorted_line[0]), (end, sorted_line[-1])):
-            if not point:
-                continue
-            x, y = point
-            if 0 <= x < game.size and 0 <= y < game.size and game.board[y][x] == 0:
-                endpoints.append(point)
-                continue
-            ax, ay = anchor
-            for px, py in ((ax + perp[0], ay + perp[1]), (ax - perp[0], ay - perp[1])):
-                if 0 <= px < game.size and 0 <= py < game.size and game.board[py][px] == 0:
-                    endpoints.append((px, py))
-                    break
-    changed = _spawn_bonus_points(game, endpoints, color)
-    if changed:
-        support_pool = []
-        for line in new_lines:
-            for px, py in line:
-                for nx, ny in _adjacent8_points(px, py, game.size):
-                    if game.board[ny][nx] == 0 and (nx, ny) not in support_pool:
-                        support_pool.append((nx, ny))
-        random.shuffle(support_pool)
-        changed.extend(_spawn_bonus_points(game, support_pool[:ROGUE_FIVE_IN_ROW_SUPPORT_STONES], color))
-    if changed and _challenge_should_bonus_derivative(game):
-        extra_endpoints = [point for point in endpoints if point not in changed and game.board[point[1]][point[0]] == 0]
-        random.shuffle(extra_endpoints)
-        changed.extend(_spawn_bonus_points(game, extra_endpoints[:1], color))
-    if changed:
-        if engine.ready:
-            await _sync_board_to_katago(game)
-        await send_fn({
-            "type": "rogue_event",
-            "msg": f"🎯 五子连珠发动，正好连成 5 子，首尾额外补下 {len(changed)} 颗棋子",
-        })
+    result = apply_rogue_five_in_row(
+        game,
+        color,
+        shuffle_points=random.shuffle,
+        should_bonus_derivative_fn=_challenge_should_bonus_derivative,
+        support_stones=ROGUE_FIVE_IN_ROW_SUPPORT_STONES,
+    )
+    if result.modified and engine.ready:
+        await _sync_board_to_katago(game)
+    for message in result.messages:
+        await send_fn({"type": "rogue_event", "msg": message})
 
 
 async def _trigger_rogue_last_stand(
@@ -848,27 +805,19 @@ async def _trigger_rogue_last_stand(
         return
     if await _estimate_side_winrate(game, color) >= ROGUE_LAST_STAND_THRESHOLD:
         return
-    area = _get_square_points(center[0], center[1], 1, game.size)
-    rng = random.Random(time.time_ns())
-    cleared = _clear_random_enemy_stones(game, color, ROGUE_LAST_STAND_CLEAR_COUNT, rng, area=area)
-    forbidden = _get_player_bonus_forbidden_points(game, color)
-    changed = _spawn_random_owned_stones(
+    result = apply_rogue_last_stand(
         game,
         color,
-        ROGUE_LAST_STAND_SPAWN_COUNT,
-        rng,
-        area=area,
-        forbidden=forbidden,
+        center,
+        rng=random.Random(time.time_ns()),
+        forbidden_points=_get_player_bonus_forbidden_points(game, color),
+        clear_count=ROGUE_LAST_STAND_CLEAR_COUNT,
+        spawn_count=ROGUE_LAST_STAND_SPAWN_COUNT,
     )
-    if not cleared and not changed:
-        return
-    game.rogue_last_stand_done[color] = True
-    if engine.ready:
+    if result.modified and engine.ready:
         await _sync_board_to_katago(game)
-    await send_fn({
-        "type": "rogue_event",
-        "msg": f"🫀 起死回生发动，在上一手周围扭转局面：清掉 {len(cleared)} 颗敌子，补下 {len(changed)} 颗己棋",
-    })
+    for message in result.messages:
+        await send_fn({"type": "rogue_event", "msg": message})
 
 
 async def _trigger_ultimate_last_stand(game: GoGame, send_fn, color: str):

@@ -3,14 +3,17 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 import random
+import time
 from typing import Any
 
 import app.config.gameplay as gameplay_config
 from app.gameplay.effect_utils import (
     adjacent8_points,
     adjacent_points,
+    clear_random_enemy_stones,
     diamond_points,
     find_corner_with_min_stones,
+    find_exact_five_lines,
     find_new_fool_shapes,
     get_blackhole_points,
     get_corner_helper_spawn_points,
@@ -18,12 +21,14 @@ from app.gameplay.effect_utils import (
     get_sansan_points,
     get_square_points,
     get_star_points,
+    line_endpoints,
     player_non_pass_coords,
     pick_joseki_targets,
     random_hidden_center,
     set_points_to_color,
     shape_center,
     spawn_bonus_points,
+    spawn_random_owned_stones,
 )
 from app.data.cards import challenge_card_category, challenge_category_counts
 
@@ -567,6 +572,115 @@ def apply_player_rogue_board_effects(
         modified=modified,
         messages=messages,
         trap_bonus_sources=trap_bonus_sources,
+    )
+
+
+def apply_rogue_five_in_row(
+    game: Any,
+    color: str,
+    *,
+    shuffle_points: ShufflePointsFn = random.shuffle,
+    should_bonus_derivative_fn: Callable[[Any], bool] = challenge_should_bonus_derivative,
+    support_stones: int = gameplay_config.ROGUE_FIVE_IN_ROW_SUPPORT_STONES,
+) -> RogueBoardEffectResult:
+    current_lines = set(find_exact_five_lines(game, color))
+    game.rogue_five_in_row_seen.intersection_update(current_lines)
+    new_lines = [
+        line
+        for line in current_lines
+        if line not in game.rogue_five_in_row_seen
+    ]
+    if not new_lines:
+        return RogueBoardEffectResult(False, [], [])
+
+    endpoints: list[tuple[int, int]] = []
+    for line in new_lines:
+        game.rogue_five_in_row_seen.add(line)
+        sorted_line = sorted(line)
+        x1, y1 = sorted_line[0]
+        x2, y2 = sorted_line[1]
+        dx, dy = x2 - x1, y2 - y1
+        perp = (-dy, dx)
+        start, end = line_endpoints(line)
+        for point, anchor in ((start, sorted_line[0]), (end, sorted_line[-1])):
+            if not point:
+                continue
+            x, y = point
+            if 0 <= x < game.size and 0 <= y < game.size and game.board[y][x] == 0:
+                endpoints.append(point)
+                continue
+            ax, ay = anchor
+            for px, py in ((ax + perp[0], ay + perp[1]), (ax - perp[0], ay - perp[1])):
+                if 0 <= px < game.size and 0 <= py < game.size and game.board[py][px] == 0:
+                    endpoints.append((px, py))
+                    break
+
+    changed = spawn_bonus_points(game, endpoints, color)
+    if changed:
+        support_pool: list[tuple[int, int]] = []
+        for line in new_lines:
+            for px, py in line:
+                for nx, ny in adjacent8_points(px, py, game.size):
+                    if game.board[ny][nx] == 0 and (nx, ny) not in support_pool:
+                        support_pool.append((nx, ny))
+        shuffle_points(support_pool)
+        changed.extend(spawn_bonus_points(game, support_pool[:support_stones], color))
+
+    if changed and should_bonus_derivative_fn(game):
+        extra_endpoints = [
+            point
+            for point in endpoints
+            if point not in changed and game.board[point[1]][point[0]] == 0
+        ]
+        shuffle_points(extra_endpoints)
+        changed.extend(spawn_bonus_points(game, extra_endpoints[:1], color))
+
+    if not changed:
+        return RogueBoardEffectResult(False, [], [])
+
+    return RogueBoardEffectResult(
+        True,
+        [
+            f"🎯 五子连珠发动，正好连成 5 子，首尾额外补下 {len(changed)} 颗棋子"
+        ],
+        [],
+    )
+
+
+def apply_rogue_last_stand(
+    game: Any,
+    color: str,
+    center: tuple[int, int],
+    *,
+    rng: random.Random | None = None,
+    forbidden_points: set[tuple[int, int]] | None = None,
+    clear_count: int = gameplay_config.ROGUE_LAST_STAND_CLEAR_COUNT,
+    spawn_count: int = gameplay_config.ROGUE_LAST_STAND_SPAWN_COUNT,
+) -> RogueBoardEffectResult:
+    if game.rogue_last_stand_done.get(color):
+        return RogueBoardEffectResult(False, [], [])
+
+    rng = random.Random(time.time_ns()) if rng is None else rng
+    area = get_square_points(center[0], center[1], 1, game.size)
+    cleared = clear_random_enemy_stones(game, color, clear_count, rng, area=area)
+    changed = spawn_random_owned_stones(
+        game,
+        color,
+        spawn_count,
+        rng,
+        area=area,
+        forbidden=forbidden_points,
+    )
+    if not cleared and not changed:
+        return RogueBoardEffectResult(False, [], [])
+
+    game.rogue_last_stand_done[color] = True
+    return RogueBoardEffectResult(
+        True,
+        [
+            f"🫀 起死回生发动，在上一手周围扭转局面：清掉 {len(cleared)} 颗敌子，补下 {len(changed)} 颗己棋"
+        ],
+        [],
     )
 
 
