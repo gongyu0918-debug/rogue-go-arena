@@ -200,6 +200,7 @@ from app.gameplay.rogue_effects import (
     challenge_remaining as _challenge_remaining,
     challenge_should_bonus_derivative as _challenge_should_bonus_derivative,
     challenge_zone_points as _challenge_zone_points,
+    apply_ai_rogue_card_activation,
     apply_rogue_card_activation,
     apply_ai_rogue_response_board_effects,
     apply_player_rogue_board_effects,
@@ -1028,18 +1029,15 @@ async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
 
 async def _activate_ai_rogue_card(game: GoGame, send_fn, card_id: str):
     cdef = get_rogue_card(card_id)
-    game.ai_rogue_enabled = True
-    game.ai_rogue_card = card_id
-    game.ai_rogue_seal_points = []
-    game.ai_rogue_sansan_trap_done = False
-
-    if card_id == "blackhole":
-        game.ai_rogue_seal_points = _get_blackhole_points(game.size)
-    elif card_id == "golden_corner":
-        corner = random.randint(0, 3)
-        game.ai_rogue_seal_points = _get_golden_corner_points(game.size, corner, ROGUE_GOLDEN_CORNER_SPAN)
-    elif card_id == "fog":
-        _refresh_ai_rogue_player_turn(game)
+    apply_ai_rogue_card_activation(
+        game,
+        card_id,
+        choose_corner=lambda: random.randint(0, 3),
+        get_blackhole_points_fn=_get_blackhole_points,
+        get_golden_corner_points_fn=_get_golden_corner_points,
+        refresh_ai_rogue_player_turn_fn=_refresh_ai_rogue_player_turn,
+        golden_corner_span=ROGUE_GOLDEN_CORNER_SPAN,
+    )
 
     await send_fn({
         "type": "rogue_ai_selected",

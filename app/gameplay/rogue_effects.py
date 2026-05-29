@@ -37,6 +37,7 @@ GoldenCornerFn = Callable[[int, int, int], list[tuple[int, int]]]
 JosekiTargetsFn = Callable[[int, int], list[tuple[int, int]]]
 HiddenCenterFn = Callable[[int, int, random.Random], tuple[int, int]]
 DiamondPointsFn = Callable[[int, int, int, int], list[tuple[int, int]]]
+RefreshAiRogueTurnFn = Callable[[Any], None]
 
 
 @dataclass
@@ -169,6 +170,34 @@ def apply_rogue_card_activation(
         game.rogue_uses.setdefault("coach_mode", 1)
 
     return RogueCardActivationResult(messages=messages, sync_komi=sync_komi)
+
+
+def apply_ai_rogue_card_activation(
+    game: Any,
+    card_id: str,
+    *,
+    choose_corner: ChooseCornerFn = lambda: random.randint(0, 3),
+    get_blackhole_points_fn: PointListFn = get_blackhole_points,
+    get_golden_corner_points_fn: GoldenCornerFn = get_golden_corner_points,
+    refresh_ai_rogue_player_turn_fn: RefreshAiRogueTurnFn,
+    golden_corner_span: int = gameplay_config.ROGUE_GOLDEN_CORNER_SPAN,
+) -> None:
+    game.ai_rogue_enabled = True
+    game.ai_rogue_card = card_id
+    game.ai_rogue_seal_points = []
+    game.ai_rogue_sansan_trap_done = False
+
+    if card_id == "blackhole":
+        game.ai_rogue_seal_points = get_blackhole_points_fn(game.size)
+    elif card_id == "golden_corner":
+        corner = choose_corner()
+        game.ai_rogue_seal_points = get_golden_corner_points_fn(
+            game.size,
+            corner,
+            golden_corner_span,
+        )
+    elif card_id == "fog":
+        refresh_ai_rogue_player_turn_fn(game)
 
 
 def rogue_card_ids(game: Any) -> list[str]:
