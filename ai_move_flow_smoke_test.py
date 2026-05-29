@@ -3407,7 +3407,7 @@ async def _server_ai_move_delegates_to_forced_rogue_flow() -> None:
             kwargs["coord_to_gtp"] is s.coord_to_gtp,
             kwargs["mirror_coord"] is s._mirror_coord,
             kwargs["prepare_player_turn_modifiers"] is s._prepare_player_turn_modifiers,
-            callable(kwargs["run_engine_command"]),
+            kwargs["run_engine_command"] is s._send_engine_command,
             kwargs["finalize_forced_pass"] is s.finalize_forced_ai_pass,
             kwargs["finalize_forced_stone"] is s.try_finalize_forced_ai_stone,
             kwargs["apply_puppet_move"] is s.try_apply_puppet_ai_move,
@@ -4350,7 +4350,7 @@ async def _server_ai_move_delegates_to_rogue_restriction_flow() -> None:
             kwargs["coord_to_gtp"] is s.coord_to_gtp,
             kwargs["finalize_forced_stone"] is s.try_finalize_forced_ai_stone,
             kwargs["prepare_player_turn_modifiers"] is s._prepare_player_turn_modifiers,
-            callable(kwargs["run_engine_command"]),
+            kwargs["run_engine_command"] is s._send_engine_command,
             kwargs["choose_allowed_move"] is s._ai_move_avoid_points_allow_only,
             kwargs["choose_avoid_move"] is s._ai_move_avoid_points,
             kwargs["finish_ai_move"] is s._finish_ai_move,
@@ -5882,6 +5882,7 @@ def test_server_generated_ai_move_deps_bind_runtime_globals() -> None:
     assert finish_deps.finish_move is fake_finish
     assert finish_deps.sync_board_to_engine is fake_sync
     assert finish_deps.adjacent_points is s._adjacent8_points
+    assert finish_deps.run_erosion_command is s._send_engine_command
     assert finish_deps.run_double_pass_command is fake_run_command
     assert first_ready is True
     assert second_ready is False
@@ -5891,6 +5892,24 @@ def test_server_generated_ai_move_deps_bind_runtime_globals() -> None:
         ("erosion_engine", "kata-set-param komi 6.5"),
         ("double_engine", "final_score"),
     ]
+
+
+def test_server_engine_command_helper_binds_runtime_send_command() -> None:
+    calls = []
+
+    def fake_send_command(command):
+        calls.append(command)
+        return f"= {command}"
+
+    original_send_command = s.engine.send_command
+    s.engine.send_command = fake_send_command
+    try:
+        result = asyncio.run(s._send_engine_command("final_score"))
+    finally:
+        s.engine.send_command = original_send_command
+
+    assert result == "= final_score"
+    assert calls == ["final_score"]
 
 
 async def _server_generated_turn_helper_binds_runtime_globals() -> None:
@@ -8385,7 +8404,7 @@ async def _server_generate_ai_style_move_delegates_observer_style() -> None:
             kwargs["choose_style_move"] is s.choose_ai_style_move,
             kwargs["generate_move"] is s._ai_generate_move,
             kwargs["gtp_to_coord"] is s.gtp_to_coord,
-            callable(kwargs["play_chosen_move"]),
+            kwargs["play_chosen_move"] is s._send_engine_command,
         ))
         return "D4"
 
@@ -8432,7 +8451,7 @@ async def _server_finish_ai_move_delegates_to_finalize_flow() -> None:
             kwargs["check_capture_foul"] is s._check_capture_foul,
             kwargs["prepare_player_turn_modifiers"] is s._prepare_player_turn_modifiers,
             kwargs["run_coach_turn_if_needed"] is s._run_coach_turn_if_needed,
-            callable(kwargs["run_engine_command"]),
+            kwargs["run_engine_command"] is s._send_engine_command,
         ))
 
     original_finalize = s.finalize_ai_move
@@ -8564,6 +8583,7 @@ if __name__ == "__main__":
     test_server_ai_move_style_choice_runs_suspicious_pass_fallback()
     test_server_ai_move_delegates_to_candidate_helper()
     test_server_generated_ai_move_deps_bind_runtime_globals()
+    test_server_engine_command_helper_binds_runtime_send_command()
     test_server_generated_turn_helper_binds_runtime_globals()
     test_server_ai_move_balanced_style_skips_style_helper()
     test_server_ai_move_rogue_cards_skip_style_helper()

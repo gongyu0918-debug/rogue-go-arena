@@ -587,6 +587,10 @@ async def run_in_executor(func, *args):
     return await loop.run_in_executor(None, func, *args)
 
 
+async def _send_engine_command(command: str) -> str:
+    return await run_in_executor(engine.send_command, command)
+
+
 ai_move_service = AiMoveService(
     engine=engine,
     run_in_executor=run_in_executor,
@@ -1342,7 +1346,7 @@ def _generated_ai_move_finish_deps(run_engine_command) -> GeneratedMoveFinishDep
         prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
         apply_erosion_counter=apply_erosion_komi_counter,
         erosion_shift=ROGUE_EROSION_SHIFT,
-        run_erosion_command=lambda command: run_in_executor(engine.send_command, command),
+        run_erosion_command=_send_engine_command,
         erosion_message=lambda capture_count, komi: f"蚕食反制：AI 提掉了 {capture_count} 子，当前贴目变为 {komi}",
         finalize_double_pass=try_finalize_double_pass,
         run_double_pass_command=run_engine_command,
@@ -1499,10 +1503,7 @@ async def _ai_move(game: GoGame, send_fn):
     move_count = turn.move_count
     ai_move_count = turn.ai_move_count
 
-    async def _run_engine_command(command: str) -> str:
-        return await run_in_executor(engine.send_command, command)
-
-    if await _try_finish_forced_rogue_ai_turn(game, send_fn, turn, _run_engine_command):
+    if await _try_finish_forced_rogue_ai_turn(game, send_fn, turn, _send_engine_command):
         return
 
     ai_plan = plan_rogue_ai_search(
@@ -1525,7 +1526,7 @@ async def _ai_move(game: GoGame, send_fn):
         pick_fog_point=_pick_fog_point,
     )
 
-    if await _try_finish_rogue_restriction_ai_turn(game, send_fn, turn, ai_plan, _run_engine_command):
+    if await _try_finish_rogue_restriction_ai_turn(game, send_fn, turn, ai_plan, _send_engine_command):
         return
 
     if await _try_finish_shadow_rogue_ai_turn(game, send_fn, turn, ai_plan):
@@ -1534,7 +1535,7 @@ async def _ai_move(game: GoGame, send_fn):
     if await _try_finish_suboptimal_rogue_ai_turn(game, send_fn, turn, ai_plan):
         return
 
-    if await _try_finish_generated_ai_turn(game, send_fn, turn, ai_plan, _run_engine_command):
+    if await _try_finish_generated_ai_turn(game, send_fn, turn, ai_plan, _send_engine_command):
         return
 
 
@@ -1578,9 +1579,6 @@ async def _ai_generate_move(color: str, visits: int, time_limit: float) -> str:
 
 async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
     """Finalize a rogue-forced AI move: update game state and send messages."""
-    async def _run_engine_command(command: str) -> str:
-        return await run_in_executor(engine.send_command, command)
-
     await finalize_ai_move(
         game,
         send_fn,
@@ -1593,7 +1591,7 @@ async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
         retry_avoiding_ko=_ai_retry_avoiding_ko,
         check_capture_foul=_check_capture_foul,
         prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
-        run_engine_command=_run_engine_command,
+        run_engine_command=_send_engine_command,
         run_coach_turn_if_needed=_run_coach_turn_if_needed,
     )
 
@@ -1613,7 +1611,7 @@ async def _generate_ai_style_move(game: GoGame, color: str, visits: int, time_li
         choose_style_move=choose_ai_style_move,
         generate_move=_ai_generate_move,
         gtp_to_coord=gtp_to_coord,
-        play_chosen_move=lambda command: run_in_executor(engine.send_command, command),
+        play_chosen_move=_send_engine_command,
     )
 
 
