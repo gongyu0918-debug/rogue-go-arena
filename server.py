@@ -119,7 +119,7 @@ from app.gameplay.ai_moves import (
     weaken_rank,
     weaken_rank_one_step,
 )
-from app.gameplay.ai_move_flow import finalize_ai_move
+from app.gameplay.ai_move_flow import finalize_ai_move, finalize_forced_ai_pass
 from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
 from app.gameplay.turn_modifiers import (
     apply_ultimate_ai_move_result as apply_ultimate_ai_move_result_state,
@@ -1504,18 +1504,18 @@ async def _ai_move(game: GoGame, send_fn):
     move_count = len(game.moves)
     ai_move_count = sum(1 for c, _ in game.moves if c == color)
 
+    async def _run_engine_command(command: str) -> str:
+        return await run_in_executor(engine.send_command, command)
+
     if "dice" in rogue_cards and random.random() < ROGUE_DICE_PASS_CHANCE:
-        await run_in_executor(engine.send_command, f"play {color} pass")
-        game.moves.append((color, "pass"))
-        game.passed[color] = True
-        game.current_player = game.player_color
-        _prepare_player_turn_modifiers(game)
-        game.push_history()
-        await send_fn({"type": "game_state", **game.to_state()})
-        await send_fn({"type": "ai_move", "gtp": "pass", "color": color,
-                        "x": None, "y": None})
-        await send_fn({"type": "rogue_event",
-                        "msg": "掷骰触发，AI 这手选择虚手"})
+        await finalize_forced_ai_pass(
+            game,
+            send_fn,
+            color=color,
+            message="掷骰触发，AI 这手选择虚手",
+            prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+            run_engine_command=_run_engine_command,
+        )
         return
 
     if "mirror" in rogue_cards and random.random() < ROGUE_MIRROR_CHANCE and move_count > 0:
@@ -1544,17 +1544,14 @@ async def _ai_move(game: GoGame, send_fn):
 
     if "exchange" in rogue_cards and game.rogue_skip_ai:
         game.rogue_skip_ai = False
-        await run_in_executor(engine.send_command, f"play {color} pass")
-        game.moves.append((color, "pass"))
-        game.passed[color] = True
-        game.current_player = game.player_color
-        _prepare_player_turn_modifiers(game)
-        game.push_history()
-        await send_fn({"type": "game_state", **game.to_state()})
-        await send_fn({"type": "ai_move", "gtp": "pass", "color": color,
-                        "x": None, "y": None})
-        await send_fn({"type": "rogue_event",
-                        "msg": "乾坤挪移生效，AI 本回合虚手并把回合交还给你"})
+        await finalize_forced_ai_pass(
+            game,
+            send_fn,
+            color=color,
+            message="乾坤挪移生效，AI 本回合虚手并把回合交还给你",
+            prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+            run_engine_command=_run_engine_command,
+        )
         return
 
     if "puppet" in rogue_cards and game.rogue_puppet_target is not None:

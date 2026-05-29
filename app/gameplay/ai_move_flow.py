@@ -16,6 +16,32 @@ EngineCommandFn = Callable[[str], Awaitable[str]]
 RunCoachTurnFn = Callable[[Any, AsyncSend], Awaitable[None]]
 
 
+async def finalize_forced_ai_pass(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    message: str,
+    prepare_player_turn_modifiers: PreparePlayerTurnFn,
+    run_engine_command: EngineCommandFn,
+) -> None:
+    await run_engine_command(f"play {color} pass")
+    game.moves.append((color, "pass"))
+    game.passed[color] = True
+    game.current_player = game.player_color
+    prepare_player_turn_modifiers(game)
+    game.push_history()
+    await send_fn({"type": "game_state", **game.to_state()})
+    await send_fn({
+        "type": "ai_move",
+        "gtp": "pass",
+        "color": color,
+        "x": None,
+        "y": None,
+    })
+    await send_fn({"type": "rogue_event", "msg": message})
+
+
 async def finalize_ai_move(
     game: Any,
     send_fn: AsyncSend,

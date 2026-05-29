@@ -6,7 +6,7 @@ import app.config.gameplay as gameplay_config
 import server as s
 from app.domain.coordinates import gtp_to_coord
 from app.domain.game_state import GoGame
-from app.gameplay.ai_move_flow import finalize_ai_move
+from app.gameplay.ai_move_flow import finalize_ai_move, finalize_forced_ai_pass
 
 
 async def _unused_no_resign(_game, _color):
@@ -353,6 +353,165 @@ def test_finalize_ai_move_erosion_updates_komi_after_capture() -> None:
     asyncio.run(_finalize_ai_move_erosion_updates_komi_after_capture())
 
 
+async def _finalize_forced_ai_pass_sends_legacy_payloads() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.passed["B"] = True
+    calls = []
+
+    async def send(payload):
+        calls.append((
+            "send",
+            payload["type"],
+            payload.get("gtp"),
+            payload.get("color"),
+            payload.get("msg"),
+        ))
+
+    def prepare_player_turn(_game):
+        calls.append(("prepare", game.current_player))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "="
+
+    await finalize_forced_ai_pass(
+        game,
+        send,
+        color="W",
+        message="forced pass",
+        prepare_player_turn_modifiers=prepare_player_turn,
+        run_engine_command=run_engine_command,
+    )
+
+    assert game.moves[-1] == ("W", "pass")
+    assert game.passed["W"] is True
+    assert game.game_over is False
+    assert game.current_player == "B"
+    assert calls == [
+        ("engine", "play W pass"),
+        ("prepare", "B"),
+        ("send", "game_state", None, None, None),
+        ("send", "ai_move", "pass", "W", None),
+        ("send", "rogue_event", None, None, "forced pass"),
+    ]
+
+
+def test_finalize_forced_ai_pass_sends_legacy_payloads() -> None:
+    asyncio.run(_finalize_forced_ai_pass_sends_legacy_payloads())
+
+
+async def _server_ai_move_dice_delegates_to_forced_pass() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "dice"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_forced_pass(game_arg, send_fn, **kwargs):
+        calls.append((
+            "forced_pass",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["message"],
+            kwargs["prepare_player_turn_modifiers"] is s._prepare_player_turn_modifiers,
+            callable(kwargs["run_engine_command"]),
+        ))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_random = s.random.random
+    original_forced_pass = s.finalize_forced_ai_pass
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.random.random = lambda: 0.0
+    s.finalize_forced_ai_pass = fake_forced_pass
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.random.random = original_random
+        s.finalize_forced_ai_pass = original_forced_pass
+
+    assert calls == [
+        ("sync", True),
+        (
+            "forced_pass",
+            True,
+            True,
+            "W",
+            "掷骰触发，AI 这手选择虚手",
+            True,
+            True,
+        ),
+    ]
+
+
+def test_server_ai_move_dice_delegates_to_forced_pass() -> None:
+    asyncio.run(_server_ai_move_dice_delegates_to_forced_pass())
+
+
+async def _server_ai_move_exchange_clears_skip_and_delegates_to_forced_pass() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "exchange"
+    game.rogue_skip_ai = True
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_forced_pass(game_arg, send_fn, **kwargs):
+        calls.append((
+            "forced_pass",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["message"],
+            game.rogue_skip_ai,
+            kwargs["prepare_player_turn_modifiers"] is s._prepare_player_turn_modifiers,
+            callable(kwargs["run_engine_command"]),
+        ))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_forced_pass = s.finalize_forced_ai_pass
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.finalize_forced_ai_pass = fake_forced_pass
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.finalize_forced_ai_pass = original_forced_pass
+
+    assert calls == [
+        ("sync", True),
+        (
+            "forced_pass",
+            True,
+            True,
+            "W",
+            "乾坤挪移生效，AI 本回合虚手并把回合交还给你",
+            False,
+            True,
+            True,
+        ),
+    ]
+
+
+def test_server_ai_move_exchange_clears_skip_and_delegates_to_forced_pass() -> None:
+    asyncio.run(_server_ai_move_exchange_clears_skip_and_delegates_to_forced_pass())
+
+
 async def _server_finish_ai_move_delegates_to_finalize_flow() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -414,5 +573,8 @@ if __name__ == "__main__":
     test_finalize_ai_move_retries_ko_move()
     test_finalize_ai_move_double_pass_scores_without_coach_turn()
     test_finalize_ai_move_erosion_updates_komi_after_capture()
+    test_finalize_forced_ai_pass_sends_legacy_payloads()
+    test_server_ai_move_dice_delegates_to_forced_pass()
+    test_server_ai_move_exchange_clears_skip_and_delegates_to_forced_pass()
     test_server_finish_ai_move_delegates_to_finalize_flow()
     print("ai_move_flow_smoke_test passed")
