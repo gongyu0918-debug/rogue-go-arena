@@ -131,10 +131,11 @@ from app.gameplay.ai_move_flow import (
     try_apply_puppet_ai_move,
     try_apply_sansan_trap_counter,
     try_finish_forced_rogue_ai_move,
+    try_finish_allowed_restriction_move,
+    try_finish_rogue_restriction_ai_move,
+    try_finish_sansan_restriction_move,
     try_finalize_double_pass,
     try_finalize_forced_ai_stone,
-    try_finish_allowed_restriction_move,
-    try_finish_sansan_restriction_move,
     try_finish_shadow_restriction_move,
     try_finish_suboptimal_rogue_move,
 )
@@ -1581,83 +1582,31 @@ async def _ai_move(game: GoGame, send_fn):
         pick_fog_point=_pick_fog_point,
     )
 
-    if "tengen" in rogue_cards:
-        target_plan = choose_tengen_target(game, ai_move_count)
-        if target_plan:
-            tx, ty = target_plan.coord
-            if game.board[ty][tx] == 0 and not game.is_ko(tx, ty, color):
-                t_gtp = coord_to_gtp(tx, ty, game.size)
-                if await try_finalize_forced_ai_stone(
-                    game,
-                    send_fn,
-                    color=color,
-                    gtp_move=t_gtp,
-                    coord=(tx, ty),
-                    message=target_plan.message,
-                    prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
-                    run_engine_command=_run_engine_command,
-                    push_history=False,
-                ):
-                    return
-        restriction = tengen_followup_points(game, ai_move_count)
-        if await try_finish_allowed_restriction_move(
-            game,
-            send_fn,
-            color=color,
-            card=card,
-            restriction=restriction,
-            visits=visits,
-            time_limit=time_limit,
-            choose_allowed_move=_ai_move_avoid_points_allow_only,
-            finish_ai_move=_finish_ai_move,
-        ):
-            return
-
-    if "gravity" in rogue_cards:
-        restriction = gravity_allowed_points(game, ai_move_count)
-        if await try_finish_allowed_restriction_move(
-            game,
-            send_fn,
-            color=color,
-            card=card,
-            restriction=restriction,
-            visits=visits,
-            time_limit=time_limit,
-            choose_allowed_move=_ai_move_avoid_points_allow_only,
-            finish_ai_move=_finish_ai_move,
-        ):
-            return
-
-    if "lowline" in rogue_cards:
-        restriction = lowline_allowed_points(game, ai_move_count)
-        if await try_finish_allowed_restriction_move(
-            game,
-            send_fn,
-            color=color,
-            card=card,
-            restriction=restriction,
-            visits=visits,
-            time_limit=time_limit,
-            choose_allowed_move=_ai_move_avoid_points_allow_only,
-            finish_ai_move=_finish_ai_move,
-        ):
-            return
-
-    if "sansan" in rogue_cards:
-        restriction = sansan_opening_restriction(game, ai_move_count)
-        if await try_finish_sansan_restriction_move(
-            game,
-            send_fn,
-            color=color,
-            card=card,
-            restriction=restriction,
-            visits=visits,
-            time_limit=time_limit,
-            choose_allowed_move=_ai_move_avoid_points_allow_only,
-            choose_avoid_move=_ai_move_avoid_points,
-            finish_ai_move=_finish_ai_move,
-        ):
-            return
+    if await try_finish_rogue_restriction_ai_move(
+        game,
+        send_fn,
+        color=color,
+        card=card,
+        rogue_cards=rogue_cards,
+        ai_move_count=ai_move_count,
+        visits=visits,
+        time_limit=time_limit,
+        choose_tengen_target=choose_tengen_target,
+        tengen_followup_points=tengen_followup_points,
+        gravity_allowed_points=gravity_allowed_points,
+        lowline_allowed_points=lowline_allowed_points,
+        sansan_opening_restriction=sansan_opening_restriction,
+        coord_to_gtp=coord_to_gtp,
+        finalize_forced_stone=try_finalize_forced_ai_stone,
+        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+        run_engine_command=_run_engine_command,
+        choose_allowed_move=_ai_move_avoid_points_allow_only,
+        choose_avoid_move=_ai_move_avoid_points,
+        finish_ai_move=_finish_ai_move,
+        finish_allowed_restriction_move=try_finish_allowed_restriction_move,
+        finish_sansan_restriction_move=try_finish_sansan_restriction_move,
+    ):
+        return
 
     if await try_finish_shadow_restriction_move(
         game,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from types import SimpleNamespace
 
 import app.config.gameplay as gameplay_config
 import app.gameplay.ai_move_flow as ai_move_flow
@@ -29,6 +30,7 @@ from app.gameplay.ai_move_flow import (
     try_apply_puppet_ai_move,
     try_apply_sansan_trap_counter,
     try_finish_forced_rogue_ai_move,
+    try_finish_rogue_restriction_ai_move,
     try_choose_ai_style_move,
     try_finalize_double_pass,
     try_finalize_forced_ai_stone,
@@ -3045,6 +3047,436 @@ async def _server_ai_move_tengen_helper_false_falls_back_to_followup() -> None:
 
 def test_server_ai_move_tengen_helper_false_falls_back_to_followup() -> None:
     asyncio.run(_server_ai_move_tengen_helper_false_falls_back_to_followup())
+
+
+async def _try_finish_rogue_restriction_ai_move_tengen_target_preempts_followup() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def choose_tengen(game_arg, ai_count):
+        calls.append(("tengen_target", game_arg is game, ai_count))
+        return SimpleNamespace(coord=(2, 2), message="天元强制")
+
+    def tengen_followup(*_args):
+        raise AssertionError("tengen target success should skip followup")
+
+    def gravity(*_args):
+        raise AssertionError("tengen target success should skip gravity")
+
+    async def forced_stone(game_arg, send_fn, **kwargs):
+        calls.append((
+            "forced_stone",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["gtp_move"],
+            kwargs["coord"],
+            kwargs["message"],
+            kwargs["push_history"],
+        ))
+        return True
+
+    async def choose_allowed(*_args):
+        raise AssertionError("tengen target success should skip allowed move")
+
+    async def choose_avoid(*_args):
+        raise AssertionError("tengen target success should skip avoid move")
+
+    async def finish(*_args):
+        raise AssertionError("tengen target success should skip finish_ai_move")
+
+    handled = await try_finish_rogue_restriction_ai_move(
+        game,
+        send,
+        color="W",
+        card="tengen",
+        rogue_cards={"tengen", "gravity"},
+        ai_move_count=0,
+        visits=33,
+        time_limit=1.0,
+        choose_tengen_target=choose_tengen,
+        tengen_followup_points=tengen_followup,
+        gravity_allowed_points=gravity,
+        lowline_allowed_points=lambda *_args: None,
+        sansan_opening_restriction=lambda *_args: None,
+        coord_to_gtp=lambda _x, _y, _size: "C3",
+        finalize_forced_stone=forced_stone,
+        prepare_player_turn_modifiers=lambda _game: None,
+        run_engine_command=lambda _command: None,
+        choose_allowed_move=choose_allowed,
+        choose_avoid_move=choose_avoid,
+        finish_ai_move=finish,
+        finish_allowed_restriction_move=ai_move_flow.try_finish_allowed_restriction_move,
+        finish_sansan_restriction_move=ai_move_flow.try_finish_sansan_restriction_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("tengen_target", True, 0),
+        ("forced_stone", True, True, "W", "C3", (2, 2), "天元强制", False),
+    ]
+
+
+def test_try_finish_rogue_restriction_ai_move_tengen_target_preempts_followup() -> None:
+    asyncio.run(_try_finish_rogue_restriction_ai_move_tengen_target_preempts_followup())
+
+
+async def _try_finish_rogue_restriction_ai_move_tengen_false_falls_back() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def forced_stone(game_arg, send_fn, **kwargs):
+        calls.append(("forced_stone", game_arg is game, send_fn is send, kwargs["gtp_move"]))
+        return False
+
+    async def choose_allowed(game_arg, color, visits, time_limit, points):
+        calls.append(("allowed", game_arg is game, color, visits, time_limit, points))
+        return "D4"
+
+    async def finish(*args):
+        calls.append(("finish", args[0] is game, args[1] is send, args[2:]))
+
+    handled = await try_finish_rogue_restriction_ai_move(
+        game,
+        send,
+        color="W",
+        card="tengen",
+        rogue_cards={"tengen"},
+        ai_move_count=1,
+        visits=44,
+        time_limit=2.0,
+        choose_tengen_target=lambda _game, _count: SimpleNamespace(coord=(2, 2), message="天元强制"),
+        tengen_followup_points=lambda _game, _count: SimpleNamespace(points=[(1, 1)], message="天元后续"),
+        gravity_allowed_points=lambda *_args: None,
+        lowline_allowed_points=lambda *_args: None,
+        sansan_opening_restriction=lambda *_args: None,
+        coord_to_gtp=lambda _x, _y, _size: "C3",
+        finalize_forced_stone=forced_stone,
+        prepare_player_turn_modifiers=lambda _game: None,
+        run_engine_command=lambda _command: None,
+        choose_allowed_move=choose_allowed,
+        choose_avoid_move=lambda *_args: None,
+        finish_ai_move=finish,
+        finish_allowed_restriction_move=ai_move_flow.try_finish_allowed_restriction_move,
+        finish_sansan_restriction_move=ai_move_flow.try_finish_sansan_restriction_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("forced_stone", True, True, "C3"),
+        ("allowed", True, "W", 44, 2.0, [(1, 1)]),
+        ("finish", True, True, ("W", "tengen", "D4", "天元后续")),
+    ]
+
+
+def test_try_finish_rogue_restriction_ai_move_tengen_false_falls_back() -> None:
+    asyncio.run(_try_finish_rogue_restriction_ai_move_tengen_false_falls_back())
+
+
+async def _try_finish_rogue_restriction_ai_move_tengen_unplayable_target_falls_back() -> None:
+    async def run_case(label, setup_game):
+        game = GoGame(size=5, player_color="B")
+        setup_game(game)
+        calls = []
+
+        async def send(payload):
+            calls.append(("send", payload))
+
+        async def forced_stone(*_args, **_kwargs):
+            raise AssertionError(f"{label} tengen target should skip forced finalize")
+
+        async def choose_allowed(game_arg, color, visits, time_limit, points):
+            calls.append((label, "allowed", game_arg is game, color, visits, time_limit, points))
+            return "D4"
+
+        async def finish(*args):
+            calls.append((label, "finish", args[0] is game, args[1] is send, args[2:]))
+
+        handled = await try_finish_rogue_restriction_ai_move(
+            game,
+            send,
+            color="W",
+            card="tengen",
+            rogue_cards={"tengen"},
+            ai_move_count=1,
+            visits=44,
+            time_limit=2.0,
+            choose_tengen_target=lambda _game, _count: SimpleNamespace(coord=(2, 2), message="天元强制"),
+            tengen_followup_points=lambda _game, _count: SimpleNamespace(points=[(1, 1)], message="天元后续"),
+            gravity_allowed_points=lambda *_args: None,
+            lowline_allowed_points=lambda *_args: None,
+            sansan_opening_restriction=lambda *_args: None,
+            coord_to_gtp=lambda _x, _y, _size: "C3",
+            finalize_forced_stone=forced_stone,
+            prepare_player_turn_modifiers=lambda _game: None,
+            run_engine_command=lambda _command: None,
+            choose_allowed_move=choose_allowed,
+            choose_avoid_move=lambda *_args: None,
+            finish_ai_move=finish,
+            finish_allowed_restriction_move=ai_move_flow.try_finish_allowed_restriction_move,
+            finish_sansan_restriction_move=ai_move_flow.try_finish_sansan_restriction_move,
+        )
+
+        assert handled is True
+        assert calls == [
+            (label, "allowed", True, "W", 44, 2.0, [(1, 1)]),
+            (label, "finish", True, True, ("W", "tengen", "D4", "天元后续")),
+        ]
+
+    await run_case("occupied", lambda game: game.board[2].__setitem__(2, 1))
+    await run_case("ko", lambda game: setattr(game, "ko_point", (2, 2, 2)))
+
+
+def test_try_finish_rogue_restriction_ai_move_tengen_unplayable_target_falls_back() -> None:
+    asyncio.run(_try_finish_rogue_restriction_ai_move_tengen_unplayable_target_falls_back())
+
+
+async def _try_finish_rogue_restriction_ai_move_gravity_preempts_later() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def choose_allowed(game_arg, color, visits, time_limit, points):
+        calls.append(("allowed", game_arg is game, color, visits, time_limit, points))
+        return "C4"
+
+    async def finish(*args):
+        calls.append(("finish", args[0] is game, args[1] is send, args[2:]))
+
+    handled = await try_finish_rogue_restriction_ai_move(
+        game,
+        send,
+        color="W",
+        card="gravity",
+        rogue_cards={"gravity", "lowline", "sansan"},
+        ai_move_count=2,
+        visits=55,
+        time_limit=3.0,
+        choose_tengen_target=lambda *_args: None,
+        tengen_followup_points=lambda *_args: None,
+        gravity_allowed_points=lambda _game, _count: SimpleNamespace(points=[(2, 1)], message="重力限制"),
+        lowline_allowed_points=lambda *_args: (_ for _ in ()).throw(AssertionError("gravity should skip lowline")),
+        sansan_opening_restriction=lambda *_args: (_ for _ in ()).throw(AssertionError("gravity should skip sansan")),
+        coord_to_gtp=lambda _x, _y, _size: "C4",
+        finalize_forced_stone=lambda *_args, **_kwargs: None,
+        prepare_player_turn_modifiers=lambda _game: None,
+        run_engine_command=lambda _command: None,
+        choose_allowed_move=choose_allowed,
+        choose_avoid_move=lambda *_args: None,
+        finish_ai_move=finish,
+        finish_allowed_restriction_move=ai_move_flow.try_finish_allowed_restriction_move,
+        finish_sansan_restriction_move=ai_move_flow.try_finish_sansan_restriction_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("allowed", True, "W", 55, 3.0, [(2, 1)]),
+        ("finish", True, True, ("W", "gravity", "C4", "重力限制")),
+    ]
+
+
+def test_try_finish_rogue_restriction_ai_move_gravity_preempts_later() -> None:
+    asyncio.run(_try_finish_rogue_restriction_ai_move_gravity_preempts_later())
+
+
+async def _try_finish_rogue_restriction_ai_move_lowline_after_gravity_miss() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def choose_allowed(game_arg, color, visits, time_limit, points):
+        calls.append(("allowed", game_arg is game, color, visits, time_limit, points))
+        if points == [(4, 4)]:
+            return None
+        return "C2"
+
+    async def finish(*args):
+        calls.append(("finish", args[0] is game, args[1] is send, args[2:]))
+
+    handled = await try_finish_rogue_restriction_ai_move(
+        game,
+        send,
+        color="W",
+        card="lowline",
+        rogue_cards={"gravity", "lowline", "sansan"},
+        ai_move_count=3,
+        visits=77,
+        time_limit=5.0,
+        choose_tengen_target=lambda *_args: None,
+        tengen_followup_points=lambda *_args: None,
+        gravity_allowed_points=lambda _game, _count: SimpleNamespace(points=[(4, 4)], message="重力限制"),
+        lowline_allowed_points=lambda _game, _count: SimpleNamespace(points=[(1, 1)], message="低线限制"),
+        sansan_opening_restriction=lambda *_args: (_ for _ in ()).throw(AssertionError("lowline should skip sansan")),
+        coord_to_gtp=lambda _x, _y, _size: "C2",
+        finalize_forced_stone=lambda *_args, **_kwargs: None,
+        prepare_player_turn_modifiers=lambda _game: None,
+        run_engine_command=lambda _command: None,
+        choose_allowed_move=choose_allowed,
+        choose_avoid_move=lambda *_args: None,
+        finish_ai_move=finish,
+        finish_allowed_restriction_move=ai_move_flow.try_finish_allowed_restriction_move,
+        finish_sansan_restriction_move=ai_move_flow.try_finish_sansan_restriction_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("allowed", True, "W", 77, 5.0, [(4, 4)]),
+        ("allowed", True, "W", 77, 5.0, [(1, 1)]),
+        ("finish", True, True, ("W", "lowline", "C2", "低线限制")),
+    ]
+
+
+def test_try_finish_rogue_restriction_ai_move_lowline_after_gravity_miss() -> None:
+    asyncio.run(_try_finish_rogue_restriction_ai_move_lowline_after_gravity_miss())
+
+
+async def _try_finish_rogue_restriction_ai_move_sansan_uses_avoid() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def choose_allowed(*_args):
+        raise AssertionError("avoid-style sansan should not use allowed move")
+
+    async def choose_avoid(game_arg, color, visits, time_limit, points):
+        calls.append(("avoid", game_arg is game, color, visits, time_limit, points))
+        return "D4"
+
+    async def finish(*args):
+        calls.append(("finish", args[0] is game, args[1] is send, args[2:]))
+
+    handled = await try_finish_rogue_restriction_ai_move(
+        game,
+        send,
+        color="W",
+        card="sansan",
+        rogue_cards={"sansan"},
+        ai_move_count=0,
+        visits=66,
+        time_limit=4.0,
+        choose_tengen_target=lambda *_args: None,
+        tengen_followup_points=lambda *_args: None,
+        gravity_allowed_points=lambda *_args: None,
+        lowline_allowed_points=lambda *_args: None,
+        sansan_opening_restriction=lambda _game, _count: SimpleNamespace(kind="avoid", points=[(0, 0)], message="三三限制"),
+        coord_to_gtp=lambda _x, _y, _size: "D4",
+        finalize_forced_stone=lambda *_args, **_kwargs: None,
+        prepare_player_turn_modifiers=lambda _game: None,
+        run_engine_command=lambda _command: None,
+        choose_allowed_move=choose_allowed,
+        choose_avoid_move=choose_avoid,
+        finish_ai_move=finish,
+        finish_allowed_restriction_move=ai_move_flow.try_finish_allowed_restriction_move,
+        finish_sansan_restriction_move=ai_move_flow.try_finish_sansan_restriction_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("avoid", True, "W", 66, 4.0, [(0, 0)]),
+        ("finish", True, True, ("W", "sansan", "D4", "三三限制")),
+    ]
+
+
+def test_try_finish_rogue_restriction_ai_move_sansan_uses_avoid() -> None:
+    asyncio.run(_try_finish_rogue_restriction_ai_move_sansan_uses_avoid())
+
+
+async def _server_ai_move_delegates_to_rogue_restriction_flow() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "gravity"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_restriction_flow(game_arg, send_fn, **kwargs):
+        calls.append((
+            "restriction_flow",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["card"],
+            kwargs["rogue_cards"],
+            kwargs["ai_move_count"],
+            isinstance(kwargs["visits"], int),
+            isinstance(kwargs["time_limit"], float),
+            kwargs["choose_tengen_target"] is s.choose_tengen_target,
+            kwargs["tengen_followup_points"] is s.tengen_followup_points,
+            kwargs["gravity_allowed_points"] is s.gravity_allowed_points,
+            kwargs["lowline_allowed_points"] is s.lowline_allowed_points,
+            kwargs["sansan_opening_restriction"] is s.sansan_opening_restriction,
+            kwargs["coord_to_gtp"] is s.coord_to_gtp,
+            kwargs["finalize_forced_stone"] is s.try_finalize_forced_ai_stone,
+            kwargs["prepare_player_turn_modifiers"] is s._prepare_player_turn_modifiers,
+            callable(kwargs["run_engine_command"]),
+            kwargs["choose_allowed_move"] is s._ai_move_avoid_points_allow_only,
+            kwargs["choose_avoid_move"] is s._ai_move_avoid_points,
+            kwargs["finish_ai_move"] is s._finish_ai_move,
+            kwargs["finish_allowed_restriction_move"] is s.try_finish_allowed_restriction_move,
+            kwargs["finish_sansan_restriction_move"] is s.try_finish_sansan_restriction_move,
+        ))
+        return True
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_restriction_flow = s.try_finish_rogue_restriction_ai_move
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.try_finish_rogue_restriction_ai_move = fake_restriction_flow
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.try_finish_rogue_restriction_ai_move = original_restriction_flow
+
+    assert calls == [
+        ("sync", True),
+        (
+            "restriction_flow",
+            True,
+            True,
+            "W",
+            "gravity",
+            {"gravity"},
+            0,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+        ),
+    ]
+
+
+def test_server_ai_move_delegates_to_rogue_restriction_flow() -> None:
+    asyncio.run(_server_ai_move_delegates_to_rogue_restriction_flow())
 
 
 async def _try_apply_puppet_ai_move_success_finishes_and_updates_uses() -> None:
@@ -6580,6 +7012,13 @@ if __name__ == "__main__":
     test_server_ai_move_mirror_helper_false_falls_back_to_normal_move()
     test_server_ai_move_tengen_delegates_to_forced_stone_without_history()
     test_server_ai_move_tengen_helper_false_falls_back_to_followup()
+    test_try_finish_rogue_restriction_ai_move_tengen_target_preempts_followup()
+    test_try_finish_rogue_restriction_ai_move_tengen_false_falls_back()
+    test_try_finish_rogue_restriction_ai_move_tengen_unplayable_target_falls_back()
+    test_try_finish_rogue_restriction_ai_move_gravity_preempts_later()
+    test_try_finish_rogue_restriction_ai_move_lowline_after_gravity_miss()
+    test_try_finish_rogue_restriction_ai_move_sansan_uses_avoid()
+    test_server_ai_move_delegates_to_rogue_restriction_flow()
     test_try_apply_puppet_ai_move_success_finishes_and_updates_uses()
     test_try_apply_puppet_ai_move_occupied_target_falls_back()
     test_try_apply_puppet_ai_move_illegal_target_falls_back()

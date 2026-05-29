@@ -45,6 +45,9 @@ MirrorCoordFn = Callable[[int, int, int], tuple[int, int]]
 FinalizeForcedPassFn = Callable[..., Awaitable[None]]
 FinalizeForcedStoneFn = Callable[..., Awaitable[bool]]
 PuppetMoveFn = Callable[..., Awaitable[bool]]
+AiCountPlanFn = Callable[[Any, int], Any | None]
+AllowedRestrictionFinishFn = Callable[..., Awaitable[bool]]
+SansanRestrictionFinishFn = Callable[..., Awaitable[bool]]
 AllowedRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
@@ -316,6 +319,112 @@ async def try_finish_allowed_restriction_move(
         restriction.message,
     )
     return True
+
+
+async def try_finish_rogue_restriction_ai_move(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    card: str | None,
+    rogue_cards: Collection[str],
+    ai_move_count: int,
+    visits: int,
+    time_limit: float,
+    choose_tengen_target: AiCountPlanFn,
+    tengen_followup_points: AiCountPlanFn,
+    gravity_allowed_points: AiCountPlanFn,
+    lowline_allowed_points: AiCountPlanFn,
+    sansan_opening_restriction: AiCountPlanFn,
+    coord_to_gtp: CoordFormatter,
+    finalize_forced_stone: FinalizeForcedStoneFn,
+    prepare_player_turn_modifiers: PreparePlayerTurnFn,
+    run_engine_command: EngineCommandFn,
+    choose_allowed_move: AllowedRestrictionMoveFn,
+    choose_avoid_move: AvoidRestrictionMoveFn,
+    finish_ai_move: FinishAiMoveFn,
+    finish_allowed_restriction_move: AllowedRestrictionFinishFn,
+    finish_sansan_restriction_move: SansanRestrictionFinishFn,
+) -> bool:
+    if "tengen" in rogue_cards:
+        target_plan = choose_tengen_target(game, ai_move_count)
+        if target_plan:
+            tx, ty = target_plan.coord
+            if game.board[ty][tx] == 0 and not game.is_ko(tx, ty, color):
+                tengen_gtp = coord_to_gtp(tx, ty, game.size)
+                if await finalize_forced_stone(
+                    game,
+                    send_fn,
+                    color=color,
+                    gtp_move=tengen_gtp,
+                    coord=(tx, ty),
+                    message=target_plan.message,
+                    prepare_player_turn_modifiers=prepare_player_turn_modifiers,
+                    run_engine_command=run_engine_command,
+                    push_history=False,
+                ):
+                    return True
+        restriction = tengen_followup_points(game, ai_move_count)
+        if await finish_allowed_restriction_move(
+            game,
+            send_fn,
+            color=color,
+            card=card,
+            restriction=restriction,
+            visits=visits,
+            time_limit=time_limit,
+            choose_allowed_move=choose_allowed_move,
+            finish_ai_move=finish_ai_move,
+        ):
+            return True
+
+    if "gravity" in rogue_cards:
+        restriction = gravity_allowed_points(game, ai_move_count)
+        if await finish_allowed_restriction_move(
+            game,
+            send_fn,
+            color=color,
+            card=card,
+            restriction=restriction,
+            visits=visits,
+            time_limit=time_limit,
+            choose_allowed_move=choose_allowed_move,
+            finish_ai_move=finish_ai_move,
+        ):
+            return True
+
+    if "lowline" in rogue_cards:
+        restriction = lowline_allowed_points(game, ai_move_count)
+        if await finish_allowed_restriction_move(
+            game,
+            send_fn,
+            color=color,
+            card=card,
+            restriction=restriction,
+            visits=visits,
+            time_limit=time_limit,
+            choose_allowed_move=choose_allowed_move,
+            finish_ai_move=finish_ai_move,
+        ):
+            return True
+
+    if "sansan" in rogue_cards:
+        restriction = sansan_opening_restriction(game, ai_move_count)
+        if await finish_sansan_restriction_move(
+            game,
+            send_fn,
+            color=color,
+            card=card,
+            restriction=restriction,
+            visits=visits,
+            time_limit=time_limit,
+            choose_allowed_move=choose_allowed_move,
+            choose_avoid_move=choose_avoid_move,
+            finish_ai_move=finish_ai_move,
+        ):
+            return True
+
+    return False
 
 
 async def try_finish_sansan_restriction_move(
