@@ -34,6 +34,9 @@ AvoidRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
 ]
+SuspiciousPassFn = Callable[[Any, str, str], bool]
+FallbackMoveFn = Callable[[Any, str, int], Awaitable[str | None]]
+LogFn = Callable[[str], None]
 
 
 @dataclass(frozen=True)
@@ -322,6 +325,27 @@ async def refresh_fog_restriction_points(
     if game.rogue_seal_points:
         await send_fn({"type": "rogue_event", "msg": fog_msg})
     return True
+
+
+async def apply_suspicious_pass_fallback(
+    game: Any,
+    *,
+    color: str,
+    gtp_move: str,
+    visits: int,
+    is_suspicious_pass: SuspiciousPassFn,
+    pick_fallback_move: FallbackMoveFn,
+    log_event: LogFn,
+    log_prefix: str,
+) -> str:
+    if not is_suspicious_pass(game, gtp_move, color):
+        return gtp_move
+
+    fallback_move = await pick_fallback_move(game, color, visits)
+    if fallback_move:
+        log_event(f"{log_prefix}, replaced with {fallback_move}")
+        return fallback_move
+    return gtp_move
 
 
 def apply_slip_ai_move(

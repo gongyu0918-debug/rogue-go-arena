@@ -114,6 +114,7 @@ from app.gameplay.ai_moves import (
 )
 from app.gameplay.ai_move_flow import (
     apply_slip_ai_move,
+    apply_suspicious_pass_fallback,
     finalize_ai_move,
     finalize_forced_ai_pass,
     refresh_fog_restriction_points,
@@ -601,42 +602,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
         await send({"type": "error", "message": msg})
 
     async def do_analysis(g: GoGame) -> dict:
-        if not engine.ready:
-            result = {"winrate": 0.5, "score": 0.0, "top_moves": [],
-                      "ownership": [], "analysis_ready": False}
-            g.last_analysis = copy.deepcopy(result)
-            return result
-        await _sync_board_to_katago(g)
-        color = g.current_player
-        analysis_visits = max(80, min(get_game_visits(g.level, len(g.moves)) // 2, 1000))
-
-        def _analyze():
-            try:
-                lines, ownership = engine.analyze(
-                    color,
-                    visits=analysis_visits,
-                    interval=50,
-                    duration=1.0,
-                    extra_args=["rootInfo", "true", "ownership", "true"],
-                )
-                result = engine.parse_analysis(
-                    lines,
-                    ownership,
-                    g.size,
-                    to_move_color=color,
-                )
-                print(f"[Analysis] top_moves={len(result.get('top_moves',[]))} winrate={result.get('winrate')}")
-                return result
-            except Exception as ex:
-                import traceback
-                print(f"[Analysis] error: {ex}")
-                traceback.print_exc()
-                return {"winrate": 0.5, "score": 0.0, "top_moves": [],
-                        "ownership": [], "analysis_ready": False}
-
-        result = await run_in_executor(_analyze)
-        g.last_analysis = copy.deepcopy(result)
-        return result
+        return await _analyze_current_position(g)
 
     async def do_analysis_bg(g: GoGame):
         """Run analysis in background so the AI move is shown immediately."""
@@ -1269,6 +1235,54 @@ async def _sync_board_to_katago(game: GoGame):
     await run_in_executor(_do)
 
 
+def _empty_analysis_result() -> dict:
+    return {
+        "winrate": 0.5,
+        "score": 0.0,
+        "top_moves": [],
+        "ownership": [],
+        "analysis_ready": False,
+    }
+
+
+async def _analyze_current_position(game: GoGame, color: Optional[str] = None) -> dict:
+    if not engine.ready:
+        result = _empty_analysis_result()
+        game.last_analysis = copy.deepcopy(result)
+        return result
+
+    await _sync_board_to_katago(game)
+    analyze_color = color or game.current_player
+    analysis_visits = max(80, min(get_game_visits(game.level, len(game.moves)) // 2, 1000))
+
+    def _analyze():
+        try:
+            lines, ownership = engine.analyze(
+                analyze_color,
+                visits=analysis_visits,
+                interval=50,
+                duration=1.0,
+                extra_args=["rootInfo", "true", "ownership", "true"],
+            )
+            result = engine.parse_analysis(
+                lines,
+                ownership,
+                game.size,
+                to_move_color=analyze_color,
+            )
+            print(f"[Analysis] top_moves={len(result.get('top_moves', []))} winrate={result.get('winrate')}")
+            return result
+        except Exception as ex:
+            import traceback
+            print(f"[Analysis] error: {ex}")
+            traceback.print_exc()
+            return _empty_analysis_result()
+
+    result = await run_in_executor(_analyze)
+    game.last_analysis = copy.deepcopy(result)
+    return result
+
+
 def _ultimate_get_territory_forbidden(game: GoGame, for_color_val: int) -> set:
     """Get forbidden points for a color due to opponent's 绝对领地 card.
     for_color_val: the color (1=B,2=W) that wants to PLACE a stone."""
@@ -1719,7 +1733,7 @@ async def _ai_move(game: GoGame, send_fn):
         gtp_move = None
         if not rogue_cards and game.ai_style != "balanced":
             try:
-                analysis = await do_analysis(game)
+                analysis = await _analyze_current_position(game, color)
                 gtp_move = choose_ai_style_move(
                     game,
                     color,
@@ -1738,11 +1752,16 @@ async def _ai_move(game: GoGame, send_fn):
                 return
             gtp_move = resp.replace("=", "").strip()
 
-    if _is_suspicious_ai_pass(game, gtp_move, color):
-        fallback_move = await _pick_nonpass_fallback_move(game, color, visits)
-        if fallback_move:
-            _engine_log(f"Suspicious early PASS in rogue/normal mode, replaced with {fallback_move}")
-            gtp_move = fallback_move
+    gtp_move = await apply_suspicious_pass_fallback(
+        game,
+        color=color,
+        gtp_move=gtp_move,
+        visits=visits,
+        is_suspicious_pass=_is_suspicious_ai_pass,
+        pick_fallback_move=_pick_nonpass_fallback_move,
+        log_event=_engine_log,
+        log_prefix="Suspicious early PASS in rogue/normal mode",
+    )
 
     resign_result = await resolve_ai_resign_move(
         game,
@@ -1936,7 +1955,7 @@ async def _generate_ai_style_move(game: GoGame, color: str, visits: int, time_li
     chosen = None
     if style != "balanced":
         try:
-            analysis = await do_analysis(game)
+            analysis = await _analyze_current_position(game, color)
             chosen = choose_ai_style_move(
                 game,
                 color,
