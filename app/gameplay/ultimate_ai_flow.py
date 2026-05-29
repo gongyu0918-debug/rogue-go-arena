@@ -11,6 +11,11 @@ ApplyUltimateEffectFn = Callable[[Any, AsyncSend, int, int, str, str], Awaitable
 ResolvePendingShadowLinksFn = Callable[[Any, AsyncSend], Awaitable[bool]]
 SyncBoardFn = Callable[[Any], Awaitable[None]]
 CheckCaptureFoulFn = Callable[..., Awaitable[None]]
+ApplyUltimateAiMoveResultFn = Callable[..., int]
+ChooseUltimateAiBonusTurnFn = Callable[..., Any]
+RunUltimateAiBonusTurnFn = Callable[[Any, AsyncSend, str, Any], Awaitable[bool]]
+FinishUltimateAiNormalTurnFn = Callable[..., None]
+ForceScoreFn = Callable[[Any, AsyncSend], Awaitable[None]]
 
 
 @dataclass(frozen=True)
@@ -111,3 +116,84 @@ async def apply_ultimate_ai_post_move_effects(
     if effect_removed > 0:
         await check_capture_foul(game, send_fn, color, effect_removed, ultimate=True)
     return True
+
+
+async def finish_ultimate_ai_turn(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    ai_card: str | None,
+    gtp_move: str,
+    coord: tuple[int, int] | None,
+    allow_double_bonus: bool,
+    chain_chance: float,
+    chain_random: Callable[[], float],
+    apply_ai_move_result: ApplyUltimateAiMoveResultFn,
+    record_ultimate_turn: Callable[[Any], None],
+    check_capture_foul: CheckCaptureFoulFn,
+    post_move_effects: Callable[..., Awaitable[bool]],
+    count_stones: CountStonesFn,
+    apply_ultimate_effect: ApplyUltimateEffectFn,
+    resolve_pending_ultimate_shadow_links: ResolvePendingShadowLinksFn,
+    sync_board_to_katago: SyncBoardFn,
+    choose_bonus_turn: ChooseUltimateAiBonusTurnFn,
+    run_bonus_turn: RunUltimateAiBonusTurnFn,
+    finish_normal_turn: FinishUltimateAiNormalTurnFn,
+    prepare_player_turn_modifiers: Callable[[Any], None],
+    force_score: ForceScoreFn,
+) -> bool:
+    captured = apply_ai_move_result(
+        game,
+        color,
+        gtp_move,
+        coord,
+        count_turn=allow_double_bonus,
+        record_ultimate_turn_fn=record_ultimate_turn,
+    )
+    await check_capture_foul(game, send_fn, color, captured, ultimate=True)
+
+    await send_fn({
+        "type": "ai_move",
+        "gtp": gtp_move,
+        "color": color,
+        "x": coord[0] if coord else None,
+        "y": coord[1] if coord else None,
+    })
+
+    await post_move_effects(
+        game,
+        send_fn,
+        color=color,
+        ai_card=ai_card,
+        gtp_move=gtp_move,
+        coord=coord,
+        count_stones=count_stones,
+        apply_ultimate_effect=apply_ultimate_effect,
+        resolve_pending_ultimate_shadow_links=resolve_pending_ultimate_shadow_links,
+        sync_board_to_katago=sync_board_to_katago,
+        check_capture_foul=check_capture_foul,
+    )
+
+    bonus_turn = choose_bonus_turn(
+        game,
+        ai_card=ai_card,
+        gtp_move=gtp_move,
+        allow_double_bonus=allow_double_bonus,
+        chain_random=chain_random,
+        chain_chance=chain_chance,
+    )
+
+    if bonus_turn is not None and await run_bonus_turn(game, send_fn, color, bonus_turn):
+        return True
+
+    finish_normal_turn(
+        game,
+        prepare_player_turn_modifiers_fn=prepare_player_turn_modifiers,
+    )
+    await send_fn({"type": "game_state", **game.to_state()})
+
+    if game.ultimate_move_count >= 20:
+        await force_score(game, send_fn)
+
+    return False

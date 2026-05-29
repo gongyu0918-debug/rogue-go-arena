@@ -216,6 +216,7 @@ from app.gameplay.ultimate_effects import (
 from app.gameplay.ultimate_ai_flow import (
     apply_ultimate_ai_post_move_effects,
     choose_ultimate_ai_move,
+    finish_ultimate_ai_turn,
 )
 from app.gameplay.ultimate_scoring import finalize_ultimate_score
 from app.runtime.engine import KataGoEngine
@@ -1249,55 +1250,30 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
     gtp_move = choice.gtp_move
     coord = choice.coord
 
-    captured = apply_ultimate_ai_move_result_state(
-        game,
-        color,
-        gtp_move,
-        coord,
-        count_turn=allow_double_bonus,
-        record_ultimate_turn_fn=_record_ultimate_turn,
-    )
-    await _check_capture_foul(game, send_fn, color, captured, ultimate=True)
-
-    await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color,
-                    "x": coord[0] if coord else None,
-                    "y": coord[1] if coord else None})
-
-    await apply_ultimate_ai_post_move_effects(
+    await finish_ultimate_ai_turn(
         game,
         send_fn,
         color=color,
         ai_card=ai_card,
         gtp_move=gtp_move,
         coord=coord,
+        allow_double_bonus=allow_double_bonus,
+        chain_chance=ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
+        chain_random=random.random,
+        apply_ai_move_result=apply_ultimate_ai_move_result_state,
+        record_ultimate_turn=_record_ultimate_turn,
+        check_capture_foul=_check_capture_foul,
+        post_move_effects=apply_ultimate_ai_post_move_effects,
         count_stones=_count_stones,
         apply_ultimate_effect=_apply_ultimate_effect,
         resolve_pending_ultimate_shadow_links=_resolve_pending_ultimate_shadow_links,
         sync_board_to_katago=_sync_board_to_katago,
-        check_capture_foul=_check_capture_foul,
+        choose_bonus_turn=choose_ultimate_ai_bonus_turn_state,
+        run_bonus_turn=_run_ultimate_ai_bonus_turn,
+        finish_normal_turn=finish_ultimate_ai_normal_turn_state,
+        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+        force_score=_ultimate_force_score,
     )
-
-    bonus_turn = choose_ultimate_ai_bonus_turn_state(
-        game,
-        ai_card=ai_card,
-        gtp_move=gtp_move,
-        allow_double_bonus=allow_double_bonus,
-        chain_random=random.random,
-        chain_chance=ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
-    )
-
-    if bonus_turn is not None:
-        if await _run_ultimate_ai_bonus_turn(game, send_fn, color, bonus_turn):
-            return
-
-    finish_ultimate_ai_normal_turn_state(
-        game,
-        prepare_player_turn_modifiers_fn=_prepare_player_turn_modifiers,
-    )
-    await send_fn({"type": "game_state", **game.to_state()})
-
-    if game.ultimate_move_count >= 20:
-        await _ultimate_force_score(game, send_fn)
 
 
 async def _ai_move(game: GoGame, send_fn):
