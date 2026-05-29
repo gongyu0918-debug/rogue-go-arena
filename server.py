@@ -1617,6 +1617,22 @@ async def _generate_ai_style_move(game: GoGame, color: str, visits: int, time_li
     )
 
 
+def _place_auxiliary_ai_move_on_board(
+    game: GoGame,
+    color: str,
+    gtp_move: str,
+    coord: tuple[int, int] | None,
+) -> AiMovePlacement:
+    captured = 0
+    game.moves.append((color, gtp_move))
+    if gtp_move.upper() != "PASS" and coord:
+        captured = game.place_stone(coord[0], coord[1], color)
+        game.passed[color] = False
+    else:
+        game.passed[color] = True
+    return AiMovePlacement(coord=coord, captured=captured)
+
+
 async def _run_coach_turn_if_needed(game: GoGame, send_fn):
     if (
         game.game_over
@@ -1639,13 +1655,9 @@ async def _run_coach_turn_if_needed(game: GoGame, send_fn):
     if coord and gtp_move.upper() != "PASS" and game.is_ko(coord[0], coord[1], color):
         gtp_move = await _ai_retry_avoiding_ko(game, color)
         coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
-    captured = 0
-    game.moves.append((color, gtp_move))
-    if gtp_move.upper() != "PASS" and coord:
-        captured = game.place_stone(coord[0], coord[1], color)
-        game.passed[color] = False
-    else:
-        game.passed[color] = True
+    placement = _place_auxiliary_ai_move_on_board(game, color, gtp_move, coord)
+    coord = placement.coord
+    captured = placement.captured
     game.current_player = game.ai_color
     game.rogue_coach_moves_left = max(0, game.rogue_coach_moves_left - 1)
     await _check_capture_foul(game, send_fn, color, captured, ultimate=False)
@@ -1680,14 +1692,7 @@ async def _finish_observer_double_pass(game: GoGame, send_fn) -> bool:
 
 def _apply_observer_ai_move_to_board(game: GoGame, color: str, gtp_move: str) -> AiMovePlacement:
     coord = gtp_to_coord(gtp_move, game.size)
-    captured = 0
-    game.moves.append((color, gtp_move))
-    if gtp_move.upper() != "PASS" and coord:
-        captured = game.place_stone(coord[0], coord[1], color)
-        game.passed[color] = False
-    else:
-        game.passed[color] = True
-    return AiMovePlacement(coord=coord, captured=captured)
+    return _place_auxiliary_ai_move_on_board(game, color, gtp_move, coord)
 
 
 async def _run_ai_observer_loop(game: GoGame, send_fn):

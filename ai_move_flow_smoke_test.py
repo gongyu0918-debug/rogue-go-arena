@@ -6001,6 +6001,22 @@ def test_server_apply_observer_ai_move_to_board_preserves_legacy_pass_flags() ->
     assert game.passed["W"] is True
 
 
+def test_server_place_auxiliary_ai_move_on_board_preserves_pass_flags() -> None:
+    game = GoGame(size=5, player_color="B")
+
+    placed = s._place_auxiliary_ai_move_on_board(game, "W", "C3", (2, 2))
+    passed = s._place_auxiliary_ai_move_on_board(game, "B", "pass", None)
+    invalid = s._place_auxiliary_ai_move_on_board(game, "W", "bad", None)
+
+    assert placed == AiMovePlacement(coord=(2, 2), captured=0)
+    assert passed == AiMovePlacement(coord=None, captured=0)
+    assert invalid == AiMovePlacement(coord=None, captured=0)
+    assert game.moves == [("W", "C3"), ("B", "pass"), ("W", "bad")]
+    assert game.board[2][2] == 2
+    assert game.passed["B"] is True
+    assert game.passed["W"] is True
+
+
 async def _server_generated_turn_helper_binds_runtime_globals() -> None:
     game = GoGame(size=5, player_color="B")
     turn = s.AiTurnSnapshot(
@@ -8676,6 +8692,7 @@ if __name__ == "__main__":
     test_server_sync_engine_komi_uses_ready_gate_and_runtime_command()
     test_server_finish_observer_double_pass_scores_once()
     test_server_apply_observer_ai_move_to_board_preserves_legacy_pass_flags()
+    test_server_place_auxiliary_ai_move_on_board_preserves_pass_flags()
     test_server_generated_turn_helper_binds_runtime_globals()
     test_server_ai_move_balanced_style_skips_style_helper()
     test_server_ai_move_rogue_cards_skip_style_helper()
