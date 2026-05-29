@@ -68,8 +68,6 @@ from app.config.gameplay import (
     ROGUE_TIME_PRESS_BACKUP_AI_MOVES,
     ROGUE_TIME_PRESS_BACKUP_CHANCE,
     ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
-    ULTIMATE_FIVE_IN_ROW_CLEAR_COUNT,
-    ULTIMATE_FIVE_IN_ROW_SPAWN_COUNT,
     ULTIMATE_FOOLISH_CHAIN_DELAY,
     ULTIMATE_FOOLISH_FILL_COUNT,
     ULTIMATE_JOSEKI_BONUS_STONES,
@@ -176,6 +174,7 @@ from app.gameplay.rogue_effects import (
 )
 from app.services.card_config_service import CardConfigService
 from app.gameplay.ultimate_effects import (
+    apply_ultimate_five_in_row,
     apply_ultimate_last_stand,
     apply_ultimate_board_effect,
     apply_ultimate_state_effect,
@@ -904,39 +903,14 @@ async def _trigger_ultimate_last_stand(game: GoGame, send_fn, color: str):
 
 
 async def _trigger_ultimate_five_in_row(game: GoGame, send_fn, color: str):
-    rng = random.Random(time.time_ns())
-    total_cleared = 0
-    total_spawned = 0
-    chain_count = 0
-    while True:
-        new_lines = [
-            line
-            for line in _find_exact_five_lines(game, color)
-            if line not in game.ultimate_five_in_row_seen
-        ]
-        if not new_lines:
-            break
-        for line in new_lines:
-            game.ultimate_five_in_row_seen.add(line)
-            cleared = _clear_random_enemy_stones(
-                game, color, ULTIMATE_FIVE_IN_ROW_CLEAR_COUNT, rng
-            )
-            spawned = _spawn_random_owned_stones(
-                game, color, ULTIMATE_FIVE_IN_ROW_SPAWN_COUNT, rng
-            )
-            if not cleared and not spawned:
-                continue
-            chain_count += 1
-            total_cleared += len(cleared)
-            total_spawned += len(spawned)
-        if chain_count == 0:
-            break
-    if chain_count > 0:
-        await send_fn({
-            "type": "rogue_event",
-            "msg": f"🎯 五子连珠爆发连锁 {chain_count} 次：随机清除 {total_cleared} 颗敌子，并补下 {total_spawned} 颗己棋",
-        })
-    return chain_count > 0
+    result = apply_ultimate_five_in_row(
+        game,
+        color,
+        rng=random.Random(time.time_ns()),
+    )
+    for message in result.messages:
+        await send_fn({"type": "rogue_event", "msg": message})
+    return result.modified
 
 
 def _player_non_pass_coords(game: GoGame, color: str, limit: Optional[int] = None) -> list[tuple[int, int]]:

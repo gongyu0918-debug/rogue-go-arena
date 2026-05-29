@@ -7,6 +7,8 @@ from app.domain.coordinates import coord_to_gtp
 from app.domain.game_state import GoGame
 from app.gameplay.effect_utils import line_points_between
 from app.gameplay.ultimate_effects import (
+    BoardEffectResult,
+    apply_ultimate_five_in_row,
     apply_ultimate_last_stand,
     get_ultimate_territory_forbidden_points,
     resolve_pending_shadow_links,
@@ -175,6 +177,90 @@ def test_apply_ultimate_last_stand_reads_live_config_counts() -> None:
     assert sum(1 for row in game.board for cell in row if cell == 1) == 1
 
 
+def test_apply_ultimate_five_in_row_reports_counts_and_seen_lines() -> None:
+    game = make_game()
+    for x in range(5):
+        game.board[4][x] = 1
+    game.board[7][8] = 2
+    game.board[8][8] = 2
+    expected_line = tuple((x, 4) for x in range(5))
+
+    result = apply_ultimate_five_in_row(
+        game,
+        "B",
+        rng=IdentityRng(),
+        clear_count=1,
+        spawn_count=2,
+    )
+
+    assert result.modified is True
+    assert result.messages == ["🎯 五子连珠爆发连锁 1 次：随机清除 1 颗敌子，并补下 2 颗己棋"]
+    assert expected_line in game.ultimate_five_in_row_seen
+    assert sum(1 for row in game.board for cell in row if cell == 2) == 1
+    assert game.board[0][0] == 1
+    assert game.board[0][1] == 1
+
+
+def test_apply_ultimate_five_in_row_marks_seen_without_board_change() -> None:
+    game = make_game()
+    for x in range(5):
+        game.board[4][x] = 1
+    expected_line = tuple((x, 4) for x in range(5))
+
+    result = apply_ultimate_five_in_row(
+        game,
+        "B",
+        rng=IdentityRng(),
+        clear_count=0,
+        spawn_count=0,
+    )
+
+    assert result.modified is False
+    assert result.messages == []
+    assert expected_line in game.ultimate_five_in_row_seen
+
+
+def test_apply_ultimate_five_in_row_chains_new_lines_created_by_spawn() -> None:
+    game = make_game()
+    for x in range(5):
+        game.board[4][x] = 1
+
+    result = apply_ultimate_five_in_row(
+        game,
+        "B",
+        rng=IdentityRng(),
+        clear_count=0,
+        spawn_count=5,
+    )
+
+    assert result.modified is True
+    assert result.messages == ["🎯 五子连珠爆发连锁 2 次：随机清除 0 颗敌子，并补下 10 颗己棋"]
+    assert tuple((x, 4) for x in range(5)) in game.ultimate_five_in_row_seen
+    assert tuple((x, 0) for x in range(5)) in game.ultimate_five_in_row_seen
+
+
+def test_apply_ultimate_five_in_row_reads_live_config_counts() -> None:
+    game = make_game()
+    for x in range(5):
+        game.board[4][x] = 1
+    game.board[8][8] = 2
+
+    old_clear = gameplay_config.ULTIMATE_FIVE_IN_ROW_CLEAR_COUNT
+    old_spawn = gameplay_config.ULTIMATE_FIVE_IN_ROW_SPAWN_COUNT
+    try:
+        gameplay_config.ULTIMATE_FIVE_IN_ROW_CLEAR_COUNT = 0
+        gameplay_config.ULTIMATE_FIVE_IN_ROW_SPAWN_COUNT = 1
+        result = apply_ultimate_five_in_row(game, "B", rng=IdentityRng())
+    finally:
+        gameplay_config.ULTIMATE_FIVE_IN_ROW_CLEAR_COUNT = old_clear
+        gameplay_config.ULTIMATE_FIVE_IN_ROW_SPAWN_COUNT = old_spawn
+
+    assert result.modified is True
+    assert result.messages == ["🎯 五子连珠爆发连锁 1 次：随机清除 0 颗敌子，并补下 1 颗己棋"]
+    assert game.board[8][8] == 2
+    assert game.board[0][0] == 1
+
+
 def test_resolve_pending_shadow_links_waits_until_trigger_move() -> None:
     game = make_game()
     game.ultimate_move_count = 1
@@ -328,6 +414,36 @@ def test_server_ultimate_last_stand_high_winrate_guard() -> None:
     asyncio.run(_server_ultimate_last_stand_high_winrate_guard())
 
 
+async def _server_ultimate_five_in_row_sends_events() -> None:
+    game = make_game()
+    sent = []
+    old_apply = s.apply_ultimate_five_in_row
+    try:
+        async def send(payload):
+            sent.append(payload)
+
+        def fake_apply(effect_game, color, *, rng):
+            assert effect_game is game
+            assert color == "B"
+            assert rng is not None
+            return BoardEffectResult(modified=True, messages=["first", "second"])
+
+        s.apply_ultimate_five_in_row = fake_apply
+        result = await s._trigger_ultimate_five_in_row(game, send, "B")
+    finally:
+        s.apply_ultimate_five_in_row = old_apply
+
+    assert result is True
+    assert sent == [
+        {"type": "rogue_event", "msg": "first"},
+        {"type": "rogue_event", "msg": "second"},
+    ]
+
+
+def test_server_ultimate_five_in_row_sends_events() -> None:
+    asyncio.run(_server_ultimate_five_in_row_sends_events())
+
+
 if __name__ == "__main__":
     test_record_ultimate_player_action_counts_normal_and_double_turns()
     test_record_ultimate_player_action_counts_quickthink_once()
@@ -338,10 +454,15 @@ if __name__ == "__main__":
     test_apply_ultimate_last_stand_marks_done_and_reports_counts()
     test_apply_ultimate_last_stand_does_not_mark_done_without_changes()
     test_apply_ultimate_last_stand_reads_live_config_counts()
+    test_apply_ultimate_five_in_row_reports_counts_and_seen_lines()
+    test_apply_ultimate_five_in_row_marks_seen_without_board_change()
+    test_apply_ultimate_five_in_row_chains_new_lines_created_by_spawn()
+    test_apply_ultimate_five_in_row_reads_live_config_counts()
     test_resolve_pending_shadow_links_waits_until_trigger_move()
     test_resolve_pending_shadow_links_draws_line_and_resets_ko()
     test_resolve_pending_shadow_links_clears_triggered_unchanged_link_without_message()
     test_resolve_pending_shadow_links_keeps_only_untriggered_pending_links()
     test_server_resolve_pending_shadow_links_sends_events()
     test_server_ultimate_last_stand_high_winrate_guard()
+    test_server_ultimate_five_in_row_sends_events()
     print("ultimate_helpers_smoke_test passed")

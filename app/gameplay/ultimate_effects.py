@@ -11,6 +11,7 @@ from app.gameplay.effect_utils import (
     clear_random_enemy_stones,
     collect_joseki_burst_points,
     diamond_points,
+    find_exact_five_lines,
     get_corner_boundary_points,
     get_corner_square_points,
     get_star_points,
@@ -115,6 +116,54 @@ def apply_ultimate_last_stand(
         modified=True,
         messages=[
             f"🫀 起死回生发动，绝境反扑：清掉 {len(cleared)} 颗敌子，并补下 {len(changed)} 颗己棋"
+        ],
+    )
+
+
+def apply_ultimate_five_in_row(
+    game: Any,
+    color: str,
+    *,
+    rng: random.Random | None = None,
+    clear_count: int | None = None,
+    spawn_count: int | None = None,
+) -> BoardEffectResult:
+    rng = random.Random(time.time_ns()) if rng is None else rng
+    clear_count = gameplay_config.ULTIMATE_FIVE_IN_ROW_CLEAR_COUNT if clear_count is None else clear_count
+    spawn_count = gameplay_config.ULTIMATE_FIVE_IN_ROW_SPAWN_COUNT if spawn_count is None else spawn_count
+
+    chain_count = 0
+    total_cleared = 0
+    total_spawned = 0
+    while True:
+        new_lines = [
+            line
+            for line in find_exact_five_lines(game, color)
+            if line not in game.ultimate_five_in_row_seen
+        ]
+        if not new_lines:
+            break
+
+        for line in new_lines:
+            game.ultimate_five_in_row_seen.add(line)
+            cleared = clear_random_enemy_stones(game, color, clear_count, rng)
+            spawned = spawn_random_owned_stones(game, color, spawn_count, rng)
+            if not cleared and not spawned:
+                continue
+            chain_count += 1
+            total_cleared += len(cleared)
+            total_spawned += len(spawned)
+
+        if chain_count == 0:
+            break
+
+    if chain_count == 0:
+        return BoardEffectResult(modified=False, messages=[])
+
+    return BoardEffectResult(
+        modified=True,
+        messages=[
+            f"🎯 五子连珠爆发连锁 {chain_count} 次：随机清除 {total_cleared} 颗敌子，并补下 {total_spawned} 颗己棋"
         ],
     )
 
