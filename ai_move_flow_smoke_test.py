@@ -17,6 +17,7 @@ from app.gameplay.ai_move_flow import (
     finalize_forced_ai_pass,
     resolve_ai_resign_move,
     retry_ai_move_avoiding_ko,
+    try_apply_no_regret_bonus,
     try_apply_puppet_ai_move,
     try_apply_sansan_trap_counter,
     try_finalize_forced_ai_stone,
@@ -351,6 +352,252 @@ async def _try_apply_sansan_trap_counter_keeps_state_without_bonus_points() -> N
 
 def test_try_apply_sansan_trap_counter_keeps_state_without_bonus_points() -> None:
     asyncio.run(_try_apply_sansan_trap_counter_keeps_state_without_bonus_points())
+
+
+async def _try_apply_no_regret_bonus_skips_without_card() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def has_rogue_card(game_arg, card_id):
+        calls.append(("has", game_arg is game, card_id))
+        return False
+
+    def roll_random():
+        calls.append(("random",))
+        return 0.0
+
+    async def pick_best_point(*_args):
+        calls.append(("pick",))
+        return (2, 2)
+
+    def spawn_bonus_points(*_args):
+        calls.append(("spawn",))
+        return [(2, 2)]
+
+    changed = await try_apply_no_regret_bonus(
+        game,
+        send,
+        chance=0.5,
+        roll_random=roll_random,
+        has_rogue_card=has_rogue_card,
+        pick_best_point=pick_best_point,
+        spawn_bonus_points=spawn_bonus_points,
+        coord_to_gtp=s.coord_to_gtp,
+    )
+
+    assert changed is False
+    assert calls == [("has", True, "no_regret")]
+
+
+def test_try_apply_no_regret_bonus_skips_without_card() -> None:
+    asyncio.run(_try_apply_no_regret_bonus_skips_without_card())
+
+
+async def _try_apply_no_regret_bonus_skips_on_chance_miss() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def has_rogue_card(game_arg, card_id):
+        calls.append(("has", game_arg is game, card_id))
+        return True
+
+    def roll_random():
+        calls.append(("random",))
+        return 0.5
+
+    async def pick_best_point(*_args):
+        calls.append(("pick",))
+        return (2, 2)
+
+    def spawn_bonus_points(*_args):
+        calls.append(("spawn",))
+        return [(2, 2)]
+
+    changed = await try_apply_no_regret_bonus(
+        game,
+        send,
+        chance=0.5,
+        roll_random=roll_random,
+        has_rogue_card=has_rogue_card,
+        pick_best_point=pick_best_point,
+        spawn_bonus_points=spawn_bonus_points,
+        coord_to_gtp=s.coord_to_gtp,
+    )
+
+    assert changed is False
+    assert calls == [
+        ("has", True, "no_regret"),
+        ("random",),
+    ]
+
+
+def test_try_apply_no_regret_bonus_skips_on_chance_miss() -> None:
+    asyncio.run(_try_apply_no_regret_bonus_skips_on_chance_miss())
+
+
+async def _try_apply_no_regret_bonus_keeps_legacy_random_before_game_over_check() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.game_over = True
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def has_rogue_card(game_arg, card_id):
+        calls.append(("has", game_arg is game, card_id))
+        return True
+
+    def roll_random():
+        calls.append(("random",))
+        return 0.0
+
+    async def pick_best_point(*_args):
+        calls.append(("pick",))
+        return (2, 2)
+
+    def spawn_bonus_points(*_args):
+        calls.append(("spawn",))
+        return [(2, 2)]
+
+    changed = await try_apply_no_regret_bonus(
+        game,
+        send,
+        chance=0.5,
+        roll_random=roll_random,
+        has_rogue_card=has_rogue_card,
+        pick_best_point=pick_best_point,
+        spawn_bonus_points=spawn_bonus_points,
+        coord_to_gtp=s.coord_to_gtp,
+    )
+
+    assert changed is False
+    assert calls == [
+        ("has", True, "no_regret"),
+        ("random",),
+    ]
+
+
+def test_try_apply_no_regret_bonus_keeps_legacy_random_before_game_over_check() -> None:
+    asyncio.run(_try_apply_no_regret_bonus_keeps_legacy_random_before_game_over_check())
+
+
+async def _try_apply_no_regret_bonus_applies_bonus_and_sends_event() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("msg")))
+
+    def has_rogue_card(game_arg, card_id):
+        calls.append(("has", game_arg is game, card_id))
+        return True
+
+    def roll_random():
+        calls.append(("random",))
+        return 0.0
+
+    async def pick_best_point(game_arg, color):
+        calls.append(("pick", game_arg is game, color))
+        return (2, 1)
+
+    def spawn_bonus_points(game_arg, points, color):
+        calls.append(("spawn", game_arg is game, list(points), color))
+        return points[:]
+
+    changed = await try_apply_no_regret_bonus(
+        game,
+        send,
+        chance=0.5,
+        roll_random=roll_random,
+        has_rogue_card=has_rogue_card,
+        pick_best_point=pick_best_point,
+        spawn_bonus_points=spawn_bonus_points,
+        coord_to_gtp=s.coord_to_gtp,
+    )
+
+    assert changed is True
+    assert calls == [
+        ("has", True, "no_regret"),
+        ("random",),
+        ("pick", True, "B"),
+        ("spawn", True, [(2, 1)], "B"),
+        ("send", "rogue_event", "🚫 永不悔棋发动，AI 落子后在 C4 赠送一子"),
+    ]
+
+
+def test_try_apply_no_regret_bonus_applies_bonus_and_sends_event() -> None:
+    asyncio.run(_try_apply_no_regret_bonus_applies_bonus_and_sends_event())
+
+
+async def _try_apply_no_regret_bonus_keeps_state_without_point_or_change() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def has_rogue_card(game_arg, card_id):
+        calls.append(("has", game_arg is game, card_id))
+        return True
+
+    def roll_random():
+        calls.append(("random",))
+        return 0.0
+
+    async def pick_no_point(game_arg, color):
+        calls.append(("pick_none", game_arg is game, color))
+        return None
+
+    async def pick_point(game_arg, color):
+        calls.append(("pick_point", game_arg is game, color))
+        return (2, 2)
+
+    def spawn_no_change(game_arg, points, color):
+        calls.append(("spawn", game_arg is game, list(points), color))
+        return []
+
+    no_point_changed = await try_apply_no_regret_bonus(
+        game,
+        send,
+        chance=0.5,
+        roll_random=roll_random,
+        has_rogue_card=has_rogue_card,
+        pick_best_point=pick_no_point,
+        spawn_bonus_points=spawn_no_change,
+        coord_to_gtp=s.coord_to_gtp,
+    )
+    no_change_changed = await try_apply_no_regret_bonus(
+        game,
+        send,
+        chance=0.5,
+        roll_random=roll_random,
+        has_rogue_card=has_rogue_card,
+        pick_best_point=pick_point,
+        spawn_bonus_points=spawn_no_change,
+        coord_to_gtp=s.coord_to_gtp,
+    )
+
+    assert no_point_changed is False
+    assert no_change_changed is False
+    assert calls == [
+        ("has", True, "no_regret"),
+        ("random",),
+        ("pick_none", True, "B"),
+        ("has", True, "no_regret"),
+        ("random",),
+        ("pick_point", True, "B"),
+        ("spawn", True, [(2, 2)], "B"),
+    ]
+
+
+def test_try_apply_no_regret_bonus_keeps_state_without_point_or_change() -> None:
+    asyncio.run(_try_apply_no_regret_bonus_keeps_state_without_point_or_change())
 
 
 async def _finalize_ai_move_places_stone_and_sends_message() -> None:
@@ -2964,6 +3211,194 @@ def test_server_ai_move_delegates_sansan_trap_counter_and_syncs() -> None:
     asyncio.run(_server_ai_move_delegates_sansan_trap_counter_and_syncs())
 
 
+async def _server_ai_move_delegates_no_regret_bonus_and_syncs() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "no_regret"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_slip(game_arg, **kwargs):
+        calls.append(("slip", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment(kwargs["gtp_move"])
+
+    async def fake_retry(game_arg, **kwargs):
+        calls.append(("retry", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment(kwargs["gtp_move"], message=kwargs["rogue_msg"])
+
+    async def fake_sansan_counter(game_arg, send_fn, **kwargs):
+        calls.append(("sansan_counter", game_arg is game, send_fn is send, kwargs["card"]))
+        return False
+
+    async def fake_no_regret_bonus(game_arg, send_fn, **kwargs):
+        calls.append((
+            "no_regret",
+            game_arg is game,
+            send_fn is send,
+            kwargs["chance"] == s.ROGUE_NO_REGRET_CHANCE,
+            kwargs["roll_random"] is s.random.random,
+            kwargs["has_rogue_card"] is s._rogue_has,
+            kwargs["pick_best_point"] is s._pick_best_point,
+            kwargs["spawn_bonus_points"] is s._spawn_bonus_points,
+            kwargs["coord_to_gtp"] is s.coord_to_gtp,
+        ))
+        return True
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_slip = s.apply_slip_ai_move
+    original_retry = s.retry_ai_move_avoiding_ko
+    original_sansan_counter = s.try_apply_sansan_trap_counter
+    original_no_regret = s.try_apply_no_regret_bonus
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.apply_slip_ai_move = fake_slip
+    s.retry_ai_move_avoiding_ko = fake_retry
+    s.try_apply_sansan_trap_counter = fake_sansan_counter
+    s.try_apply_no_regret_bonus = fake_no_regret_bonus
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        s.apply_slip_ai_move = original_slip
+        s.retry_ai_move_avoiding_ko = original_retry
+        s.try_apply_sansan_trap_counter = original_sansan_counter
+        s.try_apply_no_regret_bonus = original_no_regret
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "C3")
+    assert game.board[2][2] == 2
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("slip", True, "C3"),
+        ("retry", True, "C3"),
+        ("sansan_counter", True, True, "no_regret"),
+        ("no_regret", True, True, True, True, True, True, True, True),
+        ("sync", True),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_delegates_no_regret_bonus_and_syncs() -> None:
+    asyncio.run(_server_ai_move_delegates_no_regret_bonus_and_syncs())
+
+
+async def _server_ai_move_syncs_between_sansan_and_no_regret_effects() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "sansan_trap"
+    game.challenge_cards = ["no_regret"]
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_slip(game_arg, **kwargs):
+        calls.append(("slip", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment(kwargs["gtp_move"])
+
+    async def fake_retry(game_arg, **kwargs):
+        calls.append(("retry", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment(kwargs["gtp_move"], message=kwargs["rogue_msg"])
+
+    async def fake_sansan_counter(game_arg, send_fn, **kwargs):
+        calls.append(("sansan_counter", game_arg is game, send_fn is send, kwargs["card"]))
+        return True
+
+    async def fake_no_regret_bonus(game_arg, send_fn, **kwargs):
+        calls.append(("no_regret", game_arg is game, send_fn is send))
+        return True
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_slip = s.apply_slip_ai_move
+    original_retry = s.retry_ai_move_avoiding_ko
+    original_sansan_counter = s.try_apply_sansan_trap_counter
+    original_no_regret = s.try_apply_no_regret_bonus
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.apply_slip_ai_move = fake_slip
+    s.retry_ai_move_avoiding_ko = fake_retry
+    s.try_apply_sansan_trap_counter = fake_sansan_counter
+    s.try_apply_no_regret_bonus = fake_no_regret_bonus
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        s.apply_slip_ai_move = original_slip
+        s.retry_ai_move_avoiding_ko = original_retry
+        s.try_apply_sansan_trap_counter = original_sansan_counter
+        s.try_apply_no_regret_bonus = original_no_regret
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("slip", True, "C3"),
+        ("retry", True, "C3"),
+        ("sansan_counter", True, True, "sansan_trap"),
+        ("sync", True),
+        ("no_regret", True, True),
+        ("sync", True),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_syncs_between_sansan_and_no_regret_effects() -> None:
+    asyncio.run(_server_ai_move_syncs_between_sansan_and_no_regret_effects())
+
+
 async def _resolve_ai_resign_move_keeps_non_resign_move() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -3742,6 +4177,11 @@ if __name__ == "__main__":
     test_try_apply_sansan_trap_counter_skips_non_sansan_point()
     test_try_apply_sansan_trap_counter_applies_bonus_and_trap_bonus()
     test_try_apply_sansan_trap_counter_keeps_state_without_bonus_points()
+    test_try_apply_no_regret_bonus_skips_without_card()
+    test_try_apply_no_regret_bonus_skips_on_chance_miss()
+    test_try_apply_no_regret_bonus_keeps_legacy_random_before_game_over_check()
+    test_try_apply_no_regret_bonus_applies_bonus_and_sends_event()
+    test_try_apply_no_regret_bonus_keeps_state_without_point_or_change()
     test_finalize_ai_move_places_stone_and_sends_message()
     test_finalize_ai_move_resign_without_card_ends_game()
     test_finalize_ai_move_resign_with_card_uses_no_resign_move()
@@ -3788,6 +4228,8 @@ if __name__ == "__main__":
     test_server_ai_move_ko_guard_runs_after_slip_and_clears_message()
     test_server_ai_move_applies_final_move_through_board_helper()
     test_server_ai_move_delegates_sansan_trap_counter_and_syncs()
+    test_server_ai_move_delegates_no_regret_bonus_and_syncs()
+    test_server_ai_move_syncs_between_sansan_and_no_regret_effects()
     test_resolve_ai_resign_move_keeps_non_resign_move()
     test_resolve_ai_resign_move_uses_no_resign_with_rogue_card()
     test_resolve_ai_resign_move_ends_game_without_rogue_card()

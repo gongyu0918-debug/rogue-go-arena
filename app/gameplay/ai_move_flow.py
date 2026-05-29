@@ -30,6 +30,8 @@ ShufflePointsFn = Callable[[list[tuple[int, int]]], None]
 PointListFn = Callable[[int], list[tuple[int, int]]]
 SpawnBonusPointsFn = Callable[[Any, list[tuple[int, int]], str], list[tuple[int, int]]]
 TrapBonusFn = Callable[[Any, AsyncSend, str], Awaitable[None]]
+PickBestPointFn = Callable[[Any, str], Awaitable[tuple[int, int] | None]]
+RogueHasFn = Callable[[Any, str], bool]
 AllowedRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
@@ -413,6 +415,39 @@ async def try_apply_sansan_trap_counter(
         "msg": f"△ 三三陷阱发动，在 {coord_to_gtp(coord[0], coord[1], game.size)} 相邻点反打 {len(changed)} 子",
     })
     await apply_trap_bonus(game, send_fn, "三三陷阱")
+    return True
+
+
+async def try_apply_no_regret_bonus(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    chance: float,
+    roll_random: RandomFloatFn,
+    has_rogue_card: RogueHasFn,
+    pick_best_point: PickBestPointFn,
+    spawn_bonus_points: SpawnBonusPointsFn,
+    coord_to_gtp: CoordFormatter,
+) -> bool:
+    if not has_rogue_card(game, "no_regret"):
+        return False
+    if roll_random() >= chance:
+        return False
+    if game.game_over:
+        return False
+
+    bonus = await pick_best_point(game, game.player_color)
+    if not bonus:
+        return False
+
+    changed = spawn_bonus_points(game, [bonus], game.player_color)
+    if not changed:
+        return False
+
+    await send_fn({
+        "type": "rogue_event",
+        "msg": f"🚫 永不悔棋发动，AI 落子后在 {coord_to_gtp(bonus[0], bonus[1], game.size)} 赠送一子",
+    })
     return True
 
 

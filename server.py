@@ -121,6 +121,7 @@ from app.gameplay.ai_move_flow import (
     refresh_fog_restriction_points,
     resolve_ai_resign_move,
     retry_ai_move_avoiding_ko,
+    try_apply_no_regret_bonus,
     try_apply_puppet_ai_move,
     try_apply_sansan_trap_counter,
     try_finalize_forced_ai_stone,
@@ -1834,18 +1835,17 @@ async def _ai_move(game: GoGame, send_fn):
         needs_sync = False
         extra_board_change = False
 
-    if (
-        _rogue_has(game, "no_regret")
-        and random.random() < ROGUE_NO_REGRET_CHANCE
-        and not game.game_over
+    if await try_apply_no_regret_bonus(
+        game,
+        send_fn,
+        chance=ROGUE_NO_REGRET_CHANCE,
+        roll_random=random.random,
+        has_rogue_card=_rogue_has,
+        pick_best_point=_pick_best_point,
+        spawn_bonus_points=_spawn_bonus_points,
+        coord_to_gtp=coord_to_gtp,
     ):
-        bonus = await _pick_best_point(game, game.player_color)
-        if bonus:
-            changed = _spawn_bonus_points(game, [bonus], game.player_color)
-            if changed:
-                extra_board_change = True
-                await send_fn({"type": "rogue_event",
-                               "msg": f"🚫 永不悔棋发动，AI 落子后在 {coord_to_gtp(bonus[0], bonus[1], game.size)} 赠送一子"})
+        extra_board_change = True
 
     if needs_sync or extra_board_change:
         await _sync_board_to_katago(game)
