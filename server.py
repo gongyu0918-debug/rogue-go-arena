@@ -8,7 +8,6 @@ import json
 import random
 import subprocess
 import re
-import socket
 import time
 import os
 import sys
@@ -109,6 +108,7 @@ from app.data.cards import (
 from app.domain.coordinates import coord_to_gtp, gtp_to_coord
 from app.domain.game_state import GoGame
 from app.domain.sgf import generate_sgf
+from app.runtime.access_urls import get_access_urls as build_access_urls
 from app.gameplay.card_selection import (
     pick_ai_rogue_card,
     pick_ai_ultimate_card,
@@ -279,50 +279,8 @@ def get_game_visits(level: str, move_count: int = -1,
     )
 
 
-def _is_loopback_host(host: str) -> bool:
-    host = (host or "").strip().lower()
-    return host in {"127.0.0.1", "localhost", "::1"}
-
-
-def get_access_urls(host: str = SERVER_HOST, port: int = SERVER_PORT) -> dict:
-    if _is_loopback_host(host):
-        return {
-            "local": [
-                f"http://localhost:{port}",
-                f"http://127.0.0.1:{port}",
-            ],
-            "lan": [],
-        }
-
-    lan_ips = set()
-    if host and host not in {"0.0.0.0", "::"} and not _is_loopback_host(host):
-        lan_ips.add(host)
-    try:
-        for item in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
-            ip = item[4][0]
-            if ip and not ip.startswith("127."):
-                lan_ips.add(ip)
-    except OSError:
-        pass
-
-    # Use a UDP probe to discover the primary outbound interface IP when
-    # getaddrinfo only returns localhost on some Windows setups.
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-            sock.connect(("8.8.8.8", 80))
-            ip = sock.getsockname()[0]
-            if ip and not ip.startswith("127."):
-                lan_ips.add(ip)
-    except OSError:
-        pass
-
-    return {
-        "local": [
-            f"http://localhost:{port}",
-            f"http://127.0.0.1:{port}",
-        ],
-        "lan": [f"http://{ip}:{port}" for ip in sorted(lan_ips)],
-    }
+def get_access_urls(host: str = SERVER_HOST, port: int = SERVER_PORT) -> dict[str, list[str]]:
+    return build_access_urls(host, port)
 
 
 # ─── FastAPI App ─────────────────────────────────────────────────────────────
