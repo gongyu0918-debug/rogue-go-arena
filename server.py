@@ -119,6 +119,16 @@ from app.gameplay.ai_moves import (
     weaken_rank_one_step,
 )
 from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
+from app.gameplay.turn_modifiers import (
+    clear_player_turn_modifiers as clear_player_turn_modifiers_state,
+    finish_ultimate_quickthink_turn as finish_ultimate_quickthink_turn_state,
+    get_ai_rogue_forbidden_points as get_ai_rogue_forbidden_points_state,
+    get_player_bonus_forbidden_points as get_player_bonus_forbidden_points_state,
+    pick_fog_mask as pick_fog_mask_state,
+    pick_fog_point as pick_fog_point_state,
+    prepare_player_turn_modifiers as prepare_player_turn_modifiers_state,
+    refresh_ai_rogue_player_turn as refresh_ai_rogue_player_turn_state,
+)
 from app.gameplay.effect_utils import (
     adjacent8_points as _adjacent8_points,
     adjacent_points as _adjacent_points,
@@ -718,8 +728,7 @@ def _record_ultimate_player_action(game: GoGame) -> None:
 
 
 def _finish_ultimate_quickthink_turn(game: GoGame) -> None:
-    game.ultimate_quickthink_active = False
-    game.ultimate_quickthink_turn_counted = False
+    finish_ultimate_quickthink_turn_state(game)
 
 
 async def _check_capture_foul(game: GoGame, send_fn, offender: str, captured: int, *, ultimate: bool) -> None:
@@ -742,29 +751,15 @@ async def _check_capture_foul(game: GoGame, send_fn, offender: str, captured: in
 
 
 def _pick_fog_mask(size: int, rng: random.Random) -> list[tuple[int, int]]:
-    cx = rng.randint(0, size - 1)
-    cy = rng.randint(0, size - 1)
-    return _get_square_points(cx, cy, ROGUE_FOG_MASK_RADIUS, size)
+    return pick_fog_mask_state(size, rng)
 
 
 def _pick_fog_point(game, rng: random.Random) -> list[tuple[int, int]]:
-    candidates = [
-        (x, y)
-        for y in range(game.size)
-        for x in range(game.size)
-        if game.board[y][x] == 0
-    ]
-    if not candidates:
-        return []
-    return [rng.choice(candidates)]
+    return pick_fog_point_state(game, rng)
 
 
 def _get_player_bonus_forbidden_points(game: GoGame, color: str) -> set[tuple[int, int]]:
-    if game.two_player:
-        return set()
-    if color != game.player_color:
-        return set()
-    return set(_get_ai_rogue_forbidden_points(game))
+    return get_player_bonus_forbidden_points_state(game, color)
 
 
 async def _estimate_side_winrate(game: GoGame, color: str) -> float:
@@ -985,10 +980,7 @@ async def _resolve_pending_ultimate_shadow_links(game: GoGame, send_fn) -> bool:
 
 
 def _get_ai_rogue_forbidden_points(game: GoGame) -> list[tuple[int, int]]:
-    card = game.ai_rogue_card
-    if card in {"blackhole", "golden_corner", "fog"}:
-        return list(game.ai_rogue_seal_points)
-    return []
+    return get_ai_rogue_forbidden_points_state(game)
 
 
 async def _challenge_apply_trap_bonus(game: GoGame, send_fn, source_name: str) -> None:
@@ -1041,38 +1033,25 @@ async def _challenge_emit_set_bonus_status(game: GoGame, send_fn) -> None:
 
 
 def _refresh_ai_rogue_player_turn(game: GoGame):
-    if game.two_player or not game.ai_rogue_enabled:
-        return
-    if game.ai_rogue_card == "fog":
-        if game.current_player == game.player_color:
-            rng = random.Random(time.time_ns())
-            player_move_count = sum(1 for c, m in game.moves if c == game.player_color and m.upper() != "PASS")
-            if player_move_count < ROGUE_FOG_AI_MOVES:
-                game.ai_rogue_seal_points = _pick_fog_mask(game.size, rng)
-            else:
-                fog_pts: list[tuple[int, int]] = []
-                for _ in range(ROGUE_FOG_POST_MASK_POINTS):
-                    fog_pts.extend(_pick_fog_point(game, rng))
-                seen: set[tuple[int, int]] = set()
-                game.ai_rogue_seal_points = [p for p in fog_pts if not (p in seen or seen.add(p))]
-        else:
-            game.ai_rogue_seal_points = []
+    refresh_ai_rogue_player_turn_state(
+        game,
+        pick_fog_mask_fn=_pick_fog_mask,
+        pick_fog_point_fn=_pick_fog_point,
+    )
 
 
 def _prepare_player_turn_modifiers(game: GoGame):
-    if game.two_player or game.current_player != game.player_color:
-        return
-    _refresh_ai_rogue_player_turn(game)
-    if game.rogue_card == "quickthink" and game.rogue_quickthink_stage == 0:
-        game.rogue_quickthink_stage = 1
-    if game.ultimate and game.ultimate_player_card == "quickthink" and not game.ultimate_quickthink_active:
-        game.ultimate_quickthink_token += 1
-        game.ultimate_quickthink_active = True
+    prepare_player_turn_modifiers_state(
+        game,
+        refresh_ai_rogue_player_turn_fn=_refresh_ai_rogue_player_turn,
+    )
 
 
 def _clear_player_turn_modifiers(game: GoGame):
-    game.rogue_quickthink_stage = 0
-    _finish_ultimate_quickthink_turn(game)
+    clear_player_turn_modifiers_state(
+        game,
+        finish_ultimate_quickthink_turn_fn=_finish_ultimate_quickthink_turn,
+    )
 
 
 async def _pick_analysis_point(game: GoGame, color: str, *, start_index: int = 0) -> Optional[tuple[int, int]]:

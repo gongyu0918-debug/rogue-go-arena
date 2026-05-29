@@ -22,7 +22,7 @@ This plan keeps the current feature baseline stable while reducing the cost of f
 
 3. Move remaining Rogue orchestration from `server.py`.
    - Activation, challenge loadout, post-move hooks.
-   - Smoke: `capture_foul_smoke_test.py`, `card_smoke_test.py`, plus per-card WebSocket entry smoke when handlers move.
+   - Smoke: `capture_foul_smoke_test.py`, `turn_modifiers_smoke_test.py`, `card_smoke_test.py`, plus per-card WebSocket entry smoke when handlers move.
 
 4. Move remaining Ultimate orchestration from `server.py`.
    - AI turn flow, force-score, quickthink end, special-card bridges.
