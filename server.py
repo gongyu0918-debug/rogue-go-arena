@@ -114,6 +114,7 @@ from app.gameplay.ai_moves import (
 )
 from app.gameplay.ai_move_flow import (
     apply_ai_move_to_board,
+    apply_erosion_komi_counter,
     apply_slip_ai_move,
     apply_suspicious_pass_fallback,
     finalize_ai_move,
@@ -1853,15 +1854,15 @@ async def _ai_move(game: GoGame, send_fn):
     game.current_player = game.player_color
     _prepare_player_turn_modifiers(game)
 
-    if card == "erosion" and captured > 0:
-        shift = ROGUE_EROSION_SHIFT * captured
-        if game.ai_color == "W":
-            game.komi += shift
-        else:
-            game.komi -= shift
-        await run_in_executor(engine.send_command, f"komi {game.komi}")
-        await send_fn({"type": "rogue_event",
-                        "msg": f"蚕食反制：AI 提掉了 {captured} 子，当前贴目变为 {game.komi}"})
+    await apply_erosion_komi_counter(
+        game,
+        send_fn,
+        card=card,
+        captured=captured,
+        shift_per_capture=ROGUE_EROSION_SHIFT,
+        run_engine_command=lambda command: run_in_executor(engine.send_command, command),
+        message=lambda capture_count, komi: f"蚕食反制：AI 提掉了 {capture_count} 子，当前贴目变为 {komi}",
+    )
 
     game.push_history()
     await send_fn({"type": "game_state", **game.to_state()})

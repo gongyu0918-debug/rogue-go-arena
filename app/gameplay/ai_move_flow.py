@@ -32,6 +32,7 @@ SpawnBonusPointsFn = Callable[[Any, list[tuple[int, int]], str], list[tuple[int,
 TrapBonusFn = Callable[[Any, AsyncSend, str], Awaitable[None]]
 PickBestPointFn = Callable[[Any, str], Awaitable[tuple[int, int] | None]]
 RogueHasFn = Callable[[Any, str], bool]
+ErosionMessageFn = Callable[[int, float], str]
 AllowedRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
@@ -451,6 +452,32 @@ async def try_apply_no_regret_bonus(
     return True
 
 
+async def apply_erosion_komi_counter(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    card: str | None,
+    captured: int,
+    shift_per_capture: float,
+    run_engine_command: EngineCommandFn,
+    message: ErosionMessageFn,
+) -> bool:
+    if card != "erosion" or captured <= 0:
+        return False
+
+    shift = shift_per_capture * captured
+    if game.ai_color == "W":
+        game.komi += shift
+    else:
+        game.komi -= shift
+    await run_engine_command(f"komi {game.komi}")
+    await send_fn({
+        "type": "rogue_event",
+        "msg": message(captured, game.komi),
+    })
+    return True
+
+
 def apply_slip_ai_move(
     game: Any,
     *,
@@ -663,17 +690,15 @@ async def finalize_ai_move(
     game.current_player = game.player_color
     prepare_player_turn_modifiers(game)
 
-    if card == "erosion" and captured > 0:
-        shift = gameplay_config.ROGUE_EROSION_SHIFT * captured
-        if game.ai_color == "W":
-            game.komi += shift
-        else:
-            game.komi -= shift
-        await run_engine_command(f"komi {game.komi}")
-        await send_fn({
-            "type": "rogue_event",
-            "msg": f"🐛 蚕食！AI 提 {captured} 子，贴目变为 {game.komi}",
-        })
+    await apply_erosion_komi_counter(
+        game,
+        send_fn,
+        card=card,
+        captured=captured,
+        shift_per_capture=gameplay_config.ROGUE_EROSION_SHIFT,
+        run_engine_command=run_engine_command,
+        message=lambda capture_count, komi: f"🐛 蚕食！AI 提 {capture_count} 子，贴目变为 {komi}",
+    )
 
     game.push_history()
     await send_fn({"type": "game_state", **game.to_state()})

@@ -11,6 +11,7 @@ from app.gameplay.ai_move_flow import (
     AiMovePlacement,
     AiMoveResolution,
     apply_ai_move_to_board,
+    apply_erosion_komi_counter,
     apply_slip_ai_move,
     apply_suspicious_pass_fallback,
     finalize_ai_move,
@@ -600,6 +601,121 @@ def test_try_apply_no_regret_bonus_keeps_state_without_point_or_change() -> None
     asyncio.run(_try_apply_no_regret_bonus_keeps_state_without_point_or_change())
 
 
+async def _apply_erosion_komi_counter_skips_without_card_or_capture() -> None:
+    game = GoGame(size=5, komi=7.5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "= ok"
+
+    def message(_captured, _komi):
+        calls.append(("message",))
+        return "erosion"
+
+    skipped_card = await apply_erosion_komi_counter(
+        game,
+        send,
+        card=None,
+        captured=2,
+        shift_per_capture=0.5,
+        run_engine_command=run_engine_command,
+        message=message,
+    )
+    skipped_capture = await apply_erosion_komi_counter(
+        game,
+        send,
+        card="erosion",
+        captured=0,
+        shift_per_capture=0.5,
+        run_engine_command=run_engine_command,
+        message=message,
+    )
+
+    assert skipped_card is False
+    assert skipped_capture is False
+    assert game.komi == 7.5
+    assert calls == []
+
+
+def test_apply_erosion_komi_counter_skips_without_card_or_capture() -> None:
+    asyncio.run(_apply_erosion_komi_counter_skips_without_card_or_capture())
+
+
+async def _apply_erosion_komi_counter_increases_komi_for_white_ai() -> None:
+    game = GoGame(size=5, komi=0.0, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("msg")))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "= ok"
+
+    def message(captured, komi):
+        calls.append(("message", captured, komi))
+        return f"erosion {captured} {komi}"
+
+    changed = await apply_erosion_komi_counter(
+        game,
+        send,
+        card="erosion",
+        captured=2,
+        shift_per_capture=0.5,
+        run_engine_command=run_engine_command,
+        message=message,
+    )
+
+    assert changed is True
+    assert game.komi == 1.0
+    assert calls == [
+        ("engine", "komi 1.0"),
+        ("message", 2, 1.0),
+        ("send", "rogue_event", "erosion 2 1.0"),
+    ]
+
+
+def test_apply_erosion_komi_counter_increases_komi_for_white_ai() -> None:
+    asyncio.run(_apply_erosion_komi_counter_increases_komi_for_white_ai())
+
+
+async def _apply_erosion_komi_counter_decreases_komi_for_black_ai() -> None:
+    game = GoGame(size=5, komi=7.5, player_color="W")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("msg")))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "= ok"
+
+    changed = await apply_erosion_komi_counter(
+        game,
+        send,
+        card="erosion",
+        captured=1,
+        shift_per_capture=0.5,
+        run_engine_command=run_engine_command,
+        message=lambda captured, komi: f"erosion {captured} {komi}",
+    )
+
+    assert changed is True
+    assert game.komi == 7.0
+    assert calls == [
+        ("engine", "komi 7.0"),
+        ("send", "rogue_event", "erosion 1 7.0"),
+    ]
+
+
+def test_apply_erosion_komi_counter_decreases_komi_for_black_ai() -> None:
+    asyncio.run(_apply_erosion_komi_counter_decreases_komi_for_black_ai())
+
+
 async def _finalize_ai_move_places_stone_and_sends_message() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -889,7 +1005,7 @@ async def _finalize_ai_move_erosion_updates_komi_after_capture() -> None:
     calls = []
 
     async def send(payload):
-        calls.append(("send", payload["type"]))
+        calls.append(("send", payload["type"], payload.get("msg")))
 
     async def check_capture_foul(_game, _send_fn, _offender, captured, *, ultimate):
         calls.append(("capture_foul", captured, ultimate))
@@ -927,8 +1043,8 @@ async def _finalize_ai_move_erosion_updates_komi_after_capture() -> None:
         ("capture_foul", 1, False),
         ("prepare",),
         ("engine", f"komi {gameplay_config.ROGUE_EROSION_SHIFT}"),
-        ("send", "rogue_event"),
-        ("send", "game_state"),
+        ("send", "rogue_event", f"🐛 蚕食！AI 提 1 子，贴目变为 {gameplay_config.ROGUE_EROSION_SHIFT}"),
+        ("send", "game_state", None),
     ]
 
 
@@ -3399,6 +3515,129 @@ def test_server_ai_move_syncs_between_sansan_and_no_regret_effects() -> None:
     asyncio.run(_server_ai_move_syncs_between_sansan_and_no_regret_effects())
 
 
+async def _server_ai_move_delegates_erosion_after_prepare() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "erosion"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_slip(game_arg, **kwargs):
+        calls.append(("slip", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment(kwargs["gtp_move"])
+
+    async def fake_retry(game_arg, **kwargs):
+        calls.append(("retry", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment(kwargs["gtp_move"], message=kwargs["rogue_msg"])
+
+    def fake_apply(game_arg, **kwargs):
+        calls.append(("apply", game_arg is game, kwargs["gtp_move"]))
+        game.moves.append((kwargs["color"], kwargs["gtp_move"]))
+        game.board[2][2] = 2
+        game.passed[kwargs["color"]] = False
+        return AiMovePlacement(coord=(2, 2), captured=2)
+
+    async def fake_sansan_counter(game_arg, send_fn, **kwargs):
+        calls.append(("sansan_counter", game_arg is game, send_fn is send, kwargs["card"]))
+        return False
+
+    async def fake_no_regret_bonus(game_arg, send_fn, **kwargs):
+        calls.append(("no_regret", game_arg is game, send_fn is send))
+        return False
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_erosion(game_arg, send_fn, **kwargs):
+        calls.append((
+            "erosion",
+            game_arg is game,
+            send_fn is send,
+            kwargs["card"],
+            kwargs["captured"],
+            kwargs["shift_per_capture"] == s.ROGUE_EROSION_SHIFT,
+            callable(kwargs["run_engine_command"]),
+            kwargs["message"](2, 7.5),
+        ))
+        return True
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_slip = s.apply_slip_ai_move
+    original_retry = s.retry_ai_move_avoiding_ko
+    original_apply = s.apply_ai_move_to_board
+    original_sansan_counter = s.try_apply_sansan_trap_counter
+    original_no_regret = s.try_apply_no_regret_bonus
+    original_prepare = s._prepare_player_turn_modifiers
+    original_erosion = s.apply_erosion_komi_counter
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.apply_slip_ai_move = fake_slip
+    s.retry_ai_move_avoiding_ko = fake_retry
+    s.apply_ai_move_to_board = fake_apply
+    s.try_apply_sansan_trap_counter = fake_sansan_counter
+    s.try_apply_no_regret_bonus = fake_no_regret_bonus
+    s._prepare_player_turn_modifiers = fake_prepare
+    s.apply_erosion_komi_counter = fake_erosion
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        s.apply_slip_ai_move = original_slip
+        s.retry_ai_move_avoiding_ko = original_retry
+        s.apply_ai_move_to_board = original_apply
+        s.try_apply_sansan_trap_counter = original_sansan_counter
+        s.try_apply_no_regret_bonus = original_no_regret
+        s._prepare_player_turn_modifiers = original_prepare
+        s.apply_erosion_komi_counter = original_erosion
+        s._run_coach_turn_if_needed = original_coach
+
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("slip", True, "C3"),
+        ("retry", True, "C3"),
+        ("apply", True, "C3"),
+        ("sansan_counter", True, True, "erosion"),
+        ("no_regret", True, True),
+        ("prepare", True),
+        (
+            "erosion",
+            True,
+            True,
+            "erosion",
+            2,
+            True,
+            True,
+            "蚕食反制：AI 提掉了 2 子，当前贴目变为 7.5",
+        ),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_delegates_erosion_after_prepare() -> None:
+    asyncio.run(_server_ai_move_delegates_erosion_after_prepare())
+
+
 async def _resolve_ai_resign_move_keeps_non_resign_move() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -4182,6 +4421,9 @@ if __name__ == "__main__":
     test_try_apply_no_regret_bonus_keeps_legacy_random_before_game_over_check()
     test_try_apply_no_regret_bonus_applies_bonus_and_sends_event()
     test_try_apply_no_regret_bonus_keeps_state_without_point_or_change()
+    test_apply_erosion_komi_counter_skips_without_card_or_capture()
+    test_apply_erosion_komi_counter_increases_komi_for_white_ai()
+    test_apply_erosion_komi_counter_decreases_komi_for_black_ai()
     test_finalize_ai_move_places_stone_and_sends_message()
     test_finalize_ai_move_resign_without_card_ends_game()
     test_finalize_ai_move_resign_with_card_uses_no_resign_move()
@@ -4230,6 +4472,7 @@ if __name__ == "__main__":
     test_server_ai_move_delegates_sansan_trap_counter_and_syncs()
     test_server_ai_move_delegates_no_regret_bonus_and_syncs()
     test_server_ai_move_syncs_between_sansan_and_no_regret_effects()
+    test_server_ai_move_delegates_erosion_after_prepare()
     test_resolve_ai_resign_move_keeps_non_resign_move()
     test_resolve_ai_resign_move_uses_no_resign_with_rogue_card()
     test_resolve_ai_resign_move_ends_game_without_rogue_card()
