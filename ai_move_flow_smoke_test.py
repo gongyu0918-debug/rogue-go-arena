@@ -13,6 +13,7 @@ from app.gameplay.ai_move_flow import (
     AiMovePlacement,
     AiMoveResolution,
     apply_ai_move_to_board,
+    apply_ai_move_placement_effects,
     apply_erosion_komi_counter,
     apply_slip_ai_move,
     apply_suspicious_pass_fallback,
@@ -144,6 +145,130 @@ def test_apply_ai_move_to_board_appends_before_parse_and_place() -> None:
     ]
     assert game.moves == [("W", "C3")]
     assert game.passed["W"] is False
+
+
+async def _apply_ai_move_placement_effects_syncs_between_counters() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def apply_move(game_arg, **kwargs):
+        calls.append(("apply", game_arg is game, kwargs["gtp_move"]))
+        return apply_ai_move_to_board(game_arg, **kwargs)
+
+    async def sansan_counter(game_arg, send_fn, **kwargs):
+        assert game.board[2][2] == 2
+        calls.append(("sansan", game_arg is game, send_fn is send, kwargs["coord"]))
+        return True
+
+    async def no_regret_bonus(game_arg, send_fn, **kwargs):
+        calls.append(("no_regret", game_arg is game, send_fn is send))
+        return True
+
+    async def sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    result = await apply_ai_move_placement_effects(
+        game,
+        send,
+        color="W",
+        card="sansan_trap",
+        gtp_move="C3",
+        needs_sync=False,
+        gtp_to_coord=gtp_to_coord,
+        sync_board_to_engine=sync,
+        engine_is_ready=lambda: True,
+        apply_move_to_board=apply_move,
+        apply_sansan_trap_counter=sansan_counter,
+        try_no_regret_bonus=no_regret_bonus,
+        trap_stones=2,
+        get_sansan_points=lambda _size: [(2, 2)],
+        adjacent_points=lambda _x, _y, _size: [],
+        shuffle_points=lambda _points: None,
+        spawn_bonus_points=lambda _game, _points, _color: [],
+        coord_to_gtp=lambda _x, _y, _size: "C3",
+        apply_trap_bonus=lambda _game, _send, _label: None,
+        no_regret_chance=1.0,
+        roll_random=lambda: 0.0,
+        has_rogue_card=lambda _game, _card: True,
+        pick_best_point=lambda _game, _color: None,
+    )
+
+    assert result == AiMovePlacement(coord=(2, 2), captured=0)
+    assert calls == [
+        ("apply", True, "C3"),
+        ("sansan", True, True, (2, 2)),
+        ("sync", True),
+        ("no_regret", True, True),
+        ("sync", True),
+    ]
+
+
+def test_apply_ai_move_placement_effects_syncs_between_counters() -> None:
+    asyncio.run(_apply_ai_move_placement_effects_syncs_between_counters())
+
+
+async def _apply_ai_move_placement_effects_keeps_pending_sync_when_engine_not_ready() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def sansan_counter(_game, _send, **_kwargs):
+        calls.append(("sansan",))
+        return False
+
+    async def no_regret_bonus(_game, _send, **_kwargs):
+        calls.append(("no_regret",))
+        return False
+
+    async def sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    def engine_ready():
+        calls.append(("ready",))
+        return False
+
+    result = await apply_ai_move_placement_effects(
+        game,
+        send,
+        color="W",
+        card=None,
+        gtp_move="C3",
+        needs_sync=True,
+        gtp_to_coord=gtp_to_coord,
+        sync_board_to_engine=sync,
+        engine_is_ready=engine_ready,
+        apply_move_to_board=apply_ai_move_to_board,
+        apply_sansan_trap_counter=sansan_counter,
+        try_no_regret_bonus=no_regret_bonus,
+        trap_stones=2,
+        get_sansan_points=lambda _size: [],
+        adjacent_points=lambda _x, _y, _size: [],
+        shuffle_points=lambda _points: None,
+        spawn_bonus_points=lambda _game, _points, _color: [],
+        coord_to_gtp=lambda _x, _y, _size: "C3",
+        apply_trap_bonus=lambda _game, _send, _label: None,
+        no_regret_chance=0.0,
+        roll_random=lambda: 1.0,
+        has_rogue_card=lambda _game, _card: False,
+        pick_best_point=lambda _game, _color: None,
+    )
+
+    assert result == AiMovePlacement(coord=(2, 2), captured=0)
+    assert calls == [
+        ("sansan",),
+        ("ready",),
+        ("no_regret",),
+        ("sync", True),
+    ]
+
+
+def test_apply_ai_move_placement_effects_keeps_pending_sync_when_engine_not_ready() -> None:
+    asyncio.run(_apply_ai_move_placement_effects_keeps_pending_sync_when_engine_not_ready())
 
 
 async def _try_apply_sansan_trap_counter_skips_without_card_or_target() -> None:
@@ -5862,6 +5987,8 @@ if __name__ == "__main__":
     test_apply_ai_move_to_board_preserves_invalid_non_pass_as_move()
     test_apply_ai_move_to_board_returns_capture_count()
     test_apply_ai_move_to_board_appends_before_parse_and_place()
+    test_apply_ai_move_placement_effects_syncs_between_counters()
+    test_apply_ai_move_placement_effects_keeps_pending_sync_when_engine_not_ready()
     test_try_apply_sansan_trap_counter_skips_without_card_or_target()
     test_try_apply_sansan_trap_counter_skips_non_sansan_point()
     test_try_apply_sansan_trap_counter_applies_bonus_and_trap_bonus()

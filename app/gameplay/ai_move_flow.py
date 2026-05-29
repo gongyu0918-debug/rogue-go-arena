@@ -33,6 +33,11 @@ TrapBonusFn = Callable[[Any, AsyncSend, str], Awaitable[None]]
 PickBestPointFn = Callable[[Any, str], Awaitable[tuple[int, int] | None]]
 RogueHasFn = Callable[[Any, str], bool]
 ErosionMessageFn = Callable[[int, float], str]
+ApplyMoveToBoardFn = Callable[..., "AiMovePlacement"]
+SyncBoardFn = Callable[[Any], Awaitable[None]]
+EngineReadyFn = Callable[[], bool]
+SansanTrapCounterFn = Callable[..., Awaitable[bool]]
+NoRegretBonusFn = Callable[..., Awaitable[bool]]
 AllowedRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
@@ -638,6 +643,75 @@ async def choose_ai_move_candidate(
         log_error(f"[AI] genmove returned error: {resp}")
         return AiMoveCandidate(None, completed=True)
     return AiMoveCandidate(resp.replace("=", "").strip())
+
+
+async def apply_ai_move_placement_effects(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    card: str | None,
+    gtp_move: str,
+    needs_sync: bool,
+    gtp_to_coord: CoordParser,
+    sync_board_to_engine: SyncBoardFn,
+    engine_is_ready: EngineReadyFn,
+    apply_move_to_board: ApplyMoveToBoardFn,
+    apply_sansan_trap_counter: SansanTrapCounterFn,
+    try_no_regret_bonus: NoRegretBonusFn,
+    trap_stones: int,
+    get_sansan_points: PointListFn,
+    adjacent_points: AdjacentPointsFn,
+    shuffle_points: ShufflePointsFn,
+    spawn_bonus_points: SpawnBonusPointsFn,
+    coord_to_gtp: CoordFormatter,
+    apply_trap_bonus: TrapBonusFn,
+    no_regret_chance: float,
+    roll_random: RandomFloatFn,
+    has_rogue_card: RogueHasFn,
+    pick_best_point: PickBestPointFn,
+) -> AiMovePlacement:
+    placement = apply_move_to_board(
+        game,
+        color=color,
+        gtp_move=gtp_move,
+        gtp_to_coord=gtp_to_coord,
+    )
+    extra_board_change = await apply_sansan_trap_counter(
+        game,
+        send_fn,
+        card=card,
+        coord=placement.coord,
+        stones=trap_stones,
+        get_sansan_points=get_sansan_points,
+        adjacent_points=adjacent_points,
+        shuffle_points=shuffle_points,
+        spawn_bonus_points=spawn_bonus_points,
+        coord_to_gtp=coord_to_gtp,
+        apply_trap_bonus=apply_trap_bonus,
+    )
+
+    if (needs_sync or extra_board_change) and engine_is_ready():
+        await sync_board_to_engine(game)
+        needs_sync = False
+        extra_board_change = False
+
+    if await try_no_regret_bonus(
+        game,
+        send_fn,
+        chance=no_regret_chance,
+        roll_random=roll_random,
+        has_rogue_card=has_rogue_card,
+        pick_best_point=pick_best_point,
+        spawn_bonus_points=spawn_bonus_points,
+        coord_to_gtp=coord_to_gtp,
+    ):
+        extra_board_change = True
+
+    if needs_sync or extra_board_change:
+        await sync_board_to_engine(game)
+
+    return placement
 
 
 def apply_slip_ai_move(

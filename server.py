@@ -114,6 +114,7 @@ from app.gameplay.ai_moves import (
 )
 from app.gameplay.ai_move_flow import (
     apply_ai_move_to_board,
+    apply_ai_move_placement_effects,
     apply_erosion_komi_counter,
     apply_slip_ai_move,
     apply_suspicious_pass_fallback,
@@ -1804,48 +1805,33 @@ async def _ai_move(game: GoGame, send_fn):
     # Ko retry only changes the final move/message; keep slip sync state intact.
     slip_msg = ko_result.message
 
-    placement = apply_ai_move_to_board(
-        game,
-        color=color,
-        gtp_move=gtp_move,
-        gtp_to_coord=gtp_to_coord,
-    )
-    coord = placement.coord
-    captured = placement.captured
-
-    extra_board_change = await try_apply_sansan_trap_counter(
+    placement = await apply_ai_move_placement_effects(
         game,
         send_fn,
+        color=color,
         card=card,
-        coord=coord,
-        stones=ROGUE_SANSAN_TRAP_STONES,
+        gtp_move=gtp_move,
+        needs_sync=needs_sync,
+        gtp_to_coord=gtp_to_coord,
+        sync_board_to_engine=_sync_board_to_katago,
+        engine_is_ready=lambda: engine.ready,
+        apply_move_to_board=apply_ai_move_to_board,
+        apply_sansan_trap_counter=try_apply_sansan_trap_counter,
+        try_no_regret_bonus=try_apply_no_regret_bonus,
+        trap_stones=ROGUE_SANSAN_TRAP_STONES,
         get_sansan_points=_get_sansan_points,
         adjacent_points=_adjacent8_points,
         shuffle_points=random.shuffle,
         spawn_bonus_points=_spawn_bonus_points,
         coord_to_gtp=coord_to_gtp,
         apply_trap_bonus=_challenge_apply_trap_bonus,
-    )
-
-    if (needs_sync or extra_board_change) and engine.ready:
-        await _sync_board_to_katago(game)
-        needs_sync = False
-        extra_board_change = False
-
-    if await try_apply_no_regret_bonus(
-        game,
-        send_fn,
-        chance=ROGUE_NO_REGRET_CHANCE,
+        no_regret_chance=ROGUE_NO_REGRET_CHANCE,
         roll_random=random.random,
         has_rogue_card=_rogue_has,
         pick_best_point=_pick_best_point,
-        spawn_bonus_points=_spawn_bonus_points,
-        coord_to_gtp=coord_to_gtp,
-    ):
-        extra_board_change = True
-
-    if needs_sync or extra_board_change:
-        await _sync_board_to_katago(game)
+    )
+    coord = placement.coord
+    captured = placement.captured
 
     game.current_player = game.player_color
     _prepare_player_turn_modifiers(game)
