@@ -6,7 +6,6 @@ import asyncio
 import copy
 import json
 import random
-import subprocess
 import re
 import time
 import os
@@ -95,10 +94,6 @@ from app.config.gameplay import (
     reset_balance_overrides,
     save_balance_overrides,
 )
-from app.config.gpu_tiers import (
-    GPU_TIER_PATTERNS as _GPU_TIER_PATTERNS,
-    GPU_TIERS as _GPU_TIERS,
-)
 from app.data.cards import (
     get_gameplay_tuning_specs,
     get_gameplay_tuning_values,
@@ -109,6 +104,7 @@ from app.domain.coordinates import coord_to_gtp, gtp_to_coord
 from app.domain.game_state import GoGame
 from app.domain.sgf import generate_sgf
 from app.runtime.access_urls import get_access_urls as build_access_urls
+from app.runtime.gpu_info import apply_runtime_gpu_overrides, detect_gpu_info
 from app.runtime.status_payload import build_status_payload
 from app.gameplay.card_selection import (
     pick_ai_rogue_card,
@@ -497,45 +493,7 @@ def _detect_gpu() -> dict:
     """Detect NVIDIA GPU using nvidia-smi. Returns gpu info dict."""
     if _gpu_cache:
         return _gpu_cache
-
-    result = {"name": "Unknown", "vram_mb": 0, "tier": 1,
-              "default_rank": "3k", "slow_from": "1k", "tier_label": "未知"}
-    try:
-        out = subprocess.check_output(
-            ["nvidia-smi", "--query-gpu=name,memory.total",
-             "--format=csv,noheader,nounits"],
-            timeout=10, creationflags=0x08000000  # CREATE_NO_WINDOW
-        ).decode("utf-8", errors="replace").strip()
-        if out:
-            parts = out.split("\n")[0].split(",")
-            gpu_name = parts[0].strip()
-            vram = int(float(parts[1].strip())) if len(parts) > 1 else 0
-            result["name"] = gpu_name
-            result["vram_mb"] = vram
-
-            # Match GPU tier
-            tier = 1
-            for pattern, t in _GPU_TIER_PATTERNS:
-                if re.search(pattern, gpu_name, re.IGNORECASE):
-                    tier = t
-                    break
-            else:
-                # Fallback: use VRAM as rough tier indicator
-                if vram >= 10000:
-                    tier = 4
-                elif vram >= 6000:
-                    tier = 3
-                elif vram >= 3000:
-                    tier = 2
-
-            result["tier"] = tier
-            info = _GPU_TIERS[tier]
-            result["default_rank"] = info[0]
-            result["slow_from"] = info[1]
-            result["tier_label"] = info[2]
-    except Exception:
-        pass
-
+    result = detect_gpu_info()
     _gpu_cache.update(result)
     return result
 
@@ -547,13 +505,11 @@ _RANK_ORDER = list(RANK_VISITS.keys())
 @app.get("/gpu")
 async def get_gpu_info():
     info = await run_in_executor(_detect_gpu)
-    info["cpu_mode"] = engine_runtime.cpu_mode
-    info["large_model"] = KATAGO_MODEL_LARGE.exists()
-    if engine_runtime.cpu_mode:
-        info["default_rank"] = "5k"
-        info["slow_from"] = "1k"
-        info["tier_label"] = "CPU模式"
-    return info
+    return apply_runtime_gpu_overrides(
+        info,
+        cpu_mode=engine_runtime.cpu_mode,
+        large_model_path=KATAGO_MODEL_LARGE,
+    )
 
 
 def _board_point_from_data(data: dict, size: int) -> Optional[tuple[int, int]]:
