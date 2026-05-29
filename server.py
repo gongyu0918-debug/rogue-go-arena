@@ -27,10 +27,6 @@ from app.config.gameplay import (
     MAX_MOVE_TIME,
     OPENING_MOVE_THRESHOLD,
     RANK_LABELS,
-    ROGUE_CAPTURE_FOUL_BASE,
-    ROGUE_CAPTURE_FOUL_KOMI_PENALTY,
-    ROGUE_CAPTURE_FOUL_STEP,
-    ROGUE_CAPTURE_FOUL_THRESHOLD,
     ROGUE_COACH_BASE_TURNS,
     ROGUE_COACH_BONUS_THRESHOLD,
     ROGUE_COACH_BONUS_TURNS,
@@ -72,8 +68,6 @@ from app.config.gameplay import (
     ROGUE_SUBOPTIMAL_AI_MOVES,
     ROGUE_TIME_PRESS_BACKUP_AI_MOVES,
     ROGUE_TIME_PRESS_BACKUP_CHANCE,
-    ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY,
-    ULTIMATE_CAPTURE_FOUL_THRESHOLD,
     ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
     ULTIMATE_FIVE_IN_ROW_CLEAR_COUNT,
     ULTIMATE_FIVE_IN_ROW_SPAWN_COUNT,
@@ -124,6 +118,7 @@ from app.gameplay.ai_moves import (
     weaken_rank,
     weaken_rank_one_step,
 )
+from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
 from app.gameplay.effect_utils import (
     adjacent8_points as _adjacent8_points,
     adjacent_points as _adjacent_points,
@@ -727,13 +722,6 @@ def _finish_ultimate_quickthink_turn(game: GoGame) -> None:
     game.ultimate_quickthink_turn_counted = False
 
 
-def _apply_score_penalty(game: GoGame, offender: str, amount: float) -> None:
-    if offender == "B":
-        game.komi += amount
-    else:
-        game.komi -= amount
-
-
 async def _check_capture_foul(game: GoGame, send_fn, offender: str, captured: int, *, ultimate: bool) -> None:
     """Track capture-foul progress and penalise when threshold is met.
 
@@ -742,50 +730,12 @@ async def _check_capture_foul(game: GoGame, send_fn, offender: str, captured: in
       - Ultimate: whoever picked the card → only the other side is punished.
     ``offender`` is the colour that just captured stones.
     """
-    if captured <= 0:
+    result = apply_capture_foul(game, offender, captured, ultimate=ultimate)
+    if not result.triggered:
         return
-    if ultimate:
-        # Determine which side(s) are protected by this card
-        player_has = game.ultimate and game.ultimate_player_card == "capture_foul"
-        ai_has = game.ultimate and game.ultimate_ai_card == "capture_foul"
-        if not (player_has or ai_has):
-            return
-        # Only punish the opponent of the card holder
-        if player_has and offender != game.ai_color:
-            return  # player holds card → only AI gets punished
-        if ai_has and offender != game.player_color:
-            return  # AI holds card → only player gets punished
-        progress = game.ultimate_capture_foul_progress
-        progress[offender] += captured
-        if progress[offender] < ULTIMATE_CAPTURE_FOUL_THRESHOLD:
-            return
-        _apply_score_penalty(game, offender, ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY)
-        progress[offender] = 0
-        await send_fn({
-            "type": "rogue_event",
-            "msg": f"🧺 提子犯规触发！{('黑棋' if offender == 'B' else '白棋')} 被罚 {ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY:.0f} 目",
-        })
-        if engine.ready:
-            await run_in_executor(engine.send_command, f"komi {game.komi}")
-        return
-
-    if game.rogue_card != "capture_foul":
-        return
-    # Rogue: player picks the card → only AI (opponent) is punished
-    if offender != game.ai_color:
-        return
-    progress = game.rogue_capture_foul_progress
-    progress[offender] += captured
-    if progress[offender] < ROGUE_CAPTURE_FOUL_THRESHOLD:
-        return
-    chance = min(1.0, ROGUE_CAPTURE_FOUL_BASE + max(0, progress[offender] - ROGUE_CAPTURE_FOUL_THRESHOLD) * ROGUE_CAPTURE_FOUL_STEP)
-    if random.random() > chance:
-        return
-    _apply_score_penalty(game, offender, ROGUE_CAPTURE_FOUL_KOMI_PENALTY)
-    progress[offender] = 0
     await send_fn({
         "type": "rogue_event",
-        "msg": f"🧺 提子犯规！{('黑棋' if offender == 'B' else '白棋')} 被罚 {ROGUE_CAPTURE_FOUL_KOMI_PENALTY:.1f} 目",
+        "msg": result.message,
     })
     if engine.ready:
         await run_in_executor(engine.send_command, f"komi {game.komi}")
