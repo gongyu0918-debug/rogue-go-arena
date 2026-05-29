@@ -15,6 +15,10 @@ PreparePlayerTurnFn = Callable[[Any], None]
 EngineCommandFn = Callable[[str], Awaitable[str]]
 RunCoachTurnFn = Callable[[Any, AsyncSend], Awaitable[None]]
 FinishAiMoveFn = Callable[[Any, AsyncSend, str, str | None, str, str | None], Awaitable[None]]
+AllowedRestrictionMoveFn = Callable[
+    [Any, str, int, float, list[tuple[int, int]]],
+    Awaitable[str | None],
+]
 
 
 async def finalize_forced_ai_pass(
@@ -127,6 +131,42 @@ async def try_apply_puppet_ai_move(
         f"🎭 傀儡术生效，AI 被迫落子于 {puppet_gtp}",
     )
     await send_fn({"type": "rogue_uses_update", "uses": game.rogue_uses})
+    return True
+
+
+async def try_finish_allowed_restriction_move(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    card: str | None,
+    restriction: Any | None,
+    visits: int,
+    time_limit: float,
+    choose_allowed_move: AllowedRestrictionMoveFn,
+    finish_ai_move: FinishAiMoveFn,
+) -> bool:
+    if restriction is None:
+        return False
+
+    gtp_move = await choose_allowed_move(
+        game,
+        color,
+        visits,
+        time_limit,
+        restriction.points,
+    )
+    if not gtp_move:
+        return False
+
+    await finish_ai_move(
+        game,
+        send_fn,
+        color,
+        card,
+        gtp_move,
+        restriction.message,
+    )
     return True
 
 

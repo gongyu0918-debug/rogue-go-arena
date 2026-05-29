@@ -1,0 +1,424 @@
+from __future__ import annotations
+
+import asyncio
+
+import server as s
+from app.domain.game_state import GoGame
+from app.gameplay.ai_move_flow import try_finish_allowed_restriction_move
+
+
+class Restriction:
+    def __init__(self, points=None, message="restriction message"):
+        self.points = [(0, 0)] if points is None else points
+        self.message = message
+
+
+async def _try_finish_allowed_restriction_move_finishes_when_move_found() -> None:
+    game = GoGame(size=5, player_color="B")
+    restriction = Restriction(points=[(1, 1), (2, 2)], message="allowed only")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def choose_allowed_move(game_arg, color, visits, time_limit, points):
+        calls.append(("choose", game_arg is game, color, visits, time_limit, points))
+        return "C3"
+
+    async def finish_ai_move(game_arg, send_fn, color, card, gtp_move, rogue_msg):
+        calls.append(("finish", game_arg is game, send_fn is send, color, card, gtp_move, rogue_msg))
+
+    handled = await try_finish_allowed_restriction_move(
+        game,
+        send,
+        color="W",
+        card="gravity",
+        restriction=restriction,
+        visits=123,
+        time_limit=1.5,
+        choose_allowed_move=choose_allowed_move,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("choose", True, "W", 123, 1.5, [(1, 1), (2, 2)]),
+        ("finish", True, True, "W", "gravity", "C3", "allowed only"),
+    ]
+
+
+def test_try_finish_allowed_restriction_move_finishes_when_move_found() -> None:
+    asyncio.run(_try_finish_allowed_restriction_move_finishes_when_move_found())
+
+
+async def _try_finish_allowed_restriction_move_skips_when_no_restriction_or_move() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def choose_allowed_move(*args):
+        calls.append(("choose", args))
+        return None
+
+    async def finish_ai_move(*args):
+        calls.append(("finish", args))
+
+    assert await try_finish_allowed_restriction_move(
+        game,
+        send,
+        color="W",
+        card="gravity",
+        restriction=None,
+        visits=123,
+        time_limit=1.5,
+        choose_allowed_move=choose_allowed_move,
+        finish_ai_move=finish_ai_move,
+    ) is False
+
+    assert calls == []
+
+    assert await try_finish_allowed_restriction_move(
+        game,
+        send,
+        color="W",
+        card="gravity",
+        restriction=Restriction(),
+        visits=123,
+        time_limit=1.5,
+        choose_allowed_move=choose_allowed_move,
+        finish_ai_move=finish_ai_move,
+    ) is False
+
+    assert calls == [("choose", (game, "W", 123, 1.5, [(0, 0)]))]
+
+
+def test_try_finish_allowed_restriction_move_skips_when_no_restriction_or_move() -> None:
+    asyncio.run(_try_finish_allowed_restriction_move_skips_when_no_restriction_or_move())
+
+
+async def _server_ai_move_gravity_delegates_to_restriction_flow() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "gravity"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    def fake_gravity_allowed_points(game_arg, ai_move_count):
+        calls.append(("gravity", game_arg is game, ai_move_count))
+        return Restriction(message="gravity message")
+
+    async def fake_restriction_flow(game_arg, send_fn, **kwargs):
+        calls.append((
+            "restriction",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["card"],
+            kwargs["restriction"].message,
+            isinstance(kwargs["visits"], int),
+            isinstance(kwargs["time_limit"], float),
+            kwargs["choose_allowed_move"] is s._ai_move_avoid_points_allow_only,
+            kwargs["finish_ai_move"] is s._finish_ai_move,
+        ))
+        return True
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_gravity_allowed_points = s.gravity_allowed_points
+    original_restriction_flow = s.try_finish_allowed_restriction_move
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.gravity_allowed_points = fake_gravity_allowed_points
+    s.try_finish_allowed_restriction_move = fake_restriction_flow
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.gravity_allowed_points = original_gravity_allowed_points
+        s.try_finish_allowed_restriction_move = original_restriction_flow
+
+    assert calls == [
+        ("sync", True),
+        ("gravity", True, 0),
+        ("restriction", True, True, "W", "gravity", "gravity message", True, True, True, True),
+    ]
+
+
+def test_server_ai_move_gravity_delegates_to_restriction_flow() -> None:
+    asyncio.run(_server_ai_move_gravity_delegates_to_restriction_flow())
+
+
+async def _server_ai_move_lowline_restriction_false_continues_to_normal_move() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "lowline"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    def fake_lowline_allowed_points(game_arg, ai_move_count):
+        calls.append(("lowline", game_arg is game, ai_move_count))
+        return Restriction(message="lowline message")
+
+    async def fake_restriction_flow(game_arg, send_fn, **kwargs):
+        calls.append(("restriction", game_arg is game, send_fn is send, kwargs["card"]))
+        return False
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_lowline_allowed_points = s.lowline_allowed_points
+    original_restriction_flow = s.try_finish_allowed_restriction_move
+    original_generate = s._ai_generate_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.lowline_allowed_points = fake_lowline_allowed_points
+    s.try_finish_allowed_restriction_move = fake_restriction_flow
+    s._ai_generate_move = fake_generate
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.lowline_allowed_points = original_lowline_allowed_points
+        s.try_finish_allowed_restriction_move = original_restriction_flow
+        s._ai_generate_move = original_generate
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "C3")
+    assert game.board[2][2] == 2
+    assert calls == [
+        ("sync", True),
+        ("lowline", True, 0),
+        ("restriction", True, True, "lowline"),
+        ("generate", "W", True, True),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_lowline_restriction_false_continues_to_normal_move() -> None:
+    asyncio.run(_server_ai_move_lowline_restriction_false_continues_to_normal_move())
+
+
+async def _server_ai_move_tengen_followup_delegates_after_target_miss() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "tengen"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    def fake_choose_tengen_target(game_arg, ai_move_count):
+        calls.append(("target", game_arg is game, ai_move_count))
+        return None
+
+    def fake_tengen_followup_points(game_arg, ai_move_count):
+        calls.append(("followup", game_arg is game, ai_move_count))
+        return Restriction(message="tengen followup")
+
+    async def fake_restriction_flow(game_arg, send_fn, **kwargs):
+        calls.append(("restriction", game_arg is game, send_fn is send, kwargs["card"], kwargs["restriction"].message))
+        return True
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_choose_tengen_target = s.choose_tengen_target
+    original_tengen_followup_points = s.tengen_followup_points
+    original_restriction_flow = s.try_finish_allowed_restriction_move
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.choose_tengen_target = fake_choose_tengen_target
+    s.tengen_followup_points = fake_tengen_followup_points
+    s.try_finish_allowed_restriction_move = fake_restriction_flow
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.choose_tengen_target = original_choose_tengen_target
+        s.tengen_followup_points = original_tengen_followup_points
+        s.try_finish_allowed_restriction_move = original_restriction_flow
+
+    assert calls == [
+        ("sync", True),
+        ("target", True, 0),
+        ("followup", True, 0),
+        ("restriction", True, True, "tengen", "tengen followup"),
+    ]
+
+
+def test_server_ai_move_tengen_followup_delegates_after_target_miss() -> None:
+    asyncio.run(_server_ai_move_tengen_followup_delegates_after_target_miss())
+
+
+async def _server_ai_move_shadow_delegates_to_restriction_flow_when_triggered() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "shadow"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    def fake_random():
+        calls.append(("random",))
+        return 0.0
+
+    def fake_shadow_followup_points(game_arg, color, ai_move_count, *, gtp_to_coord):
+        calls.append(("shadow", game_arg is game, color, ai_move_count, gtp_to_coord is s.gtp_to_coord))
+        return Restriction(message="shadow message")
+
+    async def fake_restriction_flow(game_arg, send_fn, **kwargs):
+        calls.append(("restriction", game_arg is game, send_fn is send, kwargs["card"], kwargs["restriction"].message))
+        return True
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_random = s.random.random
+    original_shadow_followup_points = s.shadow_followup_points
+    original_restriction_flow = s.try_finish_allowed_restriction_move
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.random.random = fake_random
+    s.shadow_followup_points = fake_shadow_followup_points
+    s.try_finish_allowed_restriction_move = fake_restriction_flow
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.random.random = original_random
+        s.shadow_followup_points = original_shadow_followup_points
+        s.try_finish_allowed_restriction_move = original_restriction_flow
+
+    assert calls == [
+        ("sync", True),
+        ("random",),
+        ("shadow", True, "W", 0, True),
+        ("restriction", True, True, "shadow", "shadow message"),
+    ]
+
+
+def test_server_ai_move_shadow_delegates_to_restriction_flow_when_triggered() -> None:
+    asyncio.run(_server_ai_move_shadow_delegates_to_restriction_flow_when_triggered())
+
+
+async def _server_ai_move_shadow_chance_miss_skips_restriction_flow() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "shadow"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    def fake_random():
+        calls.append(("random",))
+        return 1.0
+
+    def fake_shadow_followup_points(*_args, **_kwargs):
+        calls.append(("shadow",))
+        return Restriction(message="shadow message")
+
+    async def fake_restriction_flow(*_args, **_kwargs):
+        calls.append(("restriction",))
+        return True
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_random = s.random.random
+    original_shadow_followup_points = s.shadow_followup_points
+    original_restriction_flow = s.try_finish_allowed_restriction_move
+    original_generate = s._ai_generate_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.random.random = fake_random
+    s.shadow_followup_points = fake_shadow_followup_points
+    s.try_finish_allowed_restriction_move = fake_restriction_flow
+    s._ai_generate_move = fake_generate
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.random.random = original_random
+        s.shadow_followup_points = original_shadow_followup_points
+        s.try_finish_allowed_restriction_move = original_restriction_flow
+        s._ai_generate_move = original_generate
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "C3")
+    assert game.board[2][2] == 2
+    assert calls == [
+        ("sync", True),
+        ("random",),
+        ("generate", "W", True, True),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_shadow_chance_miss_skips_restriction_flow() -> None:
+    asyncio.run(_server_ai_move_shadow_chance_miss_skips_restriction_flow())
+
+
+if __name__ == "__main__":
+    test_try_finish_allowed_restriction_move_finishes_when_move_found()
+    test_try_finish_allowed_restriction_move_skips_when_no_restriction_or_move()
+    test_server_ai_move_gravity_delegates_to_restriction_flow()
+    test_server_ai_move_lowline_restriction_false_continues_to_normal_move()
+    test_server_ai_move_tengen_followup_delegates_after_target_miss()
+    test_server_ai_move_shadow_delegates_to_restriction_flow_when_triggered()
+    test_server_ai_move_shadow_chance_miss_skips_restriction_flow()
+    print("ai_restriction_flow_smoke_test passed")

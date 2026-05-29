@@ -124,6 +124,7 @@ from app.gameplay.ai_move_flow import (
     finalize_forced_ai_pass,
     try_apply_puppet_ai_move,
     try_finalize_forced_ai_stone,
+    try_finish_allowed_restriction_move,
 )
 from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
 from app.gameplay.turn_modifiers import (
@@ -1616,32 +1617,48 @@ async def _ai_move(game: GoGame, send_fn):
                 ):
                     return
         restriction = tengen_followup_points(game, ai_move_count)
-        if restriction:
-            gtp_move = await _ai_move_avoid_points_allow_only(
-                game, color, visits, time_limit, restriction.points)
-            if gtp_move:
-                await _finish_ai_move(game, send_fn, color, card, gtp_move, restriction.message)
-                return
+        if await try_finish_allowed_restriction_move(
+            game,
+            send_fn,
+            color=color,
+            card=card,
+            restriction=restriction,
+            visits=visits,
+            time_limit=time_limit,
+            choose_allowed_move=_ai_move_avoid_points_allow_only,
+            finish_ai_move=_finish_ai_move,
+        ):
+            return
 
     if "gravity" in rogue_cards:
         restriction = gravity_allowed_points(game, ai_move_count)
-        if restriction:
-            gtp_move = await _ai_move_avoid_points_allow_only(
-                game, color, visits, time_limit, restriction.points)
-            if gtp_move:
-                await _finish_ai_move(game, send_fn, color, card, gtp_move,
-                                      restriction.message)
-                return
+        if await try_finish_allowed_restriction_move(
+            game,
+            send_fn,
+            color=color,
+            card=card,
+            restriction=restriction,
+            visits=visits,
+            time_limit=time_limit,
+            choose_allowed_move=_ai_move_avoid_points_allow_only,
+            finish_ai_move=_finish_ai_move,
+        ):
+            return
 
     if "lowline" in rogue_cards:
         restriction = lowline_allowed_points(game, ai_move_count)
-        if restriction:
-            gtp_move = await _ai_move_avoid_points_allow_only(
-                game, color, visits, time_limit, restriction.points)
-            if gtp_move:
-                await _finish_ai_move(game, send_fn, color, card, gtp_move,
-                                      restriction.message)
-                return
+        if await try_finish_allowed_restriction_move(
+            game,
+            send_fn,
+            color=color,
+            card=card,
+            restriction=restriction,
+            visits=visits,
+            time_limit=time_limit,
+            choose_allowed_move=_ai_move_avoid_points_allow_only,
+            finish_ai_move=_finish_ai_move,
+        ):
+            return
 
     if "sansan" in rogue_cards:
         restriction = sansan_opening_restriction(game, ai_move_count)
@@ -1669,10 +1686,17 @@ async def _ai_move(game: GoGame, send_fn):
             gtp_to_coord=gtp_to_coord,
         )
         if restriction:
-            gtp_move = await _ai_move_avoid_points_allow_only(
-                game, color, visits, time_limit, restriction.points)
-            if gtp_move:
-                await _finish_ai_move(game, send_fn, color, card, gtp_move, restriction.message)
+            if await try_finish_allowed_restriction_move(
+                game,
+                send_fn,
+                color=color,
+                card=card,
+                restriction=restriction,
+                visits=visits,
+                time_limit=time_limit,
+                choose_allowed_move=_ai_move_avoid_points_allow_only,
+                finish_ai_move=_finish_ai_move,
+            ):
                 return
 
     if ("nerf" in rogue_cards
