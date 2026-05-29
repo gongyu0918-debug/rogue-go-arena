@@ -12,6 +12,7 @@ from app.gameplay.effect_utils import (
     collect_joseki_burst_points,
     diamond_points,
     find_exact_five_lines,
+    find_new_fool_shapes,
     get_corner_boundary_points,
     get_corner_square_points,
     get_star_points,
@@ -28,6 +29,15 @@ from app.gameplay.effect_utils import (
 class BoardEffectResult:
     modified: bool
     messages: list[str]
+
+
+@dataclass
+class FoolishWisdomWaveResult:
+    modified: bool
+    message: str | None
+    generated: int
+    detected_shapes: int
+    has_more: bool
 
 
 def get_ultimate_territory_forbidden_points(
@@ -165,6 +175,60 @@ def apply_ultimate_five_in_row(
         messages=[
             f"🎯 五子连珠爆发连锁 {chain_count} 次：随机清除 {total_cleared} 颗敌子，并补下 {total_spawned} 颗己棋"
         ],
+    )
+
+
+def apply_ultimate_foolish_wisdom_wave(
+    game: Any,
+    color: str,
+    *,
+    wave: int,
+    rng: random.Random | None = None,
+    fill_count: int | None = None,
+) -> FoolishWisdomWaveResult:
+    rng = random.Random(time.time_ns()) if rng is None else rng
+    fill_count = gameplay_config.ULTIMATE_FOOLISH_FILL_COUNT if fill_count is None else fill_count
+    pending_shapes = find_new_fool_shapes(game, color, game.ultimate_fool_shapes)
+    if not pending_shapes:
+        return FoolishWisdomWaveResult(
+            modified=False,
+            message=None,
+            generated=0,
+            detected_shapes=0,
+            has_more=False,
+        )
+
+    for shape in pending_shapes:
+        game.ultimate_fool_shapes.add(shape)
+
+    empties = [
+        (sx, sy)
+        for sy in range(game.size)
+        for sx in range(game.size)
+        if game.board[sy][sx] == 0
+    ]
+    rng.shuffle(empties)
+    batch = empties[:fill_count]
+    if not batch:
+        return FoolishWisdomWaveResult(
+            modified=False,
+            message=None,
+            generated=0,
+            detected_shapes=len(pending_shapes),
+            has_more=False,
+        )
+
+    placed = spawn_bonus_points(game, batch, color)
+    has_more = bool(find_new_fool_shapes(game, color, game.ultimate_fool_shapes))
+    return FoolishWisdomWaveResult(
+        modified=bool(placed),
+        message=(
+            f"🪤 大智若愚第 {wave} 波发动，识别到 {len(pending_shapes)} 个愚形，"
+            f"生成 {len(placed)} 颗己方棋子"
+        ),
+        generated=len(placed),
+        detected_shapes=len(pending_shapes),
+        has_more=has_more,
     )
 
 

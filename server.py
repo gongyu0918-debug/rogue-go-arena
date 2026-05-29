@@ -69,7 +69,6 @@ from app.config.gameplay import (
     ROGUE_TIME_PRESS_BACKUP_CHANCE,
     ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
     ULTIMATE_FOOLISH_CHAIN_DELAY,
-    ULTIMATE_FOOLISH_FILL_COUNT,
     ULTIMATE_JOSEKI_BONUS_STONES,
     ULTIMATE_JOSEKI_REQUIRED_HITS,
     ULTIMATE_LAST_STAND_THRESHOLD,
@@ -139,7 +138,6 @@ from app.gameplay.effect_utils import (
     diamond_points as _diamond_points,
     find_exact_five_lines as _find_exact_five_lines,
     find_corner_with_min_stones as _find_corner_with_min_stones,
-    find_new_fool_shapes as _find_new_fool_shapes,
     get_blackhole_points as _get_blackhole_points,
     get_corner_helper_spawn_points as _get_corner_helper_spawn_points,
     get_golden_corner_points as _get_golden_corner_points,
@@ -174,6 +172,7 @@ from app.gameplay.rogue_effects import (
 )
 from app.services.card_config_service import CardConfigService
 from app.gameplay.ultimate_effects import (
+    apply_ultimate_foolish_wisdom_wave,
     apply_ultimate_five_in_row,
     apply_ultimate_last_stand,
     apply_ultimate_board_effect,
@@ -1265,9 +1264,6 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
                                   color: str, card: str):
     """Apply a single ultimate card effect after a stone is placed at (x,y).
     Returns True if board was modified (needs KataGo sync)."""
-    import time as _time
-    rng = random.Random(_time.time_ns())
-    size = game.size
     modified = False
 
     board_effect = apply_ultimate_board_effect(game, x=x, y=y, color=color, card=card)
@@ -1299,32 +1295,27 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
             modified = True
 
     elif card == "foolish_wisdom":
-        pending_shapes = _find_new_fool_shapes(game, color, game.ultimate_fool_shapes)
+        rng = random.Random(time.time_ns())
         wave = 0
         total_generated = 0
-        while pending_shapes:
-            for shape in pending_shapes:
-                game.ultimate_fool_shapes.add(shape)
-            empties = [
-                (sx, sy)
-                for sy in range(size)
-                for sx in range(size)
-                if game.board[sy][sx] == 0
-            ]
-            rng.shuffle(empties)
-            batch = empties[:ULTIMATE_FOOLISH_FILL_COUNT]
-            if not batch:
+        while True:
+            result = apply_ultimate_foolish_wisdom_wave(
+                game,
+                color,
+                wave=wave + 1,
+                rng=rng,
+            )
+            if result.message is None:
                 break
-            placed = _spawn_bonus_points(game, batch, color)
-            if placed:
-                modified = True
             wave += 1
-            total_generated += len(placed)
-            await send_fn({"type": "rogue_event",
-                           "msg": f"🪤 大智若愚第 {wave} 波发动，识别到 {len(pending_shapes)} 个愚形，生成 {len(placed)} 颗己方棋子"})
-            pending_shapes = _find_new_fool_shapes(game, color, game.ultimate_fool_shapes)
-            if pending_shapes:
+            if result.modified:
+                modified = True
+            total_generated += result.generated
+            await send_fn({"type": "rogue_event", "msg": result.message})
+            if result.has_more:
                 await asyncio.sleep(ULTIMATE_FOOLISH_CHAIN_DELAY)
+            else:
+                break
         if total_generated > 0:
             await send_fn({"type": "rogue_event",
                            "msg": f"🪤 大智若愚连锁结束，本次共生成 {total_generated} 颗己方棋子"})

@@ -3,11 +3,14 @@ import asyncio
 import server as s
 import app.config.gameplay as gameplay_config
 import app.gameplay.turn_modifiers as turn_modifiers
+import app.gameplay.ultimate_effects as ultimate_effects
 from app.domain.coordinates import coord_to_gtp
 from app.domain.game_state import GoGame
 from app.gameplay.effect_utils import line_points_between
 from app.gameplay.ultimate_effects import (
     BoardEffectResult,
+    FoolishWisdomWaveResult,
+    apply_ultimate_foolish_wisdom_wave,
     apply_ultimate_five_in_row,
     apply_ultimate_last_stand,
     get_ultimate_territory_forbidden_points,
@@ -261,6 +264,99 @@ def test_apply_ultimate_five_in_row_reads_live_config_counts() -> None:
     assert game.board[0][0] == 1
 
 
+def test_apply_ultimate_foolish_wisdom_wave_generates_and_reports() -> None:
+    game = make_game()
+    game.board[2][2] = 1
+    game.board[2][3] = 1
+    game.board[3][2] = 1
+
+    result = apply_ultimate_foolish_wisdom_wave(
+        game,
+        "B",
+        wave=1,
+        rng=IdentityRng(),
+        fill_count=2,
+    )
+
+    assert result.modified is True
+    assert result.generated == 2
+    assert result.detected_shapes == 1
+    assert result.message == "🪤 大智若愚第 1 波发动，识别到 1 个愚形，生成 2 颗己方棋子"
+    assert len(game.ultimate_fool_shapes) == 1
+    assert game.board[0][0] == 1
+    assert game.board[0][1] == 1
+
+
+def test_apply_ultimate_foolish_wisdom_wave_marks_seen_without_batch() -> None:
+    game = make_game()
+    game.board[2][2] = 1
+    game.board[2][3] = 1
+    game.board[3][2] = 1
+
+    result = apply_ultimate_foolish_wisdom_wave(
+        game,
+        "B",
+        wave=1,
+        rng=IdentityRng(),
+        fill_count=0,
+    )
+
+    assert result.modified is False
+    assert result.message is None
+    assert result.generated == 0
+    assert result.detected_shapes == 1
+    assert result.has_more is False
+    assert len(game.ultimate_fool_shapes) == 1
+
+
+def test_apply_ultimate_foolish_wisdom_wave_reports_zero_placed_batch() -> None:
+    game = make_game()
+    game.board[2][2] = 1
+    game.board[2][3] = 1
+    game.board[3][2] = 1
+    old_spawn = ultimate_effects.spawn_bonus_points
+    try:
+        def fake_spawn(_game, points, _color):
+            assert points
+            return []
+
+        ultimate_effects.spawn_bonus_points = fake_spawn
+        result = apply_ultimate_foolish_wisdom_wave(
+            game,
+            "B",
+            wave=1,
+            rng=IdentityRng(),
+            fill_count=2,
+        )
+    finally:
+        ultimate_effects.spawn_bonus_points = old_spawn
+
+    assert result.modified is False
+    assert result.generated == 0
+    assert result.detected_shapes == 1
+    assert result.message == "🪤 大智若愚第 1 波发动，识别到 1 个愚形，生成 0 颗己方棋子"
+    assert len(game.ultimate_fool_shapes) == 1
+
+
+def test_apply_ultimate_foolish_wisdom_wave_reads_live_config_count() -> None:
+    game = make_game()
+    game.board[2][2] = 1
+    game.board[2][3] = 1
+    game.board[3][2] = 1
+
+    old_fill = gameplay_config.ULTIMATE_FOOLISH_FILL_COUNT
+    try:
+        gameplay_config.ULTIMATE_FOOLISH_FILL_COUNT = 1
+        result = apply_ultimate_foolish_wisdom_wave(game, "B", wave=1, rng=IdentityRng())
+    finally:
+        gameplay_config.ULTIMATE_FOOLISH_FILL_COUNT = old_fill
+
+    assert result.modified is True
+    assert result.generated == 1
+    assert result.message == "🪤 大智若愚第 1 波发动，识别到 1 个愚形，生成 1 颗己方棋子"
+    assert game.board[0][0] == 1
+
+
 def test_resolve_pending_shadow_links_waits_until_trigger_move() -> None:
     game = make_game()
     game.ultimate_move_count = 1
@@ -444,6 +540,65 @@ def test_server_ultimate_five_in_row_sends_events() -> None:
     asyncio.run(_server_ultimate_five_in_row_sends_events())
 
 
+async def _server_ultimate_foolish_wisdom_sends_waves_sleep_and_summary() -> None:
+    game = make_game()
+    sent = []
+    sleeps = []
+    calls = []
+    rng_ids = []
+    old_apply = s.apply_ultimate_foolish_wisdom_wave
+    old_sleep = s.asyncio.sleep
+    try:
+        async def send(payload):
+            sent.append(payload)
+
+        async def fake_sleep(seconds):
+            sleeps.append(seconds)
+
+        def fake_apply(effect_game, color, *, wave, rng):
+            assert effect_game is game
+            assert color == "B"
+            assert rng is not None
+            calls.append(wave)
+            rng_ids.append(id(rng))
+            if wave == 1:
+                return FoolishWisdomWaveResult(
+                    modified=True,
+                    message="wave 1",
+                    generated=2,
+                    detected_shapes=1,
+                    has_more=True,
+                )
+            return FoolishWisdomWaveResult(
+                modified=False,
+                message="wave 2",
+                generated=0,
+                detected_shapes=1,
+                has_more=False,
+            )
+
+        s.apply_ultimate_foolish_wisdom_wave = fake_apply
+        s.asyncio.sleep = fake_sleep
+        result = await s._apply_ultimate_effect(game, send, 2, 3, "B", "foolish_wisdom")
+    finally:
+        s.apply_ultimate_foolish_wisdom_wave = old_apply
+        s.asyncio.sleep = old_sleep
+
+    assert result is True
+    assert calls == [1, 2]
+    assert len(set(rng_ids)) == 1
+    assert sleeps == [s.ULTIMATE_FOOLISH_CHAIN_DELAY]
+    assert sent == [
+        {"type": "rogue_event", "msg": "wave 1"},
+        {"type": "rogue_event", "msg": "wave 2"},
+        {"type": "rogue_event", "msg": "🪤 大智若愚连锁结束，本次共生成 2 颗己方棋子"},
+    ]
+
+
+def test_server_ultimate_foolish_wisdom_sends_waves_sleep_and_summary() -> None:
+    asyncio.run(_server_ultimate_foolish_wisdom_sends_waves_sleep_and_summary())
+
+
 if __name__ == "__main__":
     test_record_ultimate_player_action_counts_normal_and_double_turns()
     test_record_ultimate_player_action_counts_quickthink_once()
@@ -458,6 +613,10 @@ if __name__ == "__main__":
     test_apply_ultimate_five_in_row_marks_seen_without_board_change()
     test_apply_ultimate_five_in_row_chains_new_lines_created_by_spawn()
     test_apply_ultimate_five_in_row_reads_live_config_counts()
+    test_apply_ultimate_foolish_wisdom_wave_generates_and_reports()
+    test_apply_ultimate_foolish_wisdom_wave_marks_seen_without_batch()
+    test_apply_ultimate_foolish_wisdom_wave_reports_zero_placed_batch()
+    test_apply_ultimate_foolish_wisdom_wave_reads_live_config_count()
     test_resolve_pending_shadow_links_waits_until_trigger_move()
     test_resolve_pending_shadow_links_draws_line_and_resets_ko()
     test_resolve_pending_shadow_links_clears_triggered_unchanged_link_without_message()
@@ -465,4 +624,5 @@ if __name__ == "__main__":
     test_server_resolve_pending_shadow_links_sends_events()
     test_server_ultimate_last_stand_high_winrate_guard()
     test_server_ultimate_five_in_row_sends_events()
+    test_server_ultimate_foolish_wisdom_sends_waves_sleep_and_summary()
     print("ultimate_helpers_smoke_test passed")
