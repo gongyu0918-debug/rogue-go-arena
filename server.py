@@ -180,6 +180,7 @@ from app.gameplay.ultimate_effects import (
     get_ultimate_territory_forbidden_points,
     resolve_pending_shadow_links,
 )
+from app.gameplay.ultimate_scoring import compute_ultimate_area_score
 from app.runtime.engine import KataGoEngine
 from app.runtime.game_store import ActiveGameStore
 from app.runtime.startup import EnginePaths, EngineStartupManager
@@ -1325,63 +1326,17 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
 
 async def _ultimate_force_score(game: GoGame, send_fn):
     """Force game end in ultimate mode — count stones for scoring."""
+    result = compute_ultimate_area_score(game)
     game.game_over = True
-    # Simple area scoring: count stones + enclosed territory
-    b_score = 0
-    w_score = 0
-    size = game.size
-    visited = [[False] * size for _ in range(size)]
-
-    # Count stones
-    for y in range(size):
-        for x in range(size):
-            if game.board[y][x] == 1:
-                b_score += 1
-            elif game.board[y][x] == 2:
-                w_score += 1
-
-    # Flood fill for territory
-    for y in range(size):
-        for x in range(size):
-            if game.board[y][x] == 0 and not visited[y][x]:
-                # BFS
-                region = []
-                stack = [(x, y)]
-                borders = set()
-                while stack:
-                    cx, cy = stack.pop()
-                    if visited[cy][cx]:
-                        continue
-                    visited[cy][cx] = True
-                    region.append((cx, cy))
-                    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                        nx, ny = cx + dx, cy + dy
-                        if 0 <= nx < size and 0 <= ny < size:
-                            if game.board[ny][nx] == 0 and not visited[ny][nx]:
-                                stack.append((nx, ny))
-                            elif game.board[ny][nx] != 0:
-                                borders.add(game.board[ny][nx])
-                if len(borders) == 1:
-                    owner = borders.pop()
-                    if owner == 1:
-                        b_score += len(region)
-                    else:
-                        w_score += len(region)
-
-    b_score_final = b_score
-    w_score_final = w_score + game.komi
-    if b_score_final > w_score_final:
-        winner = "B"
-        score_str = f"B+{b_score_final - w_score_final:.1f}"
-    else:
-        winner = "W"
-        score_str = f"W+{w_score_final - b_score_final:.1f}"
-
-    game.winner = winner
+    game.winner = result.winner
     game.push_history()
     await send_fn({"type": "game_state", **game.to_state()})
-    await send_fn({"type": "game_over", "winner": winner,
-                    "score": score_str, "reason": "ultimate_20moves"})
+    await send_fn({
+        "type": "game_over",
+        "winner": result.winner,
+        "score": result.score,
+        "reason": result.reason,
+    })
 
 
 def _is_suspicious_ai_pass(game: GoGame, gtp_move: str, color: str) -> bool:
