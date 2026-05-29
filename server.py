@@ -181,6 +181,7 @@ from app.gameplay.ultimate_effects import (
     apply_ultimate_board_effect,
     apply_ultimate_state_effect,
     get_ultimate_territory_forbidden_points,
+    resolve_pending_shadow_links,
 )
 from app.runtime.engine import KataGoEngine
 from app.runtime.game_store import ActiveGameStore
@@ -947,35 +948,14 @@ def _player_non_pass_coords(game: GoGame, color: str, limit: Optional[int] = Non
 
 
 async def _resolve_pending_ultimate_shadow_links(game: GoGame, send_fn) -> bool:
-    if not game.ultimate_shadow_clone_links:
-        return False
-    pending = []
-    modified = False
-    for link in game.ultimate_shadow_clone_links:
-        if game.ultimate_move_count < link["trigger_move"]:
-            pending.append(link)
-            continue
-        changed = 0
-        for px, py in _line_points_between(*link["from"], *link["to"]):
-            if game.board[py][px] != link["color"]:
-                game.board[py][px] = link["color"]
-                changed += 1
-        if changed:
-            modified = True
-            await send_fn({
-                "type": "rogue_event",
-                "msg": (
-                    f"👥 影分身连线完成："
-                    f"{coord_to_gtp(link['from'][0], link['from'][1], game.size)}"
-                    f" 连到 "
-                    f"{coord_to_gtp(link['to'][0], link['to'][1], game.size)}"
-                    f"，铺开 {changed} 颗同色棋"
-                ),
-            })
-    game.ultimate_shadow_clone_links = pending
-    if modified:
-        game.ko_point = None
-    return modified
+    result = resolve_pending_shadow_links(
+        game,
+        coord_to_gtp=coord_to_gtp,
+        line_points_between=_line_points_between,
+    )
+    for message in result.messages:
+        await send_fn({"type": "rogue_event", "msg": message})
+    return result.modified
 
 
 def _get_ai_rogue_forbidden_points(game: GoGame) -> list[tuple[int, int]]:

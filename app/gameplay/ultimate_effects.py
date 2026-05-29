@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 import random
 import time
@@ -49,6 +50,43 @@ def get_ultimate_territory_forbidden_points(
                     if 0 <= nx < game.size and 0 <= ny < game.size:
                         forbidden.add((nx, ny))
     return forbidden
+
+
+def resolve_pending_shadow_links(
+    game: Any,
+    *,
+    coord_to_gtp: Callable[[int, int, int], str],
+    line_points_between: Callable[[int, int, int, int], list[tuple[int, int]]],
+) -> BoardEffectResult:
+    if not game.ultimate_shadow_clone_links:
+        return BoardEffectResult(modified=False, messages=[])
+
+    pending = []
+    messages: list[str] = []
+    modified = False
+    for link in game.ultimate_shadow_clone_links:
+        if game.ultimate_move_count < link["trigger_move"]:
+            pending.append(link)
+            continue
+        changed = 0
+        for px, py in line_points_between(*link["from"], *link["to"]):
+            if game.board[py][px] != link["color"]:
+                game.board[py][px] = link["color"]
+                changed += 1
+        if changed:
+            modified = True
+            messages.append(
+                f"👥 影分身连线完成："
+                f"{coord_to_gtp(link['from'][0], link['from'][1], game.size)}"
+                f" 连到 "
+                f"{coord_to_gtp(link['to'][0], link['to'][1], game.size)}"
+                f"，铺开 {changed} 颗同色棋"
+            )
+
+    game.ultimate_shadow_clone_links = pending
+    if modified:
+        game.ko_point = None
+    return BoardEffectResult(modified=modified, messages=messages)
 
 
 def reset_ultimate_effect_state(game: Any) -> None:
