@@ -5334,6 +5334,81 @@ def test_server_ai_move_delegates_to_candidate_helper() -> None:
     asyncio.run(_server_ai_move_delegates_to_candidate_helper())
 
 
+def test_server_generated_ai_move_deps_bind_runtime_globals() -> None:
+    calls = []
+
+    async def fake_candidate(*_args, **_kwargs):
+        return AiMoveCandidate("C3")
+
+    async def fake_generate(*_args, **_kwargs):
+        return "= C3"
+
+    def fake_slip(*_args, **kwargs):
+        return AiMoveAdjustment(kwargs["gtp_move"])
+
+    async def fake_finish(*_args, **_kwargs):
+        return False
+
+    async def fake_sync(_game):
+        return None
+
+    async def fake_run_command(command):
+        calls.append(("double_engine", command))
+        return command
+
+    original_send_command = s.engine.send_command
+    original_ready = s.engine.ready
+    original_candidate = s.choose_ai_move_candidate
+    original_generate = s._ai_generate_move
+    original_slip = s.apply_slip_ai_move
+    original_finish = s.finish_prepared_ai_move
+    original_sync = s._sync_board_to_katago
+    s.engine.ready = True
+    s.choose_ai_move_candidate = fake_candidate
+    s._ai_generate_move = fake_generate
+    s.apply_slip_ai_move = fake_slip
+    s.finish_prepared_ai_move = fake_finish
+    s._sync_board_to_katago = fake_sync
+    try:
+        candidate_deps = s._generated_ai_move_candidate_deps()
+        preparation_deps = s._generated_ai_move_preparation_deps()
+        finish_deps = s._generated_ai_move_finish_deps(fake_run_command)
+        first_ready = finish_deps.engine_is_ready()
+        s.engine.ready = False
+        second_ready = finish_deps.engine_is_ready()
+        s.engine.send_command = lambda command: calls.append(("erosion_engine", command)) or f"= {command}"
+        erosion_result = asyncio.run(finish_deps.run_erosion_command("kata-set-param komi 6.5"))
+        double_result = asyncio.run(finish_deps.run_double_pass_command("final_score"))
+    finally:
+        s.engine.send_command = original_send_command
+        s.engine.ready = original_ready
+        s.choose_ai_move_candidate = original_candidate
+        s._ai_generate_move = original_generate
+        s.apply_slip_ai_move = original_slip
+        s.finish_prepared_ai_move = original_finish
+        s._sync_board_to_katago = original_sync
+
+    assert candidate_deps.choose_candidate is fake_candidate
+    assert candidate_deps.choose_avoid_move is s._ai_move_avoid_points
+    assert candidate_deps.generate_move is fake_generate
+    assert candidate_deps.gtp_to_coord is s.gtp_to_coord
+    assert preparation_deps.prepare_move is s.prepare_generated_ai_move
+    assert preparation_deps.apply_slip_move is fake_slip
+    assert preparation_deps.adjacent_points is s._adjacent_points
+    assert finish_deps.finish_move is fake_finish
+    assert finish_deps.sync_board_to_engine is fake_sync
+    assert finish_deps.adjacent_points is s._adjacent8_points
+    assert finish_deps.run_double_pass_command is fake_run_command
+    assert first_ready is True
+    assert second_ready is False
+    assert erosion_result == "= kata-set-param komi 6.5"
+    assert double_result == "final_score"
+    assert calls == [
+        ("erosion_engine", "kata-set-param komi 6.5"),
+        ("double_engine", "final_score"),
+    ]
+
+
 async def _server_ai_move_balanced_style_skips_style_helper() -> None:
     game = GoGame(size=5, player_color="B")
     game.ai_style = "balanced"
@@ -7866,6 +7941,7 @@ if __name__ == "__main__":
     test_server_ai_move_suspicious_pass_fallback_runs_before_resign_and_slip()
     test_server_ai_move_style_choice_runs_suspicious_pass_fallback()
     test_server_ai_move_delegates_to_candidate_helper()
+    test_server_generated_ai_move_deps_bind_runtime_globals()
     test_server_ai_move_balanced_style_skips_style_helper()
     test_server_ai_move_rogue_cards_skip_style_helper()
     test_server_ai_move_style_without_playable_choice_falls_back_to_genmove()

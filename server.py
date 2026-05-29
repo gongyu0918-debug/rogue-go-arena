@@ -1283,6 +1283,72 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
     )
 
 
+def _generated_ai_move_candidate_deps() -> GeneratedMoveCandidateDeps:
+    return GeneratedMoveCandidateDeps(
+        choose_candidate=choose_ai_move_candidate,
+        choose_avoid_move=_ai_move_avoid_points,
+        analyze_position=_analyze_current_position,
+        choose_style_move=choose_ai_style_move,
+        generate_move=_ai_generate_move,
+        gtp_to_coord=gtp_to_coord,
+        log_error=print,
+    )
+
+
+def _generated_ai_move_preparation_deps() -> GeneratedMovePreparationDeps:
+    return GeneratedMovePreparationDeps(
+        prepare_move=prepare_generated_ai_move,
+        apply_suspicious_pass_fallback_fn=apply_suspicious_pass_fallback,
+        is_suspicious_pass=_is_suspicious_ai_pass,
+        pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
+        log_event=_engine_log,
+        resolve_resign_move=resolve_ai_resign_move,
+        no_resign_move=_ai_move_no_resign,
+        apply_slip_move=apply_slip_ai_move,
+        roll_random=random.random,
+        choose_point=random.choice,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=coord_to_gtp,
+        adjacent_points=_adjacent_points,
+        retry_ko_move=retry_ai_move_avoiding_ko,
+        retry_avoiding_ko=_ai_retry_avoiding_ko,
+    )
+
+
+def _generated_ai_move_finish_deps(run_engine_command) -> GeneratedMoveFinishDeps:
+    return GeneratedMoveFinishDeps(
+        finish_move=finish_prepared_ai_move,
+        apply_placement_effects=apply_ai_move_placement_effects,
+        finish_turn_response=finish_ai_turn_response,
+        gtp_to_coord=gtp_to_coord,
+        sync_board_to_engine=_sync_board_to_katago,
+        engine_is_ready=lambda: engine.ready,
+        apply_move_to_board=apply_ai_move_to_board,
+        apply_sansan_trap_counter=try_apply_sansan_trap_counter,
+        try_no_regret_bonus=try_apply_no_regret_bonus,
+        trap_stones=ROGUE_SANSAN_TRAP_STONES,
+        get_sansan_points=_get_sansan_points,
+        adjacent_points=_adjacent8_points,
+        shuffle_points=random.shuffle,
+        spawn_bonus_points=_spawn_bonus_points,
+        coord_to_gtp=coord_to_gtp,
+        apply_trap_bonus=_challenge_apply_trap_bonus,
+        no_regret_chance=ROGUE_NO_REGRET_CHANCE,
+        roll_random=random.random,
+        has_rogue_card=_rogue_has,
+        pick_best_point=_pick_best_point,
+        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+        apply_erosion_counter=apply_erosion_komi_counter,
+        erosion_shift=ROGUE_EROSION_SHIFT,
+        run_erosion_command=lambda command: run_in_executor(engine.send_command, command),
+        erosion_message=lambda capture_count, komi: f"蚕食反制：AI 提掉了 {capture_count} 子，当前贴目变为 {komi}",
+        finalize_double_pass=try_finalize_double_pass,
+        run_double_pass_command=run_engine_command,
+        send_ai_move_response=send_ai_move_and_run_coach,
+        run_coach_turn_if_needed=_run_coach_turn_if_needed,
+    )
+
+
 async def _ai_move(game: GoGame, send_fn):
     if game.game_over or not engine.ready:
         return
@@ -1411,64 +1477,6 @@ async def _ai_move(game: GoGame, send_fn):
         challenge_zone_points=_challenge_zone_points,
     )
 
-    candidate_deps = GeneratedMoveCandidateDeps(
-        choose_candidate=choose_ai_move_candidate,
-        choose_avoid_move=_ai_move_avoid_points,
-        analyze_position=_analyze_current_position,
-        choose_style_move=choose_ai_style_move,
-        generate_move=_ai_generate_move,
-        gtp_to_coord=gtp_to_coord,
-        log_error=print,
-    )
-    preparation_deps = GeneratedMovePreparationDeps(
-        prepare_move=prepare_generated_ai_move,
-        apply_suspicious_pass_fallback_fn=apply_suspicious_pass_fallback,
-        is_suspicious_pass=_is_suspicious_ai_pass,
-        pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
-        log_event=_engine_log,
-        resolve_resign_move=resolve_ai_resign_move,
-        no_resign_move=_ai_move_no_resign,
-        apply_slip_move=apply_slip_ai_move,
-        roll_random=random.random,
-        choose_point=random.choice,
-        gtp_to_coord=gtp_to_coord,
-        coord_to_gtp=coord_to_gtp,
-        adjacent_points=_adjacent_points,
-        retry_ko_move=retry_ai_move_avoiding_ko,
-        retry_avoiding_ko=_ai_retry_avoiding_ko,
-    )
-    finish_deps = GeneratedMoveFinishDeps(
-        finish_move=finish_prepared_ai_move,
-        apply_placement_effects=apply_ai_move_placement_effects,
-        finish_turn_response=finish_ai_turn_response,
-        gtp_to_coord=gtp_to_coord,
-        sync_board_to_engine=_sync_board_to_katago,
-        engine_is_ready=lambda: engine.ready,
-        apply_move_to_board=apply_ai_move_to_board,
-        apply_sansan_trap_counter=try_apply_sansan_trap_counter,
-        try_no_regret_bonus=try_apply_no_regret_bonus,
-        trap_stones=ROGUE_SANSAN_TRAP_STONES,
-        get_sansan_points=_get_sansan_points,
-        adjacent_points=_adjacent8_points,
-        shuffle_points=random.shuffle,
-        spawn_bonus_points=_spawn_bonus_points,
-        coord_to_gtp=coord_to_gtp,
-        apply_trap_bonus=_challenge_apply_trap_bonus,
-        no_regret_chance=ROGUE_NO_REGRET_CHANCE,
-        roll_random=random.random,
-        has_rogue_card=_rogue_has,
-        pick_best_point=_pick_best_point,
-        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
-        apply_erosion_counter=apply_erosion_komi_counter,
-        erosion_shift=ROGUE_EROSION_SHIFT,
-        run_erosion_command=lambda command: run_in_executor(engine.send_command, command),
-        erosion_message=lambda capture_count, komi: f"蚕食反制：AI 提掉了 {capture_count} 子，当前贴目变为 {komi}",
-        finalize_double_pass=try_finalize_double_pass,
-        run_double_pass_command=_run_engine_command,
-        send_ai_move_response=send_ai_move_and_run_coach,
-        run_coach_turn_if_needed=_run_coach_turn_if_needed,
-    )
-
     if await try_finish_generated_ai_move(
         game,
         send_fn,
@@ -1478,9 +1486,9 @@ async def _ai_move(game: GoGame, send_fn):
         forbidden=forbidden,
         visits=visits,
         time_limit=time_limit,
-        candidate_deps=candidate_deps,
-        preparation_deps=preparation_deps,
-        finish_deps=finish_deps,
+        candidate_deps=_generated_ai_move_candidate_deps(),
+        preparation_deps=_generated_ai_move_preparation_deps(),
+        finish_deps=_generated_ai_move_finish_deps(_run_engine_command),
     ):
         return
 
