@@ -27,7 +27,6 @@ from app.config.gameplay import (
     MAX_MOVE_TIME,
     OPENING_MOVE_THRESHOLD,
     RANK_LABELS,
-    RANK_VISITS,
     ROGUE_CAPTURE_FOUL_BASE,
     ROGUE_CAPTURE_FOUL_KOMI_PENALTY,
     ROGUE_CAPTURE_FOUL_STEP,
@@ -59,7 +58,6 @@ from app.config.gameplay import (
     ROGUE_MIRROR_CHANCE,
     ROGUE_NERF_BACKUP_AI_MOVES,
     ROGUE_NERF_BACKUP_CHANCE,
-    ROGUE_NERF_FACTOR,
     ROGUE_NO_REGRET_CHANCE,
     ROGUE_QUICKTHINK_FIRST_SECONDS,
     ROGUE_QUICKTHINK_SECOND_SECONDS,
@@ -74,8 +72,6 @@ from app.config.gameplay import (
     ROGUE_SUBOPTIMAL_AI_MOVES,
     ROGUE_TIME_PRESS_BACKUP_AI_MOVES,
     ROGUE_TIME_PRESS_BACKUP_CHANCE,
-    ROGUE_TIME_PRESS_MAX_TIME,
-    ROGUE_TIME_PRESS_MAX_VISITS,
     ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY,
     ULTIMATE_CAPTURE_FOUL_THRESHOLD,
     ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
@@ -125,6 +121,8 @@ from app.gameplay.ai_moves import (
     sansan_opening_restriction,
     shadow_followup_points,
     tengen_followup_points,
+    weaken_rank,
+    weaken_rank_one_step,
 )
 from app.gameplay.effect_utils import (
     adjacent8_points as _adjacent8_points,
@@ -498,10 +496,6 @@ def _detect_gpu() -> dict:
     return result
 
 
-# Rank ordering for slow-from comparison
-_RANK_ORDER = list(RANK_VISITS.keys())
-
-
 @app.get("/gpu")
 async def get_gpu_info():
     info = await run_in_executor(_detect_gpu)
@@ -510,17 +504,6 @@ async def get_gpu_info():
         cpu_mode=engine_runtime.cpu_mode,
         large_model_path=KATAGO_MODEL_LARGE,
     )
-
-
-def _board_point_from_data(data: dict, size: int) -> Optional[tuple[int, int]]:
-    try:
-        x = int(data["x"])
-        y = int(data["y"])
-    except (KeyError, TypeError, ValueError):
-        return None
-    if not (0 <= x < size and 0 <= y < size):
-        return None
-    return x, y
 
 
 @app.get("/sgf/{game_id}")
@@ -1070,24 +1053,12 @@ async def _challenge_apply_trap_bonus(game: GoGame, send_fn, source_name: str) -
     })
 
 
-def _weaken_rank(level: str, steps: int = 1) -> str:
-    try:
-        idx = _RANK_ORDER.index(level)
-    except ValueError:
-        return level
-    return _RANK_ORDER[max(0, idx - steps)]
-
-
-def _weaken_rank_one_step(level: str) -> str:
-    return _weaken_rank(level, 1)
-
-
 async def _challenge_maybe_reduce_ai_level(game: GoGame, send_fn) -> None:
     if not _challenge_has_set(game, "restriction"):
         return
     if random.random() >= CHALLENGE_RESTRICTION_DECAY_CHANCE:
         return
-    new_level = _weaken_rank_one_step(game.level)
+    new_level = weaken_rank_one_step(game.level)
     if new_level == game.level:
         return
     game.level = new_level
@@ -1864,7 +1835,7 @@ async def _ai_move(game: GoGame, send_fn):
         move_count=move_count,
         ai_move_count=ai_move_count,
         get_game_visits=get_game_visits,
-        weaken_rank=_weaken_rank,
+        weaken_rank=weaken_rank,
     )
     visits = ai_plan.visits
     time_limit = ai_plan.time_limit

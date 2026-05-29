@@ -16,6 +16,7 @@ from app.gameplay.effect_utils import (
 
 
 KATAGO_UNLIMITED_MAX_TIME = "1e20"
+RANK_ORDER = tuple(gameplay_config.RANK_VISITS.keys())
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,18 @@ def compute_game_visits(
     ):
         visits = gameplay_config.OPENING_MAX_VISITS
     return visits
+
+
+def weaken_rank(level: str, steps: int = 1) -> str:
+    try:
+        idx = RANK_ORDER.index(level)
+    except ValueError:
+        return level
+    return RANK_ORDER[max(0, idx - steps)]
+
+
+def weaken_rank_one_step(level: str) -> str:
+    return weaken_rank(level, 1)
 
 
 def plan_rogue_ai_search(
