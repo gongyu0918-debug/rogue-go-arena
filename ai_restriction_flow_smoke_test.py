@@ -6,6 +6,7 @@ import app.config.gameplay as gameplay_config
 import server as s
 from app.domain.game_state import GoGame
 from app.gameplay.ai_move_flow import (
+    refresh_fog_restriction_points,
     try_finish_allowed_restriction_move,
     try_finish_sansan_restriction_move,
     try_finish_shadow_restriction_move,
@@ -231,6 +232,299 @@ async def _server_ai_move_lowline_restriction_false_continues_to_normal_move() -
 
 def test_server_ai_move_lowline_restriction_false_continues_to_normal_move() -> None:
     asyncio.run(_server_ai_move_lowline_restriction_false_continues_to_normal_move())
+
+
+async def _refresh_fog_restriction_points_skips_without_fog() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def make_rng():
+        calls.append(("rng",))
+        return object()
+
+    def challenge_zone_points(*_args):
+        calls.append(("zone",))
+        return []
+
+    def pick_fog_mask(*_args):
+        calls.append(("mask",))
+        return []
+
+    def pick_fog_point(*_args):
+        calls.append(("point",))
+        return []
+
+    handled = await refresh_fog_restriction_points(
+        game,
+        send,
+        rogue_cards={"sansan"},
+        ai_move_count=0,
+        make_rng=make_rng,
+        challenge_zone_points=challenge_zone_points,
+        pick_fog_mask=pick_fog_mask,
+        pick_fog_point=pick_fog_point,
+    )
+
+    assert handled is False
+    assert game.rogue_seal_points == []
+    assert calls == []
+
+
+def test_refresh_fog_restriction_points_skips_without_fog() -> None:
+    asyncio.run(_refresh_fog_restriction_points_skips_without_fog())
+
+
+async def _refresh_fog_restriction_points_uses_opening_mask() -> None:
+    game = GoGame(size=5, player_color="B")
+    rng = object()
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("msg")))
+
+    def make_rng():
+        calls.append(("rng",))
+        return rng
+
+    def challenge_zone_points(game_arg, points):
+        calls.append(("zone", game_arg is game, points))
+        return points
+
+    def pick_fog_mask(size, rng_arg):
+        calls.append(("mask", size, rng_arg is rng))
+        return [(1, 1), (2, 2)]
+
+    def pick_fog_point(*_args):
+        calls.append(("point",))
+        return []
+
+    handled = await refresh_fog_restriction_points(
+        game,
+        send,
+        rogue_cards={"fog"},
+        ai_move_count=0,
+        make_rng=make_rng,
+        challenge_zone_points=challenge_zone_points,
+        pick_fog_mask=pick_fog_mask,
+        pick_fog_point=pick_fog_point,
+    )
+
+    assert handled is True
+    assert game.rogue_seal_points == [(1, 1), (2, 2)]
+    assert calls == [
+        ("rng",),
+        ("mask", 5, True),
+        ("zone", True, [(1, 1), (2, 2)]),
+        ("send", "game_state", None),
+        ("send", "rogue_event", "🌫 战争迷雾刷新：3×3 禁区本回合对 AI 禁止落子"),
+    ]
+
+
+def test_refresh_fog_restriction_points_uses_opening_mask() -> None:
+    asyncio.run(_refresh_fog_restriction_points_uses_opening_mask())
+
+
+async def _refresh_fog_restriction_points_dedupes_late_points() -> None:
+    game = GoGame(size=5, player_color="B")
+    rng = object()
+    pick_batches = [[(1, 1), (2, 2)]]
+    pick_batches.extend([[(2, 2), (3, 3)] for _ in range(gameplay_config.ROGUE_FOG_POST_MASK_POINTS - 1)])
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("msg")))
+
+    def make_rng():
+        calls.append(("rng",))
+        return rng
+
+    def challenge_zone_points(game_arg, points):
+        calls.append(("zone", game_arg is game, points))
+        return points
+
+    def pick_fog_mask(*_args):
+        calls.append(("mask",))
+        return []
+
+    def pick_fog_point(game_arg, rng_arg):
+        calls.append(("point", game_arg is game, rng_arg is rng))
+        return pick_batches.pop(0)
+
+    handled = await refresh_fog_restriction_points(
+        game,
+        send,
+        rogue_cards={"fog"},
+        ai_move_count=gameplay_config.ROGUE_FOG_AI_MOVES,
+        make_rng=make_rng,
+        challenge_zone_points=challenge_zone_points,
+        pick_fog_mask=pick_fog_mask,
+        pick_fog_point=pick_fog_point,
+    )
+
+    assert handled is True
+    assert game.rogue_seal_points == [(1, 1), (2, 2), (3, 3)]
+    assert calls[0] == ("rng",)
+    assert calls.count(("point", True, True)) == gameplay_config.ROGUE_FOG_POST_MASK_POINTS
+    assert calls[-2:] == [
+        ("send", "game_state", None),
+        ("send", "rogue_event", f"🌫 战争迷雾残留：本回合随机封锁 {gameplay_config.ROGUE_FOG_POST_MASK_POINTS} 个 AI 禁着点"),
+    ]
+
+
+def test_refresh_fog_restriction_points_dedupes_late_points() -> None:
+    asyncio.run(_refresh_fog_restriction_points_dedupes_late_points())
+
+
+async def _refresh_fog_restriction_points_uses_late_challenge_zone_results() -> None:
+    game = GoGame(size=5, player_color="B")
+    rng = object()
+    challenge_batches = [[(4, 4), (2, 2)]]
+    challenge_batches.extend([[(2, 2), (3, 3)] for _ in range(gameplay_config.ROGUE_FOG_POST_MASK_POINTS - 1)])
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("msg")))
+
+    def make_rng():
+        calls.append(("rng",))
+        return rng
+
+    def challenge_zone_points(game_arg, points):
+        zone_points = challenge_batches.pop(0)
+        calls.append(("zone", game_arg is game, points, zone_points))
+        return zone_points
+
+    def pick_fog_point(game_arg, rng_arg):
+        calls.append(("point", game_arg is game, rng_arg is rng))
+        return [(0, 0)]
+
+    handled = await refresh_fog_restriction_points(
+        game,
+        send,
+        rogue_cards={"fog"},
+        ai_move_count=gameplay_config.ROGUE_FOG_AI_MOVES,
+        make_rng=make_rng,
+        challenge_zone_points=challenge_zone_points,
+        pick_fog_mask=lambda _size, _rng: [],
+        pick_fog_point=pick_fog_point,
+    )
+
+    assert handled is True
+    assert game.rogue_seal_points == [(4, 4), (2, 2), (3, 3)]
+    assert calls[0] == ("rng",)
+    assert calls.count(("point", True, True)) == gameplay_config.ROGUE_FOG_POST_MASK_POINTS
+    assert calls[-2:] == [
+        ("send", "game_state", None),
+        ("send", "rogue_event", f"🌫 战争迷雾残留：本回合随机封锁 {gameplay_config.ROGUE_FOG_POST_MASK_POINTS} 个 AI 禁着点"),
+    ]
+
+
+def test_refresh_fog_restriction_points_uses_late_challenge_zone_results() -> None:
+    asyncio.run(_refresh_fog_restriction_points_uses_late_challenge_zone_results())
+
+
+async def _refresh_fog_restriction_points_sends_state_without_empty_event() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"]))
+
+    handled = await refresh_fog_restriction_points(
+        game,
+        send,
+        rogue_cards={"fog"},
+        ai_move_count=0,
+        make_rng=object,
+        challenge_zone_points=lambda _game, points: points,
+        pick_fog_mask=lambda _size, _rng: [],
+        pick_fog_point=lambda _game, _rng: [(1, 1)],
+    )
+
+    assert handled is True
+    assert game.rogue_seal_points == []
+    assert calls == [("send", "game_state")]
+
+
+def test_refresh_fog_restriction_points_sends_state_without_empty_event() -> None:
+    asyncio.run(_refresh_fog_restriction_points_sends_state_without_empty_event())
+
+
+async def _server_ai_move_fog_delegates_to_fog_refresh_and_continues() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "fog"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_fog_refresh(game_arg, send_fn, **kwargs):
+        calls.append((
+            "fog",
+            game_arg is game,
+            send_fn is send,
+            "fog" in kwargs["rogue_cards"],
+            kwargs["ai_move_count"],
+            callable(kwargs["make_rng"]),
+            kwargs["challenge_zone_points"] is s._challenge_zone_points,
+            kwargs["pick_fog_mask"] is s._pick_fog_mask,
+            kwargs["pick_fog_point"] is s._pick_fog_point,
+        ))
+        return True
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_fog_refresh = s.refresh_fog_restriction_points
+    original_generate = s._ai_generate_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.refresh_fog_restriction_points = fake_fog_refresh
+    s._ai_generate_move = fake_generate
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.refresh_fog_restriction_points = original_fog_refresh
+        s._ai_generate_move = original_generate
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "C3")
+    assert game.board[2][2] == 2
+    assert calls == [
+        ("sync", True),
+        ("fog", True, True, True, 0, True, True, True, True),
+        ("generate", "W", True, True),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_fog_delegates_to_fog_refresh_and_continues() -> None:
+    asyncio.run(_server_ai_move_fog_delegates_to_fog_refresh_and_continues())
 
 
 async def _try_finish_sansan_restriction_move_uses_allowed_move() -> None:
@@ -1039,6 +1333,12 @@ if __name__ == "__main__":
     test_try_finish_allowed_restriction_move_skips_when_no_restriction_or_move()
     test_server_ai_move_gravity_delegates_to_restriction_flow()
     test_server_ai_move_lowline_restriction_false_continues_to_normal_move()
+    test_refresh_fog_restriction_points_skips_without_fog()
+    test_refresh_fog_restriction_points_uses_opening_mask()
+    test_refresh_fog_restriction_points_dedupes_late_points()
+    test_refresh_fog_restriction_points_uses_late_challenge_zone_results()
+    test_refresh_fog_restriction_points_sends_state_without_empty_event()
+    test_server_ai_move_fog_delegates_to_fog_refresh_and_continues()
     test_try_finish_sansan_restriction_move_uses_allowed_move()
     test_try_finish_sansan_restriction_move_falls_back_to_avoid_move()
     test_try_finish_sansan_restriction_move_non_allow_only_uses_avoid_move()

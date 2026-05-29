@@ -116,6 +116,7 @@ from app.gameplay.ai_moves import (
 from app.gameplay.ai_move_flow import (
     finalize_ai_move,
     finalize_forced_ai_pass,
+    refresh_fog_restriction_points,
     try_apply_puppet_ai_move,
     try_finalize_forced_ai_stone,
     try_finish_allowed_restriction_move,
@@ -1577,23 +1578,16 @@ async def _ai_move(game: GoGame, send_fn):
     visits = ai_plan.visits
     time_limit = ai_plan.time_limit
 
-    if "fog" in rogue_cards:
-        rng = random.Random(time.time_ns())
-        if ai_move_count < ROGUE_FOG_AI_MOVES:
-            game.rogue_seal_points = _challenge_zone_points(game, _pick_fog_mask(game.size, rng))
-            fog_msg = "🌫 战争迷雾刷新：3×3 禁区本回合对 AI 禁止落子"
-        else:
-            fog_pts: list[tuple[int, int]] = []
-            for _ in range(ROGUE_FOG_POST_MASK_POINTS):
-                fog_pts.extend(_challenge_zone_points(game, _pick_fog_point(game, rng)))
-            # deduplicate while preserving order
-            seen: set[tuple[int, int]] = set()
-            unique_fog_pts = [p for p in fog_pts if not (p in seen or seen.add(p))]
-            game.rogue_seal_points = unique_fog_pts
-            fog_msg = f"🌫 战争迷雾残留：本回合随机封锁 {ROGUE_FOG_POST_MASK_POINTS} 个 AI 禁着点"
-        await send_fn({"type": "game_state", **game.to_state()})
-        if game.rogue_seal_points:
-            await send_fn({"type": "rogue_event", "msg": fog_msg})
+    await refresh_fog_restriction_points(
+        game,
+        send_fn,
+        rogue_cards=rogue_cards,
+        ai_move_count=ai_move_count,
+        make_rng=lambda: random.Random(time.time_ns()),
+        challenge_zone_points=_challenge_zone_points,
+        pick_fog_mask=_pick_fog_mask,
+        pick_fog_point=_pick_fog_point,
+    )
 
     if "tengen" in rogue_cards:
         target_plan = choose_tengen_target(game, ai_move_count)

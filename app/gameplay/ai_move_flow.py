@@ -18,6 +18,10 @@ FinishAiMoveFn = Callable[[Any, AsyncSend, str, str | None, str, str | None], Aw
 RandomFloatFn = Callable[[], float]
 SuboptimalMoveFn = Callable[..., Awaitable[str | None]]
 RestrictionFn = Callable[[Any, str, int], Any | None]
+RngFactory = Callable[[], Any]
+ChallengeZonePointsFn = Callable[[Any, list[tuple[int, int]]], list[tuple[int, int]]]
+PickFogMaskFn = Callable[[int, Any], list[tuple[int, int]]]
+PickFogPointFn = Callable[[Any, Any], list[tuple[int, int]]]
 AllowedRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
@@ -26,6 +30,11 @@ AvoidRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
 ]
+
+
+def _unique_points(points: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    seen: set[tuple[int, int]] = set()
+    return [point for point in points if not (point in seen or seen.add(point))]
 
 
 async def finalize_forced_ai_pass(
@@ -262,6 +271,40 @@ async def try_finish_shadow_restriction_move(
         choose_allowed_move=choose_allowed_move,
         finish_ai_move=finish_ai_move,
     )
+
+
+async def refresh_fog_restriction_points(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    rogue_cards: Collection[str],
+    ai_move_count: int,
+    make_rng: RngFactory,
+    challenge_zone_points: ChallengeZonePointsFn,
+    pick_fog_mask: PickFogMaskFn,
+    pick_fog_point: PickFogPointFn,
+) -> bool:
+    if "fog" not in rogue_cards:
+        return False
+
+    rng = make_rng()
+    if ai_move_count < gameplay_config.ROGUE_FOG_AI_MOVES:
+        game.rogue_seal_points = challenge_zone_points(
+            game,
+            pick_fog_mask(game.size, rng),
+        )
+        fog_msg = "🌫 战争迷雾刷新：3×3 禁区本回合对 AI 禁止落子"
+    else:
+        fog_pts: list[tuple[int, int]] = []
+        for _ in range(gameplay_config.ROGUE_FOG_POST_MASK_POINTS):
+            fog_pts.extend(challenge_zone_points(game, pick_fog_point(game, rng)))
+        game.rogue_seal_points = _unique_points(fog_pts)
+        fog_msg = f"🌫 战争迷雾残留：本回合随机封锁 {gameplay_config.ROGUE_FOG_POST_MASK_POINTS} 个 AI 禁着点"
+
+    await send_fn({"type": "game_state", **game.to_state()})
+    if game.rogue_seal_points:
+        await send_fn({"type": "rogue_event", "msg": fog_msg})
+    return True
 
 
 async def try_finish_suboptimal_rogue_move(
