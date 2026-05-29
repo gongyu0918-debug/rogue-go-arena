@@ -42,6 +42,40 @@ async def finalize_forced_ai_pass(
     await send_fn({"type": "rogue_event", "msg": message})
 
 
+async def try_finalize_forced_ai_stone(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    gtp_move: str,
+    coord: tuple[int, int],
+    message: str,
+    prepare_player_turn_modifiers: PreparePlayerTurnFn,
+    run_engine_command: EngineCommandFn,
+) -> bool:
+    resp = await run_engine_command(f"play {color} {gtp_move}")
+    if "?" in resp:
+        return False
+
+    x, y = coord
+    game.moves.append((color, gtp_move))
+    game.place_stone(x, y, color)
+    game.passed[color] = False
+    game.current_player = game.player_color
+    prepare_player_turn_modifiers(game)
+    game.push_history()
+    await send_fn({"type": "game_state", **game.to_state()})
+    await send_fn({
+        "type": "ai_move",
+        "gtp": gtp_move,
+        "color": color,
+        "x": x,
+        "y": y,
+    })
+    await send_fn({"type": "rogue_event", "msg": message})
+    return True
+
+
 async def finalize_ai_move(
     game: Any,
     send_fn: AsyncSend,

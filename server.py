@@ -119,7 +119,11 @@ from app.gameplay.ai_moves import (
     weaken_rank,
     weaken_rank_one_step,
 )
-from app.gameplay.ai_move_flow import finalize_ai_move, finalize_forced_ai_pass
+from app.gameplay.ai_move_flow import (
+    finalize_ai_move,
+    finalize_forced_ai_pass,
+    try_finalize_forced_ai_stone,
+)
 from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
 from app.gameplay.turn_modifiers import (
     apply_ultimate_ai_move_result as apply_ultimate_ai_move_result_state,
@@ -1526,20 +1530,16 @@ async def _ai_move(game: GoGame, send_fn):
                 mx, my = _mirror_coord(lc[0], lc[1], game.size)
                 if game.board[my][mx] == 0 and not game.is_ko(mx, my, color):
                     m_gtp = coord_to_gtp(mx, my, game.size)
-                    resp = await run_in_executor(
-                        engine.send_command, f"play {color} {m_gtp}")
-                    if "?" not in resp:
-                        game.moves.append((color, m_gtp))
-                        game.place_stone(mx, my, color)
-                        game.passed[color] = False
-                        game.current_player = game.player_color
-                        _prepare_player_turn_modifiers(game)
-                        game.push_history()
-                        await send_fn({"type": "game_state", **game.to_state()})
-                        await send_fn({"type": "ai_move", "gtp": m_gtp,
-                                        "color": color, "x": mx, "y": my})
-                        await send_fn({"type": "rogue_event",
-                                        "msg": f"镜像触发，AI 在对称点 {m_gtp} 落子"})
+                    if await try_finalize_forced_ai_stone(
+                        game,
+                        send_fn,
+                        color=color,
+                        gtp_move=m_gtp,
+                        coord=(mx, my),
+                        message=f"镜像触发，AI 在对称点 {m_gtp} 落子",
+                        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+                        run_engine_command=_run_engine_command,
+                    ):
                         return
 
     if "exchange" in rogue_cards and game.rogue_skip_ai:

@@ -6,7 +6,11 @@ import app.config.gameplay as gameplay_config
 import server as s
 from app.domain.coordinates import gtp_to_coord
 from app.domain.game_state import GoGame
-from app.gameplay.ai_move_flow import finalize_ai_move, finalize_forced_ai_pass
+from app.gameplay.ai_move_flow import (
+    finalize_ai_move,
+    finalize_forced_ai_pass,
+    try_finalize_forced_ai_stone,
+)
 
 
 async def _unused_no_resign(_game, _color):
@@ -400,6 +404,92 @@ def test_finalize_forced_ai_pass_sends_legacy_payloads() -> None:
     asyncio.run(_finalize_forced_ai_pass_sends_legacy_payloads())
 
 
+async def _try_finalize_forced_ai_stone_sends_legacy_payloads() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append((
+            "send",
+            payload["type"],
+            payload.get("gtp"),
+            payload.get("color"),
+            payload.get("x"),
+            payload.get("y"),
+            payload.get("msg"),
+        ))
+
+    def prepare_player_turn(_game):
+        calls.append(("prepare", game.current_player))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "="
+
+    succeeded = await try_finalize_forced_ai_stone(
+        game,
+        send,
+        color="W",
+        gtp_move="D3",
+        coord=(3, 2),
+        message="forced stone",
+        prepare_player_turn_modifiers=prepare_player_turn,
+        run_engine_command=run_engine_command,
+    )
+
+    assert succeeded is True
+    assert game.board[2][3] == 2
+    assert game.moves[-1] == ("W", "D3")
+    assert game.passed["W"] is False
+    assert game.current_player == "B"
+    assert calls == [
+        ("engine", "play W D3"),
+        ("prepare", "B"),
+        ("send", "game_state", None, None, None, None, None),
+        ("send", "ai_move", "D3", "W", 3, 2, None),
+        ("send", "rogue_event", None, None, None, None, "forced stone"),
+    ]
+
+
+def test_try_finalize_forced_ai_stone_sends_legacy_payloads() -> None:
+    asyncio.run(_try_finalize_forced_ai_stone_sends_legacy_payloads())
+
+
+async def _try_finalize_forced_ai_stone_skips_state_on_engine_error() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def prepare_player_turn(_game):
+        calls.append(("prepare",))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "? illegal move"
+
+    succeeded = await try_finalize_forced_ai_stone(
+        game,
+        send,
+        color="W",
+        gtp_move="D3",
+        coord=(3, 2),
+        message="forced stone",
+        prepare_player_turn_modifiers=prepare_player_turn,
+        run_engine_command=run_engine_command,
+    )
+
+    assert succeeded is False
+    assert game.board[2][3] == 0
+    assert game.moves == []
+    assert calls == [("engine", "play W D3")]
+
+
+def test_try_finalize_forced_ai_stone_skips_state_on_engine_error() -> None:
+    asyncio.run(_try_finalize_forced_ai_stone_skips_state_on_engine_error())
+
+
 async def _server_ai_move_dice_delegates_to_forced_pass() -> None:
     game = GoGame(size=5, player_color="B")
     game.rogue_card = "dice"
@@ -512,6 +602,141 @@ def test_server_ai_move_exchange_clears_skip_and_delegates_to_forced_pass() -> N
     asyncio.run(_server_ai_move_exchange_clears_skip_and_delegates_to_forced_pass())
 
 
+async def _server_ai_move_mirror_delegates_to_forced_stone() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "mirror"
+    game.moves.append(("B", "B2"))
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_forced_stone(game_arg, send_fn, **kwargs):
+        calls.append((
+            "forced_stone",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["gtp_move"],
+            kwargs["coord"],
+            kwargs["message"],
+            kwargs["prepare_player_turn_modifiers"] is s._prepare_player_turn_modifiers,
+            callable(kwargs["run_engine_command"]),
+        ))
+        return True
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_random = s.random.random
+    original_forced_stone = s.try_finalize_forced_ai_stone
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.random.random = lambda: 0.0
+    s.try_finalize_forced_ai_stone = fake_forced_stone
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.random.random = original_random
+        s.try_finalize_forced_ai_stone = original_forced_stone
+
+    assert calls == [
+        ("sync", True),
+        (
+            "forced_stone",
+            True,
+            True,
+            "W",
+            "D4",
+            (3, 1),
+            "镜像触发，AI 在对称点 D4 落子",
+            True,
+            True,
+        ),
+    ]
+
+
+def test_server_ai_move_mirror_delegates_to_forced_stone() -> None:
+    asyncio.run(_server_ai_move_mirror_delegates_to_forced_stone())
+
+
+async def _server_ai_move_mirror_helper_false_falls_back_to_normal_move() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "mirror"
+    game.moves.append(("B", "B2"))
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_forced_stone(game_arg, send_fn, **kwargs):
+        calls.append((
+            "forced_stone",
+            game_arg is game,
+            send_fn is send,
+            kwargs["gtp_move"],
+        ))
+        return False
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_random = s.random.random
+    original_forced_stone = s.try_finalize_forced_ai_stone
+    original_generate = s._ai_generate_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.random.random = lambda: 0.0
+    s.try_finalize_forced_ai_stone = fake_forced_stone
+    s._ai_generate_move = fake_generate
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.random.random = original_random
+        s.try_finalize_forced_ai_stone = original_forced_stone
+        s._ai_generate_move = original_generate
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "C3")
+    assert game.board[2][2] == 2
+    assert calls == [
+        ("sync", True),
+        ("forced_stone", True, True, "D4"),
+        ("generate", "W", True, True),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_mirror_helper_false_falls_back_to_normal_move() -> None:
+    asyncio.run(_server_ai_move_mirror_helper_false_falls_back_to_normal_move())
+
+
 async def _server_finish_ai_move_delegates_to_finalize_flow() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -574,7 +799,11 @@ if __name__ == "__main__":
     test_finalize_ai_move_double_pass_scores_without_coach_turn()
     test_finalize_ai_move_erosion_updates_komi_after_capture()
     test_finalize_forced_ai_pass_sends_legacy_payloads()
+    test_try_finalize_forced_ai_stone_sends_legacy_payloads()
+    test_try_finalize_forced_ai_stone_skips_state_on_engine_error()
     test_server_ai_move_dice_delegates_to_forced_pass()
     test_server_ai_move_exchange_clears_skip_and_delegates_to_forced_pass()
+    test_server_ai_move_mirror_delegates_to_forced_stone()
+    test_server_ai_move_mirror_helper_false_falls_back_to_normal_move()
     test_server_finish_ai_move_delegates_to_finalize_flow()
     print("ai_move_flow_smoke_test passed")
