@@ -8,7 +8,9 @@ from app.domain.coordinates import gtp_to_coord
 from app.domain.game_state import GoGame
 from app.gameplay.ai_move_flow import (
     AiMoveAdjustment,
+    AiMovePlacement,
     AiMoveResolution,
+    apply_ai_move_to_board,
     apply_slip_ai_move,
     apply_suspicious_pass_fallback,
     finalize_ai_move,
@@ -27,6 +29,111 @@ async def _unused_no_resign(_game, _color):
 
 async def _unused_retry_ko(_game, _color):
     raise AssertionError("retry_avoiding_ko should not be called")
+
+
+def test_apply_ai_move_to_board_places_stone() -> None:
+    game = GoGame(size=5, player_color="B")
+
+    result = apply_ai_move_to_board(
+        game,
+        color="W",
+        gtp_move="C3",
+        gtp_to_coord=gtp_to_coord,
+    )
+
+    assert result == AiMovePlacement(coord=(2, 2), captured=0)
+    assert game.moves == [("W", "C3")]
+    assert game.board[2][2] == 2
+    assert game.passed["W"] is False
+
+
+def test_apply_ai_move_to_board_records_pass() -> None:
+    game = GoGame(size=5, player_color="B")
+
+    result = apply_ai_move_to_board(
+        game,
+        color="W",
+        gtp_move="pass",
+        gtp_to_coord=gtp_to_coord,
+    )
+
+    assert result == AiMovePlacement(coord=None, captured=0)
+    assert game.moves == [("W", "pass")]
+    assert game.passed["W"] is True
+    assert all(cell == 0 for row in game.board for cell in row)
+
+
+def test_apply_ai_move_to_board_preserves_invalid_non_pass_as_move() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    def parse_coord(gtp, size):
+        calls.append(("parse", gtp, size))
+        return None
+
+    result = apply_ai_move_to_board(
+        game,
+        color="W",
+        gtp_move="not-a-gtp",
+        gtp_to_coord=parse_coord,
+    )
+
+    assert result == AiMovePlacement(coord=None, captured=0)
+    assert game.moves == [("W", "not-a-gtp")]
+    assert game.passed["W"] is False
+    assert calls == [("parse", "not-a-gtp", 5)]
+
+
+def test_apply_ai_move_to_board_returns_capture_count() -> None:
+    game = GoGame(size=3, player_color="B")
+    game.board = [
+        [0, 2, 0],
+        [2, 1, 2],
+        [0, 0, 0],
+    ]
+
+    result = apply_ai_move_to_board(
+        game,
+        color="W",
+        gtp_move="B1",
+        gtp_to_coord=gtp_to_coord,
+    )
+
+    assert result == AiMovePlacement(coord=(1, 2), captured=1)
+    assert game.moves == [("W", "B1")]
+    assert game.board[1][1] == 0
+    assert game.captures["W"] == 1
+    assert game.passed["W"] is False
+
+
+def test_apply_ai_move_to_board_appends_before_parse_and_place() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    def parse_coord(gtp, size):
+        calls.append(("parse", list(game.moves), gtp, size))
+        return (2, 2)
+
+    def place_stone(x, y, color):
+        calls.append(("place", list(game.moves), x, y, color))
+        return 1
+
+    game.place_stone = place_stone
+
+    result = apply_ai_move_to_board(
+        game,
+        color="W",
+        gtp_move="C3",
+        gtp_to_coord=parse_coord,
+    )
+
+    assert result == AiMovePlacement(coord=(2, 2), captured=1)
+    assert calls == [
+        ("parse", [("W", "C3")], "C3", 5),
+        ("place", [("W", "C3")], 2, 2, "W"),
+    ]
+    assert game.moves == [("W", "C3")]
+    assert game.passed["W"] is False
 
 
 async def _finalize_ai_move_places_stone_and_sends_message() -> None:
@@ -2447,6 +2554,91 @@ def test_server_ai_move_ko_guard_runs_after_slip_and_clears_message() -> None:
     asyncio.run(_server_ai_move_ko_guard_runs_after_slip_and_clears_message())
 
 
+async def _server_ai_move_applies_final_move_through_board_helper() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_slip(game_arg, **kwargs):
+        calls.append(("slip", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment("D3")
+
+    async def fake_retry(game_arg, **kwargs):
+        calls.append(("retry", game_arg is game, kwargs["gtp_move"], kwargs["retry_avoiding_ko"] is s._ai_retry_avoiding_ko))
+        return AiMoveAdjustment("E3", message=kwargs["rogue_msg"])
+
+    def fake_apply(game_arg, **kwargs):
+        calls.append((
+            "apply",
+            game_arg is game,
+            kwargs["color"],
+            kwargs["gtp_move"],
+            kwargs["gtp_to_coord"] is s.gtp_to_coord,
+        ))
+        return original_apply(game_arg, **kwargs)
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_slip = s.apply_slip_ai_move
+    original_retry = s.retry_ai_move_avoiding_ko
+    original_apply = s.apply_ai_move_to_board
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.apply_slip_ai_move = fake_slip
+    s.retry_ai_move_avoiding_ko = fake_retry
+    s.apply_ai_move_to_board = fake_apply
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        s.apply_slip_ai_move = original_slip
+        s.retry_ai_move_avoiding_ko = original_retry
+        s.apply_ai_move_to_board = original_apply
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "E3")
+    assert game.board[2][4] == 2
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("slip", True, "C3"),
+        ("retry", True, "D3", True),
+        ("apply", True, "W", "E3", True),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "E3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_applies_final_move_through_board_helper() -> None:
+    asyncio.run(_server_ai_move_applies_final_move_through_board_helper())
+
+
 async def _resolve_ai_resign_move_keeps_non_resign_move() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -3216,6 +3408,11 @@ def test_server_finish_ai_move_delegates_to_finalize_flow() -> None:
 
 
 if __name__ == "__main__":
+    test_apply_ai_move_to_board_places_stone()
+    test_apply_ai_move_to_board_records_pass()
+    test_apply_ai_move_to_board_preserves_invalid_non_pass_as_move()
+    test_apply_ai_move_to_board_returns_capture_count()
+    test_apply_ai_move_to_board_appends_before_parse_and_place()
     test_finalize_ai_move_places_stone_and_sends_message()
     test_finalize_ai_move_resign_without_card_ends_game()
     test_finalize_ai_move_resign_with_card_uses_no_resign_move()
@@ -3260,6 +3457,7 @@ if __name__ == "__main__":
     test_retry_ai_move_avoiding_ko_preserves_message_when_coord_parse_fails()
     test_retry_ai_move_avoiding_ko_retries_and_clears_message()
     test_server_ai_move_ko_guard_runs_after_slip_and_clears_message()
+    test_server_ai_move_applies_final_move_through_board_helper()
     test_resolve_ai_resign_move_keeps_non_resign_move()
     test_resolve_ai_resign_move_uses_no_resign_with_rogue_card()
     test_resolve_ai_resign_move_ends_game_without_rogue_card()

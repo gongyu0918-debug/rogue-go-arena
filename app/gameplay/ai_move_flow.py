@@ -52,6 +52,12 @@ class AiMoveResolution:
     completed: bool = False
 
 
+@dataclass(frozen=True)
+class AiMovePlacement:
+    coord: tuple[int, int] | None
+    captured: int = 0
+
+
 def _unique_points(points: list[tuple[int, int]]) -> list[tuple[int, int]]:
     seen: set[tuple[int, int]] = set()
     return [point for point in points if not (point in seen or seen.add(point))]
@@ -348,6 +354,27 @@ async def apply_suspicious_pass_fallback(
     return gtp_move
 
 
+def apply_ai_move_to_board(
+    game: Any,
+    *,
+    color: str,
+    gtp_move: str,
+    gtp_to_coord: CoordParser,
+) -> AiMovePlacement:
+    game.moves.append((color, gtp_move))
+
+    if gtp_move.upper() == "PASS":
+        game.passed[color] = True
+        return AiMovePlacement(coord=None)
+
+    coord = gtp_to_coord(gtp_move, game.size)
+    captured = 0
+    if coord:
+        captured = game.place_stone(coord[0], coord[1], color)
+    game.passed[color] = False
+    return AiMovePlacement(coord=coord, captured=captured)
+
+
 def apply_slip_ai_move(
     game: Any,
     *,
@@ -547,14 +574,14 @@ async def finalize_ai_move(
         gtp_move = await retry_avoiding_ko(game, color)
         coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
 
-    game.moves.append((color, gtp_move))
-    captured = 0
-    if gtp_move.upper() != "PASS":
-        if coord:
-            captured = game.place_stone(coord[0], coord[1], color)
-        game.passed[color] = False
-    else:
-        game.passed[color] = True
+    placement = apply_ai_move_to_board(
+        game,
+        color=color,
+        gtp_move=gtp_move,
+        gtp_to_coord=gtp_to_coord,
+    )
+    coord = placement.coord
+    captured = placement.captured
     await check_capture_foul(game, send_fn, color, captured, ultimate=False)
 
     game.current_player = game.player_color

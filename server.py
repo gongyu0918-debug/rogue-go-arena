@@ -113,6 +113,7 @@ from app.gameplay.ai_moves import (
     weaken_rank_one_step,
 )
 from app.gameplay.ai_move_flow import (
+    apply_ai_move_to_board,
     apply_slip_ai_move,
     apply_suspicious_pass_fallback,
     finalize_ai_move,
@@ -1804,17 +1805,14 @@ async def _ai_move(game: GoGame, send_fn):
     # Ko retry only changes the final move/message; keep slip sync state intact.
     slip_msg = ko_result.message
 
-    game.moves.append((color, gtp_move))
-
-    captured = 0
-    if gtp_move.upper() != "PASS":
-        coord = gtp_to_coord(gtp_move, game.size)
-        if coord:
-            captured = game.place_stone(coord[0], coord[1], color)
-        game.passed[color] = False
-    else:
-        coord = None
-        game.passed[color] = True
+    placement = apply_ai_move_to_board(
+        game,
+        color=color,
+        gtp_move=gtp_move,
+        gtp_to_coord=gtp_to_coord,
+    )
+    coord = placement.coord
+    captured = placement.captured
 
     extra_board_change = False
     if card == "sansan_trap" and coord in _get_sansan_points(game.size):
