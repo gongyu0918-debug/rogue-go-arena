@@ -127,6 +127,7 @@ from app.gameplay.ai_move_flow import (
     try_apply_no_regret_bonus,
     try_apply_puppet_ai_move,
     try_apply_sansan_trap_counter,
+    try_choose_ai_style_move,
     try_finalize_double_pass,
     try_finalize_forced_ai_stone,
     try_finish_allowed_restriction_move,
@@ -1739,17 +1740,14 @@ async def _ai_move(game: GoGame, send_fn):
     else:
         gtp_move = None
         if not rogue_cards and game.ai_style != "balanced":
-            try:
-                analysis = await _analyze_current_position(game, color)
-                gtp_move = choose_ai_style_move(
-                    game,
-                    color,
-                    analysis.get("top_moves", []),
-                    game.ai_style,
-                    gtp_to_coord=gtp_to_coord,
-                )
-            except Exception:
-                gtp_move = None
+            gtp_move = await try_choose_ai_style_move(
+                game,
+                color=color,
+                style=game.ai_style,
+                analyze_position=_analyze_current_position,
+                choose_style_move=choose_ai_style_move,
+                gtp_to_coord=gtp_to_coord,
+            )
         if not gtp_move:
             resp = await _ai_generate_move(color, visits, time_limit)
             if game.game_over:

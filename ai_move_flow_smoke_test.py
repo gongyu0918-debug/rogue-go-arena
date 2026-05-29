@@ -24,6 +24,7 @@ from app.gameplay.ai_move_flow import (
     try_apply_no_regret_bonus,
     try_apply_puppet_ai_move,
     try_apply_sansan_trap_counter,
+    try_choose_ai_style_move,
     try_finalize_double_pass,
     try_finalize_forced_ai_stone,
     try_finish_suboptimal_rogue_move,
@@ -1057,6 +1058,63 @@ async def _choose_or_generate_ai_style_move_choice_error_falls_back() -> None:
 
 def test_choose_or_generate_ai_style_move_choice_error_falls_back() -> None:
     asyncio.run(_choose_or_generate_ai_style_move_choice_error_falls_back())
+
+
+async def _try_choose_ai_style_move_returns_none_for_balanced() -> None:
+    game = GoGame(size=5, player_color="B")
+
+    async def analyze(_game, _color):
+        raise AssertionError("balanced style should skip analysis")
+
+    def choose(*_args, **_kwargs):
+        raise AssertionError("balanced style should skip style choice")
+
+    chosen = await try_choose_ai_style_move(
+        game,
+        color="W",
+        style="balanced",
+        analyze_position=analyze,
+        choose_style_move=choose,
+        gtp_to_coord=gtp_to_coord,
+    )
+
+    assert chosen is None
+
+
+def test_try_choose_ai_style_move_returns_none_for_balanced() -> None:
+    asyncio.run(_try_choose_ai_style_move_returns_none_for_balanced())
+
+
+async def _try_choose_ai_style_move_swallows_choice_errors() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def analyze(_game, color):
+        calls.append(("analyze", color))
+        return {"top_moves": [{"move": "C3"}]}
+
+    def choose(_game, color, top_moves, style, *, gtp_to_coord):
+        calls.append(("choose", color, top_moves, style))
+        raise RuntimeError("style chooser failed")
+
+    chosen = await try_choose_ai_style_move(
+        game,
+        color="W",
+        style="territory",
+        analyze_position=analyze,
+        choose_style_move=choose,
+        gtp_to_coord=gtp_to_coord,
+    )
+
+    assert chosen is None
+    assert calls == [
+        ("analyze", "W"),
+        ("choose", "W", [{"move": "C3"}], "territory"),
+    ]
+
+
+def test_try_choose_ai_style_move_swallows_choice_errors() -> None:
+    asyncio.run(_try_choose_ai_style_move_swallows_choice_errors())
 
 
 async def _finalize_ai_move_places_stone_and_sends_message() -> None:
@@ -2989,6 +3047,270 @@ def test_server_ai_move_style_choice_runs_suspicious_pass_fallback() -> None:
     asyncio.run(_server_ai_move_style_choice_runs_suspicious_pass_fallback())
 
 
+async def _server_ai_move_style_choice_delegates_to_helper() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.ai_style = "territory"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_style_choice(game_arg, **kwargs):
+        calls.append((
+            "style_choice",
+            game_arg is game,
+            kwargs["color"],
+            kwargs["style"],
+            kwargs["analyze_position"] is s._analyze_current_position,
+            kwargs["choose_style_move"] is s.choose_ai_style_move,
+            kwargs["gtp_to_coord"] is s.gtp_to_coord,
+        ))
+        return "C3"
+
+    async def fake_generate(*_args):
+        raise AssertionError("genmove should not be called after style helper selects a move")
+
+    async def fake_suspicious_fallback(game_arg, **kwargs):
+        calls.append(("suspicious_fallback", game_arg is game, kwargs["gtp_move"]))
+        return kwargs["gtp_move"]
+
+    async def fake_resign(game_arg, send_fn, **kwargs):
+        calls.append(("resign", game_arg is game, send_fn is send, kwargs["gtp_move"]))
+        return AiMoveResolution(kwargs["gtp_move"])
+
+    def fake_slip(game_arg, **kwargs):
+        calls.append(("slip", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment(kwargs["gtp_move"])
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_style_choice = s.try_choose_ai_style_move
+    original_generate = s._ai_generate_move
+    original_suspicious_fallback = s.apply_suspicious_pass_fallback
+    original_resign = s.resolve_ai_resign_move
+    original_slip = s.apply_slip_ai_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.try_choose_ai_style_move = fake_style_choice
+    s._ai_generate_move = fake_generate
+    s.apply_suspicious_pass_fallback = fake_suspicious_fallback
+    s.resolve_ai_resign_move = fake_resign
+    s.apply_slip_ai_move = fake_slip
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.try_choose_ai_style_move = original_style_choice
+        s._ai_generate_move = original_generate
+        s.apply_suspicious_pass_fallback = original_suspicious_fallback
+        s.resolve_ai_resign_move = original_resign
+        s.apply_slip_ai_move = original_slip
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "C3")
+    assert calls == [
+        ("sync", True),
+        ("style_choice", True, "W", "territory", True, True, True),
+        ("suspicious_fallback", True, "C3"),
+        ("resign", True, True, "C3"),
+        ("slip", True, "C3"),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_style_choice_delegates_to_helper() -> None:
+    asyncio.run(_server_ai_move_style_choice_delegates_to_helper())
+
+
+async def _server_ai_move_balanced_style_skips_style_helper() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.ai_style = "balanced"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_style_choice(*_args, **_kwargs):
+        raise AssertionError("balanced style should not call style helper in _ai_move")
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    async def fake_suspicious_fallback(game_arg, **kwargs):
+        calls.append(("suspicious_fallback", game_arg is game, kwargs["gtp_move"]))
+        return kwargs["gtp_move"]
+
+    async def fake_resign(game_arg, send_fn, **kwargs):
+        calls.append(("resign", game_arg is game, send_fn is send, kwargs["gtp_move"]))
+        return AiMoveResolution(kwargs["gtp_move"])
+
+    def fake_slip(game_arg, **kwargs):
+        calls.append(("slip", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment(kwargs["gtp_move"])
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_style_choice = s.try_choose_ai_style_move
+    original_generate = s._ai_generate_move
+    original_suspicious_fallback = s.apply_suspicious_pass_fallback
+    original_resign = s.resolve_ai_resign_move
+    original_slip = s.apply_slip_ai_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.try_choose_ai_style_move = fake_style_choice
+    s._ai_generate_move = fake_generate
+    s.apply_suspicious_pass_fallback = fake_suspicious_fallback
+    s.resolve_ai_resign_move = fake_resign
+    s.apply_slip_ai_move = fake_slip
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.try_choose_ai_style_move = original_style_choice
+        s._ai_generate_move = original_generate
+        s.apply_suspicious_pass_fallback = original_suspicious_fallback
+        s.resolve_ai_resign_move = original_resign
+        s.apply_slip_ai_move = original_slip
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "C3")
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("suspicious_fallback", True, "C3"),
+        ("resign", True, True, "C3"),
+        ("slip", True, "C3"),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_balanced_style_skips_style_helper() -> None:
+    asyncio.run(_server_ai_move_balanced_style_skips_style_helper())
+
+
+async def _server_ai_move_rogue_cards_skip_style_helper() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.ai_style = "territory"
+    game.rogue_card = "slip"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_style_choice(*_args, **_kwargs):
+        raise AssertionError("rogue cards should skip style helper in _ai_move")
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    async def fake_suspicious_fallback(game_arg, **kwargs):
+        calls.append(("suspicious_fallback", game_arg is game, kwargs["gtp_move"]))
+        return kwargs["gtp_move"]
+
+    async def fake_resign(game_arg, send_fn, **kwargs):
+        calls.append(("resign", game_arg is game, send_fn is send, kwargs["gtp_move"]))
+        return AiMoveResolution(kwargs["gtp_move"])
+
+    def fake_slip(game_arg, **kwargs):
+        calls.append(("slip", game_arg is game, kwargs["gtp_move"], "slip" in kwargs["rogue_cards"]))
+        return AiMoveAdjustment(kwargs["gtp_move"])
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_style_choice = s.try_choose_ai_style_move
+    original_generate = s._ai_generate_move
+    original_suspicious_fallback = s.apply_suspicious_pass_fallback
+    original_resign = s.resolve_ai_resign_move
+    original_slip = s.apply_slip_ai_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.try_choose_ai_style_move = fake_style_choice
+    s._ai_generate_move = fake_generate
+    s.apply_suspicious_pass_fallback = fake_suspicious_fallback
+    s.resolve_ai_resign_move = fake_resign
+    s.apply_slip_ai_move = fake_slip
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.try_choose_ai_style_move = original_style_choice
+        s._ai_generate_move = original_generate
+        s.apply_suspicious_pass_fallback = original_suspicious_fallback
+        s.resolve_ai_resign_move = original_resign
+        s.apply_slip_ai_move = original_slip
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "C3")
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("suspicious_fallback", True, "C3"),
+        ("resign", True, True, "C3"),
+        ("slip", True, "C3", True),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_rogue_cards_skip_style_helper() -> None:
+    asyncio.run(_server_ai_move_rogue_cards_skip_style_helper())
+
+
 async def _server_ai_move_style_without_playable_choice_falls_back_to_genmove() -> None:
     game = GoGame(size=5, player_color="B")
     game.ai_style = "territory"
@@ -3074,6 +3396,154 @@ async def _server_ai_move_style_without_playable_choice_falls_back_to_genmove() 
 
 def test_server_ai_move_style_without_playable_choice_falls_back_to_genmove() -> None:
     asyncio.run(_server_ai_move_style_without_playable_choice_falls_back_to_genmove())
+
+
+async def _server_ai_move_genmove_game_over_returns_before_finalizing() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"]))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        game.game_over = True
+        return "= C3"
+
+    async def fail_suspicious_fallback(*_args, **_kwargs):
+        raise AssertionError("game_over after genmove should return before suspicious pass fallback")
+
+    async def fail_resign(*_args, **_kwargs):
+        raise AssertionError("game_over after genmove should return before resign handling")
+
+    def fail_slip(*_args, **_kwargs):
+        raise AssertionError("game_over after genmove should return before slip handling")
+
+    def fail_prepare(*_args, **_kwargs):
+        raise AssertionError("game_over after genmove should return before turn preparation")
+
+    async def fail_coach(*_args, **_kwargs):
+        raise AssertionError("game_over after genmove should return before coach turn")
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_suspicious_fallback = s.apply_suspicious_pass_fallback
+    original_resign = s.resolve_ai_resign_move
+    original_slip = s.apply_slip_ai_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.apply_suspicious_pass_fallback = fail_suspicious_fallback
+    s.resolve_ai_resign_move = fail_resign
+    s.apply_slip_ai_move = fail_slip
+    s._prepare_player_turn_modifiers = fail_prepare
+    s._run_coach_turn_if_needed = fail_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        s.apply_suspicious_pass_fallback = original_suspicious_fallback
+        s.resolve_ai_resign_move = original_resign
+        s.apply_slip_ai_move = original_slip
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves == []
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+    ]
+
+
+def test_server_ai_move_genmove_game_over_returns_before_finalizing() -> None:
+    asyncio.run(_server_ai_move_genmove_game_over_returns_before_finalizing())
+
+
+async def _server_ai_move_genmove_error_returns_before_finalizing() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"]))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "? illegal move"
+
+    def fake_print(message):
+        calls.append(("print", message))
+
+    async def fail_suspicious_fallback(*_args, **_kwargs):
+        raise AssertionError("genmove error should return before suspicious pass fallback")
+
+    async def fail_resign(*_args, **_kwargs):
+        raise AssertionError("genmove error should return before resign handling")
+
+    def fail_slip(*_args, **_kwargs):
+        raise AssertionError("genmove error should return before slip handling")
+
+    def fail_prepare(*_args, **_kwargs):
+        raise AssertionError("genmove error should return before turn preparation")
+
+    async def fail_coach(*_args, **_kwargs):
+        raise AssertionError("genmove error should return before coach turn")
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_suspicious_fallback = s.apply_suspicious_pass_fallback
+    original_resign = s.resolve_ai_resign_move
+    original_slip = s.apply_slip_ai_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    had_print = hasattr(s, "print")
+    original_print = getattr(s, "print", None)
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.print = fake_print
+    s.apply_suspicious_pass_fallback = fail_suspicious_fallback
+    s.resolve_ai_resign_move = fail_resign
+    s.apply_slip_ai_move = fail_slip
+    s._prepare_player_turn_modifiers = fail_prepare
+    s._run_coach_turn_if_needed = fail_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        if had_print:
+            s.print = original_print
+        else:
+            delattr(s, "print")
+        s.apply_suspicious_pass_fallback = original_suspicious_fallback
+        s.resolve_ai_resign_move = original_resign
+        s.apply_slip_ai_move = original_slip
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves == []
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("print", "[AI] genmove returned error: ? illegal move"),
+    ]
+
+
+def test_server_ai_move_genmove_error_returns_before_finalizing() -> None:
+    asyncio.run(_server_ai_move_genmove_error_returns_before_finalizing())
 
 
 async def _server_ai_move_forbidden_choice_runs_suspicious_pass_fallback() -> None:
@@ -5145,6 +5615,8 @@ if __name__ == "__main__":
     test_choose_or_generate_ai_style_move_balanced_falls_back_to_genmove()
     test_choose_or_generate_ai_style_move_analysis_error_falls_back()
     test_choose_or_generate_ai_style_move_choice_error_falls_back()
+    test_try_choose_ai_style_move_returns_none_for_balanced()
+    test_try_choose_ai_style_move_swallows_choice_errors()
     test_finalize_ai_move_places_stone_and_sends_message()
     test_finalize_ai_move_resign_without_card_ends_game()
     test_finalize_ai_move_resign_with_card_uses_no_resign_move()
@@ -5181,7 +5653,12 @@ if __name__ == "__main__":
     test_apply_suspicious_pass_fallback_keeps_pass_without_fallback()
     test_server_ai_move_suspicious_pass_fallback_runs_before_resign_and_slip()
     test_server_ai_move_style_choice_runs_suspicious_pass_fallback()
+    test_server_ai_move_style_choice_delegates_to_helper()
+    test_server_ai_move_balanced_style_skips_style_helper()
+    test_server_ai_move_rogue_cards_skip_style_helper()
     test_server_ai_move_style_without_playable_choice_falls_back_to_genmove()
+    test_server_ai_move_genmove_game_over_returns_before_finalizing()
+    test_server_ai_move_genmove_error_returns_before_finalizing()
     test_server_ai_move_forbidden_choice_runs_suspicious_pass_fallback()
     test_server_ai_move_suspicious_pass_without_fallback_keeps_pass()
     test_server_ai_move_slip_delegates_to_slip_adjustment()

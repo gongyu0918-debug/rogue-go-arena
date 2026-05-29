@@ -551,19 +551,14 @@ async def choose_or_generate_ai_style_move(
     gtp_to_coord: CoordParser,
     play_chosen_move: EngineCommandFn,
 ) -> str:
-    chosen = None
-    if style != "balanced":
-        try:
-            analysis = await analyze_position(game, color)
-            chosen = choose_style_move(
-                game,
-                color,
-                analysis.get("top_moves", []),
-                style,
-                gtp_to_coord=gtp_to_coord,
-            )
-        except Exception:
-            chosen = None
+    chosen = await try_choose_ai_style_move(
+        game,
+        color=color,
+        style=style,
+        analyze_position=analyze_position,
+        choose_style_move=choose_style_move,
+        gtp_to_coord=gtp_to_coord,
+    )
 
     if chosen:
         await play_chosen_move(f"play {color} {chosen}")
@@ -571,6 +566,31 @@ async def choose_or_generate_ai_style_move(
 
     resp = await generate_move(color, visits, time_limit)
     return resp.replace("=", "").strip()
+
+
+async def try_choose_ai_style_move(
+    game: Any,
+    *,
+    color: str,
+    style: str,
+    analyze_position: AnalyzePositionFn,
+    choose_style_move: ChooseStyleMoveFn,
+    gtp_to_coord: CoordParser,
+) -> str | None:
+    if style == "balanced":
+        return None
+
+    try:
+        analysis = await analyze_position(game, color)
+        return choose_style_move(
+            game,
+            color,
+            analysis.get("top_moves", []),
+            style,
+            gtp_to_coord=gtp_to_coord,
+        )
+    except Exception:
+        return None
 
 
 def apply_slip_ai_move(
