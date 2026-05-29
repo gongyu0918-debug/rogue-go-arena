@@ -4,7 +4,10 @@ import asyncio
 
 import server as s
 from app.domain.game_state import GoGame
-from app.gameplay.ultimate_scoring import compute_ultimate_area_score
+from app.gameplay.ultimate_scoring import (
+    compute_ultimate_area_score,
+    finalize_ultimate_score,
+)
 
 
 def test_compute_ultimate_area_score_counts_single_owner_territory() -> None:
@@ -74,7 +77,7 @@ def test_compute_ultimate_area_score_tie_goes_to_white() -> None:
     assert result.score == "W+0.0"
 
 
-async def _server_ultimate_force_score_sends_state_then_game_over() -> None:
+async def _finalize_ultimate_score_sends_state_then_game_over() -> None:
     game = GoGame(size=1, komi=0.0, player_color="B")
     game.board[0][0] = 1
     sent = []
@@ -82,8 +85,9 @@ async def _server_ultimate_force_score_sends_state_then_game_over() -> None:
     async def send(payload):
         sent.append(payload)
 
-    await s._ultimate_force_score(game, send)
+    result = await finalize_ultimate_score(game, send)
 
+    assert result.score == "B+1.0"
     assert game.game_over is True
     assert game.winner == "B"
     assert game._history[-1]["game_over"] is True
@@ -100,8 +104,32 @@ async def _server_ultimate_force_score_sends_state_then_game_over() -> None:
     }
 
 
-def test_server_ultimate_force_score_sends_state_then_game_over() -> None:
-    asyncio.run(_server_ultimate_force_score_sends_state_then_game_over())
+def test_finalize_ultimate_score_sends_state_then_game_over() -> None:
+    asyncio.run(_finalize_ultimate_score_sends_state_then_game_over())
+
+
+async def _server_ultimate_force_score_delegates_to_finalize_flow() -> None:
+    game = GoGame(size=1, komi=0.0, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_finalize(game_arg, send_fn):
+        calls.append(("finalize", game_arg is game, send_fn is send))
+
+    original_finalize = s.finalize_ultimate_score
+    s.finalize_ultimate_score = fake_finalize
+    try:
+        await s._ultimate_force_score(game, send)
+    finally:
+        s.finalize_ultimate_score = original_finalize
+
+    assert calls == [("finalize", True, True)]
+
+
+def test_server_ultimate_force_score_delegates_to_finalize_flow() -> None:
+    asyncio.run(_server_ultimate_force_score_delegates_to_finalize_flow())
 
 
 if __name__ == "__main__":
@@ -110,5 +138,6 @@ if __name__ == "__main__":
     test_compute_ultimate_area_score_ignores_mixed_border_region()
     test_compute_ultimate_area_score_applies_komi_and_formats_margin()
     test_compute_ultimate_area_score_tie_goes_to_white()
-    test_server_ultimate_force_score_sends_state_then_game_over()
+    test_finalize_ultimate_score_sends_state_then_game_over()
+    test_server_ultimate_force_score_delegates_to_finalize_flow()
     print("ultimate_scoring_smoke_test passed")

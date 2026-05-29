@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
+
+
+AsyncSend = Callable[[dict[str, Any]], Awaitable[None]]
 
 
 @dataclass(frozen=True)
@@ -74,3 +78,23 @@ def compute_ultimate_area_score(
         black_score=b_score_final,
         white_score=w_score_final,
     )
+
+
+async def finalize_ultimate_score(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    reason: str = "ultimate_20moves",
+) -> UltimateScoreResult:
+    result = compute_ultimate_area_score(game, reason=reason)
+    game.game_over = True
+    game.winner = result.winner
+    game.push_history()
+    await send_fn({"type": "game_state", **game.to_state()})
+    await send_fn({
+        "type": "game_over",
+        "winner": result.winner,
+        "score": result.score,
+        "reason": result.reason,
+    })
+    return result

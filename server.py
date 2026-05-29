@@ -187,7 +187,7 @@ from app.gameplay.ultimate_effects import (
     resolve_pending_shadow_links,
 )
 from app.gameplay.ultimate_ai_flow import apply_ultimate_ai_post_move_effects
-from app.gameplay.ultimate_scoring import compute_ultimate_area_score
+from app.gameplay.ultimate_scoring import finalize_ultimate_score
 from app.runtime.engine import KataGoEngine
 from app.runtime.game_store import ActiveGameStore
 from app.runtime.startup import EnginePaths, EngineStartupManager
@@ -1333,17 +1333,7 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
 
 async def _ultimate_force_score(game: GoGame, send_fn):
     """Force game end in ultimate mode — count stones for scoring."""
-    result = compute_ultimate_area_score(game)
-    game.game_over = True
-    game.winner = result.winner
-    game.push_history()
-    await send_fn({"type": "game_state", **game.to_state()})
-    await send_fn({
-        "type": "game_over",
-        "winner": result.winner,
-        "score": result.score,
-        "reason": result.reason,
-    })
+    await finalize_ultimate_score(game, send_fn)
 
 
 def _is_suspicious_ai_pass(game: GoGame, gtp_move: str, color: str) -> bool:
