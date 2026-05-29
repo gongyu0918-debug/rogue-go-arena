@@ -122,6 +122,7 @@ from app.gameplay.ai_move_flow import (
     choose_or_generate_ai_style_move,
     finalize_ai_move,
     finalize_forced_ai_pass,
+    finish_ai_turn_response,
     refresh_fog_restriction_points,
     resolve_ai_resign_move,
     retry_ai_move_avoiding_ko,
@@ -1833,41 +1834,26 @@ async def _ai_move(game: GoGame, send_fn):
     coord = placement.coord
     captured = placement.captured
 
-    game.current_player = game.player_color
-    _prepare_player_turn_modifiers(game)
-
-    await apply_erosion_komi_counter(
+    if await finish_ai_turn_response(
         game,
         send_fn,
+        color=color,
         card=card,
-        captured=captured,
-        shift_per_capture=ROGUE_EROSION_SHIFT,
-        run_engine_command=lambda command: run_in_executor(engine.send_command, command),
-        message=lambda capture_count, komi: f"蚕食反制：AI 提掉了 {capture_count} 子，当前贴目变为 {komi}",
-    )
-
-    game.push_history()
-    await send_fn({"type": "game_state", **game.to_state()})
-
-    if await try_finalize_double_pass(
-        game,
-        send_fn,
-        color=color,
-        gtp_move=gtp_move,
-        run_engine_command=_run_engine_command,
-        rogue_msg=slip_msg,
-    ):
-        return
-
-    await send_ai_move_and_run_coach(
-        game,
-        send_fn,
-        color=color,
         gtp_move=gtp_move,
         coord=coord,
+        captured=captured,
         rogue_msg=slip_msg,
+        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+        apply_erosion_counter=apply_erosion_komi_counter,
+        erosion_shift=ROGUE_EROSION_SHIFT,
+        run_erosion_command=lambda command: run_in_executor(engine.send_command, command),
+        erosion_message=lambda capture_count, komi: f"蚕食反制：AI 提掉了 {capture_count} 子，当前贴目变为 {komi}",
+        finalize_double_pass=try_finalize_double_pass,
+        run_double_pass_command=_run_engine_command,
+        send_ai_move_response=send_ai_move_and_run_coach,
         run_coach_turn_if_needed=_run_coach_turn_if_needed,
-    )
+    ):
+        return
 
 
 async def _ai_move_avoid_points(game, color, visits, time_limit, forbidden):

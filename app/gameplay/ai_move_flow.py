@@ -38,6 +38,9 @@ SyncBoardFn = Callable[[Any], Awaitable[None]]
 EngineReadyFn = Callable[[], bool]
 SansanTrapCounterFn = Callable[..., Awaitable[bool]]
 NoRegretBonusFn = Callable[..., Awaitable[bool]]
+ErosionCounterFn = Callable[..., Awaitable[bool]]
+DoublePassFn = Callable[..., Awaitable[bool]]
+AiMoveResponseFn = Callable[..., Awaitable[None]]
 AllowedRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
@@ -712,6 +715,64 @@ async def apply_ai_move_placement_effects(
         await sync_board_to_engine(game)
 
     return placement
+
+
+async def finish_ai_turn_response(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    card: str | None,
+    gtp_move: str,
+    coord: tuple[int, int] | None,
+    captured: int,
+    rogue_msg: str | None,
+    prepare_player_turn_modifiers: PreparePlayerTurnFn,
+    apply_erosion_counter: ErosionCounterFn,
+    erosion_shift: float,
+    run_erosion_command: EngineCommandFn,
+    erosion_message: ErosionMessageFn,
+    finalize_double_pass: DoublePassFn,
+    run_double_pass_command: EngineCommandFn,
+    send_ai_move_response: AiMoveResponseFn,
+    run_coach_turn_if_needed: RunCoachTurnFn,
+) -> bool:
+    game.current_player = game.player_color
+    prepare_player_turn_modifiers(game)
+
+    await apply_erosion_counter(
+        game,
+        send_fn,
+        card=card,
+        captured=captured,
+        shift_per_capture=erosion_shift,
+        run_engine_command=run_erosion_command,
+        message=erosion_message,
+    )
+
+    game.push_history()
+    await send_fn({"type": "game_state", **game.to_state()})
+
+    if await finalize_double_pass(
+        game,
+        send_fn,
+        color=color,
+        gtp_move=gtp_move,
+        run_engine_command=run_double_pass_command,
+        rogue_msg=rogue_msg,
+    ):
+        return True
+
+    await send_ai_move_response(
+        game,
+        send_fn,
+        color=color,
+        gtp_move=gtp_move,
+        coord=coord,
+        rogue_msg=rogue_msg,
+        run_coach_turn_if_needed=run_coach_turn_if_needed,
+    )
+    return False
 
 
 def apply_slip_ai_move(

@@ -21,6 +21,7 @@ from app.gameplay.ai_move_flow import (
     choose_or_generate_ai_style_move,
     finalize_ai_move,
     finalize_forced_ai_pass,
+    finish_ai_turn_response,
     resolve_ai_resign_move,
     retry_ai_move_avoiding_ko,
     send_ai_move_and_run_coach,
@@ -1018,6 +1019,163 @@ async def _send_ai_move_and_run_coach_sends_pass_and_rogue_msg_before_coach() ->
 
 def test_send_ai_move_and_run_coach_sends_pass_and_rogue_msg_before_coach() -> None:
     asyncio.run(_send_ai_move_and_run_coach_sends_pass_and_rogue_msg_before_coach())
+
+
+async def _finish_ai_turn_response_double_pass_skips_ai_move_response() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    def prepare(game_arg):
+        calls.append(("prepare", game_arg is game, game.current_player))
+
+    async def erosion(game_arg, send_fn, **kwargs):
+        calls.append((
+            "erosion",
+            game_arg is game,
+            send_fn is send,
+            kwargs["card"],
+            kwargs["captured"],
+            kwargs["shift_per_capture"],
+            kwargs["run_engine_command"] is run_erosion_command,
+            kwargs["message"](2, 7.5),
+        ))
+        return True
+
+    async def run_erosion_command(command):
+        calls.append(("erosion_engine", command))
+        return "="
+
+    async def run_double_pass_command(command):
+        calls.append(("double_engine", command))
+        return "="
+
+    async def double_pass(game_arg, send_fn, **kwargs):
+        calls.append((
+            "double_pass",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["gtp_move"],
+            kwargs["run_engine_command"] is run_double_pass_command,
+            kwargs["rogue_msg"],
+        ))
+        return True
+
+    async def ai_response(*_args, **_kwargs):
+        raise AssertionError("ai response should not run after double pass")
+
+    async def coach(*_args, **_kwargs):
+        raise AssertionError("coach should not run after double pass")
+
+    handled = await finish_ai_turn_response(
+        game,
+        send,
+        color="W",
+        card="erosion",
+        gtp_move="pass",
+        coord=None,
+        captured=2,
+        rogue_msg="slip msg",
+        prepare_player_turn_modifiers=prepare,
+        apply_erosion_counter=erosion,
+        erosion_shift=0.5,
+        run_erosion_command=run_erosion_command,
+        erosion_message=lambda capture_count, komi: f"erosion {capture_count} {komi}",
+        finalize_double_pass=double_pass,
+        run_double_pass_command=run_double_pass_command,
+        send_ai_move_response=ai_response,
+        run_coach_turn_if_needed=coach,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("prepare", True, "B"),
+        ("erosion", True, True, "erosion", 2, 0.5, True, "erosion 2 7.5"),
+        ("send", "game_state", None),
+        ("double_pass", True, True, "W", "pass", True, "slip msg"),
+    ]
+
+
+def test_finish_ai_turn_response_double_pass_skips_ai_move_response() -> None:
+    asyncio.run(_finish_ai_turn_response_double_pass_skips_ai_move_response())
+
+
+async def _finish_ai_turn_response_nonterminal_sends_ai_move_response() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    def prepare(game_arg):
+        calls.append(("prepare", game_arg is game, game.current_player))
+
+    async def erosion(game_arg, send_fn, **kwargs):
+        calls.append(("erosion", game_arg is game, send_fn is send, kwargs["captured"]))
+        return False
+
+    async def run_erosion_command(command):
+        calls.append(("erosion_engine", command))
+        return "="
+
+    async def run_double_pass_command(command):
+        calls.append(("double_engine", command))
+        return "="
+
+    async def double_pass(game_arg, send_fn, **kwargs):
+        calls.append(("double_pass", game_arg is game, send_fn is send, kwargs["gtp_move"]))
+        return False
+
+    async def ai_response(game_arg, send_fn, **kwargs):
+        calls.append((
+            "ai_response",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["gtp_move"],
+            kwargs["coord"],
+            kwargs["rogue_msg"],
+            kwargs["run_coach_turn_if_needed"] is coach,
+        ))
+
+    async def coach(_game, _send):
+        calls.append(("coach",))
+
+    handled = await finish_ai_turn_response(
+        game,
+        send,
+        color="W",
+        card=None,
+        gtp_move="C3",
+        coord=(2, 2),
+        captured=0,
+        rogue_msg=None,
+        prepare_player_turn_modifiers=prepare,
+        apply_erosion_counter=erosion,
+        erosion_shift=0.5,
+        run_erosion_command=run_erosion_command,
+        erosion_message=lambda capture_count, komi: f"erosion {capture_count} {komi}",
+        finalize_double_pass=double_pass,
+        run_double_pass_command=run_double_pass_command,
+        send_ai_move_response=ai_response,
+        run_coach_turn_if_needed=coach,
+    )
+
+    assert handled is False
+    assert calls == [
+        ("prepare", True, "B"),
+        ("erosion", True, True, 0),
+        ("send", "game_state", None),
+        ("double_pass", True, True, "C3"),
+        ("ai_response", True, True, "W", "C3", (2, 2), None, True),
+    ]
+
+
+def test_finish_ai_turn_response_nonterminal_sends_ai_move_response() -> None:
+    asyncio.run(_finish_ai_turn_response_nonterminal_sends_ai_move_response())
 
 
 async def _choose_or_generate_ai_style_move_plays_style_choice() -> None:
@@ -6006,6 +6164,8 @@ if __name__ == "__main__":
     test_try_finalize_double_pass_keeps_legacy_non_b_score_winner()
     test_send_ai_move_and_run_coach_sends_coord_and_coach()
     test_send_ai_move_and_run_coach_sends_pass_and_rogue_msg_before_coach()
+    test_finish_ai_turn_response_double_pass_skips_ai_move_response()
+    test_finish_ai_turn_response_nonterminal_sends_ai_move_response()
     test_choose_or_generate_ai_style_move_plays_style_choice()
     test_choose_or_generate_ai_style_move_balanced_falls_back_to_genmove()
     test_choose_or_generate_ai_style_move_analysis_error_falls_back()
