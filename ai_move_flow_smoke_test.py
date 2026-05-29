@@ -6017,6 +6017,89 @@ def test_server_place_auxiliary_ai_move_on_board_preserves_pass_flags() -> None:
     assert game.passed["W"] is True
 
 
+async def _server_choose_coach_ai_move_normalizes_resign_and_retries_ko() -> None:
+    game = GoGame(size=5, player_color="B", level="5k")
+    game.moves.append(("B", "A1"))
+    calls = []
+
+    def fake_visits(level, move_count, mode=None, **_kwargs):
+        calls.append(("visits", level, move_count, mode))
+        return 1
+
+    async def fake_generate(game_arg, color, visits, time_limit):
+        calls.append(("generate", game_arg is game, color, visits, time_limit))
+        return "RESIGN"
+
+    original_visits = s.get_game_visits
+    original_generate = s._generate_ai_style_move
+    s.get_game_visits = fake_visits
+    s._generate_ai_style_move = fake_generate
+    try:
+        resigned_move, resigned_coord = await s._choose_coach_ai_move(game, "B")
+    finally:
+        s.get_game_visits = original_visits
+        s._generate_ai_style_move = original_generate
+
+    assert resigned_move == "pass"
+    assert resigned_coord is None
+    assert calls == [
+        ("visits", "5k", 1, "rogue"),
+        ("generate", True, "B", s.ROGUE_COACH_VISITS, min(s.MAX_MOVE_TIME, 8.0)),
+    ]
+
+    calls.clear()
+
+    async def fake_generate_ko(game_arg, color, visits, time_limit):
+        calls.append(("generate", game_arg is game, color, visits, time_limit))
+        return "C3"
+
+    def fake_gtp_to_coord(gtp, size):
+        calls.append(("coord", gtp, size))
+        return {"C3": (2, 2), "D3": (3, 2)}.get(gtp)
+
+    async def fake_retry(game_arg, color):
+        calls.append(("retry", game_arg is game, color))
+        return "D3"
+
+    def fake_is_ko(x, y, color):
+        calls.append(("ko", x, y, color))
+        return (x, y, color) == (2, 2, "B")
+
+    original_visits = s.get_game_visits
+    original_generate = s._generate_ai_style_move
+    original_gtp_to_coord = s.gtp_to_coord
+    original_retry = s._ai_retry_avoiding_ko
+    original_is_ko = game.is_ko
+    s.get_game_visits = fake_visits
+    s._generate_ai_style_move = fake_generate_ko
+    s.gtp_to_coord = fake_gtp_to_coord
+    s._ai_retry_avoiding_ko = fake_retry
+    game.is_ko = fake_is_ko
+    try:
+        ko_move, ko_coord = await s._choose_coach_ai_move(game, "B")
+    finally:
+        s.get_game_visits = original_visits
+        s._generate_ai_style_move = original_generate
+        s.gtp_to_coord = original_gtp_to_coord
+        s._ai_retry_avoiding_ko = original_retry
+        game.is_ko = original_is_ko
+
+    assert ko_move == "D3"
+    assert ko_coord == (3, 2)
+    assert calls == [
+        ("visits", "5k", 1, "rogue"),
+        ("generate", True, "B", s.ROGUE_COACH_VISITS, min(s.MAX_MOVE_TIME, 8.0)),
+        ("coord", "C3", 5),
+        ("ko", 2, 2, "B"),
+        ("retry", True, "B"),
+        ("coord", "D3", 5),
+    ]
+
+
+def test_server_choose_coach_ai_move_normalizes_resign_and_retries_ko() -> None:
+    asyncio.run(_server_choose_coach_ai_move_normalizes_resign_and_retries_ko())
+
+
 async def _server_generated_turn_helper_binds_runtime_globals() -> None:
     game = GoGame(size=5, player_color="B")
     turn = s.AiTurnSnapshot(
@@ -8693,6 +8776,7 @@ if __name__ == "__main__":
     test_server_finish_observer_double_pass_scores_once()
     test_server_apply_observer_ai_move_to_board_preserves_legacy_pass_flags()
     test_server_place_auxiliary_ai_move_on_board_preserves_pass_flags()
+    test_server_choose_coach_ai_move_normalizes_resign_and_retries_ko()
     test_server_generated_turn_helper_binds_runtime_globals()
     test_server_ai_move_balanced_style_skips_style_helper()
     test_server_ai_move_rogue_cards_skip_style_helper()

@@ -1633,6 +1633,21 @@ def _place_auxiliary_ai_move_on_board(
     return AiMovePlacement(coord=coord, captured=captured)
 
 
+async def _choose_coach_ai_move(game: GoGame, color: str) -> tuple[str, tuple[int, int] | None]:
+    visits = max(ROGUE_COACH_VISITS, get_game_visits(game.level, len(game.moves), mode="rogue"))
+    time_limit = min(MAX_MOVE_TIME, 8.0)
+    gtp_move = await _generate_ai_style_move(game, color, visits, time_limit)
+    if gtp_move.upper() == "RESIGN":
+        gtp_move = "pass"
+
+    coord = gtp_to_coord(gtp_move, game.size)
+    if coord and gtp_move.upper() != "PASS" and game.is_ko(coord[0], coord[1], color):
+        gtp_move = await _ai_retry_avoiding_ko(game, color)
+        coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
+
+    return gtp_move, coord
+
+
 async def _run_coach_turn_if_needed(game: GoGame, send_fn):
     if (
         game.game_over
@@ -1645,16 +1660,7 @@ async def _run_coach_turn_if_needed(game: GoGame, send_fn):
         return
 
     color = game.player_color
-    visits = max(ROGUE_COACH_VISITS, get_game_visits(game.level, len(game.moves), mode="rogue"))
-    time_limit = min(MAX_MOVE_TIME, 8.0)
-    gtp_move = await _generate_ai_style_move(game, color, visits, time_limit)
-    if gtp_move.upper() == "RESIGN":
-        gtp_move = "pass"
-    coord = gtp_to_coord(gtp_move, game.size)
-    # Ko guard: play elsewhere instead of passing
-    if coord and gtp_move.upper() != "PASS" and game.is_ko(coord[0], coord[1], color):
-        gtp_move = await _ai_retry_avoiding_ko(game, color)
-        coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
+    gtp_move, coord = await _choose_coach_ai_move(game, color)
     placement = _place_auxiliary_ai_move_on_board(game, color, gtp_move, coord)
     coord = placement.coord
     captured = placement.captured
