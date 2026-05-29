@@ -119,6 +119,7 @@ from app.gameplay.ai_moves import (
     weaken_rank,
     weaken_rank_one_step,
 )
+from app.gameplay.ai_move_flow import finalize_ai_move
 from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
 from app.gameplay.turn_modifiers import (
     apply_ultimate_ai_move_result as apply_ultimate_ai_move_result_state,
@@ -1913,70 +1914,24 @@ async def _ai_generate_move(color: str, visits: int, time_limit: float) -> str:
 
 async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
     """Finalize a rogue-forced AI move: update game state and send messages."""
-    if game.game_over:
-        return
+    async def _run_engine_command(command: str) -> str:
+        return await run_in_executor(engine.send_command, command)
 
-    if gtp_move.upper() == "RESIGN":
-        if card:
-            gtp_move = await _ai_move_no_resign(game, color)
-        else:
-            game.game_over = True
-            game.winner = game.player_color
-            await send_fn({"type": "game_over", "winner": game.player_color,
-                            "score": None, "reason": "ai_resign"})
-            return
-
-    coord = gtp_to_coord(gtp_move, game.size)
-    # Ko guard: if the AI move violates ko, play elsewhere (ko threat)
-    if coord and gtp_move.upper() != "PASS" and game.is_ko(coord[0], coord[1], color):
-        gtp_move = await _ai_retry_avoiding_ko(game, color)
-        coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
-
-    game.moves.append((color, gtp_move))
-    captured = 0
-    if gtp_move.upper() != "PASS":
-        if coord:
-            captured = game.place_stone(coord[0], coord[1], color)
-        game.passed[color] = False
-    else:
-        game.passed[color] = True
-    await _check_capture_foul(game, send_fn, color, captured, ultimate=False)
-
-    game.current_player = game.player_color
-    _prepare_player_turn_modifiers(game)
-
-    # Erosion effect (applies even with other cards — only if card is erosion)
-    if card == "erosion" and captured > 0:
-        shift = ROGUE_EROSION_SHIFT * captured
-        if game.ai_color == "W":
-            game.komi += shift
-        else:
-            game.komi -= shift
-        await run_in_executor(engine.send_command, f"komi {game.komi}")
-        await send_fn({"type": "rogue_event",
-                        "msg": f"🐛 蚕食！AI 提 {captured} 子，贴目变为 {game.komi}"})
-
-    game.push_history()
-    await send_fn({"type": "game_state", **game.to_state()})
-
-    if game.passed["B"] and game.passed["W"]:
-        resp_score = await run_in_executor(engine.send_command, "final_score")
-        score_str = resp_score.replace("=", "").strip()
-        winner = "B" if score_str.startswith("B") else "W"
-        game.game_over = True
-        game.winner = winner
-        await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color,
-                        "x": None, "y": None})
-        await send_fn({"type": "game_over", "winner": winner,
-                        "score": score_str, "reason": "double_pass"})
-        return
-
-    await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color,
-                    "x": coord[0] if coord else None,
-                    "y": coord[1] if coord else None})
-    if rogue_msg:
-        await send_fn({"type": "rogue_event", "msg": rogue_msg})
-    await _run_coach_turn_if_needed(game, send_fn)
+    await finalize_ai_move(
+        game,
+        send_fn,
+        color=color,
+        card=card,
+        gtp_move=gtp_move,
+        rogue_msg=rogue_msg,
+        gtp_to_coord=gtp_to_coord,
+        no_resign_move=_ai_move_no_resign,
+        retry_avoiding_ko=_ai_retry_avoiding_ko,
+        check_capture_foul=_check_capture_foul,
+        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+        run_engine_command=_run_engine_command,
+        run_coach_turn_if_needed=_run_coach_turn_if_needed,
+    )
 
 
 async def _generate_ai_style_move(game: GoGame, color: str, visits: int, time_limit: float) -> str:
