@@ -122,6 +122,7 @@ from app.gameplay.ai_move_flow import (
     refresh_fog_restriction_points,
     resolve_ai_resign_move,
     retry_ai_move_avoiding_ko,
+    send_ai_move_and_run_coach,
     try_apply_no_regret_bonus,
     try_apply_puppet_ai_move,
     try_apply_sansan_trap_counter,
@@ -1878,12 +1879,15 @@ async def _ai_move(game: GoGame, send_fn):
     ):
         return
 
-    await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color,
-                    "x": coord[0] if coord else None,
-                    "y": coord[1] if coord else None})
-    if slip_msg:
-        await send_fn({"type": "rogue_event", "msg": slip_msg})
-    await _run_coach_turn_if_needed(game, send_fn)
+    await send_ai_move_and_run_coach(
+        game,
+        send_fn,
+        color=color,
+        gtp_move=gtp_move,
+        coord=coord,
+        rogue_msg=slip_msg,
+        run_coach_turn_if_needed=_run_coach_turn_if_needed,
+    )
 
 
 async def _ai_move_avoid_points(game, color, visits, time_limit, forbidden):

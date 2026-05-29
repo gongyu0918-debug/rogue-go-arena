@@ -513,6 +513,28 @@ async def try_finalize_double_pass(
     return True
 
 
+async def send_ai_move_and_run_coach(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    gtp_move: str,
+    coord: tuple[int, int] | None,
+    rogue_msg: str | None = None,
+    run_coach_turn_if_needed: RunCoachTurnFn,
+) -> None:
+    await send_fn({
+        "type": "ai_move",
+        "gtp": gtp_move,
+        "color": color,
+        "x": coord[0] if coord else None,
+        "y": coord[1] if coord else None,
+    })
+    if rogue_msg:
+        await send_fn({"type": "rogue_event", "msg": rogue_msg})
+    await run_coach_turn_if_needed(game, send_fn)
+
+
 def apply_slip_ai_move(
     game: Any,
     *,
@@ -747,13 +769,12 @@ async def finalize_ai_move(
     ):
         return
 
-    await send_fn({
-        "type": "ai_move",
-        "gtp": gtp_move,
-        "color": color,
-        "x": coord[0] if coord else None,
-        "y": coord[1] if coord else None,
-    })
-    if rogue_msg:
-        await send_fn({"type": "rogue_event", "msg": rogue_msg})
-    await run_coach_turn_if_needed(game, send_fn)
+    await send_ai_move_and_run_coach(
+        game,
+        send_fn,
+        color=color,
+        gtp_move=gtp_move,
+        coord=coord,
+        rogue_msg=rogue_msg,
+        run_coach_turn_if_needed=run_coach_turn_if_needed,
+    )
