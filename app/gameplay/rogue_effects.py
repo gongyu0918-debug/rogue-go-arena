@@ -38,6 +38,10 @@ JosekiTargetsFn = Callable[[int, int], list[tuple[int, int]]]
 HiddenCenterFn = Callable[[int, int, random.Random], tuple[int, int]]
 DiamondPointsFn = Callable[[int, int, int, int], list[tuple[int, int]]]
 RefreshAiRogueTurnFn = Callable[[Any], None]
+CardIdsFn = Callable[[list[str]], list[str]]
+GetCardFn = Callable[[str], dict[str, Any]]
+ActiveUseBonusFn = Callable[[Any, str], int]
+ZonePointsFn = Callable[[Any, list[tuple[int, int]]], list[tuple[int, int]]]
 
 
 @dataclass
@@ -51,6 +55,11 @@ class RogueBoardEffectResult:
 class RogueCardActivationResult:
     messages: list[str]
     sync_komi: bool = False
+
+
+@dataclass
+class ChallengeRogueLoadoutResult:
+    cards: list[str]
 
 
 def reset_rogue_effect_state(
@@ -198,6 +207,75 @@ def apply_ai_rogue_card_activation(
         )
     elif card_id == "fog":
         refresh_ai_rogue_player_turn_fn(game)
+
+
+def apply_challenge_rogue_loadout(
+    game: Any,
+    *,
+    card_ids_fn: CardIdsFn,
+    get_rogue_card_fn: GetCardFn,
+    active_use_bonus_fn: ActiveUseBonusFn | None = None,
+    challenge_zone_points_fn: ZonePointsFn | None = None,
+    choose_corner: ChooseCornerFn = lambda: random.randint(0, 3),
+    make_rng: RngFactory = random.Random,
+    get_blackhole_points_fn: PointListFn = get_blackhole_points,
+    get_golden_corner_points_fn: GoldenCornerFn = get_golden_corner_points,
+    pick_joseki_targets_fn: JosekiTargetsFn = pick_joseki_targets,
+    random_hidden_center_fn: HiddenCenterFn = random_hidden_center,
+    diamond_points_fn: DiamondPointsFn = diamond_points,
+    golden_corner_span: int = gameplay_config.ROGUE_GOLDEN_CORNER_SPAN,
+    joseki_target_count: int = gameplay_config.ROGUE_JOSEKI_TARGET_COUNT,
+    godhand_radius: int = gameplay_config.ROGUE_GODHAND_RADIUS,
+) -> ChallengeRogueLoadoutResult:
+    if active_use_bonus_fn is None:
+        active_use_bonus_fn = challenge_active_use_bonus
+    if challenge_zone_points_fn is None:
+        challenge_zone_points_fn = challenge_zone_points
+
+    cards = card_ids_fn(game.challenge_cards)
+    game.rogue_card = cards[-1] if cards else None
+    reset_rogue_effect_state(game, reset_uses=True, reset_handicap=True)
+    game.rogue_enabled = bool(cards)
+
+    for card_id in cards:
+        card_def = get_rogue_card_fn(card_id)
+        use_bonus = active_use_bonus_fn(game, card_id)
+        apply_rogue_card_uses(game, card_id, card_def, bonus=use_bonus)
+
+        if card_id == "komi_relief":
+            if game.player_color == "B":
+                game.komi = max(0.5, game.komi - 7.0)
+            else:
+                game.komi = game.komi + 7.0
+        elif card_id == "blackhole":
+            game.rogue_seal_points.extend(
+                challenge_zone_points_fn(game, get_blackhole_points_fn(game.size))
+            )
+        elif card_id == "golden_corner":
+            corner = choose_corner()
+            game.rogue_seal_points.extend(
+                challenge_zone_points_fn(
+                    game,
+                    get_golden_corner_points_fn(game.size, corner, golden_corner_span),
+                )
+            )
+        elif card_id == "joseki_ocd" and not game.rogue_joseki_targets:
+            game.rogue_joseki_targets = pick_joseki_targets_fn(game.size, joseki_target_count)
+        elif card_id == "god_hand" and not game.rogue_godhand_trigger:
+            rng = make_rng()
+            game.rogue_godhand_center = random_hidden_center_fn(game.size, 2, rng)
+            game.rogue_godhand_trigger = diamond_points_fn(
+                game.rogue_godhand_center[0],
+                game.rogue_godhand_center[1],
+                godhand_radius,
+                game.size,
+            )
+        elif card_id == "quickthink" and game.current_player == game.player_color:
+            game.rogue_quickthink_stage = 1
+        elif card_id == "coach_mode":
+            game.rogue_uses.setdefault("coach_mode", 1 + use_bonus)
+
+    return ChallengeRogueLoadoutResult(cards=cards)
 
 
 def rogue_card_ids(game: Any) -> list[str]:
