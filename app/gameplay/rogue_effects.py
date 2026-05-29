@@ -9,13 +9,18 @@ import app.config.gameplay as gameplay_config
 from app.gameplay.effect_utils import (
     adjacent8_points,
     adjacent_points,
+    diamond_points,
     find_corner_with_min_stones,
     find_new_fool_shapes,
+    get_blackhole_points,
     get_corner_helper_spawn_points,
+    get_golden_corner_points,
     get_sansan_points,
     get_square_points,
     get_star_points,
     player_non_pass_coords,
+    pick_joseki_targets,
+    random_hidden_center,
     set_points_to_color,
     shape_center,
     spawn_bonus_points,
@@ -24,6 +29,14 @@ from app.data.cards import challenge_card_category, challenge_category_counts
 
 
 ShufflePointsFn = Callable[[list[tuple[int, int]]], None]
+CoordFormatter = Callable[[int, int, int], str | None]
+ChooseCornerFn = Callable[[], int]
+RngFactory = Callable[[], random.Random]
+PointListFn = Callable[[int], list[tuple[int, int]]]
+GoldenCornerFn = Callable[[int, int, int], list[tuple[int, int]]]
+JosekiTargetsFn = Callable[[int, int], list[tuple[int, int]]]
+HiddenCenterFn = Callable[[int, int, random.Random], tuple[int, int]]
+DiamondPointsFn = Callable[[int, int, int, int], list[tuple[int, int]]]
 
 
 @dataclass
@@ -31,6 +44,12 @@ class RogueBoardEffectResult:
     modified: bool
     messages: list[str]
     trap_bonus_sources: list[str]
+
+
+@dataclass
+class RogueCardActivationResult:
+    messages: list[str]
+    sync_komi: bool = False
 
 
 def reset_rogue_effect_state(
@@ -70,6 +89,86 @@ def reset_rogue_effect_state(
 def apply_rogue_card_uses(game: Any, card_id: str, card_def: dict[str, Any], *, bonus: int = 0) -> None:
     if "uses" in card_def:
         game.rogue_uses[card_id] = card_def["uses"] + bonus
+
+
+def apply_rogue_card_activation(
+    game: Any,
+    card_id: str,
+    card_def: dict[str, Any],
+    *,
+    coord_to_gtp: CoordFormatter,
+    choose_corner: ChooseCornerFn = lambda: random.randint(0, 3),
+    make_rng: RngFactory = random.Random,
+    get_blackhole_points_fn: PointListFn = get_blackhole_points,
+    get_golden_corner_points_fn: GoldenCornerFn = get_golden_corner_points,
+    pick_joseki_targets_fn: JosekiTargetsFn = pick_joseki_targets,
+    random_hidden_center_fn: HiddenCenterFn = random_hidden_center,
+    diamond_points_fn: DiamondPointsFn = diamond_points,
+) -> RogueCardActivationResult:
+    game.rogue_card = card_id
+    reset_rogue_effect_state(game)
+    apply_rogue_card_uses(game, card_id, card_def)
+
+    messages: list[str] = []
+    sync_komi = False
+    if card_id == "komi_relief":
+        if game.player_color == "B":
+            game.komi = max(0.5, game.komi - 7.0)
+        else:
+            game.komi = game.komi + 7.0
+        sync_komi = True
+    elif card_id == "seal":
+        game.rogue_waiting_seal = True
+    elif card_id == "blackhole":
+        game.rogue_seal_points = get_blackhole_points_fn(game.size)
+        messages.append("黑洞已锁定中央区域，整局都会限制 AI 进入")
+    elif card_id == "golden_corner":
+        corner = choose_corner()
+        game.rogue_seal_points = get_golden_corner_points_fn(
+            game.size,
+            corner,
+            gameplay_config.ROGUE_GOLDEN_CORNER_SPAN,
+        )
+        corner_names = ["左上角", "右上角", "左下角", "右下角"]
+        messages.append(
+            f"黄金角已封锁 {corner_names[corner]} 的 "
+            f"{gameplay_config.ROGUE_GOLDEN_CORNER_SPAN}x"
+            f"{gameplay_config.ROGUE_GOLDEN_CORNER_SPAN} 区域，整局都会限制 AI 进入"
+        )
+    elif card_id == "joseki_ocd":
+        game.rogue_joseki_targets = pick_joseki_targets_fn(
+            game.size,
+            gameplay_config.ROGUE_JOSEKI_TARGET_COUNT,
+        )
+        pts_str = ", ".join(
+            coord_to_gtp(px, py, game.size)
+            for px, py in game.rogue_joseki_targets
+        )
+        messages.append(
+            f"定式强迫症已点亮 {gameplay_config.ROGUE_JOSEKI_TARGET_COUNT} 个目标点：{pts_str}。"
+            f"命中其中 {gameplay_config.ROGUE_JOSEKI_REQUIRED_HITS} 个后会自动补上剩余 "
+            f"{gameplay_config.ROGUE_JOSEKI_TARGET_COUNT - gameplay_config.ROGUE_JOSEKI_REQUIRED_HITS} 个点位"
+        )
+    elif card_id == "handicap_quest":
+        messages.append(
+            f"让子任务开始：你需要先虚手 {gameplay_config.ROGUE_HANDICAP_REQUIRED_PASSES} 次，"
+            f"之后每下满 {gameplay_config.ROGUE_HANDICAP_BONUS_INTERVAL} 手可再让 AI 虚手一次"
+        )
+    elif card_id == "god_hand":
+        rng = make_rng()
+        game.rogue_godhand_center = random_hidden_center_fn(game.size, 2, rng)
+        game.rogue_godhand_trigger = diamond_points_fn(
+            game.rogue_godhand_center[0],
+            game.rogue_godhand_center[1],
+            gameplay_config.ROGUE_GODHAND_RADIUS,
+            game.size,
+        )
+    elif card_id == "quickthink" and game.current_player == game.player_color:
+        game.rogue_quickthink_stage = 1
+    elif card_id == "coach_mode":
+        game.rogue_uses.setdefault("coach_mode", 1)
+
+    return RogueCardActivationResult(messages=messages, sync_komi=sync_komi)
 
 
 def rogue_card_ids(game: Any) -> list[str]:

@@ -200,6 +200,7 @@ from app.gameplay.rogue_effects import (
     challenge_remaining as _challenge_remaining,
     challenge_should_bonus_derivative as _challenge_should_bonus_derivative,
     challenge_zone_points as _challenge_zone_points,
+    apply_rogue_card_activation,
     apply_ai_rogue_response_board_effects,
     apply_player_rogue_board_effects,
     reset_rogue_effect_state,
@@ -998,51 +999,24 @@ async def _pick_best_point(game: GoGame, color: str) -> Optional[tuple[int, int]
 async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
     """Apply immediate effects when the player picks a rogue card."""
     cdef = get_rogue_card(card_id)
-    game.rogue_card = card_id
-    reset_rogue_effect_state(game)
-    apply_rogue_card_uses(game, card_id, cdef)
-
-    if card_id == "komi_relief":
-        if game.player_color == "B":
-            game.komi = max(0.5, game.komi - 7.0)
-        else:
-            game.komi = game.komi + 7.0
+    result = apply_rogue_card_activation(
+        game,
+        card_id,
+        cdef,
+        coord_to_gtp=coord_to_gtp,
+        choose_corner=lambda: random.randint(0, 3),
+        make_rng=lambda: random.Random(time.time_ns()),
+        get_blackhole_points_fn=_get_blackhole_points,
+        get_golden_corner_points_fn=_get_golden_corner_points,
+        pick_joseki_targets_fn=_pick_joseki_targets,
+        random_hidden_center_fn=_random_hidden_center,
+        diamond_points_fn=_diamond_points,
+    )
+    for message in result.messages:
+        await send_fn({"type": "rogue_event", "msg": message})
+    if result.sync_komi:
         if engine.ready:
             await run_in_executor(engine.send_command, f"komi {game.komi}")
-    elif card_id == "seal":
-        game.rogue_waiting_seal = True
-    elif card_id == "blackhole":
-        game.rogue_seal_points = _get_blackhole_points(game.size)
-        await send_fn({"type": "rogue_event", "msg": "黑洞已锁定中央区域，整局都会限制 AI 进入"})
-    elif card_id == "golden_corner":
-        corner = random.randint(0, 3)
-        game.rogue_seal_points = _get_golden_corner_points(game.size, corner, ROGUE_GOLDEN_CORNER_SPAN)
-        corner_names = ["左上角", "右上角", "左下角", "右下角"]
-        await send_fn({"type": "rogue_event",
-                       "msg": f"黄金角已封锁 {corner_names[corner]} 的 {ROGUE_GOLDEN_CORNER_SPAN}x{ROGUE_GOLDEN_CORNER_SPAN} 区域，整局都会限制 AI 进入"})
-    elif card_id == "joseki_ocd":
-        game.rogue_joseki_targets = _pick_joseki_targets(
-            game.size, ROGUE_JOSEKI_TARGET_COUNT)
-        pts_str = ", ".join(
-            coord_to_gtp(px, py, game.size)
-            for px, py in game.rogue_joseki_targets)
-        await send_fn({"type": "rogue_event",
-                       "msg": f"定式强迫症已点亮 {ROGUE_JOSEKI_TARGET_COUNT} 个目标点：{pts_str}。"
-                              f"命中其中 {ROGUE_JOSEKI_REQUIRED_HITS} 个后会自动补上剩余 "
-                              f"{ROGUE_JOSEKI_TARGET_COUNT - ROGUE_JOSEKI_REQUIRED_HITS} 个点位"})
-    elif card_id == "handicap_quest":
-        await send_fn({"type": "rogue_event",
-                       "msg": f"让子任务开始：你需要先虚手 {ROGUE_HANDICAP_REQUIRED_PASSES} 次，"
-                              f"之后每下满 {ROGUE_HANDICAP_BONUS_INTERVAL} 手可再让 AI 虚手一次"})
-    elif card_id == "god_hand":
-        rng = random.Random(time.time_ns())
-        game.rogue_godhand_center = _random_hidden_center(game.size, 2, rng)
-        game.rogue_godhand_trigger = _diamond_points(
-            game.rogue_godhand_center[0], game.rogue_godhand_center[1], ROGUE_GODHAND_RADIUS, game.size)
-    elif card_id == "quickthink" and game.current_player == game.player_color:
-        game.rogue_quickthink_stage = 1
-    elif card_id == "coach_mode":
-        game.rogue_uses.setdefault("coach_mode", 1)
 
     await send_fn({"type": "rogue_card_selected",
                    "card_id": card_id,
