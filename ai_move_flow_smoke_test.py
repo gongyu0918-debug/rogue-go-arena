@@ -11,6 +11,7 @@ from app.gameplay.ai_move_flow import (
     apply_slip_ai_move,
     finalize_ai_move,
     finalize_forced_ai_pass,
+    retry_ai_move_avoiding_ko,
     try_apply_puppet_ai_move,
     try_finalize_forced_ai_stone,
     try_finish_suboptimal_rogue_move,
@@ -1625,12 +1626,14 @@ async def _server_ai_move_slip_delegates_to_slip_adjustment() -> None:
     original_sync = s._sync_board_to_katago
     original_generate = s._ai_generate_move
     original_slip = s.apply_slip_ai_move
+    original_retry = s._ai_retry_avoiding_ko
     original_prepare = s._prepare_player_turn_modifiers
     original_coach = s._run_coach_turn_if_needed
     s.engine.ready = True
     s._sync_board_to_katago = fake_sync
     s._ai_generate_move = fake_generate
     s.apply_slip_ai_move = fake_slip
+    s._ai_retry_avoiding_ko = lambda *_args: (_ for _ in ()).throw(AssertionError("retry should not be called"))
     s._prepare_player_turn_modifiers = fake_prepare
     s._run_coach_turn_if_needed = fake_coach
     try:
@@ -1640,6 +1643,7 @@ async def _server_ai_move_slip_delegates_to_slip_adjustment() -> None:
         s._sync_board_to_katago = original_sync
         s._ai_generate_move = original_generate
         s.apply_slip_ai_move = original_slip
+        s._ai_retry_avoiding_ko = original_retry
         s._prepare_player_turn_modifiers = original_prepare
         s._run_coach_turn_if_needed = original_coach
 
@@ -1660,6 +1664,210 @@ async def _server_ai_move_slip_delegates_to_slip_adjustment() -> None:
 
 def test_server_ai_move_slip_delegates_to_slip_adjustment() -> None:
     asyncio.run(_server_ai_move_slip_delegates_to_slip_adjustment())
+
+
+async def _retry_ai_move_avoiding_ko_skips_pass_and_resign() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    def parse_coord(gtp, size):
+        calls.append(("parse", gtp, size))
+        return (2, 2)
+
+    async def retry_ko(_game, _color):
+        calls.append(("retry",))
+        return "D3"
+
+    pass_result = await retry_ai_move_avoiding_ko(
+        game,
+        color="W",
+        gtp_move="pass",
+        rogue_msg="slip msg",
+        gtp_to_coord=parse_coord,
+        retry_avoiding_ko=retry_ko,
+    )
+    resign_result = await retry_ai_move_avoiding_ko(
+        game,
+        color="W",
+        gtp_move="RESIGN",
+        rogue_msg="slip msg",
+        gtp_to_coord=parse_coord,
+        retry_avoiding_ko=retry_ko,
+    )
+
+    assert pass_result == AiMoveAdjustment("pass", message="slip msg")
+    assert resign_result == AiMoveAdjustment("RESIGN", message="slip msg")
+    assert calls == []
+
+
+def test_retry_ai_move_avoiding_ko_skips_pass_and_resign() -> None:
+    asyncio.run(_retry_ai_move_avoiding_ko_skips_pass_and_resign())
+
+
+async def _retry_ai_move_avoiding_ko_preserves_non_ko_message() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+    game.is_ko = lambda x, y, color: False
+
+    def parse_coord(gtp, size):
+        calls.append(("parse", gtp, size))
+        return (2, 2)
+
+    async def retry_ko(_game, _color):
+        calls.append(("retry",))
+        return "D3"
+
+    result = await retry_ai_move_avoiding_ko(
+        game,
+        color="W",
+        gtp_move="C3",
+        rogue_msg="slip msg",
+        gtp_to_coord=parse_coord,
+        retry_avoiding_ko=retry_ko,
+    )
+
+    assert result == AiMoveAdjustment("C3", message="slip msg")
+    assert calls == [("parse", "C3", 5)]
+
+
+def test_retry_ai_move_avoiding_ko_preserves_non_ko_message() -> None:
+    asyncio.run(_retry_ai_move_avoiding_ko_preserves_non_ko_message())
+
+
+async def _retry_ai_move_avoiding_ko_preserves_message_when_coord_parse_fails() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    def parse_coord(gtp, size):
+        calls.append(("parse", gtp, size))
+        return None
+
+    async def retry_ko(_game, _color):
+        calls.append(("retry",))
+        return "D3"
+
+    result = await retry_ai_move_avoiding_ko(
+        game,
+        color="W",
+        gtp_move="bad-move",
+        rogue_msg="slip msg",
+        gtp_to_coord=parse_coord,
+        retry_avoiding_ko=retry_ko,
+    )
+
+    assert result == AiMoveAdjustment("bad-move", message="slip msg")
+    assert calls == [("parse", "bad-move", 5)]
+
+
+def test_retry_ai_move_avoiding_ko_preserves_message_when_coord_parse_fails() -> None:
+    asyncio.run(_retry_ai_move_avoiding_ko_preserves_message_when_coord_parse_fails())
+
+
+async def _retry_ai_move_avoiding_ko_retries_and_clears_message() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+    game.is_ko = lambda x, y, color: (x, y, color) == (2, 2, "W")
+
+    def parse_coord(gtp, size):
+        calls.append(("parse", gtp, size))
+        return (2, 2)
+
+    async def retry_ko(game_arg, color):
+        calls.append(("retry", game_arg is game, color))
+        return "D3"
+
+    result = await retry_ai_move_avoiding_ko(
+        game,
+        color="W",
+        gtp_move="C3",
+        rogue_msg="slip msg",
+        gtp_to_coord=parse_coord,
+        retry_avoiding_ko=retry_ko,
+    )
+
+    assert result == AiMoveAdjustment("D3", message=None)
+    assert calls == [
+        ("parse", "C3", 5),
+        ("retry", True, "W"),
+    ]
+
+
+def test_retry_ai_move_avoiding_ko_retries_and_clears_message() -> None:
+    asyncio.run(_retry_ai_move_avoiding_ko_retries_and_clears_message())
+
+
+async def _server_ai_move_ko_guard_runs_after_slip_and_clears_message() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "slip"
+    game.is_ko = lambda x, y, color: (x, y, color) == (2, 2, "W")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp"), payload.get("msg")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= E5"
+
+    def fake_slip(game_arg, **kwargs):
+        calls.append(("slip", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment("C3", needs_sync=True, message="slip msg")
+
+    async def fake_retry(game_arg, color):
+        calls.append(("retry", game_arg is game, color))
+        return "D3"
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_slip = s.apply_slip_ai_move
+    original_retry = s._ai_retry_avoiding_ko
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.apply_slip_ai_move = fake_slip
+    s._ai_retry_avoiding_ko = fake_retry
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        s.apply_slip_ai_move = original_slip
+        s._ai_retry_avoiding_ko = original_retry
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "D3")
+    assert game.board[2][3] == 2
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("slip", True, "E5"),
+        ("retry", True, "W"),
+        ("sync", True),
+        ("prepare", True),
+        ("send", "game_state", None, None),
+        ("send", "ai_move", "D3", None),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_ko_guard_runs_after_slip_and_clears_message() -> None:
+    asyncio.run(_server_ai_move_ko_guard_runs_after_slip_and_clears_message())
 
 
 async def _try_finish_suboptimal_rogue_move_uses_nerf_backup_first() -> None:
@@ -2093,6 +2301,11 @@ if __name__ == "__main__":
     test_apply_slip_ai_move_keeps_move_when_format_fails()
     test_apply_slip_ai_move_keeps_move_without_legal_neighbor()
     test_server_ai_move_slip_delegates_to_slip_adjustment()
+    test_retry_ai_move_avoiding_ko_skips_pass_and_resign()
+    test_retry_ai_move_avoiding_ko_preserves_non_ko_message()
+    test_retry_ai_move_avoiding_ko_preserves_message_when_coord_parse_fails()
+    test_retry_ai_move_avoiding_ko_retries_and_clears_message()
+    test_server_ai_move_ko_guard_runs_after_slip_and_clears_message()
     test_try_finish_suboptimal_rogue_move_uses_nerf_backup_first()
     test_try_finish_suboptimal_rogue_move_keeps_suboptimal_default_signature()
     test_try_finish_suboptimal_rogue_move_continues_after_miss_or_none()

@@ -359,6 +359,28 @@ def apply_slip_ai_move(
     )
 
 
+async def retry_ai_move_avoiding_ko(
+    game: Any,
+    *,
+    color: str,
+    gtp_move: str,
+    rogue_msg: str | None,
+    gtp_to_coord: CoordParser,
+    retry_avoiding_ko: RetryAvoidingKoFn,
+) -> AiMoveAdjustment:
+    if gtp_move.upper() in {"PASS", "RESIGN"}:
+        return AiMoveAdjustment(gtp_move, message=rogue_msg)
+
+    coord = gtp_to_coord(gtp_move, game.size)
+    if coord and game.is_ko(coord[0], coord[1], color):
+        return AiMoveAdjustment(
+            await retry_avoiding_ko(game, color),
+            message=None,
+        )
+
+    return AiMoveAdjustment(gtp_move, message=rogue_msg)
+
+
 async def try_finish_suboptimal_rogue_move(
     game: Any,
     send_fn: AsyncSend,

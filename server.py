@@ -117,6 +117,7 @@ from app.gameplay.ai_move_flow import (
     finalize_ai_move,
     finalize_forced_ai_pass,
     refresh_fog_restriction_points,
+    retry_ai_move_avoiding_ko,
     try_apply_puppet_ai_move,
     try_finalize_forced_ai_stone,
     try_finish_allowed_restriction_move,
@@ -1769,12 +1770,17 @@ async def _ai_move(game: GoGame, send_fn):
     needs_sync = slip_result.needs_sync
     slip_msg = slip_result.message
 
-    # Ko guard: if the AI move violates ko, play elsewhere (ko threat)
-    if gtp_move.upper() not in ("PASS", "RESIGN"):
-        _pre_coord = gtp_to_coord(gtp_move, game.size)
-        if _pre_coord and game.is_ko(_pre_coord[0], _pre_coord[1], color):
-            gtp_move = await _ai_retry_avoiding_ko(game, color)
-            slip_msg = None
+    ko_result = await retry_ai_move_avoiding_ko(
+        game,
+        color=color,
+        gtp_move=gtp_move,
+        rogue_msg=slip_msg,
+        gtp_to_coord=gtp_to_coord,
+        retry_avoiding_ko=_ai_retry_avoiding_ko,
+    )
+    gtp_move = ko_result.gtp_move
+    # Ko retry only changes the final move/message; keep slip sync state intact.
+    slip_msg = ko_result.message
 
     game.moves.append((color, gtp_move))
 
