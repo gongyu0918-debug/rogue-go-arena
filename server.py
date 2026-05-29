@@ -1411,6 +1411,54 @@ async def _try_finish_rogue_restriction_ai_turn(
     )
 
 
+async def _try_finish_shadow_rogue_ai_turn(
+    game: GoGame,
+    send_fn,
+    turn: AiTurnSnapshot,
+    ai_plan: AiMovePlan,
+) -> bool:
+    return await try_finish_shadow_restriction_move(
+        game,
+        send_fn,
+        color=turn.color,
+        card=turn.card,
+        rogue_cards=turn.rogue_cards,
+        ai_move_count=turn.ai_move_count,
+        visits=ai_plan.visits,
+        time_limit=ai_plan.time_limit,
+        roll_random=random.random,
+        choose_restriction=lambda game_arg, color_arg, ai_count: shadow_followup_points(
+            game_arg,
+            color_arg,
+            ai_count,
+            gtp_to_coord=gtp_to_coord,
+        ),
+        choose_allowed_move=_ai_move_avoid_points_allow_only,
+        finish_ai_move=_finish_ai_move,
+    )
+
+
+async def _try_finish_suboptimal_rogue_ai_turn(
+    game: GoGame,
+    send_fn,
+    turn: AiTurnSnapshot,
+    ai_plan: AiMovePlan,
+) -> bool:
+    return await try_finish_suboptimal_rogue_move(
+        game,
+        send_fn,
+        color=turn.color,
+        card=turn.card,
+        rogue_cards=turn.rogue_cards,
+        ai_move_count=turn.ai_move_count,
+        visits=ai_plan.visits,
+        time_limit=ai_plan.time_limit,
+        roll_random=random.random,
+        choose_suboptimal_move=_ai_move_suboptimal,
+        finish_ai_move=_finish_ai_move,
+    )
+
+
 async def _ai_move(game: GoGame, send_fn):
     if game.game_over or not engine.ready:
         return
@@ -1455,40 +1503,10 @@ async def _ai_move(game: GoGame, send_fn):
     if await _try_finish_rogue_restriction_ai_turn(game, send_fn, turn, ai_plan, _run_engine_command):
         return
 
-    if await try_finish_shadow_restriction_move(
-        game,
-        send_fn,
-        color=color,
-        card=card,
-        rogue_cards=rogue_cards,
-        ai_move_count=ai_move_count,
-        visits=visits,
-        time_limit=time_limit,
-        roll_random=random.random,
-        choose_restriction=lambda game_arg, color_arg, ai_count: shadow_followup_points(
-            game_arg,
-            color_arg,
-            ai_count,
-            gtp_to_coord=gtp_to_coord,
-        ),
-        choose_allowed_move=_ai_move_avoid_points_allow_only,
-        finish_ai_move=_finish_ai_move,
-    ):
+    if await _try_finish_shadow_rogue_ai_turn(game, send_fn, turn, ai_plan):
         return
 
-    if await try_finish_suboptimal_rogue_move(
-        game,
-        send_fn,
-        color=color,
-        card=card,
-        rogue_cards=rogue_cards,
-        ai_move_count=ai_move_count,
-        visits=visits,
-        time_limit=time_limit,
-        roll_random=random.random,
-        choose_suboptimal_move=_ai_move_suboptimal,
-        finish_ai_move=_finish_ai_move,
-    ):
+    if await _try_finish_suboptimal_rogue_ai_turn(game, send_fn, turn, ai_plan):
         return
 
     forbidden = rogue_forbidden_points(

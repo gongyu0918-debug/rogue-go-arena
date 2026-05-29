@@ -4595,6 +4595,194 @@ def test_server_rogue_restriction_turn_helper_binds_runtime_globals() -> None:
     asyncio.run(_server_rogue_restriction_turn_helper_binds_runtime_globals())
 
 
+async def _server_shadow_and_suboptimal_turn_helpers_bind_runtime_globals() -> None:
+    game = GoGame(size=5, player_color="B")
+    shadow_turn = s.AiTurnSnapshot(
+        color="W",
+        card="shadow",
+        rogue_cards={"shadow"},
+        move_count=6,
+        ai_move_count=3,
+    )
+    shadow_plan = s.AiMovePlan(
+        mode="rogue",
+        effective_level="4k",
+        visits=77,
+        time_limit=1.25,
+        move_count=6,
+        ai_move_count=3,
+    )
+    suboptimal_turn = s.AiTurnSnapshot(
+        color="W",
+        card="suboptimal",
+        rogue_cards={"nerf", "suboptimal"},
+        move_count=7,
+        ai_move_count=4,
+    )
+    suboptimal_plan = s.AiMovePlan(
+        mode="rogue",
+        effective_level="3k",
+        visits=66,
+        time_limit=1.75,
+        move_count=7,
+        ai_move_count=4,
+    )
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def fake_random():
+        calls.append(("random",))
+        return 0.25
+
+    def fake_gtp_to_coord(gtp, size):
+        calls.append(("gtp_to_coord", gtp, size))
+        return (1, 2)
+
+    def fake_shadow_followup(game_arg, color, ai_move_count, *, gtp_to_coord):
+        calls.append((
+            "shadow_followup",
+            game_arg is game,
+            color,
+            ai_move_count,
+            gtp_to_coord is fake_gtp_to_coord,
+        ))
+        return [gtp_to_coord("C3", game_arg.size)]
+
+    async def fake_allowed(*_args, **_kwargs):
+        calls.append(("allowed",))
+        return None
+
+    async def fake_suboptimal_move(*_args, **_kwargs):
+        calls.append(("suboptimal_move",))
+        return None
+
+    async def fake_finish(*_args, **_kwargs):
+        calls.append(("finish",))
+
+    async def fake_shadow_flow(game_arg, send_fn, **kwargs):
+        restriction = kwargs["choose_restriction"](
+            game_arg,
+            kwargs["color"],
+            kwargs["ai_move_count"],
+        )
+        calls.append((
+            "shadow_flow",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["card"],
+            kwargs["rogue_cards"],
+            kwargs["ai_move_count"],
+            kwargs["visits"],
+            kwargs["time_limit"],
+            kwargs["roll_random"] is fake_random,
+            restriction,
+            kwargs["choose_allowed_move"] is fake_allowed,
+            kwargs["finish_ai_move"] is fake_finish,
+        ))
+        return True
+
+    async def fake_suboptimal_flow(game_arg, send_fn, **kwargs):
+        calls.append((
+            "suboptimal_flow",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["card"],
+            kwargs["rogue_cards"],
+            kwargs["ai_move_count"],
+            kwargs["visits"],
+            kwargs["time_limit"],
+            kwargs["roll_random"] is fake_random,
+            kwargs["choose_suboptimal_move"] is fake_suboptimal_move,
+            kwargs["finish_ai_move"] is fake_finish,
+        ))
+        return True
+
+    originals = {
+        "shadow_flow": s.try_finish_shadow_restriction_move,
+        "suboptimal_flow": s.try_finish_suboptimal_rogue_move,
+        "random": s.random.random,
+        "shadow_followup": s.shadow_followup_points,
+        "gtp_to_coord": s.gtp_to_coord,
+        "allowed": s._ai_move_avoid_points_allow_only,
+        "suboptimal_move": s._ai_move_suboptimal,
+        "finish": s._finish_ai_move,
+    }
+    s.try_finish_shadow_restriction_move = fake_shadow_flow
+    s.try_finish_suboptimal_rogue_move = fake_suboptimal_flow
+    s.random.random = fake_random
+    s.shadow_followup_points = fake_shadow_followup
+    s.gtp_to_coord = fake_gtp_to_coord
+    s._ai_move_avoid_points_allow_only = fake_allowed
+    s._ai_move_suboptimal = fake_suboptimal_move
+    s._finish_ai_move = fake_finish
+    try:
+        shadow_handled = await s._try_finish_shadow_rogue_ai_turn(
+            game,
+            send,
+            shadow_turn,
+            shadow_plan,
+        )
+        suboptimal_handled = await s._try_finish_suboptimal_rogue_ai_turn(
+            game,
+            send,
+            suboptimal_turn,
+            suboptimal_plan,
+        )
+    finally:
+        s.try_finish_shadow_restriction_move = originals["shadow_flow"]
+        s.try_finish_suboptimal_rogue_move = originals["suboptimal_flow"]
+        s.random.random = originals["random"]
+        s.shadow_followup_points = originals["shadow_followup"]
+        s.gtp_to_coord = originals["gtp_to_coord"]
+        s._ai_move_avoid_points_allow_only = originals["allowed"]
+        s._ai_move_suboptimal = originals["suboptimal_move"]
+        s._finish_ai_move = originals["finish"]
+
+    assert shadow_handled is True
+    assert suboptimal_handled is True
+    assert calls == [
+        ("shadow_followup", True, "W", 3, True),
+        ("gtp_to_coord", "C3", 5),
+        (
+            "shadow_flow",
+            True,
+            True,
+            "W",
+            "shadow",
+            {"shadow"},
+            3,
+            77,
+            1.25,
+            True,
+            [(1, 2)],
+            True,
+            True,
+        ),
+        (
+            "suboptimal_flow",
+            True,
+            True,
+            "W",
+            "suboptimal",
+            {"nerf", "suboptimal"},
+            4,
+            66,
+            1.75,
+            True,
+            True,
+            True,
+        ),
+    ]
+
+
+def test_server_shadow_and_suboptimal_turn_helpers_bind_runtime_globals() -> None:
+    asyncio.run(_server_shadow_and_suboptimal_turn_helpers_bind_runtime_globals())
+
+
 async def _try_apply_puppet_ai_move_success_finishes_and_updates_uses() -> None:
     game = GoGame(size=5, player_color="B")
     game.rogue_puppet_target = (2, 2)
@@ -8219,6 +8407,7 @@ if __name__ == "__main__":
     test_try_finish_rogue_restriction_ai_move_sansan_uses_avoid()
     test_server_ai_move_delegates_to_rogue_restriction_flow()
     test_server_rogue_restriction_turn_helper_binds_runtime_globals()
+    test_server_shadow_and_suboptimal_turn_helpers_bind_runtime_globals()
     test_try_apply_puppet_ai_move_success_finishes_and_updates_uses()
     test_try_apply_puppet_ai_move_occupied_target_falls_back()
     test_try_apply_puppet_ai_move_illegal_target_falls_back()
