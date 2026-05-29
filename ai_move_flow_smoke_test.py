@@ -28,6 +28,7 @@ from app.gameplay.ai_move_flow import (
     try_apply_no_regret_bonus,
     try_apply_puppet_ai_move,
     try_apply_sansan_trap_counter,
+    try_finish_forced_rogue_ai_move,
     try_choose_ai_style_move,
     try_finalize_double_pass,
     try_finalize_forced_ai_stone,
@@ -2254,6 +2255,384 @@ async def _try_finalize_forced_ai_stone_skips_state_on_engine_error() -> None:
 
 def test_try_finalize_forced_ai_stone_skips_state_on_engine_error() -> None:
     asyncio.run(_try_finalize_forced_ai_stone_skips_state_on_engine_error())
+
+
+async def _try_finish_forced_rogue_ai_move_dice_preempts_later_cards() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def roll_random():
+        calls.append(("roll",))
+        return 0.0
+
+    async def forced_pass(game_arg, send_fn, **kwargs):
+        calls.append((
+            "forced_pass",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["message"],
+            kwargs["prepare_player_turn_modifiers"] is prepare,
+            kwargs["run_engine_command"] is run_engine,
+        ))
+
+    async def forced_stone(*_args, **_kwargs):
+        raise AssertionError("dice should preempt mirror")
+
+    async def puppet(*_args, **_kwargs):
+        raise AssertionError("dice should preempt puppet")
+
+    def prepare(_game):
+        calls.append(("prepare",))
+
+    async def run_engine(_command):
+        calls.append(("engine",))
+        return "="
+
+    handled = await try_finish_forced_rogue_ai_move(
+        game,
+        send,
+        color="W",
+        card="dice",
+        rogue_cards={"dice", "mirror", "puppet"},
+        roll_random=roll_random,
+        dice_pass_chance=1.0,
+        mirror_chance=1.0,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=s.coord_to_gtp,
+        mirror_coord=lambda x, y, size: (size - 1 - x, size - 1 - y),
+        prepare_player_turn_modifiers=prepare,
+        run_engine_command=run_engine,
+        finalize_forced_pass=forced_pass,
+        finalize_forced_stone=forced_stone,
+        apply_puppet_move=puppet,
+        finish_ai_move=lambda *_args: None,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("roll",),
+        ("forced_pass", True, True, "W", "掷骰触发，AI 这手选择虚手", True, True),
+    ]
+
+
+def test_try_finish_forced_rogue_ai_move_dice_preempts_later_cards() -> None:
+    asyncio.run(_try_finish_forced_rogue_ai_move_dice_preempts_later_cards())
+
+
+async def _try_finish_forced_rogue_ai_move_mirror_forces_stone() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.moves.append(("B", "B2"))
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def roll_random():
+        calls.append(("roll",))
+        return 0.0
+
+    async def forced_pass(*_args, **_kwargs):
+        raise AssertionError("mirror should not force pass")
+
+    async def forced_stone(game_arg, send_fn, **kwargs):
+        calls.append((
+            "forced_stone",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["gtp_move"],
+            kwargs["coord"],
+            kwargs["message"],
+            kwargs["prepare_player_turn_modifiers"] is prepare,
+            kwargs["run_engine_command"] is run_engine,
+        ))
+        return True
+
+    async def puppet(*_args, **_kwargs):
+        raise AssertionError("mirror success should preempt puppet")
+
+    def prepare(_game):
+        calls.append(("prepare",))
+
+    async def run_engine(_command):
+        calls.append(("engine",))
+        return "="
+
+    handled = await try_finish_forced_rogue_ai_move(
+        game,
+        send,
+        color="W",
+        card="mirror",
+        rogue_cards={"mirror", "puppet"},
+        roll_random=roll_random,
+        dice_pass_chance=1.0,
+        mirror_chance=1.0,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=lambda _x, _y, _size: "D3",
+        mirror_coord=lambda _x, _y, _size: (3, 2),
+        prepare_player_turn_modifiers=prepare,
+        run_engine_command=run_engine,
+        finalize_forced_pass=forced_pass,
+        finalize_forced_stone=forced_stone,
+        apply_puppet_move=puppet,
+        finish_ai_move=lambda *_args: None,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("roll",),
+        ("forced_stone", True, True, "W", "D3", (3, 2), "镜像触发，AI 在对称点 D3 落子", True, True),
+    ]
+
+
+def test_try_finish_forced_rogue_ai_move_mirror_forces_stone() -> None:
+    asyncio.run(_try_finish_forced_rogue_ai_move_mirror_forces_stone())
+
+
+async def _try_finish_forced_rogue_ai_move_mirror_false_falls_through() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.moves.append(("B", "B2"))
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    def roll_random():
+        calls.append(("roll",))
+        return 0.0
+
+    async def forced_pass(*_args, **_kwargs):
+        raise AssertionError("mirror false should not force pass")
+
+    async def forced_stone(game_arg, send_fn, **kwargs):
+        calls.append(("forced_stone", game_arg is game, send_fn is send, kwargs["gtp_move"]))
+        return False
+
+    async def puppet(*_args, **_kwargs):
+        raise AssertionError("puppet should not run without a target")
+
+    handled = await try_finish_forced_rogue_ai_move(
+        game,
+        send,
+        color="W",
+        card="mirror",
+        rogue_cards={"mirror", "puppet"},
+        roll_random=roll_random,
+        dice_pass_chance=1.0,
+        mirror_chance=1.0,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=lambda _x, _y, _size: "D3",
+        mirror_coord=lambda _x, _y, _size: (3, 2),
+        prepare_player_turn_modifiers=lambda _game: None,
+        run_engine_command=lambda _command: None,
+        finalize_forced_pass=forced_pass,
+        finalize_forced_stone=forced_stone,
+        apply_puppet_move=puppet,
+        finish_ai_move=lambda *_args: None,
+    )
+
+    assert handled is False
+    assert calls == [
+        ("roll",),
+        ("forced_stone", True, True, "D3"),
+    ]
+
+
+def test_try_finish_forced_rogue_ai_move_mirror_false_falls_through() -> None:
+    asyncio.run(_try_finish_forced_rogue_ai_move_mirror_false_falls_through())
+
+
+async def _try_finish_forced_rogue_ai_move_exchange_clears_skip() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_skip_ai = True
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def forced_pass(game_arg, send_fn, **kwargs):
+        calls.append(("forced_pass", game_arg is game, send_fn is send, kwargs["message"]))
+
+    async def forced_stone(*_args, **_kwargs):
+        raise AssertionError("exchange should not force stone")
+
+    async def puppet(*_args, **_kwargs):
+        raise AssertionError("exchange should preempt puppet")
+
+    handled = await try_finish_forced_rogue_ai_move(
+        game,
+        send,
+        color="W",
+        card="exchange",
+        rogue_cards={"exchange", "puppet"},
+        roll_random=lambda: 1.0,
+        dice_pass_chance=0.0,
+        mirror_chance=0.0,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=s.coord_to_gtp,
+        mirror_coord=lambda x, y, size: (size - 1 - x, size - 1 - y),
+        prepare_player_turn_modifiers=lambda _game: None,
+        run_engine_command=lambda _command: None,
+        finalize_forced_pass=forced_pass,
+        finalize_forced_stone=forced_stone,
+        apply_puppet_move=puppet,
+        finish_ai_move=lambda *_args: None,
+    )
+
+    assert handled is True
+    assert game.rogue_skip_ai is False
+    assert calls == [
+        ("forced_pass", True, True, "乾坤挪移生效，AI 本回合虚手并把回合交还给你"),
+    ]
+
+
+def test_try_finish_forced_rogue_ai_move_exchange_clears_skip() -> None:
+    asyncio.run(_try_finish_forced_rogue_ai_move_exchange_clears_skip())
+
+
+async def _try_finish_forced_rogue_ai_move_puppet_delegates_target() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_puppet_target = (2, 2)
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def forced_pass(*_args, **_kwargs):
+        raise AssertionError("puppet should not force pass")
+
+    async def forced_stone(*_args, **_kwargs):
+        raise AssertionError("puppet should not force mirror stone")
+
+    async def puppet(game_arg, send_fn, **kwargs):
+        calls.append((
+            "puppet",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["card"],
+            kwargs["target"],
+            kwargs["coord_to_gtp"] is s.coord_to_gtp,
+            kwargs["run_engine_command"] is run_engine,
+            kwargs["finish_ai_move"] is finish_ai_move,
+        ))
+        return True
+
+    async def run_engine(_command):
+        calls.append(("engine",))
+        return "="
+
+    async def finish_ai_move(*_args):
+        calls.append(("finish",))
+
+    handled = await try_finish_forced_rogue_ai_move(
+        game,
+        send,
+        color="W",
+        card="puppet",
+        rogue_cards={"puppet"},
+        roll_random=lambda: 1.0,
+        dice_pass_chance=0.0,
+        mirror_chance=0.0,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=s.coord_to_gtp,
+        mirror_coord=lambda x, y, size: (size - 1 - x, size - 1 - y),
+        prepare_player_turn_modifiers=lambda _game: None,
+        run_engine_command=run_engine,
+        finalize_forced_pass=forced_pass,
+        finalize_forced_stone=forced_stone,
+        apply_puppet_move=puppet,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("puppet", True, True, "W", "puppet", (2, 2), True, True, True),
+    ]
+
+
+def test_try_finish_forced_rogue_ai_move_puppet_delegates_target() -> None:
+    asyncio.run(_try_finish_forced_rogue_ai_move_puppet_delegates_target())
+
+
+async def _server_ai_move_delegates_to_forced_rogue_flow() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "dice"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_forced_flow(game_arg, send_fn, **kwargs):
+        calls.append((
+            "forced_flow",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["card"],
+            kwargs["rogue_cards"],
+            kwargs["roll_random"] is s.random.random,
+            kwargs["dice_pass_chance"] == s.ROGUE_DICE_PASS_CHANCE,
+            kwargs["mirror_chance"] == s.ROGUE_MIRROR_CHANCE,
+            kwargs["gtp_to_coord"] is s.gtp_to_coord,
+            kwargs["coord_to_gtp"] is s.coord_to_gtp,
+            kwargs["mirror_coord"] is s._mirror_coord,
+            kwargs["prepare_player_turn_modifiers"] is s._prepare_player_turn_modifiers,
+            callable(kwargs["run_engine_command"]),
+            kwargs["finalize_forced_pass"] is s.finalize_forced_ai_pass,
+            kwargs["finalize_forced_stone"] is s.try_finalize_forced_ai_stone,
+            kwargs["apply_puppet_move"] is s.try_apply_puppet_ai_move,
+            kwargs["finish_ai_move"] is s._finish_ai_move,
+        ))
+        return True
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_forced_flow = s.try_finish_forced_rogue_ai_move
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.try_finish_forced_rogue_ai_move = fake_forced_flow
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.try_finish_forced_rogue_ai_move = original_forced_flow
+
+    assert calls == [
+        ("sync", True),
+        (
+            "forced_flow",
+            True,
+            True,
+            "W",
+            "dice",
+            {"dice"},
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+        ),
+    ]
+
+
+def test_server_ai_move_delegates_to_forced_rogue_flow() -> None:
+    asyncio.run(_server_ai_move_delegates_to_forced_rogue_flow())
 
 
 async def _server_ai_move_dice_delegates_to_forced_pass() -> None:
@@ -6189,6 +6568,12 @@ if __name__ == "__main__":
     test_try_finalize_forced_ai_stone_sends_legacy_payloads()
     test_try_finalize_forced_ai_stone_can_skip_history_push()
     test_try_finalize_forced_ai_stone_skips_state_on_engine_error()
+    test_try_finish_forced_rogue_ai_move_dice_preempts_later_cards()
+    test_try_finish_forced_rogue_ai_move_mirror_forces_stone()
+    test_try_finish_forced_rogue_ai_move_mirror_false_falls_through()
+    test_try_finish_forced_rogue_ai_move_exchange_clears_skip()
+    test_try_finish_forced_rogue_ai_move_puppet_delegates_target()
+    test_server_ai_move_delegates_to_forced_rogue_flow()
     test_server_ai_move_dice_delegates_to_forced_pass()
     test_server_ai_move_exchange_clears_skip_and_delegates_to_forced_pass()
     test_server_ai_move_mirror_delegates_to_forced_stone()

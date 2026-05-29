@@ -41,6 +41,10 @@ NoRegretBonusFn = Callable[..., Awaitable[bool]]
 ErosionCounterFn = Callable[..., Awaitable[bool]]
 DoublePassFn = Callable[..., Awaitable[bool]]
 AiMoveResponseFn = Callable[..., Awaitable[None]]
+MirrorCoordFn = Callable[[int, int, int], tuple[int, int]]
+FinalizeForcedPassFn = Callable[..., Awaitable[None]]
+FinalizeForcedStoneFn = Callable[..., Awaitable[bool]]
+PuppetMoveFn = Callable[..., Awaitable[bool]]
 AllowedRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
@@ -198,6 +202,84 @@ async def try_apply_puppet_ai_move(
     )
     await send_fn({"type": "rogue_uses_update", "uses": game.rogue_uses})
     return True
+
+
+async def try_finish_forced_rogue_ai_move(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    card: str | None,
+    rogue_cards: Collection[str],
+    roll_random: RandomFloatFn,
+    dice_pass_chance: float,
+    mirror_chance: float,
+    gtp_to_coord: CoordParser,
+    coord_to_gtp: CoordFormatter,
+    mirror_coord: MirrorCoordFn,
+    prepare_player_turn_modifiers: PreparePlayerTurnFn,
+    run_engine_command: EngineCommandFn,
+    finalize_forced_pass: FinalizeForcedPassFn,
+    finalize_forced_stone: FinalizeForcedStoneFn,
+    apply_puppet_move: PuppetMoveFn,
+    finish_ai_move: FinishAiMoveFn,
+) -> bool:
+    if "dice" in rogue_cards and roll_random() < dice_pass_chance:
+        await finalize_forced_pass(
+            game,
+            send_fn,
+            color=color,
+            message="掷骰触发，AI 这手选择虚手",
+            prepare_player_turn_modifiers=prepare_player_turn_modifiers,
+            run_engine_command=run_engine_command,
+        )
+        return True
+
+    if "mirror" in rogue_cards and roll_random() < mirror_chance and game.moves:
+        last_color, last_gtp = game.moves[-1]
+        if last_color == game.player_color and last_gtp.upper() != "PASS":
+            coord = gtp_to_coord(last_gtp, game.size)
+            if coord:
+                mx, my = mirror_coord(coord[0], coord[1], game.size)
+                if game.board[my][mx] == 0 and not game.is_ko(mx, my, color):
+                    mirror_gtp = coord_to_gtp(mx, my, game.size)
+                    if await finalize_forced_stone(
+                        game,
+                        send_fn,
+                        color=color,
+                        gtp_move=mirror_gtp,
+                        coord=(mx, my),
+                        message=f"镜像触发，AI 在对称点 {mirror_gtp} 落子",
+                        prepare_player_turn_modifiers=prepare_player_turn_modifiers,
+                        run_engine_command=run_engine_command,
+                    ):
+                        return True
+
+    if "exchange" in rogue_cards and game.rogue_skip_ai:
+        game.rogue_skip_ai = False
+        await finalize_forced_pass(
+            game,
+            send_fn,
+            color=color,
+            message="乾坤挪移生效，AI 本回合虚手并把回合交还给你",
+            prepare_player_turn_modifiers=prepare_player_turn_modifiers,
+            run_engine_command=run_engine_command,
+        )
+        return True
+
+    if "puppet" in rogue_cards and game.rogue_puppet_target is not None:
+        return await apply_puppet_move(
+            game,
+            send_fn,
+            color=color,
+            card=card,
+            target=game.rogue_puppet_target,
+            coord_to_gtp=coord_to_gtp,
+            run_engine_command=run_engine_command,
+            finish_ai_move=finish_ai_move,
+        )
+
+    return False
 
 
 async def try_finish_allowed_restriction_move(
