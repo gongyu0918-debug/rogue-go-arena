@@ -60,7 +60,6 @@ from app.config.gameplay import (
     ROGUE_SANRENSEI_REQUIRED_STARS,
     ROGUE_SANRENSEI_SUPPORT_STONES,
     ROGUE_SEAL_POINT_COUNT,
-    ROGUE_SLIP_CHANCE,
     ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
     ULTIMATE_FOOLISH_CHAIN_DELAY,
     ULTIMATE_JOSEKI_BONUS_STONES,
@@ -114,6 +113,7 @@ from app.gameplay.ai_moves import (
     weaken_rank_one_step,
 )
 from app.gameplay.ai_move_flow import (
+    apply_slip_ai_move,
     finalize_ai_move,
     finalize_forced_ai_pass,
     refresh_fog_restriction_points,
@@ -1754,20 +1754,20 @@ async def _ai_move(game: GoGame, send_fn):
 
     slip_msg = None
     needs_sync = False
-    if "slip" in rogue_cards and gtp_move.upper() not in {"PASS", "RESIGN"} and random.random() < ROGUE_SLIP_CHANCE:
-        original_gtp = gtp_move
-        original_coord = gtp_to_coord(gtp_move, game.size)
-        if original_coord:
-            nearby = [
-                (nx, ny)
-                for nx, ny in _adjacent_points(original_coord[0], original_coord[1], game.size)
-                if game.board[ny][nx] == 0 and game.is_legal_move(nx, ny, color)
-            ]
-            if nearby:
-                sx, sy = random.choice(nearby)
-                gtp_move = coord_to_gtp(sx, sy, game.size)
-                needs_sync = True
-                slip_msg = f"手滑了触发，AI 原本想下 {original_gtp}，结果滑到 {gtp_move}"
+    slip_result = apply_slip_ai_move(
+        game,
+        color=color,
+        rogue_cards=rogue_cards,
+        gtp_move=gtp_move,
+        roll_random=random.random,
+        choose_point=random.choice,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=coord_to_gtp,
+        adjacent_points=_adjacent_points,
+    )
+    gtp_move = slip_result.gtp_move
+    needs_sync = slip_result.needs_sync
+    slip_msg = slip_result.message
 
     # Ko guard: if the AI move violates ko, play elsewhere (ko threat)
     if gtp_move.upper() not in ("PASS", "RESIGN"):

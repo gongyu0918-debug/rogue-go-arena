@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Collection
+from dataclasses import dataclass
 from typing import Any
 
 import app.config.gameplay as gameplay_config
@@ -22,6 +23,9 @@ RngFactory = Callable[[], Any]
 ChallengeZonePointsFn = Callable[[Any, list[tuple[int, int]]], list[tuple[int, int]]]
 PickFogMaskFn = Callable[[int, Any], list[tuple[int, int]]]
 PickFogPointFn = Callable[[Any, Any], list[tuple[int, int]]]
+CoordFormatter = Callable[[int, int, int], str | None]
+AdjacentPointsFn = Callable[[int, int, int], list[tuple[int, int]]]
+ChoosePointFn = Callable[[list[tuple[int, int]]], tuple[int, int]]
 AllowedRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
@@ -30,6 +34,13 @@ AvoidRestrictionMoveFn = Callable[
     [Any, str, int, float, list[tuple[int, int]]],
     Awaitable[str | None],
 ]
+
+
+@dataclass(frozen=True)
+class AiMoveAdjustment:
+    gtp_move: str
+    needs_sync: bool = False
+    message: str | None = None
 
 
 def _unique_points(points: list[tuple[int, int]]) -> list[tuple[int, int]]:
@@ -305,6 +316,47 @@ async def refresh_fog_restriction_points(
     if game.rogue_seal_points:
         await send_fn({"type": "rogue_event", "msg": fog_msg})
     return True
+
+
+def apply_slip_ai_move(
+    game: Any,
+    *,
+    color: str,
+    rogue_cards: Collection[str],
+    gtp_move: str,
+    roll_random: RandomFloatFn,
+    choose_point: ChoosePointFn,
+    gtp_to_coord: CoordParser,
+    coord_to_gtp: CoordFormatter,
+    adjacent_points: AdjacentPointsFn,
+) -> AiMoveAdjustment:
+    if "slip" not in rogue_cards or gtp_move.upper() in {"PASS", "RESIGN"}:
+        return AiMoveAdjustment(gtp_move)
+    if roll_random() >= gameplay_config.ROGUE_SLIP_CHANCE:
+        return AiMoveAdjustment(gtp_move)
+
+    original_gtp = gtp_move
+    original_coord = gtp_to_coord(gtp_move, game.size)
+    if not original_coord:
+        return AiMoveAdjustment(gtp_move)
+
+    nearby = [
+        (nx, ny)
+        for nx, ny in adjacent_points(original_coord[0], original_coord[1], game.size)
+        if game.board[ny][nx] == 0 and game.is_legal_move(nx, ny, color)
+    ]
+    if not nearby:
+        return AiMoveAdjustment(gtp_move)
+
+    sx, sy = choose_point(nearby)
+    slipped_gtp = coord_to_gtp(sx, sy, game.size)
+    if slipped_gtp is None:
+        return AiMoveAdjustment(gtp_move)
+    return AiMoveAdjustment(
+        slipped_gtp,
+        needs_sync=True,
+        message=f"手滑了触发，AI 原本想下 {original_gtp}，结果滑到 {slipped_gtp}",
+    )
 
 
 async def try_finish_suboptimal_rogue_move(

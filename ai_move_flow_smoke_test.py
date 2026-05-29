@@ -7,6 +7,8 @@ import server as s
 from app.domain.coordinates import gtp_to_coord
 from app.domain.game_state import GoGame
 from app.gameplay.ai_move_flow import (
+    AiMoveAdjustment,
+    apply_slip_ai_move,
     finalize_ai_move,
     finalize_forced_ai_pass,
     try_apply_puppet_ai_move,
@@ -1319,6 +1321,347 @@ def test_server_ai_move_puppet_without_target_skips_puppet_flow() -> None:
     asyncio.run(_server_ai_move_puppet_without_target_skips_puppet_flow())
 
 
+def test_apply_slip_ai_move_skips_without_card_or_playable_move() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    def roll_random():
+        calls.append(("random",))
+        return 0.0
+
+    def choose_point(points):
+        calls.append(("choice", points))
+        return points[0]
+
+    def parse_coord(gtp, size):
+        calls.append(("parse", gtp, size))
+        return (2, 2)
+
+    result_no_card = apply_slip_ai_move(
+        game,
+        color="W",
+        rogue_cards=set(),
+        gtp_move="C3",
+        roll_random=roll_random,
+        choose_point=choose_point,
+        gtp_to_coord=parse_coord,
+        coord_to_gtp=s.coord_to_gtp,
+        adjacent_points=s._adjacent_points,
+    )
+    result_pass = apply_slip_ai_move(
+        game,
+        color="W",
+        rogue_cards={"slip"},
+        gtp_move="pass",
+        roll_random=roll_random,
+        choose_point=choose_point,
+        gtp_to_coord=parse_coord,
+        coord_to_gtp=s.coord_to_gtp,
+        adjacent_points=s._adjacent_points,
+    )
+
+    assert result_no_card == AiMoveAdjustment("C3")
+    assert result_pass == AiMoveAdjustment("pass")
+    assert calls == []
+
+
+def test_apply_slip_ai_move_skips_resign_without_random() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    def roll_random():
+        calls.append(("random",))
+        return 0.0
+
+    def parse_coord(gtp, size):
+        calls.append(("parse", gtp, size))
+        return (2, 2)
+
+    result = apply_slip_ai_move(
+        game,
+        color="W",
+        rogue_cards={"slip"},
+        gtp_move="RESIGN",
+        roll_random=roll_random,
+        choose_point=lambda points: points[0],
+        gtp_to_coord=parse_coord,
+        coord_to_gtp=s.coord_to_gtp,
+        adjacent_points=s._adjacent_points,
+    )
+
+    assert result == AiMoveAdjustment("RESIGN")
+    assert calls == []
+
+
+def test_apply_slip_ai_move_skips_on_chance_miss() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    def roll_random():
+        calls.append(("random",))
+        return gameplay_config.ROGUE_SLIP_CHANCE
+
+    def parse_coord(gtp, size):
+        calls.append(("parse", gtp, size))
+        return (2, 2)
+
+    result = apply_slip_ai_move(
+        game,
+        color="W",
+        rogue_cards={"slip"},
+        gtp_move="C3",
+        roll_random=roll_random,
+        choose_point=lambda points: points[0],
+        gtp_to_coord=parse_coord,
+        coord_to_gtp=s.coord_to_gtp,
+        adjacent_points=s._adjacent_points,
+    )
+
+    assert result == AiMoveAdjustment("C3")
+    assert calls == [("random",)]
+
+
+def test_apply_slip_ai_move_keeps_move_when_coord_parse_fails() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    def roll_random():
+        calls.append(("random",))
+        return 0.0
+
+    def parse_coord(gtp, size):
+        calls.append(("parse", gtp, size))
+        return None
+
+    def adjacent_points(*_args):
+        calls.append(("adjacent",))
+        return [(1, 1)]
+
+    def choose_point(points):
+        calls.append(("choice", points))
+        return points[0]
+
+    def format_coord(*_args):
+        calls.append(("format",))
+        return "B2"
+
+    result = apply_slip_ai_move(
+        game,
+        color="W",
+        rogue_cards={"slip"},
+        gtp_move="C3",
+        roll_random=roll_random,
+        choose_point=choose_point,
+        gtp_to_coord=parse_coord,
+        coord_to_gtp=format_coord,
+        adjacent_points=adjacent_points,
+    )
+
+    assert result == AiMoveAdjustment("C3")
+    assert calls == [
+        ("random",),
+        ("parse", "C3", 5),
+    ]
+
+
+def test_apply_slip_ai_move_slips_to_legal_neighbor() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.board[2][1] = 1
+    calls = []
+
+    def roll_random():
+        calls.append(("random",))
+        return 0.0
+
+    def adjacent_points(x, y, size):
+        calls.append(("adjacent", x, y, size))
+        return [(1, 2), (3, 2), (2, 1)]
+
+    def choose_point(points):
+        calls.append(("choice", points))
+        return points[0]
+
+    game.is_legal_move = lambda x, y, color: (x, y, color) != (3, 2, "W")
+
+    result = apply_slip_ai_move(
+        game,
+        color="W",
+        rogue_cards={"slip"},
+        gtp_move="C3",
+        roll_random=roll_random,
+        choose_point=choose_point,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=s.coord_to_gtp,
+        adjacent_points=adjacent_points,
+    )
+
+    assert result == AiMoveAdjustment(
+        "C4",
+        needs_sync=True,
+        message="手滑了触发，AI 原本想下 C3，结果滑到 C4",
+    )
+    assert calls == [
+        ("random",),
+        ("adjacent", 2, 2, 5),
+        ("choice", [(2, 1)]),
+    ]
+
+
+def test_apply_slip_ai_move_keeps_move_when_format_fails() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    def roll_random():
+        calls.append(("random",))
+        return 0.0
+
+    def adjacent_points(x, y, size):
+        calls.append(("adjacent", x, y, size))
+        return [(2, 1)]
+
+    def choose_point(points):
+        calls.append(("choice", points))
+        return points[0]
+
+    def format_coord(x, y, size):
+        calls.append(("format", x, y, size))
+        return None
+
+    result = apply_slip_ai_move(
+        game,
+        color="W",
+        rogue_cards={"slip"},
+        gtp_move="C3",
+        roll_random=roll_random,
+        choose_point=choose_point,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=format_coord,
+        adjacent_points=adjacent_points,
+    )
+
+    assert result == AiMoveAdjustment("C3")
+    assert calls == [
+        ("random",),
+        ("adjacent", 2, 2, 5),
+        ("choice", [(2, 1)]),
+        ("format", 2, 1, 5),
+    ]
+
+
+def test_apply_slip_ai_move_keeps_move_without_legal_neighbor() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.board[2][1] = 1
+    game.board[2][3] = 1
+    calls = []
+
+    def roll_random():
+        calls.append(("random",))
+        return 0.0
+
+    def adjacent_points(x, y, size):
+        calls.append(("adjacent", x, y, size))
+        return [(1, 2), (3, 2)]
+
+    def choose_point(points):
+        calls.append(("choice", points))
+        return points[0]
+
+    result = apply_slip_ai_move(
+        game,
+        color="W",
+        rogue_cards={"slip"},
+        gtp_move="C3",
+        roll_random=roll_random,
+        choose_point=choose_point,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=s.coord_to_gtp,
+        adjacent_points=adjacent_points,
+    )
+
+    assert result == AiMoveAdjustment("C3")
+    assert calls == [
+        ("random",),
+        ("adjacent", 2, 2, 5),
+    ]
+
+
+async def _server_ai_move_slip_delegates_to_slip_adjustment() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "slip"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp"), payload.get("msg")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_slip(game_arg, **kwargs):
+        calls.append((
+            "slip",
+            game_arg is game,
+            kwargs["color"],
+            "slip" in kwargs["rogue_cards"],
+            kwargs["gtp_move"],
+            kwargs["roll_random"] is s.random.random,
+            kwargs["choose_point"] is s.random.choice,
+            kwargs["gtp_to_coord"] is s.gtp_to_coord,
+            kwargs["coord_to_gtp"] is s.coord_to_gtp,
+            kwargs["adjacent_points"] is s._adjacent_points,
+        ))
+        return AiMoveAdjustment("D3", needs_sync=True, message="slip msg")
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_slip = s.apply_slip_ai_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.apply_slip_ai_move = fake_slip
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        s.apply_slip_ai_move = original_slip
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "D3")
+    assert game.board[2][3] == 2
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("slip", True, "W", True, "C3", True, True, True, True, True),
+        ("sync", True),
+        ("prepare", True),
+        ("send", "game_state", None, None),
+        ("send", "ai_move", "D3", None),
+        ("send", "rogue_event", None, "slip msg"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_slip_delegates_to_slip_adjustment() -> None:
+    asyncio.run(_server_ai_move_slip_delegates_to_slip_adjustment())
+
+
 async def _try_finish_suboptimal_rogue_move_uses_nerf_backup_first() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -1742,6 +2085,14 @@ if __name__ == "__main__":
     test_server_ai_move_puppet_delegates_to_puppet_flow()
     test_server_ai_move_puppet_helper_false_falls_back_to_normal_move()
     test_server_ai_move_puppet_without_target_skips_puppet_flow()
+    test_apply_slip_ai_move_skips_without_card_or_playable_move()
+    test_apply_slip_ai_move_skips_resign_without_random()
+    test_apply_slip_ai_move_skips_on_chance_miss()
+    test_apply_slip_ai_move_keeps_move_when_coord_parse_fails()
+    test_apply_slip_ai_move_slips_to_legal_neighbor()
+    test_apply_slip_ai_move_keeps_move_when_format_fails()
+    test_apply_slip_ai_move_keeps_move_without_legal_neighbor()
+    test_server_ai_move_slip_delegates_to_slip_adjustment()
     test_try_finish_suboptimal_rogue_move_uses_nerf_backup_first()
     test_try_finish_suboptimal_rogue_move_keeps_suboptimal_default_signature()
     test_try_finish_suboptimal_rogue_move_continues_after_miss_or_none()
