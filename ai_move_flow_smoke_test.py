@@ -5893,6 +5893,141 @@ def test_server_generated_ai_move_deps_bind_runtime_globals() -> None:
     ]
 
 
+async def _server_generated_turn_helper_binds_runtime_globals() -> None:
+    game = GoGame(size=5, player_color="B")
+    turn = s.AiTurnSnapshot(
+        color="W",
+        card="seal",
+        rogue_cards={"seal", "fog"},
+        move_count=9,
+        ai_move_count=4,
+    )
+    ai_plan = s.AiMovePlan(
+        mode="rogue",
+        effective_level="2k",
+        visits=111,
+        time_limit=3.25,
+        move_count=9,
+        ai_move_count=4,
+    )
+    candidate_deps = object()
+    preparation_deps = object()
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def run_engine(command):
+        calls.append(("engine", command))
+        return f"= {command}"
+
+    def fake_challenge_zone(game_arg, point):
+        calls.append(("challenge_zone", game_arg is game, point))
+        return [(3, 3)]
+
+    def fake_forbidden(game_arg, rogue_cards, ai_move_count, *, challenge_zone_points):
+        challenge_points = challenge_zone_points(game_arg, (1, 1))
+        calls.append((
+            "forbidden",
+            game_arg is game,
+            rogue_cards,
+            ai_move_count,
+            challenge_zone_points is fake_challenge_zone,
+            challenge_points,
+        ))
+        return [(0, 0), *challenge_points]
+
+    def fake_candidate_deps():
+        calls.append(("candidate_deps",))
+        return candidate_deps
+
+    def fake_preparation_deps():
+        calls.append(("preparation_deps",))
+        return preparation_deps
+
+    def fake_finish_deps(run_engine_command):
+        calls.append(("finish_deps", run_engine_command is run_engine))
+        return SimpleNamespace(run_engine=run_engine_command)
+
+    async def fake_generated_flow(game_arg, send_fn, **kwargs):
+        calls.append((
+            "generated_flow",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["card"],
+            kwargs["rogue_cards"],
+            kwargs["forbidden"],
+            kwargs["visits"],
+            kwargs["time_limit"],
+            kwargs["candidate_deps"] is candidate_deps,
+            kwargs["preparation_deps"] is preparation_deps,
+            kwargs["finish_deps"].run_engine is run_engine,
+        ))
+        engine_result = await kwargs["finish_deps"].run_engine("final_score")
+        calls.append(("generated_engine", engine_result))
+        return True
+
+    originals = {
+        "forbidden": s.rogue_forbidden_points,
+        "challenge_zone": s._challenge_zone_points,
+        "candidate_deps": s._generated_ai_move_candidate_deps,
+        "preparation_deps": s._generated_ai_move_preparation_deps,
+        "finish_deps": s._generated_ai_move_finish_deps,
+        "generated_flow": s.try_finish_generated_ai_move,
+    }
+    s.rogue_forbidden_points = fake_forbidden
+    s._challenge_zone_points = fake_challenge_zone
+    s._generated_ai_move_candidate_deps = fake_candidate_deps
+    s._generated_ai_move_preparation_deps = fake_preparation_deps
+    s._generated_ai_move_finish_deps = fake_finish_deps
+    s.try_finish_generated_ai_move = fake_generated_flow
+    try:
+        handled = await s._try_finish_generated_ai_turn(
+            game,
+            send,
+            turn,
+            ai_plan,
+            run_engine,
+        )
+    finally:
+        s.rogue_forbidden_points = originals["forbidden"]
+        s._challenge_zone_points = originals["challenge_zone"]
+        s._generated_ai_move_candidate_deps = originals["candidate_deps"]
+        s._generated_ai_move_preparation_deps = originals["preparation_deps"]
+        s._generated_ai_move_finish_deps = originals["finish_deps"]
+        s.try_finish_generated_ai_move = originals["generated_flow"]
+
+    assert handled is True
+    assert calls == [
+        ("challenge_zone", True, (1, 1)),
+        ("forbidden", True, {"seal", "fog"}, 4, True, [(3, 3)]),
+        ("candidate_deps",),
+        ("preparation_deps",),
+        ("finish_deps", True),
+        (
+            "generated_flow",
+            True,
+            True,
+            "W",
+            "seal",
+            {"seal", "fog"},
+            [(0, 0), (3, 3)],
+            111,
+            3.25,
+            True,
+            True,
+            True,
+        ),
+        ("engine", "final_score"),
+        ("generated_engine", "= final_score"),
+    ]
+
+
+def test_server_generated_turn_helper_binds_runtime_globals() -> None:
+    asyncio.run(_server_generated_turn_helper_binds_runtime_globals())
+
+
 async def _server_ai_move_balanced_style_skips_style_helper() -> None:
     game = GoGame(size=5, player_color="B")
     game.ai_style = "balanced"
@@ -8429,6 +8564,7 @@ if __name__ == "__main__":
     test_server_ai_move_style_choice_runs_suspicious_pass_fallback()
     test_server_ai_move_delegates_to_candidate_helper()
     test_server_generated_ai_move_deps_bind_runtime_globals()
+    test_server_generated_turn_helper_binds_runtime_globals()
     test_server_ai_move_balanced_style_skips_style_helper()
     test_server_ai_move_rogue_cards_skip_style_helper()
     test_server_ai_move_style_without_playable_choice_falls_back_to_genmove()

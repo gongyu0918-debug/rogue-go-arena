@@ -1459,6 +1459,35 @@ async def _try_finish_suboptimal_rogue_ai_turn(
     )
 
 
+async def _try_finish_generated_ai_turn(
+    game: GoGame,
+    send_fn,
+    turn: AiTurnSnapshot,
+    ai_plan: AiMovePlan,
+    run_engine_command,
+) -> bool:
+    forbidden = rogue_forbidden_points(
+        game,
+        turn.rogue_cards,
+        turn.ai_move_count,
+        challenge_zone_points=_challenge_zone_points,
+    )
+
+    return await try_finish_generated_ai_move(
+        game,
+        send_fn,
+        color=turn.color,
+        card=turn.card,
+        rogue_cards=turn.rogue_cards,
+        forbidden=forbidden,
+        visits=ai_plan.visits,
+        time_limit=ai_plan.time_limit,
+        candidate_deps=_generated_ai_move_candidate_deps(),
+        preparation_deps=_generated_ai_move_preparation_deps(),
+        finish_deps=_generated_ai_move_finish_deps(run_engine_command),
+    )
+
+
 async def _ai_move(game: GoGame, send_fn):
     if game.game_over or not engine.ready:
         return
@@ -1466,8 +1495,6 @@ async def _ai_move(game: GoGame, send_fn):
     await _sync_board_to_katago(game)
 
     turn = snapshot_ai_turn(game, _rogue_card_ids)
-    color = turn.color
-    card = turn.card
     rogue_cards = turn.rogue_cards
     move_count = turn.move_count
     ai_move_count = turn.ai_move_count
@@ -1486,8 +1513,6 @@ async def _ai_move(game: GoGame, send_fn):
         get_game_visits=get_game_visits,
         weaken_rank=weaken_rank,
     )
-    visits = ai_plan.visits
-    time_limit = ai_plan.time_limit
 
     await refresh_fog_restriction_points(
         game,
@@ -1509,26 +1534,7 @@ async def _ai_move(game: GoGame, send_fn):
     if await _try_finish_suboptimal_rogue_ai_turn(game, send_fn, turn, ai_plan):
         return
 
-    forbidden = rogue_forbidden_points(
-        game,
-        rogue_cards,
-        ai_move_count,
-        challenge_zone_points=_challenge_zone_points,
-    )
-
-    if await try_finish_generated_ai_move(
-        game,
-        send_fn,
-        color=color,
-        card=card,
-        rogue_cards=rogue_cards,
-        forbidden=forbidden,
-        visits=visits,
-        time_limit=time_limit,
-        candidate_deps=_generated_ai_move_candidate_deps(),
-        preparation_deps=_generated_ai_move_preparation_deps(),
-        finish_deps=_generated_ai_move_finish_deps(_run_engine_command),
-    ):
+    if await _try_finish_generated_ai_turn(game, send_fn, turn, ai_plan, _run_engine_command):
         return
 
 
