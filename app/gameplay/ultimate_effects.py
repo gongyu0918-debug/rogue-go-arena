@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+import asyncio
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 import random
 import time
@@ -38,6 +39,17 @@ class FoolishWisdomWaveResult:
     generated: int
     detected_shapes: int
     has_more: bool
+
+
+SendPayloadFn = Callable[[dict[str, Any]], Awaitable[None]]
+UltimateTriggerFn = Callable[[Any, SendPayloadFn, str], Awaitable[bool]]
+SleepFn = Callable[[float], Awaitable[Any]]
+RngFactory = Callable[[], random.Random]
+
+
+async def _emit_rogue_events(send_fn: SendPayloadFn, messages: list[str]) -> None:
+    for message in messages:
+        await send_fn({"type": "rogue_event", "msg": message})
 
 
 def get_ultimate_territory_forbidden_points(
@@ -691,3 +703,90 @@ def apply_ultimate_state_effect(
         return None
 
     return BoardEffectResult(modified=modified, messages=messages)
+
+
+async def apply_ultimate_card_effect(
+    game: Any,
+    send_fn: SendPayloadFn,
+    *,
+    x: int,
+    y: int,
+    color: str,
+    card: str,
+    coord_to_gtp: Any,
+    gtp_to_coord: Any,
+    trigger_five_in_row_fn: UltimateTriggerFn,
+    trigger_last_stand_fn: UltimateTriggerFn,
+    apply_board_effect_fn: Any = None,
+    apply_state_effect_fn: Any = None,
+    apply_foolish_wisdom_wave_fn: Any = None,
+    make_rng: RngFactory | None = None,
+    sleep_fn: SleepFn = asyncio.sleep,
+    foolish_chain_delay: float = gameplay_config.ULTIMATE_FOOLISH_CHAIN_DELAY,
+) -> bool:
+    """Dispatch one Ultimate card effect while keeping runtime hooks injectable."""
+    apply_board_effect = apply_ultimate_board_effect if apply_board_effect_fn is None else apply_board_effect_fn
+    apply_state_effect = apply_ultimate_state_effect if apply_state_effect_fn is None else apply_state_effect_fn
+    apply_foolish_wisdom_wave = (
+        apply_ultimate_foolish_wisdom_wave
+        if apply_foolish_wisdom_wave_fn is None
+        else apply_foolish_wisdom_wave_fn
+    )
+
+    board_effect = apply_board_effect(game, x=x, y=y, color=color, card=card)
+    if board_effect is not None:
+        await _emit_rogue_events(send_fn, board_effect.messages)
+        return board_effect.modified
+
+    state_effect = apply_state_effect(
+        game,
+        x=x,
+        y=y,
+        color=color,
+        card=card,
+        coord_to_gtp=coord_to_gtp,
+        gtp_to_coord=gtp_to_coord,
+    )
+    if state_effect is not None:
+        await _emit_rogue_events(send_fn, state_effect.messages)
+        return state_effect.modified
+
+    if card == "five_in_row":
+        return await trigger_five_in_row_fn(game, send_fn, color)
+
+    if card == "last_stand":
+        return await trigger_last_stand_fn(game, send_fn, color)
+
+    if card != "foolish_wisdom":
+        return False
+
+    rng = make_rng() if make_rng else random.Random(time.time_ns())
+    modified = False
+    wave = 0
+    total_generated = 0
+    while True:
+        result = apply_foolish_wisdom_wave(
+            game,
+            color,
+            wave=wave + 1,
+            rng=rng,
+        )
+        if result.message is None:
+            break
+        wave += 1
+        if result.modified:
+            modified = True
+        total_generated += result.generated
+        await send_fn({"type": "rogue_event", "msg": result.message})
+        if result.has_more:
+            await sleep_fn(foolish_chain_delay)
+        else:
+            break
+
+    if total_generated > 0:
+        await send_fn({
+            "type": "rogue_event",
+            "msg": f"🪤 大智若愚连锁结束，本次共生成 {total_generated} 颗己方棋子",
+        })
+
+    return modified

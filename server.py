@@ -206,11 +206,10 @@ from app.gameplay.rogue_effects import (
 )
 from app.services.card_config_service import CardConfigService
 from app.gameplay.ultimate_effects import (
+    apply_ultimate_card_effect as apply_ultimate_card_effect_state,
     apply_ultimate_foolish_wisdom_wave,
     apply_ultimate_five_in_row,
     apply_ultimate_last_stand,
-    apply_ultimate_board_effect,
-    apply_ultimate_state_effect,
     get_ultimate_territory_forbidden_points,
     resolve_pending_shadow_links,
 )
@@ -1128,63 +1127,22 @@ async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
                                   color: str, card: str):
     """Apply a single ultimate card effect after a stone is placed at (x,y).
     Returns True if board was modified (needs KataGo sync)."""
-    modified = False
-
-    board_effect = apply_ultimate_board_effect(game, x=x, y=y, color=color, card=card)
-    if board_effect is not None:
-        for msg in board_effect.messages:
-            await send_fn({"type": "rogue_event", "msg": msg})
-        return board_effect.modified
-
-    state_effect = apply_ultimate_state_effect(
+    return await apply_ultimate_card_effect_state(
         game,
+        send_fn,
         x=x,
         y=y,
         color=color,
         card=card,
         coord_to_gtp=coord_to_gtp,
         gtp_to_coord=gtp_to_coord,
+        trigger_five_in_row_fn=_trigger_ultimate_five_in_row,
+        trigger_last_stand_fn=_trigger_ultimate_last_stand,
+        apply_foolish_wisdom_wave_fn=apply_ultimate_foolish_wisdom_wave,
+        make_rng=lambda: random.Random(time.time_ns()),
+        sleep_fn=asyncio.sleep,
+        foolish_chain_delay=ULTIMATE_FOOLISH_CHAIN_DELAY,
     )
-    if state_effect is not None:
-        for msg in state_effect.messages:
-            await send_fn({"type": "rogue_event", "msg": msg})
-        return state_effect.modified
-
-    if card == "five_in_row":
-        if await _trigger_ultimate_five_in_row(game, send_fn, color):
-            modified = True
-
-    elif card == "last_stand":
-        if await _trigger_ultimate_last_stand(game, send_fn, color):
-            modified = True
-
-    elif card == "foolish_wisdom":
-        rng = random.Random(time.time_ns())
-        wave = 0
-        total_generated = 0
-        while True:
-            result = apply_ultimate_foolish_wisdom_wave(
-                game,
-                color,
-                wave=wave + 1,
-                rng=rng,
-            )
-            if result.message is None:
-                break
-            wave += 1
-            if result.modified:
-                modified = True
-            total_generated += result.generated
-            await send_fn({"type": "rogue_event", "msg": result.message})
-            if result.has_more:
-                await asyncio.sleep(ULTIMATE_FOOLISH_CHAIN_DELAY)
-            else:
-                break
-        if total_generated > 0:
-            await send_fn({"type": "rogue_event",
-                           "msg": f"🪤 大智若愚连锁结束，本次共生成 {total_generated} 颗己方棋子"})
-
-    return modified
 
 
 async def _ultimate_force_score(game: GoGame, send_fn):

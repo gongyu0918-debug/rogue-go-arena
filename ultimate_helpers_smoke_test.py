@@ -10,6 +10,7 @@ from app.gameplay.effect_utils import line_points_between
 from app.gameplay.ultimate_effects import (
     BoardEffectResult,
     FoolishWisdomWaveResult,
+    apply_ultimate_card_effect,
     apply_ultimate_foolish_wisdom_wave,
     apply_ultimate_five_in_row,
     apply_ultimate_last_stand,
@@ -357,6 +358,177 @@ def test_apply_ultimate_foolish_wisdom_wave_reads_live_config_count() -> None:
     assert game.board[0][0] == 1
 
 
+async def _ultimate_card_effect_prefers_board_effect() -> None:
+    game = make_game()
+    sent = []
+    calls = []
+
+    async def send(payload):
+        sent.append(payload)
+
+    def board_effect(effect_game, **kwargs):
+        calls.append(("board", effect_game is game, kwargs["card"]))
+        return BoardEffectResult(True, ["board event"])
+
+    def state_effect(*_args, **_kwargs):
+        calls.append("state")
+        return BoardEffectResult(True, ["state event"])
+
+    async def trigger(*_args, **_kwargs):
+        calls.append("trigger")
+        return True
+
+    modified = await apply_ultimate_card_effect(
+        game,
+        send,
+        x=1,
+        y=2,
+        color="B",
+        card="meteor",
+        coord_to_gtp=coord_to_gtp,
+        gtp_to_coord=lambda _gtp, _size: None,
+        trigger_five_in_row_fn=trigger,
+        trigger_last_stand_fn=trigger,
+        apply_board_effect_fn=board_effect,
+        apply_state_effect_fn=state_effect,
+    )
+
+    assert modified is True
+    assert calls == [("board", True, "meteor")]
+    assert sent == [{"type": "rogue_event", "msg": "board event"}]
+
+
+def test_ultimate_card_effect_prefers_board_effect() -> None:
+    asyncio.run(_ultimate_card_effect_prefers_board_effect())
+
+
+async def _ultimate_card_effect_dispatches_state_and_special_triggers() -> None:
+    game = make_game()
+    sent = []
+    calls = []
+
+    async def send(payload):
+        sent.append(payload)
+
+    def no_board(*_args, **_kwargs):
+        calls.append("board")
+        return None
+
+    def state_effect(effect_game, **kwargs):
+        calls.append(("state", effect_game is game, kwargs["coord_to_gtp"] is coord_to_gtp))
+        return BoardEffectResult(False, ["state event"])
+
+    async def five_trigger(effect_game, send_fn, color):
+        calls.append(("five", effect_game is game, send_fn is send, color))
+        return True
+
+    async def last_trigger(effect_game, send_fn, color):
+        calls.append(("last", effect_game is game, send_fn is send, color))
+        return False
+
+    state_modified = await apply_ultimate_card_effect(
+        game,
+        send,
+        x=1,
+        y=2,
+        color="B",
+        card="shadow_clone",
+        coord_to_gtp=coord_to_gtp,
+        gtp_to_coord=lambda _gtp, _size: None,
+        trigger_five_in_row_fn=five_trigger,
+        trigger_last_stand_fn=last_trigger,
+        apply_board_effect_fn=no_board,
+        apply_state_effect_fn=state_effect,
+    )
+    five_modified = await apply_ultimate_card_effect(
+        game,
+        send,
+        x=1,
+        y=2,
+        color="B",
+        card="five_in_row",
+        coord_to_gtp=coord_to_gtp,
+        gtp_to_coord=lambda _gtp, _size: None,
+        trigger_five_in_row_fn=five_trigger,
+        trigger_last_stand_fn=last_trigger,
+        apply_board_effect_fn=no_board,
+        apply_state_effect_fn=lambda *_args, **_kwargs: None,
+    )
+    last_modified = await apply_ultimate_card_effect(
+        game,
+        send,
+        x=1,
+        y=2,
+        color="W",
+        card="last_stand",
+        coord_to_gtp=coord_to_gtp,
+        gtp_to_coord=lambda _gtp, _size: None,
+        trigger_five_in_row_fn=five_trigger,
+        trigger_last_stand_fn=last_trigger,
+        apply_board_effect_fn=no_board,
+        apply_state_effect_fn=lambda *_args, **_kwargs: None,
+    )
+
+    assert state_modified is False
+    assert five_modified is True
+    assert last_modified is False
+    assert calls == [
+        "board",
+        ("state", True, True),
+        "board",
+        ("five", True, True, "B"),
+        "board",
+        ("last", True, True, "W"),
+    ]
+    assert sent == [{"type": "rogue_event", "msg": "state event"}]
+
+
+def test_ultimate_card_effect_dispatches_state_and_special_triggers() -> None:
+    asyncio.run(_ultimate_card_effect_dispatches_state_and_special_triggers())
+
+
+async def _ultimate_card_effect_resolves_default_hooks_late() -> None:
+    game = make_game()
+    sent = []
+    calls = []
+    old_board = ultimate_effects.apply_ultimate_board_effect
+    try:
+        async def send(payload):
+            sent.append(payload)
+
+        async def trigger(*_args, **_kwargs):
+            calls.append("trigger")
+            return False
+
+        def patched_board(effect_game, **kwargs):
+            calls.append(("patched_board", effect_game is game, kwargs["card"]))
+            return BoardEffectResult(True, ["patched board"])
+
+        ultimate_effects.apply_ultimate_board_effect = patched_board
+        modified = await ultimate_effects.apply_ultimate_card_effect(
+            game,
+            send,
+            x=1,
+            y=2,
+            color="B",
+            card="meteor",
+            coord_to_gtp=coord_to_gtp,
+            gtp_to_coord=lambda _gtp, _size: None,
+            trigger_five_in_row_fn=trigger,
+            trigger_last_stand_fn=trigger,
+        )
+    finally:
+        ultimate_effects.apply_ultimate_board_effect = old_board
+
+    assert modified is True
+    assert calls == [("patched_board", True, "meteor")]
+    assert sent == [{"type": "rogue_event", "msg": "patched board"}]
+
+
+def test_ultimate_card_effect_resolves_default_hooks_late() -> None:
+    asyncio.run(_ultimate_card_effect_resolves_default_hooks_late())
+
+
 def test_resolve_pending_shadow_links_waits_until_trigger_move() -> None:
     game = make_game()
     game.ultimate_move_count = 1
@@ -617,6 +789,9 @@ if __name__ == "__main__":
     test_apply_ultimate_foolish_wisdom_wave_marks_seen_without_batch()
     test_apply_ultimate_foolish_wisdom_wave_reports_zero_placed_batch()
     test_apply_ultimate_foolish_wisdom_wave_reads_live_config_count()
+    test_ultimate_card_effect_prefers_board_effect()
+    test_ultimate_card_effect_dispatches_state_and_special_triggers()
+    test_ultimate_card_effect_resolves_default_hooks_late()
     test_resolve_pending_shadow_links_waits_until_trigger_move()
     test_resolve_pending_shadow_links_draws_line_and_resets_ko()
     test_resolve_pending_shadow_links_clears_triggered_unchanged_link_without_message()
