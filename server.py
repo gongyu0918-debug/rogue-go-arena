@@ -109,7 +109,9 @@ from app.gameplay.ai_moves import (
     gravity_allowed_points,
     is_suspicious_ai_pass as is_suspicious_ai_pass_state,
     lowline_allowed_points,
+    plan_ultimate_ai_search,
     plan_rogue_ai_search,
+    resolve_occupied_ai_move,
     rogue_forbidden_points,
     sansan_opening_restriction,
     shadow_followup_points,
@@ -1376,16 +1378,18 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
         return
 
     game.ultimate_extra_turn = False
-    color = game.ai_color
-    ai_card = game.ultimate_ai_card
-    cv = 1 if color == "B" else 2
-
-    forbidden = set()
-    if game.ultimate_player_card == "territory":
-        forbidden = _ultimate_get_territory_forbidden(game, cv)
 
     await _sync_board_to_katago(game)
-    visits = get_game_visits(game.level, len(game.moves), mode="ultimate")
+    search_plan = plan_ultimate_ai_search(
+        game,
+        get_territory_forbidden=_ultimate_get_territory_forbidden,
+        get_game_visits=get_game_visits,
+    )
+    color = search_plan.color
+    ai_card = search_plan.ai_card
+    forbidden = search_plan.forbidden
+
+    visits = search_plan.visits
 
     def _gen():
         with engine.command_lock:
@@ -1414,21 +1418,13 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
             gtp_move = fallback_move
 
     coord = gtp_to_coord(gtp_move, game.size)
-    if gtp_move.upper() != "PASS" and coord:
-        x, y = coord
-        if game.board[y][x] != 0:
-            import time as _time
-            rng = random.Random(_time.time_ns())
-            empties = [(sx, sy) for sy in range(game.size) for sx in range(game.size)
-                       if game.board[sy][sx] == 0
-                       and game.is_legal_move(sx, sy, color)]
-            if empties:
-                x, y = rng.choice(empties)
-                gtp_move = coord_to_gtp(x, y, game.size)
-                coord = (x, y)
-            else:
-                gtp_move = "pass"
-                coord = None
+    gtp_move, coord = resolve_occupied_ai_move(
+        game,
+        color,
+        gtp_move,
+        coord,
+        coord_to_gtp=coord_to_gtp,
+    )
 
     # Ko guard: if the AI move violates ko, play elsewhere (ko threat)
     if gtp_move.upper() != "PASS" and coord and game.is_ko(coord[0], coord[1], color):

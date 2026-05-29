@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import time
 from collections.abc import Awaitable
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
@@ -40,6 +41,15 @@ class AiPointRestriction:
     kind: str
     points: list[tuple[int, int]]
     message: str
+
+
+@dataclass(frozen=True)
+class UltimateAiSearchPlan:
+    color: str
+    ai_card: str | None
+    color_value: int
+    forbidden: set[tuple[int, int]]
+    visits: int
 
 
 def compute_game_visits(
@@ -128,6 +138,56 @@ def plan_rogue_ai_search(
         move_count=move_count,
         ai_move_count=ai_move_count,
     )
+
+
+def plan_ultimate_ai_search(
+    game: Any,
+    *,
+    get_territory_forbidden: Callable[[Any, int], set[tuple[int, int]]],
+    get_game_visits: Callable[[str, int, str], int],
+) -> UltimateAiSearchPlan:
+    color = game.ai_color
+    color_value = 1 if color == "B" else 2
+    forbidden: set[tuple[int, int]] = set()
+    if game.ultimate_player_card == "territory":
+        forbidden = set(get_territory_forbidden(game, color_value))
+    return UltimateAiSearchPlan(
+        color=color,
+        ai_card=game.ultimate_ai_card,
+        color_value=color_value,
+        forbidden=forbidden,
+        visits=get_game_visits(game.level, len(game.moves), "ultimate"),
+    )
+
+
+def resolve_occupied_ai_move(
+    game: Any,
+    color: str,
+    gtp_move: str,
+    coord: Optional[tuple[int, int]],
+    *,
+    coord_to_gtp: Callable[[int, int, int], str],
+    rng: random.Random | None = None,
+) -> tuple[str, Optional[tuple[int, int]]]:
+    if gtp_move.upper() == "PASS" or coord is None:
+        return gtp_move, coord
+
+    x, y = coord
+    if game.board[y][x] == 0:
+        return gtp_move, coord
+
+    rng = random.Random(time.time_ns()) if rng is None else rng
+    empties = [
+        (sx, sy)
+        for sy in range(game.size)
+        for sx in range(game.size)
+        if game.board[sy][sx] == 0 and game.is_legal_move(sx, sy, color)
+    ]
+    if not empties:
+        return "pass", None
+
+    x, y = rng.choice(empties)
+    return coord_to_gtp(x, y, game.size), (x, y)
 
 
 def choose_tengen_target(game: Any, ai_move_count: int) -> Optional[AiTargetPlan]:

@@ -1,10 +1,151 @@
 import server as s
 from app.domain.game_state import GoGame
-from app.gameplay.ai_moves import is_suspicious_ai_pass
+from app.gameplay.ai_moves import (
+    compute_game_visits,
+    is_suspicious_ai_pass,
+    plan_ultimate_ai_search,
+    resolve_occupied_ai_move,
+)
 
 
 def make_game(size: int = 9) -> GoGame:
     return GoGame(size=size, player_color="B")
+
+
+class FirstChoiceRng:
+    def choice(self, items):
+        return items[0]
+
+
+def test_plan_ultimate_ai_search_uses_ultimate_visits_and_ai_card() -> None:
+    game = make_game()
+    game.level = "5k"
+    game.ultimate_ai_card = "meteor"
+    game.moves = [("B", "E5"), ("W", "D4")]
+    calls = []
+
+    plan = plan_ultimate_ai_search(
+        game,
+        get_territory_forbidden=lambda _game, _color_value: calls.append((_game, _color_value)),
+        get_game_visits=compute_game_visits,
+    )
+
+    assert plan.color == "W"
+    assert plan.ai_card == "meteor"
+    assert plan.color_value == 2
+    assert plan.forbidden == set()
+    assert plan.visits == compute_game_visits("5k", 2, "ultimate")
+    assert calls == []
+
+
+def test_plan_ultimate_ai_search_applies_player_territory_forbidden() -> None:
+    game = make_game()
+    game.ultimate_player_card = "territory"
+    calls = []
+
+    def forbidden(game_arg, color_value):
+        calls.append((game_arg, color_value))
+        return {(2, 2), (3, 3)}
+
+    plan = plan_ultimate_ai_search(
+        game,
+        get_territory_forbidden=forbidden,
+        get_game_visits=compute_game_visits,
+    )
+
+    assert calls == [(game, 2)]
+    assert plan.forbidden == {(2, 2), (3, 3)}
+
+
+def test_plan_ultimate_ai_search_uses_black_color_value_for_black_ai() -> None:
+    game = GoGame(size=9, player_color="W")
+    game.ultimate_player_card = "territory"
+    calls = []
+
+    def forbidden(game_arg, color_value):
+        calls.append((game_arg, color_value))
+        return {(4, 4)}
+
+    plan = plan_ultimate_ai_search(
+        game,
+        get_territory_forbidden=forbidden,
+        get_game_visits=compute_game_visits,
+    )
+
+    assert plan.color == "B"
+    assert plan.color_value == 1
+    assert calls == [(game, 1)]
+    assert plan.forbidden == {(4, 4)}
+
+
+def test_resolve_occupied_ai_move_keeps_pass_and_empty_move() -> None:
+    game = make_game()
+
+    assert resolve_occupied_ai_move(
+        game,
+        "W",
+        "pass",
+        None,
+        coord_to_gtp=s.coord_to_gtp,
+    ) == ("pass", None)
+    assert resolve_occupied_ai_move(
+        game,
+        "W",
+        "A9",
+        (0, 0),
+        coord_to_gtp=s.coord_to_gtp,
+    ) == ("A9", (0, 0))
+
+
+def test_resolve_occupied_ai_move_chooses_legal_empty_point() -> None:
+    game = make_game()
+    game.board[0][0] = 1
+
+    gtp, coord = resolve_occupied_ai_move(
+        game,
+        "W",
+        "A9",
+        (0, 0),
+        coord_to_gtp=s.coord_to_gtp,
+        rng=FirstChoiceRng(),
+    )
+
+    assert coord == (1, 0)
+    assert gtp == "B9"
+
+
+def test_resolve_occupied_ai_move_skips_illegal_empty_points() -> None:
+    game = make_game()
+    game.board[0][0] = 1
+    game.is_legal_move = lambda x, y, _color: (x, y) != (1, 0)
+
+    gtp, coord = resolve_occupied_ai_move(
+        game,
+        "W",
+        "A9",
+        (0, 0),
+        coord_to_gtp=s.coord_to_gtp,
+        rng=FirstChoiceRng(),
+    )
+
+    assert coord == (2, 0)
+    assert gtp == "C9"
+
+
+def test_resolve_occupied_ai_move_passes_when_no_empty_point_exists() -> None:
+    game = make_game(size=2)
+    for y in range(game.size):
+        for x in range(game.size):
+            game.board[y][x] = 1
+
+    assert resolve_occupied_ai_move(
+        game,
+        "W",
+        "A2",
+        (0, 0),
+        coord_to_gtp=s.coord_to_gtp,
+        rng=FirstChoiceRng(),
+    ) == ("pass", None)
 
 
 def test_suspicious_ai_pass_requires_pass() -> None:
@@ -46,6 +187,13 @@ def test_suspicious_ai_pass_allows_late_small_board_pass() -> None:
 
 
 if __name__ == "__main__":
+    test_plan_ultimate_ai_search_uses_ultimate_visits_and_ai_card()
+    test_plan_ultimate_ai_search_applies_player_territory_forbidden()
+    test_plan_ultimate_ai_search_uses_black_color_value_for_black_ai()
+    test_resolve_occupied_ai_move_keeps_pass_and_empty_move()
+    test_resolve_occupied_ai_move_chooses_legal_empty_point()
+    test_resolve_occupied_ai_move_skips_illegal_empty_points()
+    test_resolve_occupied_ai_move_passes_when_no_empty_point_exists()
     test_suspicious_ai_pass_requires_pass()
     test_suspicious_ai_pass_detects_early_open_board_pass()
     test_suspicious_ai_pass_allows_established_pass()
