@@ -53,6 +53,7 @@ async def try_finalize_forced_ai_stone(
     message: str,
     prepare_player_turn_modifiers: PreparePlayerTurnFn,
     run_engine_command: EngineCommandFn,
+    push_history: bool = True,
 ) -> bool:
     resp = await run_engine_command(f"play {color} {gtp_move}")
     if "?" in resp:
@@ -64,7 +65,8 @@ async def try_finalize_forced_ai_stone(
     game.passed[color] = False
     game.current_player = game.player_color
     prepare_player_turn_modifiers(game)
-    game.push_history()
+    if push_history:
+        game.push_history()
     await send_fn({"type": "game_state", **game.to_state()})
     await send_fn({
         "type": "ai_move",

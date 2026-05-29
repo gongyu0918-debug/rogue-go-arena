@@ -1603,18 +1603,17 @@ async def _ai_move(game: GoGame, send_fn):
             tx, ty = target_plan.coord
             if game.board[ty][tx] == 0 and not game.is_ko(tx, ty, color):
                 t_gtp = coord_to_gtp(tx, ty, game.size)
-                resp = await run_in_executor(
-                    engine.send_command, f"play {color} {t_gtp}")
-                if "?" not in resp:
-                    game.moves.append((color, t_gtp))
-                    game.place_stone(tx, ty, color)
-                    game.passed[color] = False
-                    game.current_player = game.player_color
-                    _prepare_player_turn_modifiers(game)
-                    await send_fn({"type": "game_state", **game.to_state()})
-                    await send_fn({"type": "ai_move", "gtp": t_gtp,
-                                    "color": color, "x": tx, "y": ty})
-                    await send_fn({"type": "rogue_event", "msg": target_plan.message})
+                if await try_finalize_forced_ai_stone(
+                    game,
+                    send_fn,
+                    color=color,
+                    gtp_move=t_gtp,
+                    coord=(tx, ty),
+                    message=target_plan.message,
+                    prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+                    run_engine_command=_run_engine_command,
+                    push_history=False,
+                ):
                     return
         restriction = tengen_followup_points(game, ai_move_count)
         if restriction:

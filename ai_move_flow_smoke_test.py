@@ -407,6 +407,7 @@ def test_finalize_forced_ai_pass_sends_legacy_payloads() -> None:
 
 async def _try_finalize_forced_ai_stone_sends_legacy_payloads() -> None:
     game = GoGame(size=5, player_color="B")
+    history_len = len(game._history)
     calls = []
 
     async def send(payload):
@@ -443,6 +444,7 @@ async def _try_finalize_forced_ai_stone_sends_legacy_payloads() -> None:
     assert game.moves[-1] == ("W", "D3")
     assert game.passed["W"] is False
     assert game.current_player == "B"
+    assert len(game._history) == history_len + 1
     assert calls == [
         ("engine", "play W D3"),
         ("prepare", "B"),
@@ -454,6 +456,50 @@ async def _try_finalize_forced_ai_stone_sends_legacy_payloads() -> None:
 
 def test_try_finalize_forced_ai_stone_sends_legacy_payloads() -> None:
     asyncio.run(_try_finalize_forced_ai_stone_sends_legacy_payloads())
+
+
+async def _try_finalize_forced_ai_stone_can_skip_history_push() -> None:
+    game = GoGame(size=5, player_color="B")
+    history_len = len(game._history)
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    def prepare_player_turn(_game):
+        calls.append(("prepare", game.current_player))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "="
+
+    succeeded = await try_finalize_forced_ai_stone(
+        game,
+        send,
+        color="W",
+        gtp_move="D3",
+        coord=(3, 2),
+        message="forced stone",
+        prepare_player_turn_modifiers=prepare_player_turn,
+        run_engine_command=run_engine_command,
+        push_history=False,
+    )
+
+    assert succeeded is True
+    assert game.board[2][3] == 2
+    assert game.moves[-1] == ("W", "D3")
+    assert len(game._history) == history_len
+    assert calls == [
+        ("engine", "play W D3"),
+        ("prepare", "B"),
+        ("send", "game_state", None),
+        ("send", "ai_move", "D3"),
+        ("send", "rogue_event", None),
+    ]
+
+
+def test_try_finalize_forced_ai_stone_can_skip_history_push() -> None:
+    asyncio.run(_try_finalize_forced_ai_stone_can_skip_history_push())
 
 
 async def _try_finalize_forced_ai_stone_skips_state_on_engine_error() -> None:
@@ -624,6 +670,7 @@ async def _server_ai_move_mirror_delegates_to_forced_stone() -> None:
             kwargs["gtp_move"],
             kwargs["coord"],
             kwargs["message"],
+            kwargs.get("push_history", True),
             kwargs["prepare_player_turn_modifiers"] is s._prepare_player_turn_modifiers,
             callable(kwargs["run_engine_command"]),
         ))
@@ -655,6 +702,7 @@ async def _server_ai_move_mirror_delegates_to_forced_stone() -> None:
             "D4",
             (3, 1),
             "镜像触发，AI 在对称点 D4 落子",
+            True,
             True,
             True,
         ),
@@ -736,6 +784,169 @@ async def _server_ai_move_mirror_helper_false_falls_back_to_normal_move() -> Non
 
 def test_server_ai_move_mirror_helper_false_falls_back_to_normal_move() -> None:
     asyncio.run(_server_ai_move_mirror_helper_false_falls_back_to_normal_move())
+
+
+async def _server_ai_move_tengen_delegates_to_forced_stone_without_history() -> None:
+    class TargetPlan:
+        coord = (2, 2)
+        message = "天元压迫触发"
+
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "tengen"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    def fake_choose_tengen_target(game_arg, ai_move_count):
+        calls.append(("target", game_arg is game, ai_move_count))
+        return TargetPlan()
+
+    async def fake_forced_stone(game_arg, send_fn, **kwargs):
+        calls.append((
+            "forced_stone",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["gtp_move"],
+            kwargs["coord"],
+            kwargs["message"],
+            kwargs["push_history"],
+            kwargs["prepare_player_turn_modifiers"] is s._prepare_player_turn_modifiers,
+            callable(kwargs["run_engine_command"]),
+        ))
+        return True
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_choose_tengen_target = s.choose_tengen_target
+    original_forced_stone = s.try_finalize_forced_ai_stone
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.choose_tengen_target = fake_choose_tengen_target
+    s.try_finalize_forced_ai_stone = fake_forced_stone
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.choose_tengen_target = original_choose_tengen_target
+        s.try_finalize_forced_ai_stone = original_forced_stone
+
+    assert calls == [
+        ("sync", True),
+        ("target", True, 0),
+        (
+            "forced_stone",
+            True,
+            True,
+            "W",
+            "C3",
+            (2, 2),
+            "天元压迫触发",
+            False,
+            True,
+            True,
+        ),
+    ]
+
+
+def test_server_ai_move_tengen_delegates_to_forced_stone_without_history() -> None:
+    asyncio.run(_server_ai_move_tengen_delegates_to_forced_stone_without_history())
+
+
+async def _server_ai_move_tengen_helper_false_falls_back_to_followup() -> None:
+    class TargetPlan:
+        coord = (2, 2)
+        message = "天元压迫触发"
+
+    class Restriction:
+        points = [(0, 0)]
+        message = "天元后续限制"
+
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "tengen"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    def fake_choose_tengen_target(game_arg, ai_move_count):
+        calls.append(("target", game_arg is game, ai_move_count))
+        return TargetPlan()
+
+    async def fake_forced_stone(game_arg, send_fn, **kwargs):
+        calls.append((
+            "forced_stone",
+            game_arg is game,
+            send_fn is send,
+            kwargs["gtp_move"],
+            kwargs["push_history"],
+        ))
+        return False
+
+    def fake_tengen_followup_points(game_arg, ai_move_count):
+        calls.append(("followup", game_arg is game, ai_move_count))
+        return Restriction()
+
+    async def fake_allow_only(game_arg, color, visits, time_limit, points):
+        calls.append(("allow_only", game_arg is game, color, points))
+        return "C3"
+
+    async def fake_finish(game_arg, send_fn, color, card, gtp_move, rogue_msg=None):
+        calls.append((
+            "finish",
+            game_arg is game,
+            send_fn is send,
+            color,
+            card,
+            gtp_move,
+            rogue_msg,
+        ))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_choose_tengen_target = s.choose_tengen_target
+    original_forced_stone = s.try_finalize_forced_ai_stone
+    original_tengen_followup_points = s.tengen_followup_points
+    original_allow_only = s._ai_move_avoid_points_allow_only
+    original_finish = s._finish_ai_move
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.choose_tengen_target = fake_choose_tengen_target
+    s.try_finalize_forced_ai_stone = fake_forced_stone
+    s.tengen_followup_points = fake_tengen_followup_points
+    s._ai_move_avoid_points_allow_only = fake_allow_only
+    s._finish_ai_move = fake_finish
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.choose_tengen_target = original_choose_tengen_target
+        s.try_finalize_forced_ai_stone = original_forced_stone
+        s.tengen_followup_points = original_tengen_followup_points
+        s._ai_move_avoid_points_allow_only = original_allow_only
+        s._finish_ai_move = original_finish
+
+    assert calls == [
+        ("sync", True),
+        ("target", True, 0),
+        ("forced_stone", True, True, "C3", False),
+        ("followup", True, 0),
+        ("allow_only", True, "W", [(0, 0)]),
+        ("finish", True, True, "W", "tengen", "C3", "天元后续限制"),
+    ]
+
+
+def test_server_ai_move_tengen_helper_false_falls_back_to_followup() -> None:
+    asyncio.run(_server_ai_move_tengen_helper_false_falls_back_to_followup())
 
 
 async def _try_apply_puppet_ai_move_success_finishes_and_updates_uses() -> None:
@@ -1170,11 +1381,14 @@ if __name__ == "__main__":
     test_finalize_ai_move_erosion_updates_komi_after_capture()
     test_finalize_forced_ai_pass_sends_legacy_payloads()
     test_try_finalize_forced_ai_stone_sends_legacy_payloads()
+    test_try_finalize_forced_ai_stone_can_skip_history_push()
     test_try_finalize_forced_ai_stone_skips_state_on_engine_error()
     test_server_ai_move_dice_delegates_to_forced_pass()
     test_server_ai_move_exchange_clears_skip_and_delegates_to_forced_pass()
     test_server_ai_move_mirror_delegates_to_forced_stone()
     test_server_ai_move_mirror_helper_false_falls_back_to_normal_move()
+    test_server_ai_move_tengen_delegates_to_forced_stone_without_history()
+    test_server_ai_move_tengen_helper_false_falls_back_to_followup()
     test_try_apply_puppet_ai_move_success_finishes_and_updates_uses()
     test_try_apply_puppet_ai_move_occupied_target_falls_back()
     test_try_apply_puppet_ai_move_illegal_target_falls_back()
