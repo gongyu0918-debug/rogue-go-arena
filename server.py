@@ -107,6 +107,7 @@ from app.gameplay.challenge_effects import (
 )
 from app.gameplay.ai_moves import (
     AiMoveService,
+    AiTurnSnapshot,
     compute_game_visits,
     choose_ai_style_move,
     choose_tengen_target,
@@ -1349,6 +1350,33 @@ def _generated_ai_move_finish_deps(run_engine_command) -> GeneratedMoveFinishDep
     )
 
 
+async def _try_finish_forced_rogue_ai_turn(
+    game: GoGame,
+    send_fn,
+    turn: AiTurnSnapshot,
+    run_engine_command,
+) -> bool:
+    return await try_finish_forced_rogue_ai_move(
+        game,
+        send_fn,
+        color=turn.color,
+        card=turn.card,
+        rogue_cards=turn.rogue_cards,
+        roll_random=random.random,
+        dice_pass_chance=ROGUE_DICE_PASS_CHANCE,
+        mirror_chance=ROGUE_MIRROR_CHANCE,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=coord_to_gtp,
+        mirror_coord=_mirror_coord,
+        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+        run_engine_command=run_engine_command,
+        finalize_forced_pass=finalize_forced_ai_pass,
+        finalize_forced_stone=try_finalize_forced_ai_stone,
+        apply_puppet_move=try_apply_puppet_ai_move,
+        finish_ai_move=_finish_ai_move,
+    )
+
+
 async def _ai_move(game: GoGame, send_fn):
     if game.game_over or not engine.ready:
         return
@@ -1365,25 +1393,7 @@ async def _ai_move(game: GoGame, send_fn):
     async def _run_engine_command(command: str) -> str:
         return await run_in_executor(engine.send_command, command)
 
-    if await try_finish_forced_rogue_ai_move(
-        game,
-        send_fn,
-        color=color,
-        card=card,
-        rogue_cards=rogue_cards,
-        roll_random=random.random,
-        dice_pass_chance=ROGUE_DICE_PASS_CHANCE,
-        mirror_chance=ROGUE_MIRROR_CHANCE,
-        gtp_to_coord=gtp_to_coord,
-        coord_to_gtp=coord_to_gtp,
-        mirror_coord=_mirror_coord,
-        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
-        run_engine_command=_run_engine_command,
-        finalize_forced_pass=finalize_forced_ai_pass,
-        finalize_forced_stone=try_finalize_forced_ai_stone,
-        apply_puppet_move=try_apply_puppet_ai_move,
-        finish_ai_move=_finish_ai_move,
-    ):
+    if await _try_finish_forced_rogue_ai_turn(game, send_fn, turn, _run_engine_command):
         return
 
     ai_plan = plan_rogue_ai_search(

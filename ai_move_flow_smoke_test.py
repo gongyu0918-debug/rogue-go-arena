@@ -3457,6 +3457,113 @@ def test_server_ai_move_delegates_to_forced_rogue_flow() -> None:
     asyncio.run(_server_ai_move_delegates_to_forced_rogue_flow())
 
 
+async def _server_forced_rogue_turn_helper_binds_runtime_globals() -> None:
+    game = GoGame(size=5, player_color="B")
+    turn = s.AiTurnSnapshot(
+        color="W",
+        card="puppet",
+        rogue_cards={"puppet", "mirror"},
+        move_count=3,
+        ai_move_count=1,
+    )
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def run_engine(command):
+        calls.append(("engine", command))
+        return command
+
+    async def fake_forced_flow(game_arg, send_fn, **kwargs):
+        calls.append((
+            "forced_flow",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["card"],
+            kwargs["rogue_cards"],
+            kwargs["roll_random"] is s.random.random,
+            kwargs["dice_pass_chance"] == s.ROGUE_DICE_PASS_CHANCE,
+            kwargs["mirror_chance"] == s.ROGUE_MIRROR_CHANCE,
+            kwargs["gtp_to_coord"] is s.gtp_to_coord,
+            kwargs["coord_to_gtp"] is s.coord_to_gtp,
+            kwargs["mirror_coord"] is s._mirror_coord,
+            kwargs["prepare_player_turn_modifiers"] is s._prepare_player_turn_modifiers,
+            kwargs["run_engine_command"] is run_engine,
+            kwargs["finalize_forced_pass"] is s.finalize_forced_ai_pass,
+            kwargs["finalize_forced_stone"] is s.try_finalize_forced_ai_stone,
+            kwargs["apply_puppet_move"] is s.try_apply_puppet_ai_move,
+            kwargs["finish_ai_move"] is s._finish_ai_move,
+        ))
+        return True
+
+    async def fake_forced_pass(*_args, **_kwargs):
+        calls.append(("forced_pass",))
+
+    async def fake_forced_stone(*_args, **_kwargs):
+        calls.append(("forced_stone",))
+        return False
+
+    async def fake_puppet(*_args, **_kwargs):
+        calls.append(("puppet",))
+        return False
+
+    def fake_prepare(_game):
+        calls.append(("prepare",))
+
+    async def fake_finish(*_args, **_kwargs):
+        calls.append(("finish",))
+
+    original_forced_flow = s.try_finish_forced_rogue_ai_move
+    original_forced_pass = s.finalize_forced_ai_pass
+    original_forced_stone = s.try_finalize_forced_ai_stone
+    original_puppet = s.try_apply_puppet_ai_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_finish = s._finish_ai_move
+    s.try_finish_forced_rogue_ai_move = fake_forced_flow
+    s.finalize_forced_ai_pass = fake_forced_pass
+    s.try_finalize_forced_ai_stone = fake_forced_stone
+    s.try_apply_puppet_ai_move = fake_puppet
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._finish_ai_move = fake_finish
+    try:
+        handled = await s._try_finish_forced_rogue_ai_turn(game, send, turn, run_engine)
+    finally:
+        s.try_finish_forced_rogue_ai_move = original_forced_flow
+        s.finalize_forced_ai_pass = original_forced_pass
+        s.try_finalize_forced_ai_stone = original_forced_stone
+        s.try_apply_puppet_ai_move = original_puppet
+        s._prepare_player_turn_modifiers = original_prepare
+        s._finish_ai_move = original_finish
+
+    assert handled is True
+    assert calls == [(
+        "forced_flow",
+        True,
+        True,
+        "W",
+        "puppet",
+        {"puppet", "mirror"},
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+        True,
+    )]
+
+
+def test_server_forced_rogue_turn_helper_binds_runtime_globals() -> None:
+    asyncio.run(_server_forced_rogue_turn_helper_binds_runtime_globals())
+
+
 async def _server_ai_move_dice_delegates_to_forced_pass() -> None:
     game = GoGame(size=5, player_color="B")
     game.rogue_card = "dice"
@@ -7908,6 +8015,7 @@ if __name__ == "__main__":
     test_try_finish_forced_rogue_ai_move_exchange_clears_skip()
     test_try_finish_forced_rogue_ai_move_puppet_delegates_target()
     test_server_ai_move_delegates_to_forced_rogue_flow()
+    test_server_forced_rogue_turn_helper_binds_runtime_globals()
     test_server_ai_move_dice_delegates_to_forced_pass()
     test_server_ai_move_exchange_clears_skip_and_delegates_to_forced_pass()
     test_server_ai_move_mirror_delegates_to_forced_stone()
