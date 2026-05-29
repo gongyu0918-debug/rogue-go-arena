@@ -134,6 +134,7 @@ from app.gameplay.ai_move_flow import (
     finalize_ai_move,
     finalize_forced_ai_pass,
     finish_ai_turn_response,
+    finish_prepared_ai_move,
     refresh_fog_restriction_points,
     resolve_ai_resign_move,
     prepare_generated_ai_move,
@@ -1442,17 +1443,14 @@ async def _ai_move(game: GoGame, send_fn):
         retry_ko_move=retry_ai_move_avoiding_ko,
         retry_avoiding_ko=_ai_retry_avoiding_ko,
     )
-    if prepared_move.completed or prepared_move.gtp_move is None:
-        return
-    gtp_move = prepared_move.gtp_move
-
-    placement = await apply_ai_move_placement_effects(
+    if await finish_prepared_ai_move(
         game,
         send_fn,
         color=color,
         card=card,
-        gtp_move=gtp_move,
-        needs_sync=prepared_move.needs_sync,
+        prepared_move=prepared_move,
+        apply_placement_effects=apply_ai_move_placement_effects,
+        finish_turn_response=finish_ai_turn_response,
         gtp_to_coord=gtp_to_coord,
         sync_board_to_engine=_sync_board_to_katago,
         engine_is_ready=lambda: engine.ready,
@@ -1470,19 +1468,6 @@ async def _ai_move(game: GoGame, send_fn):
         roll_random=random.random,
         has_rogue_card=_rogue_has,
         pick_best_point=_pick_best_point,
-    )
-    coord = placement.coord
-    captured = placement.captured
-
-    if await finish_ai_turn_response(
-        game,
-        send_fn,
-        color=color,
-        card=card,
-        gtp_move=gtp_move,
-        coord=coord,
-        captured=captured,
-        rogue_msg=prepared_move.message,
         prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
         apply_erosion_counter=apply_erosion_komi_counter,
         erosion_shift=ROGUE_EROSION_SHIFT,

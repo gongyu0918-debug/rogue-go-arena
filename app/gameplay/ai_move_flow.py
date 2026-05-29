@@ -41,6 +41,8 @@ NoRegretBonusFn = Callable[..., Awaitable[bool]]
 ErosionCounterFn = Callable[..., Awaitable[bool]]
 DoublePassFn = Callable[..., Awaitable[bool]]
 AiMoveResponseFn = Callable[..., Awaitable[None]]
+PlacementEffectsFn = Callable[..., Awaitable["AiMovePlacement"]]
+FinishAiTurnResponseFn = Callable[..., Awaitable[bool]]
 MirrorCoordFn = Callable[[int, int, int], tuple[int, int]]
 FinalizeForcedPassFn = Callable[..., Awaitable[None]]
 FinalizeForcedStoneFn = Callable[..., Awaitable[bool]]
@@ -988,6 +990,92 @@ async def apply_ai_move_placement_effects(
         await sync_board_to_engine(game)
 
     return placement
+
+
+async def finish_prepared_ai_move(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    card: str | None,
+    prepared_move: AiMovePreparation,
+    apply_placement_effects: PlacementEffectsFn,
+    finish_turn_response: FinishAiTurnResponseFn,
+    gtp_to_coord: CoordParser,
+    sync_board_to_engine: SyncBoardFn,
+    engine_is_ready: EngineReadyFn,
+    apply_move_to_board: ApplyMoveToBoardFn,
+    apply_sansan_trap_counter: SansanTrapCounterFn,
+    try_no_regret_bonus: NoRegretBonusFn,
+    trap_stones: int,
+    get_sansan_points: PointListFn,
+    adjacent_points: AdjacentPointsFn,
+    shuffle_points: ShufflePointsFn,
+    spawn_bonus_points: SpawnBonusPointsFn,
+    coord_to_gtp: CoordFormatter,
+    apply_trap_bonus: TrapBonusFn,
+    no_regret_chance: float,
+    roll_random: RandomFloatFn,
+    has_rogue_card: RogueHasFn,
+    pick_best_point: PickBestPointFn,
+    prepare_player_turn_modifiers: PreparePlayerTurnFn,
+    apply_erosion_counter: ErosionCounterFn,
+    erosion_shift: float,
+    run_erosion_command: EngineCommandFn,
+    erosion_message: ErosionMessageFn,
+    finalize_double_pass: DoublePassFn,
+    run_double_pass_command: EngineCommandFn,
+    send_ai_move_response: AiMoveResponseFn,
+    run_coach_turn_if_needed: RunCoachTurnFn,
+) -> bool:
+    if prepared_move.completed or prepared_move.gtp_move is None:
+        return True
+
+    placement = await apply_placement_effects(
+        game,
+        send_fn,
+        color=color,
+        card=card,
+        gtp_move=prepared_move.gtp_move,
+        needs_sync=prepared_move.needs_sync,
+        gtp_to_coord=gtp_to_coord,
+        sync_board_to_engine=sync_board_to_engine,
+        engine_is_ready=engine_is_ready,
+        apply_move_to_board=apply_move_to_board,
+        apply_sansan_trap_counter=apply_sansan_trap_counter,
+        try_no_regret_bonus=try_no_regret_bonus,
+        trap_stones=trap_stones,
+        get_sansan_points=get_sansan_points,
+        adjacent_points=adjacent_points,
+        shuffle_points=shuffle_points,
+        spawn_bonus_points=spawn_bonus_points,
+        coord_to_gtp=coord_to_gtp,
+        apply_trap_bonus=apply_trap_bonus,
+        no_regret_chance=no_regret_chance,
+        roll_random=roll_random,
+        has_rogue_card=has_rogue_card,
+        pick_best_point=pick_best_point,
+    )
+
+    return await finish_turn_response(
+        game,
+        send_fn,
+        color=color,
+        card=card,
+        gtp_move=prepared_move.gtp_move,
+        coord=placement.coord,
+        captured=placement.captured,
+        rogue_msg=prepared_move.message,
+        prepare_player_turn_modifiers=prepare_player_turn_modifiers,
+        apply_erosion_counter=apply_erosion_counter,
+        erosion_shift=erosion_shift,
+        run_erosion_command=run_erosion_command,
+        erosion_message=erosion_message,
+        finalize_double_pass=finalize_double_pass,
+        run_double_pass_command=run_double_pass_command,
+        send_ai_move_response=send_ai_move_response,
+        run_coach_turn_if_needed=run_coach_turn_if_needed,
+    )
 
 
 async def finish_ai_turn_response(
