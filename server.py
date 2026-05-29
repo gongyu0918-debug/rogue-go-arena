@@ -109,6 +109,7 @@ from app.domain.coordinates import coord_to_gtp, gtp_to_coord
 from app.domain.game_state import GoGame
 from app.domain.sgf import generate_sgf
 from app.runtime.access_urls import get_access_urls as build_access_urls
+from app.runtime.status_payload import build_status_payload
 from app.gameplay.card_selection import (
     pick_ai_rogue_card,
     pick_ai_ultimate_card,
@@ -471,33 +472,21 @@ async def get_status():
     exe_exists = engine_runtime.has_engine_binaries()
     selected_model = engine_runtime.select_model()
     card_config_payload = card_config_service.get_payload()
-    return {
-        "server_rev": SERVER_REV,
-        "host": SERVER_HOST,
-        "port": SERVER_PORT,
-        "access_urls": get_access_urls(SERVER_HOST, SERVER_PORT),
-        "katago_ready": engine.ready,
-        "katago_exe": exe_exists,
-        "katago_model": model_exists,
-        "katago_model_name": selected_model.name if selected_model else None,
-        "katago_model_loaded": bool(engine.ready and snapshot.get("active_model")),
-        "no_katago": NO_KATAGO,
-        "cpu_mode": engine_runtime.cpu_mode,
-        "static_ready": (STATIC_DIR / "index.html").exists(),
-        "card_config": card_config_payload.get("source"),
-        "card_config_errors": card_config_payload.get("errors", []),
-        "engine_phase": snapshot.get("phase"),
-        "engine_message": snapshot.get("message"),
-        "engine_backend": snapshot.get("active_backend"),
-        "engine_backend_exe": snapshot.get("active_backend_exe"),
-        "engine_model": snapshot.get("active_model"),
-        "engine_last_error": snapshot.get("last_error"),
-        "engine_attempts": snapshot.get("attempts"),
-        "engine_candidates": snapshot.get("candidates"),
-        "engine_initializing": snapshot.get("initializing"),
-        "engine_log_tail": snapshot.get("log_tail"),
-        "nvidia_detected": snapshot.get("nvidia_detected"),
-    }
+    return build_status_payload(
+        server_rev=SERVER_REV,
+        host=SERVER_HOST,
+        port=SERVER_PORT,
+        access_urls=get_access_urls(SERVER_HOST, SERVER_PORT),
+        engine_ready=engine.ready,
+        engine_snapshot=snapshot,
+        exe_exists=exe_exists,
+        model_exists=model_exists,
+        selected_model_name=selected_model.name if selected_model else None,
+        no_katago=NO_KATAGO,
+        cpu_mode=engine_runtime.cpu_mode,
+        static_ready=(STATIC_DIR / "index.html").exists(),
+        card_config_payload=card_config_payload,
+    )
 
 
 # ─── GPU detection ───────────────────────────────────────────────────────────

@@ -18,7 +18,7 @@ This plan keeps the current feature baseline stable while reducing the cost of f
 
 2. Move runtime environment helpers out of `server.py`.
    - Access URLs, GPU status, engine status payload shaping.
-   - Smoke: `access_urls_smoke_test.py`, `status_endpoint_smoke_test.py`, and `startup_compat_smoke.py`.
+   - Smoke: `access_urls_smoke_test.py`, `status_payload_smoke_test.py`, `status_endpoint_smoke_test.py`, and `startup_compat_smoke.py`.
 
 3. Move remaining Rogue orchestration from `server.py`.
    - Activation, challenge loadout, post-move hooks.
