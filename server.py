@@ -125,6 +125,7 @@ from app.gameplay.ai_move_flow import (
     try_apply_puppet_ai_move,
     try_finalize_forced_ai_stone,
     try_finish_allowed_restriction_move,
+    try_finish_sansan_restriction_move,
 )
 from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
 from app.gameplay.turn_modifiers import (
@@ -1662,17 +1663,18 @@ async def _ai_move(game: GoGame, send_fn):
 
     if "sansan" in rogue_cards:
         restriction = sansan_opening_restriction(game, ai_move_count)
-        if restriction:
-            if restriction.kind == "allow_only":
-                gtp_move = await _ai_move_avoid_points_allow_only(
-                    game, color, visits, time_limit, restriction.points)
-                if gtp_move:
-                    await _finish_ai_move(game, send_fn, color, card, gtp_move,
-                                          restriction.message)
-                    return
-            gtp_move = await _ai_move_avoid_points(
-                game, color, visits, time_limit, restriction.points)
-            await _finish_ai_move(game, send_fn, color, card, gtp_move, restriction.message)
+        if await try_finish_sansan_restriction_move(
+            game,
+            send_fn,
+            color=color,
+            card=card,
+            restriction=restriction,
+            visits=visits,
+            time_limit=time_limit,
+            choose_allowed_move=_ai_move_avoid_points_allow_only,
+            choose_avoid_move=_ai_move_avoid_points,
+            finish_ai_move=_finish_ai_move,
+        ):
             return
 
     if (

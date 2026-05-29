@@ -4,13 +4,17 @@ import asyncio
 
 import server as s
 from app.domain.game_state import GoGame
-from app.gameplay.ai_move_flow import try_finish_allowed_restriction_move
+from app.gameplay.ai_move_flow import (
+    try_finish_allowed_restriction_move,
+    try_finish_sansan_restriction_move,
+)
 
 
 class Restriction:
-    def __init__(self, points=None, message="restriction message"):
+    def __init__(self, points=None, message="restriction message", kind="allow_only"):
         self.points = [(0, 0)] if points is None else points
         self.message = message
+        self.kind = kind
 
 
 async def _try_finish_allowed_restriction_move_finishes_when_move_found() -> None:
@@ -227,6 +231,349 @@ def test_server_ai_move_lowline_restriction_false_continues_to_normal_move() -> 
     asyncio.run(_server_ai_move_lowline_restriction_false_continues_to_normal_move())
 
 
+async def _try_finish_sansan_restriction_move_uses_allowed_move() -> None:
+    game = GoGame(size=5, player_color="B")
+    restriction = Restriction(points=[(1, 1)], message="sansan allowed")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def choose_allowed_move(game_arg, color, visits, time_limit, points):
+        calls.append(("allowed", game_arg is game, color, visits, time_limit, points))
+        return "C3"
+
+    async def choose_avoid_move(*args):
+        calls.append(("avoid", args))
+        return "D3"
+
+    async def finish_ai_move(game_arg, send_fn, color, card, gtp_move, rogue_msg):
+        calls.append(("finish", game_arg is game, send_fn is send, color, card, gtp_move, rogue_msg))
+
+    handled = await try_finish_sansan_restriction_move(
+        game,
+        send,
+        color="W",
+        card="sansan",
+        restriction=restriction,
+        visits=123,
+        time_limit=1.5,
+        choose_allowed_move=choose_allowed_move,
+        choose_avoid_move=choose_avoid_move,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("allowed", True, "W", 123, 1.5, [(1, 1)]),
+        ("finish", True, True, "W", "sansan", "C3", "sansan allowed"),
+    ]
+
+
+def test_try_finish_sansan_restriction_move_uses_allowed_move() -> None:
+    asyncio.run(_try_finish_sansan_restriction_move_uses_allowed_move())
+
+
+async def _try_finish_sansan_restriction_move_falls_back_to_avoid_move() -> None:
+    game = GoGame(size=5, player_color="B")
+    restriction = Restriction(points=[(1, 1)], message="sansan fallback")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def choose_allowed_move(game_arg, color, visits, time_limit, points):
+        calls.append(("allowed", game_arg is game, color, visits, time_limit, points))
+        return None
+
+    async def choose_avoid_move(game_arg, color, visits, time_limit, points):
+        calls.append(("avoid", game_arg is game, color, visits, time_limit, points))
+        return "D3"
+
+    async def finish_ai_move(game_arg, send_fn, color, card, gtp_move, rogue_msg):
+        calls.append(("finish", game_arg is game, send_fn is send, color, card, gtp_move, rogue_msg))
+
+    handled = await try_finish_sansan_restriction_move(
+        game,
+        send,
+        color="W",
+        card="sansan",
+        restriction=restriction,
+        visits=123,
+        time_limit=1.5,
+        choose_allowed_move=choose_allowed_move,
+        choose_avoid_move=choose_avoid_move,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("allowed", True, "W", 123, 1.5, [(1, 1)]),
+        ("avoid", True, "W", 123, 1.5, [(1, 1)]),
+        ("finish", True, True, "W", "sansan", "D3", "sansan fallback"),
+    ]
+
+
+def test_try_finish_sansan_restriction_move_falls_back_to_avoid_move() -> None:
+    asyncio.run(_try_finish_sansan_restriction_move_falls_back_to_avoid_move())
+
+
+async def _try_finish_sansan_restriction_move_non_allow_only_uses_avoid_move() -> None:
+    game = GoGame(size=5, player_color="B")
+    restriction = Restriction(points=[(1, 1)], message="sansan avoid", kind="avoid")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def choose_allowed_move(*args):
+        calls.append(("allowed", args))
+        return "C3"
+
+    async def choose_avoid_move(game_arg, color, visits, time_limit, points):
+        calls.append(("avoid", game_arg is game, color, visits, time_limit, points))
+        return "D3"
+
+    async def finish_ai_move(game_arg, send_fn, color, card, gtp_move, rogue_msg):
+        calls.append(("finish", game_arg is game, send_fn is send, color, card, gtp_move, rogue_msg))
+
+    handled = await try_finish_sansan_restriction_move(
+        game,
+        send,
+        color="W",
+        card="sansan",
+        restriction=restriction,
+        visits=123,
+        time_limit=1.5,
+        choose_allowed_move=choose_allowed_move,
+        choose_avoid_move=choose_avoid_move,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("avoid", True, "W", 123, 1.5, [(1, 1)]),
+        ("finish", True, True, "W", "sansan", "D3", "sansan avoid"),
+    ]
+
+
+def test_try_finish_sansan_restriction_move_non_allow_only_uses_avoid_move() -> None:
+    asyncio.run(_try_finish_sansan_restriction_move_non_allow_only_uses_avoid_move())
+
+
+async def _try_finish_sansan_restriction_move_finishes_none_avoid_result() -> None:
+    game = GoGame(size=5, player_color="B")
+    restriction = Restriction(points=[(1, 1)], message="sansan none")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def choose_allowed_move(game_arg, color, visits, time_limit, points):
+        calls.append(("allowed", game_arg is game, color, visits, time_limit, points))
+        return None
+
+    async def choose_avoid_move(game_arg, color, visits, time_limit, points):
+        calls.append(("avoid", game_arg is game, color, visits, time_limit, points))
+        return None
+
+    async def finish_ai_move(game_arg, send_fn, color, card, gtp_move, rogue_msg):
+        calls.append(("finish", game_arg is game, send_fn is send, color, card, gtp_move, rogue_msg))
+
+    handled = await try_finish_sansan_restriction_move(
+        game,
+        send,
+        color="W",
+        card="sansan",
+        restriction=restriction,
+        visits=123,
+        time_limit=1.5,
+        choose_allowed_move=choose_allowed_move,
+        choose_avoid_move=choose_avoid_move,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is True
+    assert calls == [
+        ("allowed", True, "W", 123, 1.5, [(1, 1)]),
+        ("avoid", True, "W", 123, 1.5, [(1, 1)]),
+        ("finish", True, True, "W", "sansan", None, "sansan none"),
+    ]
+
+
+def test_try_finish_sansan_restriction_move_finishes_none_avoid_result() -> None:
+    asyncio.run(_try_finish_sansan_restriction_move_finishes_none_avoid_result())
+
+
+async def _try_finish_sansan_restriction_move_skips_when_no_restriction() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def choose_allowed_move(*args):
+        calls.append(("allowed", args))
+        return "C3"
+
+    async def choose_avoid_move(*args):
+        calls.append(("avoid", args))
+        return "D3"
+
+    async def finish_ai_move(*args):
+        calls.append(("finish", args))
+
+    handled = await try_finish_sansan_restriction_move(
+        game,
+        send,
+        color="W",
+        card="sansan",
+        restriction=None,
+        visits=123,
+        time_limit=1.5,
+        choose_allowed_move=choose_allowed_move,
+        choose_avoid_move=choose_avoid_move,
+        finish_ai_move=finish_ai_move,
+    )
+
+    assert handled is False
+    assert calls == []
+
+
+def test_try_finish_sansan_restriction_move_skips_when_no_restriction() -> None:
+    asyncio.run(_try_finish_sansan_restriction_move_skips_when_no_restriction())
+
+
+async def _server_ai_move_sansan_delegates_to_sansan_flow() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "sansan"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    def fake_sansan_restriction(game_arg, ai_move_count):
+        calls.append(("sansan", game_arg is game, ai_move_count))
+        return Restriction(message="sansan restriction")
+
+    async def fake_sansan_flow(game_arg, send_fn, **kwargs):
+        calls.append((
+            "sansan_flow",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["card"],
+            kwargs["restriction"].message,
+            isinstance(kwargs["visits"], int),
+            isinstance(kwargs["time_limit"], float),
+            kwargs["choose_allowed_move"] is s._ai_move_avoid_points_allow_only,
+            kwargs["choose_avoid_move"] is s._ai_move_avoid_points,
+            kwargs["finish_ai_move"] is s._finish_ai_move,
+        ))
+        return True
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_sansan_restriction = s.sansan_opening_restriction
+    original_sansan_flow = s.try_finish_sansan_restriction_move
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.sansan_opening_restriction = fake_sansan_restriction
+    s.try_finish_sansan_restriction_move = fake_sansan_flow
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.sansan_opening_restriction = original_sansan_restriction
+        s.try_finish_sansan_restriction_move = original_sansan_flow
+
+    assert calls == [
+        ("sync", True),
+        ("sansan", True, 0),
+        ("sansan_flow", True, True, "W", "sansan", "sansan restriction", True, True, True, True, True),
+    ]
+
+
+def test_server_ai_move_sansan_delegates_to_sansan_flow() -> None:
+    asyncio.run(_server_ai_move_sansan_delegates_to_sansan_flow())
+
+
+async def _server_ai_move_sansan_flow_false_continues_to_normal_move() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "sansan"
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    def fake_sansan_restriction(game_arg, ai_move_count):
+        calls.append(("sansan", game_arg is game, ai_move_count))
+        return Restriction(message="sansan restriction")
+
+    async def fake_sansan_flow(game_arg, send_fn, **kwargs):
+        calls.append(("sansan_flow", game_arg is game, send_fn is send, kwargs["card"]))
+        return False
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= C3"
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_coach(game_arg, send_fn):
+        calls.append(("coach", game_arg is game, send_fn is send))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_sansan_restriction = s.sansan_opening_restriction
+    original_sansan_flow = s.try_finish_sansan_restriction_move
+    original_generate = s._ai_generate_move
+    original_prepare = s._prepare_player_turn_modifiers
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s.sansan_opening_restriction = fake_sansan_restriction
+    s.try_finish_sansan_restriction_move = fake_sansan_flow
+    s._ai_generate_move = fake_generate
+    s._prepare_player_turn_modifiers = fake_prepare
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s.sansan_opening_restriction = original_sansan_restriction
+        s.try_finish_sansan_restriction_move = original_sansan_flow
+        s._ai_generate_move = original_generate
+        s._prepare_player_turn_modifiers = original_prepare
+        s._run_coach_turn_if_needed = original_coach
+
+    assert game.moves[-1] == ("W", "C3")
+    assert game.board[2][2] == 2
+    assert calls == [
+        ("sync", True),
+        ("sansan", True, 0),
+        ("sansan_flow", True, True, "sansan"),
+        ("generate", "W", True, True),
+        ("prepare", True),
+        ("send", "game_state", None),
+        ("send", "ai_move", "C3"),
+        ("coach", True, True),
+    ]
+
+
+def test_server_ai_move_sansan_flow_false_continues_to_normal_move() -> None:
+    asyncio.run(_server_ai_move_sansan_flow_false_continues_to_normal_move())
+
+
 async def _server_ai_move_tengen_followup_delegates_after_target_miss() -> None:
     game = GoGame(size=5, player_color="B")
     game.rogue_card = "tengen"
@@ -418,6 +765,13 @@ if __name__ == "__main__":
     test_try_finish_allowed_restriction_move_skips_when_no_restriction_or_move()
     test_server_ai_move_gravity_delegates_to_restriction_flow()
     test_server_ai_move_lowline_restriction_false_continues_to_normal_move()
+    test_try_finish_sansan_restriction_move_uses_allowed_move()
+    test_try_finish_sansan_restriction_move_falls_back_to_avoid_move()
+    test_try_finish_sansan_restriction_move_non_allow_only_uses_avoid_move()
+    test_try_finish_sansan_restriction_move_finishes_none_avoid_result()
+    test_try_finish_sansan_restriction_move_skips_when_no_restriction()
+    test_server_ai_move_sansan_delegates_to_sansan_flow()
+    test_server_ai_move_sansan_flow_false_continues_to_normal_move()
     test_server_ai_move_tengen_followup_delegates_after_target_miss()
     test_server_ai_move_shadow_delegates_to_restriction_flow_when_triggered()
     test_server_ai_move_shadow_chance_miss_skips_restriction_flow()
