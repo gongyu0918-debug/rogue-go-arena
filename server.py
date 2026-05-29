@@ -132,6 +132,7 @@ from app.gameplay.ai_move_flow import (
     apply_erosion_komi_counter,
     apply_slip_ai_move,
     apply_suspicious_pass_fallback,
+    AiMovePlacement,
     choose_ai_move_candidate,
     choose_or_generate_ai_style_move,
     finalize_ai_move,
@@ -1677,6 +1678,18 @@ async def _finish_observer_double_pass(game: GoGame, send_fn) -> bool:
     return True
 
 
+def _apply_observer_ai_move_to_board(game: GoGame, color: str, gtp_move: str) -> AiMovePlacement:
+    coord = gtp_to_coord(gtp_move, game.size)
+    captured = 0
+    game.moves.append((color, gtp_move))
+    if gtp_move.upper() != "PASS" and coord:
+        captured = game.place_stone(coord[0], coord[1], color)
+        game.passed[color] = False
+    else:
+        game.passed[color] = True
+    return AiMovePlacement(coord=coord, captured=captured)
+
+
 async def _run_ai_observer_loop(game: GoGame, send_fn):
     try:
         while not game.game_over and game.ai_observer and engine.ready:
@@ -1690,14 +1703,8 @@ async def _run_ai_observer_loop(game: GoGame, send_fn):
                 fallback_move = await _pick_nonpass_fallback_move(game, color, visits)
                 if fallback_move:
                     gtp_move = fallback_move
-            coord = gtp_to_coord(gtp_move, game.size)
-            captured = 0
-            game.moves.append((color, gtp_move))
-            if gtp_move.upper() != "PASS" and coord:
-                captured = game.place_stone(coord[0], coord[1], color)
-                game.passed[color] = False
-            else:
-                game.passed[color] = True
+            placement = _apply_observer_ai_move_to_board(game, color, gtp_move)
+            coord = placement.coord
             await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color, "x": coord[0] if coord else None, "y": coord[1] if coord else None})
             game.current_player = "W" if color == "B" else "B"
             game.push_history()

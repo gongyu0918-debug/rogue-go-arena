@@ -5975,6 +5975,32 @@ def test_server_finish_observer_double_pass_scores_once() -> None:
     asyncio.run(_server_finish_observer_double_pass_scores_once())
 
 
+def test_server_apply_observer_ai_move_to_board_preserves_legacy_pass_flags() -> None:
+    game = GoGame(size=5, player_color="B")
+
+    original_gtp_to_coord = s.gtp_to_coord
+    def fake_gtp_to_coord(gtp, size):
+        if gtp == "bad":
+            return None
+        return original_gtp_to_coord(gtp, size)
+
+    s.gtp_to_coord = fake_gtp_to_coord
+    try:
+        placed = s._apply_observer_ai_move_to_board(game, "W", "C3")
+        passed = s._apply_observer_ai_move_to_board(game, "B", "pass")
+        invalid = s._apply_observer_ai_move_to_board(game, "W", "bad")
+    finally:
+        s.gtp_to_coord = original_gtp_to_coord
+
+    assert placed == AiMovePlacement(coord=(2, 2), captured=0)
+    assert passed == AiMovePlacement(coord=None, captured=0)
+    assert invalid == AiMovePlacement(coord=None, captured=0)
+    assert game.moves == [("W", "C3"), ("B", "pass"), ("W", "bad")]
+    assert game.board[2][2] == 2
+    assert game.passed["B"] is True
+    assert game.passed["W"] is True
+
+
 async def _server_generated_turn_helper_binds_runtime_globals() -> None:
     game = GoGame(size=5, player_color="B")
     turn = s.AiTurnSnapshot(
@@ -8649,6 +8675,7 @@ if __name__ == "__main__":
     test_server_engine_command_helper_binds_runtime_send_command()
     test_server_sync_engine_komi_uses_ready_gate_and_runtime_command()
     test_server_finish_observer_double_pass_scores_once()
+    test_server_apply_observer_ai_move_to_board_preserves_legacy_pass_flags()
     test_server_generated_turn_helper_binds_runtime_globals()
     test_server_ai_move_balanced_style_skips_style_helper()
     test_server_ai_move_rogue_cards_skip_style_helper()
