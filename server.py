@@ -117,6 +117,7 @@ from app.gameplay.ai_move_flow import (
     apply_erosion_komi_counter,
     apply_slip_ai_move,
     apply_suspicious_pass_fallback,
+    choose_ai_move_candidate,
     choose_or_generate_ai_style_move,
     finalize_ai_move,
     finalize_forced_ai_pass,
@@ -127,7 +128,6 @@ from app.gameplay.ai_move_flow import (
     try_apply_no_regret_bonus,
     try_apply_puppet_ai_move,
     try_apply_sansan_trap_counter,
-    try_choose_ai_style_move,
     try_finalize_double_pass,
     try_finalize_forced_ai_stone,
     try_finish_allowed_restriction_move,
@@ -1734,28 +1734,23 @@ async def _ai_move(game: GoGame, send_fn):
         challenge_zone_points=_challenge_zone_points,
     )
 
-    if forbidden:
-        gtp_move = await _ai_move_avoid_points(
-            game, color, visits, time_limit, forbidden)
-    else:
-        gtp_move = None
-        if not rogue_cards and game.ai_style != "balanced":
-            gtp_move = await try_choose_ai_style_move(
-                game,
-                color=color,
-                style=game.ai_style,
-                analyze_position=_analyze_current_position,
-                choose_style_move=choose_ai_style_move,
-                gtp_to_coord=gtp_to_coord,
-            )
-        if not gtp_move:
-            resp = await _ai_generate_move(color, visits, time_limit)
-            if game.game_over:
-                return
-            if "?" in resp:
-                print(f"[AI] genmove returned error: {resp}")
-                return
-            gtp_move = resp.replace("=", "").strip()
+    candidate = await choose_ai_move_candidate(
+        game,
+        color=color,
+        visits=visits,
+        time_limit=time_limit,
+        rogue_cards=rogue_cards,
+        forbidden=forbidden,
+        choose_avoid_move=_ai_move_avoid_points,
+        analyze_position=_analyze_current_position,
+        choose_style_move=choose_ai_style_move,
+        generate_move=_ai_generate_move,
+        gtp_to_coord=gtp_to_coord,
+        log_error=print,
+    )
+    if candidate.completed:
+        return
+    gtp_move = candidate.gtp_move
 
     gtp_move = await apply_suspicious_pass_fallback(
         game,

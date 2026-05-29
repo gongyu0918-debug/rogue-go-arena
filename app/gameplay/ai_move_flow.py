@@ -63,6 +63,12 @@ class AiMoveResolution:
 
 
 @dataclass(frozen=True)
+class AiMoveCandidate:
+    gtp_move: str | None
+    completed: bool = False
+
+
+@dataclass(frozen=True)
 class AiMovePlacement:
     coord: tuple[int, int] | None
     captured: int = 0
@@ -591,6 +597,47 @@ async def try_choose_ai_style_move(
         )
     except Exception:
         return None
+
+
+async def choose_ai_move_candidate(
+    game: Any,
+    *,
+    color: str,
+    visits: int,
+    time_limit: float,
+    rogue_cards: Collection[str],
+    forbidden: list[tuple[int, int]],
+    choose_avoid_move: AvoidRestrictionMoveFn,
+    analyze_position: AnalyzePositionFn,
+    choose_style_move: ChooseStyleMoveFn,
+    generate_move: GenerateMoveFn,
+    gtp_to_coord: CoordParser,
+    log_error: LogFn,
+) -> AiMoveCandidate:
+    if forbidden:
+        gtp_move = await choose_avoid_move(game, color, visits, time_limit, forbidden)
+        return AiMoveCandidate(gtp_move)
+
+    gtp_move = None
+    if not rogue_cards and game.ai_style != "balanced":
+        gtp_move = await try_choose_ai_style_move(
+            game,
+            color=color,
+            style=game.ai_style,
+            analyze_position=analyze_position,
+            choose_style_move=choose_style_move,
+            gtp_to_coord=gtp_to_coord,
+        )
+    if gtp_move:
+        return AiMoveCandidate(gtp_move)
+
+    resp = await generate_move(color, visits, time_limit)
+    if game.game_over:
+        return AiMoveCandidate(None, completed=True)
+    if "?" in resp:
+        log_error(f"[AI] genmove returned error: {resp}")
+        return AiMoveCandidate(None, completed=True)
+    return AiMoveCandidate(resp.replace("=", "").strip())
 
 
 def apply_slip_ai_move(
