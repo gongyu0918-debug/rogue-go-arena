@@ -12,6 +12,7 @@ from app.gameplay.ai_move_flow import (
     AiMoveAdjustment,
     AiMoveCandidate,
     AiMovePlacement,
+    AiMovePreparation,
     AiMoveResolution,
     apply_ai_move_to_board,
     apply_ai_move_placement_effects,
@@ -23,6 +24,7 @@ from app.gameplay.ai_move_flow import (
     finalize_ai_move,
     finalize_forced_ai_pass,
     finish_ai_turn_response,
+    prepare_generated_ai_move,
     resolve_ai_resign_move,
     retry_ai_move_avoiding_ko,
     send_ai_move_and_run_coach,
@@ -1674,6 +1676,173 @@ async def _choose_ai_move_candidate_genmove_error_completes_and_logs() -> None:
 
 def test_choose_ai_move_candidate_genmove_error_completes_and_logs() -> None:
     asyncio.run(_choose_ai_move_candidate_genmove_error_completes_and_logs())
+
+
+async def _prepare_generated_ai_move_runs_adjustment_chain() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def suspicious(game_arg, **kwargs):
+        calls.append((
+            "suspicious",
+            game_arg is game,
+            kwargs["gtp_move"],
+            kwargs["visits"],
+            kwargs["is_suspicious_pass"] is is_suspicious,
+            kwargs["pick_fallback_move"] is fallback,
+            kwargs["log_event"] is log_event,
+            kwargs["log_prefix"],
+        ))
+        return "D3"
+
+    def is_suspicious(_game, _move, _color):
+        return False
+
+    async def fallback(_game, _color, _visits, _forbidden=None):
+        return None
+
+    def log_event(message):
+        calls.append(("log", message))
+
+    async def resign(game_arg, send_fn, **kwargs):
+        calls.append((
+            "resign",
+            game_arg is game,
+            send_fn is send,
+            kwargs["gtp_move"],
+            kwargs["rogue_cards"],
+            kwargs["no_resign_move"] is no_resign,
+        ))
+        return AiMoveResolution("E4")
+
+    async def no_resign(_game, _color):
+        return "A1"
+
+    def slip(game_arg, **kwargs):
+        calls.append((
+            "slip",
+            game_arg is game,
+            kwargs["gtp_move"],
+            kwargs["roll_random"] is roll_random,
+            kwargs["choose_point"] is choose_point,
+            kwargs["gtp_to_coord"] is gtp_to_coord,
+            kwargs["coord_to_gtp"] is coord_to_gtp,
+            kwargs["adjacent_points"] is adjacent_points,
+        ))
+        return AiMoveAdjustment("C2", needs_sync=True, message="slip msg")
+
+    def roll_random():
+        return 0.0
+
+    def choose_point(points):
+        return points[0]
+
+    def gtp_to_coord(_gtp, _size):
+        return (1, 1)
+
+    def coord_to_gtp(_x, _y, _size):
+        return "B2"
+
+    def adjacent_points(_x, _y, _size):
+        return []
+
+    async def retry_ko(game_arg, **kwargs):
+        calls.append((
+            "retry",
+            game_arg is game,
+            kwargs["gtp_move"],
+            kwargs["rogue_msg"],
+            kwargs["gtp_to_coord"] is gtp_to_coord,
+            kwargs["retry_avoiding_ko"] is retry_avoiding_ko,
+        ))
+        return AiMoveAdjustment("C2", message="slip msg")
+
+    async def retry_avoiding_ko(_game, _color):
+        return "A1"
+
+    result = await prepare_generated_ai_move(
+        game,
+        send,
+        color="W",
+        gtp_move="pass",
+        visits=123,
+        rogue_cards={"slip"},
+        apply_suspicious_pass_fallback_fn=suspicious,
+        is_suspicious_pass=is_suspicious,
+        pick_nonpass_fallback_move=fallback,
+        log_event=log_event,
+        resolve_resign_move=resign,
+        no_resign_move=no_resign,
+        apply_slip_move=slip,
+        roll_random=roll_random,
+        choose_point=choose_point,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=coord_to_gtp,
+        adjacent_points=adjacent_points,
+        retry_ko_move=retry_ko,
+        retry_avoiding_ko=retry_avoiding_ko,
+    )
+
+    assert result == AiMovePreparation("C2", needs_sync=True, message="slip msg")
+    assert calls == [
+        ("suspicious", True, "pass", 123, True, True, True, "Suspicious early PASS in rogue/normal mode"),
+        ("resign", True, True, "D3", {"slip"}, True),
+        ("slip", True, "E4", True, True, True, True, True),
+        ("retry", True, "C2", "slip msg", True, True),
+    ]
+
+
+def test_prepare_generated_ai_move_runs_adjustment_chain() -> None:
+    asyncio.run(_prepare_generated_ai_move_runs_adjustment_chain())
+
+
+async def _prepare_generated_ai_move_stops_on_completed_resign() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def suspicious(_game, **kwargs):
+        calls.append(("suspicious", kwargs["gtp_move"]))
+        return "RESIGN"
+
+    async def resign(_game, _send_fn, **kwargs):
+        calls.append(("resign", kwargs["gtp_move"]))
+        return AiMoveResolution("RESIGN", completed=True)
+
+    result = await prepare_generated_ai_move(
+        game,
+        send,
+        color="W",
+        gtp_move="pass",
+        visits=123,
+        rogue_cards=set(),
+        apply_suspicious_pass_fallback_fn=suspicious,
+        is_suspicious_pass=lambda *_args: False,
+        pick_nonpass_fallback_move=lambda *_args: None,
+        log_event=lambda _msg: None,
+        resolve_resign_move=resign,
+        no_resign_move=lambda *_args: None,
+        apply_slip_move=lambda *_args, **_kwargs: calls.append("slip"),
+        roll_random=lambda: 0.0,
+        choose_point=lambda points: points[0],
+        gtp_to_coord=lambda _gtp, _size: None,
+        coord_to_gtp=lambda _x, _y, _size: None,
+        adjacent_points=lambda _x, _y, _size: [],
+        retry_ko_move=lambda *_args, **_kwargs: calls.append("retry"),
+        retry_avoiding_ko=lambda *_args: None,
+    )
+
+    assert result == AiMovePreparation("RESIGN", completed=True)
+    assert calls == [("suspicious", "pass"), ("resign", "RESIGN")]
+
+
+def test_prepare_generated_ai_move_stops_on_completed_resign() -> None:
+    asyncio.run(_prepare_generated_ai_move_stops_on_completed_resign())
 
 
 async def _finalize_ai_move_places_stone_and_sends_message() -> None:
@@ -6989,6 +7158,8 @@ if __name__ == "__main__":
     test_choose_ai_move_candidate_rogue_cards_skip_style_choice()
     test_choose_ai_move_candidate_genmove_game_over_completes()
     test_choose_ai_move_candidate_genmove_error_completes_and_logs()
+    test_prepare_generated_ai_move_runs_adjustment_chain()
+    test_prepare_generated_ai_move_stops_on_completed_resign()
     test_finalize_ai_move_places_stone_and_sends_message()
     test_finalize_ai_move_resign_without_card_ends_game()
     test_finalize_ai_move_resign_with_card_uses_no_resign_move()

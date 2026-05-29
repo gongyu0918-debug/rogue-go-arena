@@ -136,6 +136,7 @@ from app.gameplay.ai_move_flow import (
     finish_ai_turn_response,
     refresh_fog_restriction_points,
     resolve_ai_resign_move,
+    prepare_generated_ai_move,
     retry_ai_move_avoiding_ko,
     send_ai_move_and_run_coach,
     try_apply_no_regret_bonus,
@@ -1419,59 +1420,31 @@ async def _ai_move(game: GoGame, send_fn):
     )
     if candidate.completed:
         return
-    gtp_move = candidate.gtp_move
-
-    gtp_move = await apply_suspicious_pass_fallback(
-        game,
-        color=color,
-        gtp_move=gtp_move,
-        visits=visits,
-        is_suspicious_pass=_is_suspicious_ai_pass,
-        pick_fallback_move=_pick_nonpass_fallback_move,
-        log_event=_engine_log,
-        log_prefix="Suspicious early PASS in rogue/normal mode",
-    )
-
-    resign_result = await resolve_ai_resign_move(
+    prepared_move = await prepare_generated_ai_move(
         game,
         send_fn,
         color=color,
-        gtp_move=gtp_move,
+        gtp_move=candidate.gtp_move,
+        visits=visits,
         rogue_cards=rogue_cards,
+        apply_suspicious_pass_fallback_fn=apply_suspicious_pass_fallback,
+        is_suspicious_pass=_is_suspicious_ai_pass,
+        pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
+        log_event=_engine_log,
+        resolve_resign_move=resolve_ai_resign_move,
         no_resign_move=_ai_move_no_resign,
-    )
-    if resign_result.completed:
-        return
-    gtp_move = resign_result.gtp_move
-
-    slip_msg = None
-    needs_sync = False
-    slip_result = apply_slip_ai_move(
-        game,
-        color=color,
-        rogue_cards=rogue_cards,
-        gtp_move=gtp_move,
+        apply_slip_move=apply_slip_ai_move,
         roll_random=random.random,
         choose_point=random.choice,
         gtp_to_coord=gtp_to_coord,
         coord_to_gtp=coord_to_gtp,
         adjacent_points=_adjacent_points,
-    )
-    gtp_move = slip_result.gtp_move
-    needs_sync = slip_result.needs_sync
-    slip_msg = slip_result.message
-
-    ko_result = await retry_ai_move_avoiding_ko(
-        game,
-        color=color,
-        gtp_move=gtp_move,
-        rogue_msg=slip_msg,
-        gtp_to_coord=gtp_to_coord,
+        retry_ko_move=retry_ai_move_avoiding_ko,
         retry_avoiding_ko=_ai_retry_avoiding_ko,
     )
-    gtp_move = ko_result.gtp_move
-    # Ko retry only changes the final move/message; keep slip sync state intact.
-    slip_msg = ko_result.message
+    if prepared_move.completed or prepared_move.gtp_move is None:
+        return
+    gtp_move = prepared_move.gtp_move
 
     placement = await apply_ai_move_placement_effects(
         game,
@@ -1479,7 +1452,7 @@ async def _ai_move(game: GoGame, send_fn):
         color=color,
         card=card,
         gtp_move=gtp_move,
-        needs_sync=needs_sync,
+        needs_sync=prepared_move.needs_sync,
         gtp_to_coord=gtp_to_coord,
         sync_board_to_engine=_sync_board_to_katago,
         engine_is_ready=lambda: engine.ready,
@@ -1509,7 +1482,7 @@ async def _ai_move(game: GoGame, send_fn):
         gtp_move=gtp_move,
         coord=coord,
         captured=captured,
-        rogue_msg=slip_msg,
+        rogue_msg=prepared_move.message,
         prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
         apply_erosion_counter=apply_erosion_komi_counter,
         erosion_shift=ROGUE_EROSION_SHIFT,

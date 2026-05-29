@@ -89,6 +89,14 @@ class AiMovePlacement:
     captured: int = 0
 
 
+@dataclass(frozen=True)
+class AiMovePreparation:
+    gtp_move: str | None
+    needs_sync: bool = False
+    message: str | None = None
+    completed: bool = False
+
+
 def _unique_points(points: list[tuple[int, int]]) -> list[tuple[int, int]]:
     seen: set[tuple[int, int]] = set()
     return [point for point in points if not (point in seen or seen.add(point))]
@@ -837,6 +845,80 @@ async def choose_ai_move_candidate(
         log_error(f"[AI] genmove returned error: {resp}")
         return AiMoveCandidate(None, completed=True)
     return AiMoveCandidate(resp.replace("=", "").strip())
+
+
+async def prepare_generated_ai_move(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    gtp_move: str,
+    visits: int,
+    rogue_cards: Collection[str],
+    apply_suspicious_pass_fallback_fn: Callable[..., Awaitable[str]],
+    is_suspicious_pass: SuspiciousPassFn,
+    pick_nonpass_fallback_move: FallbackMoveFn,
+    log_event: LogFn,
+    resolve_resign_move: Callable[..., Awaitable[AiMoveResolution]],
+    no_resign_move: NoResignMoveFn,
+    apply_slip_move: Callable[..., AiMoveAdjustment],
+    roll_random: RandomFloatFn,
+    choose_point: ChoosePointFn,
+    gtp_to_coord: CoordParser,
+    coord_to_gtp: CoordFormatter,
+    adjacent_points: AdjacentPointsFn,
+    retry_ko_move: Callable[..., Awaitable[AiMoveAdjustment]],
+    retry_avoiding_ko: RetryAvoidingKoFn,
+    log_prefix: str = "Suspicious early PASS in rogue/normal mode",
+) -> AiMovePreparation:
+    gtp_move = await apply_suspicious_pass_fallback_fn(
+        game,
+        color=color,
+        gtp_move=gtp_move,
+        visits=visits,
+        is_suspicious_pass=is_suspicious_pass,
+        pick_fallback_move=pick_nonpass_fallback_move,
+        log_event=log_event,
+        log_prefix=log_prefix,
+    )
+
+    resign_result = await resolve_resign_move(
+        game,
+        send_fn,
+        color=color,
+        gtp_move=gtp_move,
+        rogue_cards=rogue_cards,
+        no_resign_move=no_resign_move,
+    )
+    if resign_result.completed:
+        return AiMovePreparation(resign_result.gtp_move, completed=True)
+
+    slip_result = apply_slip_move(
+        game,
+        color=color,
+        rogue_cards=rogue_cards,
+        gtp_move=resign_result.gtp_move,
+        roll_random=roll_random,
+        choose_point=choose_point,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=coord_to_gtp,
+        adjacent_points=adjacent_points,
+    )
+
+    ko_result = await retry_ko_move(
+        game,
+        color=color,
+        gtp_move=slip_result.gtp_move,
+        rogue_msg=slip_result.message,
+        gtp_to_coord=gtp_to_coord,
+        retry_avoiding_ko=retry_avoiding_ko,
+    )
+
+    return AiMovePreparation(
+        ko_result.gtp_move,
+        needs_sync=slip_result.needs_sync,
+        message=ko_result.message,
+    )
 
 
 async def apply_ai_move_placement_effects(
