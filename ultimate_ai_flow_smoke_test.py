@@ -4,6 +4,7 @@ import asyncio
 
 from app.domain.game_state import GoGame
 from app.gameplay.ultimate_ai_flow import (
+    choose_ultimate_ai_move,
     apply_ultimate_ai_post_move_effects,
     opponent_color_value,
 )
@@ -16,6 +17,191 @@ def make_game() -> GoGame:
 def test_opponent_color_value_matches_legacy_mapping() -> None:
     assert opponent_color_value("B") == 2
     assert opponent_color_value("W") == 1
+
+
+def fake_gtp_to_coord(gtp: str, _size: int) -> tuple[int, int] | None:
+    return {
+        "C3": (2, 2),
+        "D4": (3, 3),
+        "E5": (4, 4),
+        "F6": (5, 5),
+        "G7": (6, 6),
+    }.get(gtp.upper())
+
+
+def fake_coord_to_gtp(x: int, y: int, _size: int) -> str:
+    return f"{x},{y}"
+
+
+async def _choose_ultimate_ai_move_replaces_resign() -> None:
+    game = make_game()
+    calls = []
+
+    async def generate_move():
+        calls.append("generate")
+        return "RESIGN"
+
+    async def no_resign(game_arg, color):
+        calls.append(("no_resign", game_arg is game, color))
+        return "D4"
+
+    async def unused_async(*_args, **_kwargs):
+        calls.append("unused")
+        return None
+
+    choice = await choose_ultimate_ai_move(
+        game,
+        color="W",
+        visits=100,
+        forbidden=set(),
+        generate_move=generate_move,
+        no_resign_move=no_resign,
+        undo_engine_move=lambda: calls.append("undo"),
+        pick_ranked_legal_move=unused_async,
+        pick_nonpass_fallback_move=unused_async,
+        retry_avoiding_ko=lambda *_args: unused_async(),
+        is_suspicious_ai_pass=lambda *_args: False,
+        resolve_occupied_ai_move=lambda _game, _color, move, coord, **_kwargs: (move, coord),
+        gtp_to_coord=fake_gtp_to_coord,
+        coord_to_gtp=fake_coord_to_gtp,
+        log_fn=lambda msg: calls.append(("log", msg)),
+    )
+
+    assert choice.gtp_move == "D4"
+    assert choice.coord == (3, 3)
+    assert calls == ["generate", ("no_resign", True, "W")]
+
+
+def test_choose_ultimate_ai_move_replaces_resign() -> None:
+    asyncio.run(_choose_ultimate_ai_move_replaces_resign())
+
+
+async def _choose_ultimate_ai_move_avoids_forbidden_and_suspicious_pass() -> None:
+    game = make_game()
+    calls = []
+
+    async def forbidden_generate():
+        return "C3"
+
+    async def ranked(game_arg, color, visits, forbidden, *, time_limit):
+        calls.append(("ranked", game_arg is game, color, visits, forbidden, time_limit))
+        return "pass"
+
+    forbidden_choice = await choose_ultimate_ai_move(
+        game,
+        color="W",
+        visits=321,
+        forbidden={(2, 2)},
+        generate_move=forbidden_generate,
+        no_resign_move=lambda *_args: None,
+        undo_engine_move=lambda: calls.append("undo"),
+        pick_ranked_legal_move=ranked,
+        pick_nonpass_fallback_move=lambda *_args: None,
+        retry_avoiding_ko=lambda *_args: None,
+        is_suspicious_ai_pass=lambda *_args: False,
+        resolve_occupied_ai_move=lambda _game, _color, move, coord, **_kwargs: (move, coord),
+        gtp_to_coord=fake_gtp_to_coord,
+        coord_to_gtp=fake_coord_to_gtp,
+        log_fn=lambda msg: calls.append(("log", msg)),
+    )
+    assert forbidden_choice.gtp_move == "pass"
+    assert forbidden_choice.coord is None
+    assert calls == [
+        "undo",
+        ("ranked", True, "W", 321, {(2, 2)}, 1.2),
+    ]
+
+    calls = []
+
+    async def pass_generate():
+        return "pass"
+
+    async def fallback(game_arg, color, visits, forbidden):
+        calls.append(("fallback", game_arg is game, color, visits, forbidden))
+        return "E5"
+
+    fallback_choice = await choose_ultimate_ai_move(
+        game,
+        color="W",
+        visits=111,
+        forbidden={(1, 1)},
+        generate_move=pass_generate,
+        no_resign_move=lambda *_args: None,
+        undo_engine_move=lambda: calls.append("undo"),
+        pick_ranked_legal_move=lambda *_args, **_kwargs: None,
+        pick_nonpass_fallback_move=fallback,
+        retry_avoiding_ko=lambda *_args: None,
+        is_suspicious_ai_pass=lambda *_args: True,
+        resolve_occupied_ai_move=lambda _game, _color, move, coord, **_kwargs: (move, coord),
+        gtp_to_coord=fake_gtp_to_coord,
+        coord_to_gtp=fake_coord_to_gtp,
+        log_fn=lambda msg: calls.append(("log", msg)),
+    )
+
+    assert fallback_choice.gtp_move == "E5"
+    assert fallback_choice.coord == (4, 4)
+    assert calls == [
+        ("fallback", True, "W", 111, {(1, 1)}),
+        ("log", "Suspicious early PASS in ultimate mode, replaced with E5"),
+    ]
+
+
+def test_choose_ultimate_ai_move_avoids_forbidden_and_suspicious_pass() -> None:
+    asyncio.run(_choose_ultimate_ai_move_avoids_forbidden_and_suspicious_pass())
+
+
+async def _choose_ultimate_ai_move_resolves_occupied_and_ko() -> None:
+    game = make_game()
+    calls = []
+    game.is_ko = lambda x, y, color: calls.append(("ko", x, y, color)) or True
+
+    async def generate_move():
+        return "D4"
+
+    async def retry(game_arg, color):
+        calls.append(("retry", game_arg is game, color))
+        return "G7"
+
+    def resolve_occupied(game_arg, color, move, coord, **kwargs):
+        calls.append((
+            "resolve",
+            game_arg is game,
+            color,
+            move,
+            coord,
+            kwargs["coord_to_gtp"] is fake_coord_to_gtp,
+        ))
+        return "F6", (5, 5)
+
+    choice = await choose_ultimate_ai_move(
+        game,
+        color="W",
+        visits=100,
+        forbidden=set(),
+        generate_move=generate_move,
+        no_resign_move=lambda *_args: None,
+        undo_engine_move=lambda: calls.append("undo"),
+        pick_ranked_legal_move=lambda *_args, **_kwargs: None,
+        pick_nonpass_fallback_move=lambda *_args: None,
+        retry_avoiding_ko=retry,
+        is_suspicious_ai_pass=lambda *_args: False,
+        resolve_occupied_ai_move=resolve_occupied,
+        gtp_to_coord=fake_gtp_to_coord,
+        coord_to_gtp=fake_coord_to_gtp,
+        log_fn=lambda msg: calls.append(("log", msg)),
+    )
+
+    assert choice.gtp_move == "G7"
+    assert choice.coord == (6, 6)
+    assert calls == [
+        ("resolve", True, "W", "D4", (3, 3), True),
+        ("ko", 5, 5, "W"),
+        ("retry", True, "W"),
+    ]
+
+
+def test_choose_ultimate_ai_move_resolves_occupied_and_ko() -> None:
+    asyncio.run(_choose_ultimate_ai_move_resolves_occupied_and_ko())
 
 
 async def _post_move_effects_syncs_and_checks_removed_stones() -> None:
@@ -266,6 +452,9 @@ def test_post_move_effects_skips_sync_when_unmodified() -> None:
 
 if __name__ == "__main__":
     test_opponent_color_value_matches_legacy_mapping()
+    test_choose_ultimate_ai_move_replaces_resign()
+    test_choose_ultimate_ai_move_avoids_forbidden_and_suspicious_pass()
+    test_choose_ultimate_ai_move_resolves_occupied_and_ko()
     test_post_move_effects_syncs_and_checks_removed_stones()
     test_post_move_effects_skips_card_effect_for_pass_but_resolves_pending()
     test_post_move_effects_resolves_pending_without_ai_card()

@@ -213,7 +213,10 @@ from app.gameplay.ultimate_effects import (
     get_ultimate_territory_forbidden_points,
     resolve_pending_shadow_links,
 )
-from app.gameplay.ultimate_ai_flow import apply_ultimate_ai_post_move_effects
+from app.gameplay.ultimate_ai_flow import (
+    apply_ultimate_ai_post_move_effects,
+    choose_ultimate_ai_move,
+)
 from app.gameplay.ultimate_scoring import finalize_ultimate_score
 from app.runtime.engine import KataGoEngine
 from app.runtime.game_store import ActiveGameStore
@@ -1222,37 +1225,29 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
                 f"kata-set-param maxVisits {get_game_visits(game.level, 0, mode='ultimate')}")
             return resp.replace("=", "").strip()
 
-    gtp_move = await run_in_executor(_gen)
-    if gtp_move.upper() == "RESIGN":
-        gtp_move = await _ai_move_no_resign(game, color)
+    def _undo_engine_move() -> None:
+        with engine.command_lock:
+            engine._send_command_locked("undo")
 
-    if forbidden and gtp_move.upper() not in ("PASS", "RESIGN"):
-        coord = gtp_to_coord(gtp_move, game.size)
-        if coord and coord in forbidden:
-            with engine.command_lock:
-                engine._send_command_locked("undo")
-            ranked = await _pick_ranked_legal_move(game, color, visits, forbidden, time_limit=1.2)
-            gtp_move = ranked or "pass"
-
-    if _is_suspicious_ai_pass(game, gtp_move, color):
-        fallback_move = await _pick_nonpass_fallback_move(game, color, visits, forbidden)
-        if fallback_move:
-            _engine_log(f"Suspicious early PASS in ultimate mode, replaced with {fallback_move}")
-            gtp_move = fallback_move
-
-    coord = gtp_to_coord(gtp_move, game.size)
-    gtp_move, coord = resolve_occupied_ai_move(
+    choice = await choose_ultimate_ai_move(
         game,
-        color,
-        gtp_move,
-        coord,
+        color=color,
+        visits=visits,
+        forbidden=forbidden,
+        generate_move=lambda: run_in_executor(_gen),
+        no_resign_move=_ai_move_no_resign,
+        undo_engine_move=_undo_engine_move,
+        pick_ranked_legal_move=_pick_ranked_legal_move,
+        pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
+        retry_avoiding_ko=_ai_retry_avoiding_ko,
+        is_suspicious_ai_pass=_is_suspicious_ai_pass,
+        resolve_occupied_ai_move=resolve_occupied_ai_move,
+        gtp_to_coord=gtp_to_coord,
         coord_to_gtp=coord_to_gtp,
+        log_fn=_engine_log,
     )
-
-    # Ko guard: if the AI move violates ko, play elsewhere (ko threat)
-    if gtp_move.upper() != "PASS" and coord and game.is_ko(coord[0], coord[1], color):
-        gtp_move = await _ai_retry_avoiding_ko(game, color)
-        coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
+    gtp_move = choice.gtp_move
+    coord = choice.coord
 
     captured = apply_ultimate_ai_move_result_state(
         game,
