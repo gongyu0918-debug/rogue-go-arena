@@ -44,6 +44,9 @@ AvoidRestrictionMoveFn = Callable[
 SuspiciousPassFn = Callable[[Any, str, str], bool]
 FallbackMoveFn = Callable[[Any, str, int], Awaitable[str | None]]
 LogFn = Callable[[str], None]
+AnalyzePositionFn = Callable[[Any, str], Awaitable[dict[str, Any]]]
+ChooseStyleMoveFn = Callable[..., str | None]
+GenerateMoveFn = Callable[[str, int, float], Awaitable[str]]
 
 
 @dataclass(frozen=True)
@@ -533,6 +536,41 @@ async def send_ai_move_and_run_coach(
     if rogue_msg:
         await send_fn({"type": "rogue_event", "msg": rogue_msg})
     await run_coach_turn_if_needed(game, send_fn)
+
+
+async def choose_or_generate_ai_style_move(
+    game: Any,
+    *,
+    color: str,
+    visits: int,
+    time_limit: float,
+    style: str,
+    analyze_position: AnalyzePositionFn,
+    choose_style_move: ChooseStyleMoveFn,
+    generate_move: GenerateMoveFn,
+    gtp_to_coord: CoordParser,
+    play_chosen_move: EngineCommandFn,
+) -> str:
+    chosen = None
+    if style != "balanced":
+        try:
+            analysis = await analyze_position(game, color)
+            chosen = choose_style_move(
+                game,
+                color,
+                analysis.get("top_moves", []),
+                style,
+                gtp_to_coord=gtp_to_coord,
+            )
+        except Exception:
+            chosen = None
+
+    if chosen:
+        await play_chosen_move(f"play {color} {chosen}")
+        return chosen
+
+    resp = await generate_move(color, visits, time_limit)
+    return resp.replace("=", "").strip()
 
 
 def apply_slip_ai_move(

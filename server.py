@@ -117,6 +117,7 @@ from app.gameplay.ai_move_flow import (
     apply_erosion_komi_counter,
     apply_slip_ai_move,
     apply_suspicious_pass_fallback,
+    choose_or_generate_ai_style_move,
     finalize_ai_move,
     finalize_forced_ai_pass,
     refresh_fog_restriction_points,
@@ -1955,25 +1956,18 @@ async def _generate_ai_style_move(game: GoGame, color: str, visits: int, time_li
     style = game.ai_style
     if game.ai_observer:
         style = game.ai_style_black if color == "B" else game.ai_style_white
-    chosen = None
-    if style != "balanced":
-        try:
-            analysis = await _analyze_current_position(game, color)
-            chosen = choose_ai_style_move(
-                game,
-                color,
-                analysis.get("top_moves", []),
-                style,
-                gtp_to_coord=gtp_to_coord,
-            )
-        except Exception:
-            chosen = None
-    if chosen:
-        await run_in_executor(engine.send_command, f"play {color} {chosen}")
-        return chosen
-
-    resp = await _ai_generate_move(color, visits, time_limit)
-    return resp.replace("=", "").strip()
+    return await choose_or_generate_ai_style_move(
+        game,
+        color=color,
+        visits=visits,
+        time_limit=time_limit,
+        style=style,
+        analyze_position=_analyze_current_position,
+        choose_style_move=choose_ai_style_move,
+        generate_move=_ai_generate_move,
+        gtp_to_coord=gtp_to_coord,
+        play_chosen_move=lambda command: run_in_executor(engine.send_command, command),
+    )
 
 
 async def _run_coach_turn_if_needed(game: GoGame, send_fn):

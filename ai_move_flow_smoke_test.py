@@ -15,6 +15,7 @@ from app.gameplay.ai_move_flow import (
     apply_erosion_komi_counter,
     apply_slip_ai_move,
     apply_suspicious_pass_fallback,
+    choose_or_generate_ai_style_move,
     finalize_ai_move,
     finalize_forced_ai_pass,
     resolve_ai_resign_move,
@@ -889,6 +890,173 @@ async def _send_ai_move_and_run_coach_sends_pass_and_rogue_msg_before_coach() ->
 
 def test_send_ai_move_and_run_coach_sends_pass_and_rogue_msg_before_coach() -> None:
     asyncio.run(_send_ai_move_and_run_coach_sends_pass_and_rogue_msg_before_coach())
+
+
+async def _choose_or_generate_ai_style_move_plays_style_choice() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+    coord_parser = gtp_to_coord
+
+    async def analyze(game_arg, color):
+        calls.append(("analyze", game_arg is game, color))
+        return {"top_moves": [{"move": "D4"}]}
+
+    def choose(game_arg, color, top_moves, style, *, gtp_to_coord):
+        calls.append(("choose", game_arg is game, color, top_moves, style, gtp_to_coord is coord_parser))
+        return "D4"
+
+    async def generate(_color, _visits, _time_limit):
+        raise AssertionError("generate_move should not be called")
+
+    async def play(command):
+        calls.append(("play", command))
+        return "="
+
+    gtp_move = await choose_or_generate_ai_style_move(
+        game,
+        color="W",
+        visits=99,
+        time_limit=1.5,
+        style="territory",
+        analyze_position=analyze,
+        choose_style_move=choose,
+        generate_move=generate,
+        gtp_to_coord=coord_parser,
+        play_chosen_move=play,
+    )
+
+    assert gtp_move == "D4"
+    assert calls == [
+        ("analyze", True, "W"),
+        ("choose", True, "W", [{"move": "D4"}], "territory", True),
+        ("play", "play W D4"),
+    ]
+
+
+def test_choose_or_generate_ai_style_move_plays_style_choice() -> None:
+    asyncio.run(_choose_or_generate_ai_style_move_plays_style_choice())
+
+
+async def _choose_or_generate_ai_style_move_balanced_falls_back_to_genmove() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def analyze(_game, _color):
+        raise AssertionError("balanced style should skip analysis")
+
+    def choose(*_args, **_kwargs):
+        raise AssertionError("balanced style should skip style choice")
+
+    async def generate(color, visits, time_limit):
+        calls.append(("generate", color, visits, time_limit))
+        return "= C3"
+
+    async def play(_command):
+        raise AssertionError("play_chosen_move should not be called")
+
+    gtp_move = await choose_or_generate_ai_style_move(
+        game,
+        color="B",
+        visits=77,
+        time_limit=2.0,
+        style="balanced",
+        analyze_position=analyze,
+        choose_style_move=choose,
+        generate_move=generate,
+        gtp_to_coord=gtp_to_coord,
+        play_chosen_move=play,
+    )
+
+    assert gtp_move == "C3"
+    assert calls == [("generate", "B", 77, 2.0)]
+
+
+def test_choose_or_generate_ai_style_move_balanced_falls_back_to_genmove() -> None:
+    asyncio.run(_choose_or_generate_ai_style_move_balanced_falls_back_to_genmove())
+
+
+async def _choose_or_generate_ai_style_move_analysis_error_falls_back() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+
+    async def analyze(_game, color):
+        calls.append(("analyze", color))
+        raise RuntimeError("analysis unavailable")
+
+    def choose(*_args, **_kwargs):
+        raise AssertionError("style choice should not run after analysis failure")
+
+    async def generate(color, visits, time_limit):
+        calls.append(("generate", color, visits, time_limit))
+        return "= pass"
+
+    async def play(_command):
+        raise AssertionError("play_chosen_move should not be called")
+
+    gtp_move = await choose_or_generate_ai_style_move(
+        game,
+        color="W",
+        visits=88,
+        time_limit=3.0,
+        style="influence",
+        analyze_position=analyze,
+        choose_style_move=choose,
+        generate_move=generate,
+        gtp_to_coord=gtp_to_coord,
+        play_chosen_move=play,
+    )
+
+    assert gtp_move == "pass"
+    assert calls == [("analyze", "W"), ("generate", "W", 88, 3.0)]
+
+
+def test_choose_or_generate_ai_style_move_analysis_error_falls_back() -> None:
+    asyncio.run(_choose_or_generate_ai_style_move_analysis_error_falls_back())
+
+
+async def _choose_or_generate_ai_style_move_choice_error_falls_back() -> None:
+    game = GoGame(size=5, player_color="B")
+    calls = []
+    coord_parser = gtp_to_coord
+
+    async def analyze(_game, color):
+        calls.append(("analyze", color))
+        return {"top_moves": [{"move": "Q16"}]}
+
+    def choose(_game, color, top_moves, style, *, gtp_to_coord):
+        calls.append(("choose", color, top_moves, style, gtp_to_coord is coord_parser))
+        raise RuntimeError("style choice unavailable")
+
+    async def generate(color, visits, time_limit):
+        calls.append(("generate", color, visits, time_limit))
+        return "= E2"
+
+    async def play(_command):
+        raise AssertionError("play_chosen_move should not be called")
+
+    gtp_move = await choose_or_generate_ai_style_move(
+        game,
+        color="B",
+        visits=66,
+        time_limit=4.0,
+        style="territory",
+        analyze_position=analyze,
+        choose_style_move=choose,
+        generate_move=generate,
+        gtp_to_coord=coord_parser,
+        play_chosen_move=play,
+    )
+
+    assert gtp_move == "E2"
+    assert calls == [
+        ("analyze", "B"),
+        ("choose", "B", [{"move": "Q16"}], "territory", True),
+        ("generate", "B", 66, 4.0),
+    ]
+
+
+def test_choose_or_generate_ai_style_move_choice_error_falls_back() -> None:
+    asyncio.run(_choose_or_generate_ai_style_move_choice_error_falls_back())
 
 
 async def _finalize_ai_move_places_stone_and_sends_message() -> None:
@@ -4848,6 +5016,54 @@ def test_server_ai_move_suboptimal_flow_false_continues_to_normal_move() -> None
     asyncio.run(_server_ai_move_suboptimal_flow_false_continues_to_normal_move())
 
 
+async def _server_generate_ai_style_move_delegates_observer_style() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.ai_observer = True
+    game.ai_style = "balanced"
+    game.ai_style_black = "territory"
+    game.ai_style_white = "influence"
+    calls = []
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_choose_or_generate(game_arg, **kwargs):
+        calls.append((
+            "choose_or_generate",
+            game_arg is game,
+            kwargs["color"],
+            kwargs["visits"],
+            kwargs["time_limit"],
+            kwargs["style"],
+            kwargs["analyze_position"] is s._analyze_current_position,
+            kwargs["choose_style_move"] is s.choose_ai_style_move,
+            kwargs["generate_move"] is s._ai_generate_move,
+            kwargs["gtp_to_coord"] is s.gtp_to_coord,
+            callable(kwargs["play_chosen_move"]),
+        ))
+        return "D4"
+
+    original_sync = s._sync_board_to_katago
+    original_choose_or_generate = s.choose_or_generate_ai_style_move
+    s._sync_board_to_katago = fake_sync
+    s.choose_or_generate_ai_style_move = fake_choose_or_generate
+    try:
+        gtp_move = await s._generate_ai_style_move(game, "B", 55, 2.0)
+    finally:
+        s._sync_board_to_katago = original_sync
+        s.choose_or_generate_ai_style_move = original_choose_or_generate
+
+    assert gtp_move == "D4"
+    assert calls == [
+        ("sync", True),
+        ("choose_or_generate", True, "B", 55, 2.0, "territory", True, True, True, True, True),
+    ]
+
+
+def test_server_generate_ai_style_move_delegates_observer_style() -> None:
+    asyncio.run(_server_generate_ai_style_move_delegates_observer_style())
+
+
 async def _server_finish_ai_move_delegates_to_finalize_flow() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -4925,6 +5141,10 @@ if __name__ == "__main__":
     test_try_finalize_double_pass_keeps_legacy_non_b_score_winner()
     test_send_ai_move_and_run_coach_sends_coord_and_coach()
     test_send_ai_move_and_run_coach_sends_pass_and_rogue_msg_before_coach()
+    test_choose_or_generate_ai_style_move_plays_style_choice()
+    test_choose_or_generate_ai_style_move_balanced_falls_back_to_genmove()
+    test_choose_or_generate_ai_style_move_analysis_error_falls_back()
+    test_choose_or_generate_ai_style_move_choice_error_falls_back()
     test_finalize_ai_move_places_stone_and_sends_message()
     test_finalize_ai_move_resign_without_card_ends_game()
     test_finalize_ai_move_resign_with_card_uses_no_resign_move()
@@ -4991,5 +5211,6 @@ if __name__ == "__main__":
     test_try_finish_suboptimal_rogue_move_skips_when_no_attempt_applies()
     test_server_ai_move_suboptimal_delegates_to_suboptimal_flow()
     test_server_ai_move_suboptimal_flow_false_continues_to_normal_move()
+    test_server_generate_ai_style_move_delegates_observer_style()
     test_server_finish_ai_move_delegates_to_finalize_flow()
     print("ai_move_flow_smoke_test passed")
