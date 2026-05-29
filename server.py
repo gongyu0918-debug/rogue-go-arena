@@ -186,6 +186,7 @@ from app.gameplay.ultimate_effects import (
     get_ultimate_territory_forbidden_points,
     resolve_pending_shadow_links,
 )
+from app.gameplay.ultimate_ai_flow import apply_ultimate_ai_post_move_effects
 from app.gameplay.ultimate_scoring import compute_ultimate_area_score
 from app.runtime.engine import KataGoEngine
 from app.runtime.game_store import ActiveGameStore
@@ -1463,22 +1464,19 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
                     "x": coord[0] if coord else None,
                     "y": coord[1] if coord else None})
 
-    board_modified = False
-    opp_val = 1 if color == "W" else 2
-    opp_before = _count_stones(game, opp_val)
-    if ai_card and coord and gtp_move.upper() != "PASS":
-        board_modified = await _apply_ultimate_effect(
-            game, send_fn, coord[0], coord[1], color, ai_card)
-    pending_modified = await _resolve_pending_ultimate_shadow_links(game, send_fn)
-    if board_modified or pending_modified:
-        # AI-side ultimate effects can rewrite the visible board directly.
-        # Sync immediately so the engine does not continue from a stale
-        # pre-effect position on the player's next move.
-        await _sync_board_to_katago(game)
-        # Card effects that removed opponent stones count toward capture-foul
-        effect_removed = max(0, opp_before - _count_stones(game, opp_val))
-        if effect_removed > 0:
-            await _check_capture_foul(game, send_fn, color, effect_removed, ultimate=True)
+    await apply_ultimate_ai_post_move_effects(
+        game,
+        send_fn,
+        color=color,
+        ai_card=ai_card,
+        gtp_move=gtp_move,
+        coord=coord,
+        count_stones=_count_stones,
+        apply_ultimate_effect=_apply_ultimate_effect,
+        resolve_pending_ultimate_shadow_links=_resolve_pending_ultimate_shadow_links,
+        sync_board_to_katago=_sync_board_to_katago,
+        check_capture_foul=_check_capture_foul,
+    )
 
     bonus_turn = choose_ultimate_ai_bonus_turn_state(
         game,
