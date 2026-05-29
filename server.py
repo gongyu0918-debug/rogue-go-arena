@@ -125,6 +125,7 @@ from app.gameplay.ai_move_flow import (
     try_apply_no_regret_bonus,
     try_apply_puppet_ai_move,
     try_apply_sansan_trap_counter,
+    try_finalize_double_pass,
     try_finalize_forced_ai_stone,
     try_finish_allowed_restriction_move,
     try_finish_sansan_restriction_move,
@@ -1867,18 +1868,14 @@ async def _ai_move(game: GoGame, send_fn):
     game.push_history()
     await send_fn({"type": "game_state", **game.to_state()})
 
-    if game.passed["B"] and game.passed["W"]:
-        resp_score = await run_in_executor(engine.send_command, "final_score")
-        score_str = resp_score.replace("=", "").strip()
-        winner = "B" if score_str.startswith("B") else "W"
-        game.game_over = True
-        game.winner = winner
-        await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color,
-                        "x": None, "y": None})
-        if slip_msg:
-            await send_fn({"type": "rogue_event", "msg": slip_msg})
-        await send_fn({"type": "game_over", "winner": winner,
-                        "score": score_str, "reason": "double_pass"})
+    if await try_finalize_double_pass(
+        game,
+        send_fn,
+        color=color,
+        gtp_move=gtp_move,
+        run_engine_command=_run_engine_command,
+        rogue_msg=slip_msg,
+    ):
         return
 
     await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color,

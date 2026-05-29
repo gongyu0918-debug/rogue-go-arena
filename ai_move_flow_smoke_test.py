@@ -21,6 +21,7 @@ from app.gameplay.ai_move_flow import (
     try_apply_no_regret_bonus,
     try_apply_puppet_ai_move,
     try_apply_sansan_trap_counter,
+    try_finalize_double_pass,
     try_finalize_forced_ai_stone,
     try_finish_suboptimal_rogue_move,
 )
@@ -716,6 +717,118 @@ def test_apply_erosion_komi_counter_decreases_komi_for_black_ai() -> None:
     asyncio.run(_apply_erosion_komi_counter_decreases_komi_for_black_ai())
 
 
+async def _try_finalize_double_pass_skips_without_both_passes() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.passed["B"] = True
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "= B+0.5"
+
+    handled = await try_finalize_double_pass(
+        game,
+        send,
+        color="W",
+        gtp_move="pass",
+        run_engine_command=run_engine_command,
+        rogue_msg="slip msg",
+    )
+
+    assert handled is False
+    assert game.game_over is False
+    assert calls == []
+
+
+def test_try_finalize_double_pass_skips_without_both_passes() -> None:
+    asyncio.run(_try_finalize_double_pass_skips_without_both_passes())
+
+
+async def _try_finalize_double_pass_scores_and_sends_legacy_payloads() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.passed["B"] = True
+    game.passed["W"] = True
+    calls = []
+
+    async def send(payload):
+        calls.append((
+            "send",
+            payload["type"],
+            payload.get("gtp"),
+            payload.get("color"),
+            payload.get("x"),
+            payload.get("y"),
+            payload.get("winner"),
+            payload.get("score"),
+            payload.get("reason"),
+            payload.get("msg"),
+        ))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "= B+0.5"
+
+    handled = await try_finalize_double_pass(
+        game,
+        send,
+        color="W",
+        gtp_move="pass",
+        run_engine_command=run_engine_command,
+        rogue_msg="slip msg",
+    )
+
+    assert handled is True
+    assert game.game_over is True
+    assert game.winner == "B"
+    assert calls == [
+        ("engine", "final_score"),
+        ("send", "ai_move", "pass", "W", None, None, None, None, None, None),
+        ("send", "rogue_event", None, None, None, None, None, None, None, "slip msg"),
+        ("send", "game_over", None, None, None, None, "B", "B+0.5", "double_pass", None),
+    ]
+
+
+def test_try_finalize_double_pass_scores_and_sends_legacy_payloads() -> None:
+    asyncio.run(_try_finalize_double_pass_scores_and_sends_legacy_payloads())
+
+
+async def _try_finalize_double_pass_keeps_legacy_non_b_score_winner() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.passed["B"] = True
+    game.passed["W"] = True
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("winner"), payload.get("score"), payload.get("msg")))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "= W+0.5"
+
+    handled = await try_finalize_double_pass(
+        game,
+        send,
+        color="W",
+        gtp_move="pass",
+        run_engine_command=run_engine_command,
+    )
+
+    assert handled is True
+    assert game.winner == "W"
+    assert calls == [
+        ("engine", "final_score"),
+        ("send", "ai_move", None, None, None),
+        ("send", "game_over", "W", "W+0.5", None),
+    ]
+
+
+def test_try_finalize_double_pass_keeps_legacy_non_b_score_winner() -> None:
+    asyncio.run(_try_finalize_double_pass_keeps_legacy_non_b_score_winner())
+
+
 async def _finalize_ai_move_places_stone_and_sends_message() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -969,6 +1082,7 @@ async def _finalize_ai_move_double_pass_scores_without_coach_turn() -> None:
         color="W",
         card=None,
         gtp_move="pass",
+        rogue_msg="should not send in double pass",
         gtp_to_coord=gtp_to_coord,
         no_resign_move=_unused_no_resign,
         retry_avoiding_ko=_unused_retry_ko,
@@ -3638,6 +3752,132 @@ def test_server_ai_move_delegates_erosion_after_prepare() -> None:
     asyncio.run(_server_ai_move_delegates_erosion_after_prepare())
 
 
+async def _server_ai_move_delegates_double_pass_after_game_state() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.passed["B"] = True
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("gtp"), payload.get("msg")))
+
+    async def fake_sync(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    async def fake_generate(color, visits, time_limit):
+        calls.append(("generate", color, isinstance(visits, int), isinstance(time_limit, float)))
+        return "= pass"
+
+    async def fake_suspicious_fallback(game_arg, **kwargs):
+        calls.append(("suspicious_fallback", game_arg is game, kwargs["gtp_move"]))
+        return kwargs["gtp_move"]
+
+    async def fake_resign(game_arg, send_fn, **kwargs):
+        calls.append(("resign", game_arg is game, send_fn is send, kwargs["gtp_move"]))
+        return AiMoveResolution(kwargs["gtp_move"])
+
+    def fake_slip(game_arg, **kwargs):
+        calls.append(("slip", game_arg is game, kwargs["gtp_move"]))
+        return AiMoveAdjustment(kwargs["gtp_move"], message="slip msg")
+
+    async def fake_retry(game_arg, **kwargs):
+        calls.append(("retry", game_arg is game, kwargs["gtp_move"], kwargs["rogue_msg"]))
+        return AiMoveAdjustment(kwargs["gtp_move"], message=kwargs["rogue_msg"])
+
+    async def fake_sansan_counter(game_arg, send_fn, **kwargs):
+        calls.append(("sansan_counter", game_arg is game, send_fn is send))
+        return False
+
+    async def fake_no_regret_bonus(game_arg, send_fn, **kwargs):
+        calls.append(("no_regret", game_arg is game, send_fn is send))
+        return False
+
+    def fake_prepare(game_arg):
+        calls.append(("prepare", game_arg is game))
+
+    async def fake_erosion(game_arg, send_fn, **kwargs):
+        calls.append(("erosion", game_arg is game, send_fn is send, kwargs["captured"]))
+        return False
+
+    async def fake_double_pass(game_arg, send_fn, **kwargs):
+        calls.append((
+            "double_pass",
+            game_arg is game,
+            send_fn is send,
+            kwargs["color"],
+            kwargs["gtp_move"],
+            callable(kwargs["run_engine_command"]),
+            kwargs["rogue_msg"],
+            game.passed["B"],
+            game.passed["W"],
+        ))
+        return True
+
+    async def fake_coach(*_args):
+        calls.append(("coach",))
+
+    original_ready = s.engine.ready
+    original_sync = s._sync_board_to_katago
+    original_generate = s._ai_generate_move
+    original_suspicious = s.apply_suspicious_pass_fallback
+    original_resign = s.resolve_ai_resign_move
+    original_slip = s.apply_slip_ai_move
+    original_retry = s.retry_ai_move_avoiding_ko
+    original_sansan_counter = s.try_apply_sansan_trap_counter
+    original_no_regret = s.try_apply_no_regret_bonus
+    original_prepare = s._prepare_player_turn_modifiers
+    original_erosion = s.apply_erosion_komi_counter
+    original_double_pass = s.try_finalize_double_pass
+    original_coach = s._run_coach_turn_if_needed
+    s.engine.ready = True
+    s._sync_board_to_katago = fake_sync
+    s._ai_generate_move = fake_generate
+    s.apply_suspicious_pass_fallback = fake_suspicious_fallback
+    s.resolve_ai_resign_move = fake_resign
+    s.apply_slip_ai_move = fake_slip
+    s.retry_ai_move_avoiding_ko = fake_retry
+    s.try_apply_sansan_trap_counter = fake_sansan_counter
+    s.try_apply_no_regret_bonus = fake_no_regret_bonus
+    s._prepare_player_turn_modifiers = fake_prepare
+    s.apply_erosion_komi_counter = fake_erosion
+    s.try_finalize_double_pass = fake_double_pass
+    s._run_coach_turn_if_needed = fake_coach
+    try:
+        await s._ai_move(game, send)
+    finally:
+        s.engine.ready = original_ready
+        s._sync_board_to_katago = original_sync
+        s._ai_generate_move = original_generate
+        s.apply_suspicious_pass_fallback = original_suspicious
+        s.resolve_ai_resign_move = original_resign
+        s.apply_slip_ai_move = original_slip
+        s.retry_ai_move_avoiding_ko = original_retry
+        s.try_apply_sansan_trap_counter = original_sansan_counter
+        s.try_apply_no_regret_bonus = original_no_regret
+        s._prepare_player_turn_modifiers = original_prepare
+        s.apply_erosion_komi_counter = original_erosion
+        s.try_finalize_double_pass = original_double_pass
+        s._run_coach_turn_if_needed = original_coach
+
+    assert calls == [
+        ("sync", True),
+        ("generate", "W", True, True),
+        ("suspicious_fallback", True, "pass"),
+        ("resign", True, True, "pass"),
+        ("slip", True, "pass"),
+        ("retry", True, "pass", "slip msg"),
+        ("sansan_counter", True, True),
+        ("no_regret", True, True),
+        ("prepare", True),
+        ("erosion", True, True, 0),
+        ("send", "game_state", None, None),
+        ("double_pass", True, True, "W", "pass", True, "slip msg", True, True),
+    ]
+
+
+def test_server_ai_move_delegates_double_pass_after_game_state() -> None:
+    asyncio.run(_server_ai_move_delegates_double_pass_after_game_state())
+
+
 async def _resolve_ai_resign_move_keeps_non_resign_move() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -4424,6 +4664,9 @@ if __name__ == "__main__":
     test_apply_erosion_komi_counter_skips_without_card_or_capture()
     test_apply_erosion_komi_counter_increases_komi_for_white_ai()
     test_apply_erosion_komi_counter_decreases_komi_for_black_ai()
+    test_try_finalize_double_pass_skips_without_both_passes()
+    test_try_finalize_double_pass_scores_and_sends_legacy_payloads()
+    test_try_finalize_double_pass_keeps_legacy_non_b_score_winner()
     test_finalize_ai_move_places_stone_and_sends_message()
     test_finalize_ai_move_resign_without_card_ends_game()
     test_finalize_ai_move_resign_with_card_uses_no_resign_move()
@@ -4473,6 +4716,7 @@ if __name__ == "__main__":
     test_server_ai_move_delegates_no_regret_bonus_and_syncs()
     test_server_ai_move_syncs_between_sansan_and_no_regret_effects()
     test_server_ai_move_delegates_erosion_after_prepare()
+    test_server_ai_move_delegates_double_pass_after_game_state()
     test_resolve_ai_resign_move_keeps_non_resign_move()
     test_resolve_ai_resign_move_uses_no_resign_with_rogue_card()
     test_resolve_ai_resign_move_ends_game_without_rogue_card()

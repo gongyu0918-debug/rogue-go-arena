@@ -478,6 +478,41 @@ async def apply_erosion_komi_counter(
     return True
 
 
+async def try_finalize_double_pass(
+    game: Any,
+    send_fn: AsyncSend,
+    *,
+    color: str,
+    gtp_move: str,
+    run_engine_command: EngineCommandFn,
+    rogue_msg: str | None = None,
+) -> bool:
+    if not (game.passed["B"] and game.passed["W"]):
+        return False
+
+    resp_score = await run_engine_command("final_score")
+    score_str = resp_score.replace("=", "").strip()
+    winner = "B" if score_str.startswith("B") else "W"
+    game.game_over = True
+    game.winner = winner
+    await send_fn({
+        "type": "ai_move",
+        "gtp": gtp_move,
+        "color": color,
+        "x": None,
+        "y": None,
+    })
+    if rogue_msg:
+        await send_fn({"type": "rogue_event", "msg": rogue_msg})
+    await send_fn({
+        "type": "game_over",
+        "winner": winner,
+        "score": score_str,
+        "reason": "double_pass",
+    })
+    return True
+
+
 def apply_slip_ai_move(
     game: Any,
     *,
@@ -703,25 +738,13 @@ async def finalize_ai_move(
     game.push_history()
     await send_fn({"type": "game_state", **game.to_state()})
 
-    if game.passed["B"] and game.passed["W"]:
-        resp_score = await run_engine_command("final_score")
-        score_str = resp_score.replace("=", "").strip()
-        winner = "B" if score_str.startswith("B") else "W"
-        game.game_over = True
-        game.winner = winner
-        await send_fn({
-            "type": "ai_move",
-            "gtp": gtp_move,
-            "color": color,
-            "x": None,
-            "y": None,
-        })
-        await send_fn({
-            "type": "game_over",
-            "winner": winner,
-            "score": score_str,
-            "reason": "double_pass",
-        })
+    if await try_finalize_double_pass(
+        game,
+        send_fn,
+        color=color,
+        gtp_move=gtp_move,
+        run_engine_command=run_engine_command,
+    ):
         return
 
     await send_fn({
