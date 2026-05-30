@@ -3,7 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass, fields
 from typing import Any
 
-from app.runtime.ws_context import WebSocketContextDeps
+from app.runtime.ws_context import (
+    WebSocketCardSelectionDeps,
+    WebSocketContextDeps,
+    WebSocketEngineDeps,
+    WebSocketModeFlowDeps,
+    WebSocketRuleEffectDeps,
+    WebSocketRuntimeDeps,
+)
 
 
 @dataclass(frozen=True)
@@ -51,10 +58,15 @@ class WebSocketContextBinding:
     diamond_points: Any
 
 
+def _build_group(binding: WebSocketContextBinding, group_type: type) -> Any:
+    return group_type(**{field.name: getattr(binding, field.name) for field in fields(group_type)})
+
+
 def build_websocket_context_deps(binding: WebSocketContextBinding) -> WebSocketContextDeps:
     return WebSocketContextDeps(
-        **{
-            field.name: getattr(binding, field.name)
-            for field in fields(WebSocketContextDeps)
-        }
+        runtime=_build_group(binding, WebSocketRuntimeDeps),
+        engine_control=_build_group(binding, WebSocketEngineDeps),
+        card_selection=_build_group(binding, WebSocketCardSelectionDeps),
+        mode_flow=_build_group(binding, WebSocketModeFlowDeps),
+        rule_effects=_build_group(binding, WebSocketRuleEffectDeps),
     )

@@ -1,10 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import fields
 from types import SimpleNamespace
 
 import server as s
-from app.runtime.ws_context import WebSocketContextDeps, build_websocket_action_context
+from app.runtime.ws_context import (
+    WEBSOCKET_CONTEXT_FIELD_NAMES,
+    WebSocketContextDeps,
+    build_websocket_action_context,
+    flatten_websocket_context_deps,
+)
+from app.runtime.ws_context_adapters import WebSocketContextBinding, build_websocket_context_deps
 
 
 class FakeActiveGames:
@@ -23,11 +28,11 @@ async def async_marker(*_args, **_kwargs):
 
 def make_deps(active_games) -> WebSocketContextDeps:
     values = {
-        field.name: SimpleNamespace(name=field.name)
-        for field in fields(WebSocketContextDeps)
+        name: SimpleNamespace(name=name)
+        for name in WEBSOCKET_CONTEXT_FIELD_NAMES
     }
     values["active_games"] = active_games
-    return WebSocketContextDeps(**values)
+    return build_websocket_context_deps(WebSocketContextBinding(**values))
 
 
 def smoke_context_factory_maps_runtime_deps() -> None:
@@ -51,8 +56,11 @@ def smoke_context_factory_maps_runtime_deps() -> None:
     assert ctx.do_analysis is async_marker
     assert ctx.do_analysis_bg is async_marker
 
-    for field in fields(WebSocketContextDeps):
-        assert getattr(ctx, field.name) is getattr(deps, field.name), field.name
+    flattened = flatten_websocket_context_deps(deps)
+    for name in WEBSOCKET_CONTEXT_FIELD_NAMES:
+        assert getattr(ctx, name) is flattened[name], name
+    assert deps.active_games is active_games
+    assert deps.ai_move is flattened["ai_move"]
 
 
 def smoke_context_restore_uses_active_game_store() -> None:
@@ -125,8 +133,9 @@ def smoke_server_ws_context_deps_maps_current_runtime_objects() -> None:
         "diamond_points": s._diamond_points,
     }
 
+    flattened = flatten_websocket_context_deps(deps)
     for name, expected_value in expected.items():
-        assert getattr(deps, name) is expected_value, name
+        assert flattened[name] is expected_value, name
     assert_bound_method(deps.start_engine_background, s.engine_runtime.start_background)
 
 

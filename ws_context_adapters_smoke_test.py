@@ -1,10 +1,20 @@
 from __future__ import annotations
 
+import copy
+import pickle
 from dataclasses import fields
 from types import SimpleNamespace
 
 import server as s
-from app.runtime.ws_context import WebSocketContextDeps
+from app.runtime.ws_context import (
+    WEBSOCKET_CONTEXT_FIELD_NAMES,
+    WebSocketCardSelectionDeps,
+    WebSocketEngineDeps,
+    WebSocketModeFlowDeps,
+    WebSocketRuleEffectDeps,
+    WebSocketRuntimeDeps,
+    flatten_websocket_context_deps,
+)
 from app.runtime.ws_context_adapters import (
     WebSocketContextBinding,
     build_websocket_context_deps,
@@ -13,8 +23,8 @@ from app.runtime.ws_context_adapters import (
 
 def make_binding() -> WebSocketContextBinding:
     values = {
-        field.name: SimpleNamespace(name=field.name)
-        for field in fields(WebSocketContextBinding)
+        name: SimpleNamespace(name=name)
+        for name in WEBSOCKET_CONTEXT_FIELD_NAMES
     }
     return WebSocketContextBinding(**values)
 
@@ -29,10 +39,41 @@ def smoke_binding_maps_every_field() -> None:
     deps = build_websocket_context_deps(binding)
 
     assert [field.name for field in fields(WebSocketContextBinding)] == [
-        field.name for field in fields(WebSocketContextDeps)
+        *WEBSOCKET_CONTEXT_FIELD_NAMES
     ]
-    for field in fields(WebSocketContextDeps):
-        assert getattr(deps, field.name) is getattr(binding, field.name), field.name
+    flattened = flatten_websocket_context_deps(deps)
+    for name in WEBSOCKET_CONTEXT_FIELD_NAMES:
+        assert flattened[name] is getattr(binding, name), name
+        assert getattr(deps, name) is getattr(binding, name), name
+
+
+def smoke_context_groups_have_unique_flat_fields() -> None:
+    names = [
+        field.name
+        for group_type in (
+            WebSocketRuntimeDeps,
+            WebSocketEngineDeps,
+            WebSocketCardSelectionDeps,
+            WebSocketModeFlowDeps,
+            WebSocketRuleEffectDeps,
+        )
+        for field in fields(group_type)
+    ]
+
+    assert len(names) == len(set(names))
+    assert set(names) == set(WEBSOCKET_CONTEXT_FIELD_NAMES)
+
+
+def smoke_context_deps_copy_and_special_lookup_are_safe() -> None:
+    deps = build_websocket_context_deps(make_binding())
+    copied = copy.copy(deps)
+    restored = pickle.loads(pickle.dumps(deps))
+
+    assert copied.engine is deps.engine
+    assert copied.ai_move is deps.ai_move
+    assert restored.engine.name == deps.engine.name
+    assert restored.ai_move.name == deps.ai_move.name
+    assert not hasattr(deps, "__setstate__")
 
 
 def smoke_server_binding_maps_current_runtime_objects() -> None:
@@ -82,9 +123,10 @@ def smoke_server_binding_maps_current_runtime_objects() -> None:
         "diamond_points": s._diamond_points,
     }
 
+    flattened = flatten_websocket_context_deps(deps)
     for name, expected_value in expected.items():
         assert getattr(binding, name) is expected_value, name
-        assert getattr(deps, name) is expected_value, name
+        assert flattened[name] is expected_value, name
     assert_bound_method(binding.start_engine_background, s.engine_runtime.start_background)
     assert_bound_method(deps.start_engine_background, s.engine_runtime.start_background)
 
@@ -122,17 +164,20 @@ def smoke_server_binding_resolves_patched_runtime_objects() -> None:
         s._check_capture_foul = originals["_check_capture_foul"]
 
     assert binding.active_games is patched_active_games
-    assert deps.active_games is patched_active_games
+    flattened = flatten_websocket_context_deps(deps)
+    assert flattened["active_games"] is patched_active_games
     assert binding.coord_to_gtp is patched_coord_to_gtp
-    assert deps.coord_to_gtp is patched_coord_to_gtp
+    assert flattened["coord_to_gtp"] is patched_coord_to_gtp
     assert binding.ai_move is patched_ai_move
-    assert deps.ai_move is patched_ai_move
+    assert flattened["ai_move"] is patched_ai_move
     assert binding.check_capture_foul is patched_check_capture_foul
-    assert deps.check_capture_foul is patched_check_capture_foul
+    assert flattened["check_capture_foul"] is patched_check_capture_foul
 
 
 def main() -> None:
     smoke_binding_maps_every_field()
+    smoke_context_groups_have_unique_flat_fields()
+    smoke_context_deps_copy_and_special_lookup_are_safe()
     smoke_server_binding_maps_current_runtime_objects()
     smoke_server_binding_resolves_patched_runtime_objects()
     print("ws context adapters smoke test: OK")
