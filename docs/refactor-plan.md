@@ -125,6 +125,8 @@ Done:
 - `static/js/settings_controls.js`
   - Settings drawer toggles, sound control, level/handicap setup bindings
   - Card editor modal entry point
+- `static/js/runtime_status_ui.js`
+  - Thinking indicator, game-over overlay, score/reason text, runtime info panel, and winrate history UI
 - `static/js/toolbar_actions.js`
   - Main in-game toolbar actions for pass, undo, score, and resign
   - Shared toolbar button enable/disable state
@@ -137,7 +139,7 @@ Done:
 
 Still in `static/index.html`:
 
-- Legacy UI text helpers, effects/timers, score formatting, and runtime view/update functions
+- Challenge session state, effects/animations, timers, network helpers, and board-diff helpers
 
 ## Frontend Extraction Roadmap
 
