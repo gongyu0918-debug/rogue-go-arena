@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import subprocess
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +11,8 @@ from app.config.gpu_tiers import GPU_TIER_PATTERNS, GPU_TIERS
 
 
 _CREATE_NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
+ExecutorFn = Callable[..., Awaitable[Any]]
+CpuModeFn = Callable[[], bool]
 
 
 def default_gpu_info() -> dict[str, Any]:
@@ -105,3 +107,18 @@ def apply_runtime_gpu_overrides(
         result["slow_from"] = "1k"
         result["tier_label"] = "CPU模式"
     return result
+
+
+async def runtime_gpu_info_payload(
+    *,
+    detector: CachedGpuInfo,
+    run_in_executor: ExecutorFn,
+    cpu_mode_fn: CpuModeFn,
+    large_model_path: Path,
+) -> dict[str, Any]:
+    info = await run_in_executor(detector.detect)
+    return apply_runtime_gpu_overrides(
+        info,
+        cpu_mode=cpu_mode_fn(),
+        large_model_path=large_model_path,
+    )

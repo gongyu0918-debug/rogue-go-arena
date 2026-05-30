@@ -142,7 +142,7 @@ from app.runtime.generated_ai_adapters import (
     GeneratedMovePreparationBinding,
     try_finish_generated_ai_turn as try_finish_generated_ai_turn_adapter,
 )
-from app.runtime.gpu_info import CachedGpuInfo, apply_runtime_gpu_overrides
+from app.runtime.gpu_info import CachedGpuInfo, runtime_gpu_info_payload
 from app.runtime.katago_paths import (
     UserKataGoPaths,
     ensure_user_katago_dirs,
@@ -606,17 +606,12 @@ async def get_status():
 _gpu_detector = CachedGpuInfo()
 
 
-def _detect_gpu() -> dict:
-    """Detect NVIDIA GPU using nvidia-smi. Returns gpu info dict."""
-    return _gpu_detector.detect()
-
-
 @app.get("/gpu")
 async def get_gpu_info():
-    info = await run_in_executor(_detect_gpu)
-    return apply_runtime_gpu_overrides(
-        info,
-        cpu_mode=engine_runtime.cpu_mode,
+    return await runtime_gpu_info_payload(
+        detector=_gpu_detector,
+        run_in_executor=run_in_executor,
+        cpu_mode_fn=lambda: engine_runtime.cpu_mode,
         large_model_path=KATAGO_MODEL_LARGE,
     )
 
