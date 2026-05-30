@@ -84,7 +84,7 @@ from app.runtime.gpu_info import CachedGpuInfo, apply_runtime_gpu_overrides
 from app.runtime.request_json import read_json_body
 from app.runtime.sgf_export import build_sgf_export_response
 from app.runtime.static_files import serve_existing_file
-from app.runtime.status_payload import build_status_payload
+from app.runtime.status_endpoint import build_runtime_status_payload
 from app.gameplay.card_selection import (
     pick_ai_rogue_card,
     pick_ai_ultimate_card,
@@ -572,25 +572,17 @@ async def restart_katago():
 
 @app.get("/status")
 async def get_status():
-    snapshot = _engine_state_snapshot()
-    model_exists = engine_runtime.has_model_files()
-    exe_exists = engine_runtime.has_engine_binaries()
-    selected_model = engine_runtime.select_model()
-    card_config_payload = card_config_service.get_payload()
-    return build_status_payload(
+    return build_runtime_status_payload(
         server_rev=SERVER_REV,
         host=SERVER_HOST,
         port=SERVER_PORT,
-        access_urls=get_access_urls(SERVER_HOST, SERVER_PORT),
-        engine_ready=engine.ready,
-        engine_snapshot=snapshot,
-        exe_exists=exe_exists,
-        model_exists=model_exists,
-        selected_model_name=selected_model.name if selected_model else None,
+        get_access_urls=get_access_urls,
+        engine=engine,
+        engine_runtime=engine_runtime,
+        engine_state_snapshot=_engine_state_snapshot,
+        card_config_service=card_config_service,
         no_katago=NO_KATAGO,
-        cpu_mode=engine_runtime.cpu_mode,
-        static_ready=(STATIC_DIR / "index.html").exists(),
-        card_config_payload=card_config_payload,
+        static_index_path=STATIC_DIR / "index.html",
     )
 
 
