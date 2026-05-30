@@ -59,6 +59,7 @@ try {
   }));
   assert(cardEditorOpen.shown, "card editor modal did not open");
   assert(cardEditorOpen.src.includes("/card-editor") && cardEditorOpen.src.includes("embed=1"), `card editor iframe src changed: ${cardEditorOpen.src}`);
+  assert(cardEditorOpen.src.includes("ts="), `card editor iframe cachebuster missing: ${cardEditorOpen.src}`);
 
   await page.locator("#card-editor-modal-close").click();
   const cardEditorClosed = await page.evaluate(() => ({
@@ -125,7 +126,7 @@ try {
   assert(hintState.className.includes("on"), `hint toggle class did not update: ${hintState.className}`);
   assert(hintState.requestHint, "hint toggle did not request a hint while gameState exists");
   assert(hintState.renderCalls >= 1, "hint toggle did not render");
-  assert(hintState.winrateCalls >= 1, "hint toggle did not refresh winrate");
+  assert(hintState.winrateCalls >= 2, `hint toggle did not preserve winrate refresh calls: ${hintState.winrateCalls}`);
 
   const lockedState = await page.evaluate(() => {
     const beforeRender = window.__settingsSmoke.renderCalls;
@@ -145,8 +146,30 @@ try {
   assert(lockedState.rendered, "quickthink lock did not render");
   assert(lockedState.logs.some(text => String(text).includes("快速思考")), "quickthink lock did not log feedback");
 
+  const challengeLockedState = await page.evaluate(() => {
+    const beforeRender = window.__settingsSmoke.renderCalls;
+    activeRogueCard = null;
+    gameState.challenge_cards = ["quickthink"];
+    showHints = true;
+    document.querySelector("#hint-toggle").className = "toggle on";
+    document.querySelector("#hint-toggle").click();
+    return {
+      locked: isHintLockedByCard(),
+      showHints,
+      className: document.querySelector("#hint-toggle")?.className || "",
+      rendered: window.__settingsSmoke.renderCalls > beforeRender,
+      logs: window.__settingsSmoke.logs,
+    };
+  });
+  assert(challengeLockedState.locked, "challenge quickthink card did not lock hints");
+  assert(!challengeLockedState.showHints, "challenge quickthink lock did not force hints off");
+  assert(!challengeLockedState.className.includes("on"), `challenge quickthink lock left hint toggle on: ${challengeLockedState.className}`);
+  assert(challengeLockedState.rendered, "challenge quickthink lock did not render");
+  assert(challengeLockedState.logs.some(text => String(text).includes("快速思考")), "challenge quickthink lock did not log feedback");
+
   const territoryState = await page.evaluate(() => {
     activeRogueCard = null;
+    gameState.challenge_cards = [];
     const beforeRender = window.__settingsSmoke.renderCalls;
     toggleTerritory();
     return {
@@ -193,8 +216,29 @@ try {
       muted: document.querySelector("#sound-toggle")?.classList.contains("muted") || false,
     };
     document.querySelector("#sound-toggle").click();
+    const afterToolbarOn = {
+      soundEnabled,
+      icon: document.querySelector("#sound-toggle .toolbar-icon")?.dataset.icon || "",
+      muted: document.querySelector("#sound-toggle")?.classList.contains("muted") || false,
+      audioCalls: window.__settingsSmoke.audioCalls,
+    };
+    const settingsToggle = document.querySelector("#sound-settings-toggle");
+    let afterSettingsOff = null;
+    if (settingsToggle) {
+      settingsToggle.click();
+      afterSettingsOff = {
+        soundEnabled,
+        icon: document.querySelector("#sound-toggle .toolbar-icon")?.dataset.icon || "",
+        muted: document.querySelector("#sound-toggle")?.classList.contains("muted") || false,
+        audioCalls: window.__settingsSmoke.audioCalls,
+      };
+      settingsToggle.click();
+    }
     return {
       afterOff,
+      afterToolbarOn,
+      afterSettingsOff,
+      settingsTogglePresent: Boolean(settingsToggle),
       soundEnabled,
       icon: document.querySelector("#sound-toggle .toolbar-icon")?.dataset.icon || "",
       muted: document.querySelector("#sound-toggle")?.classList.contains("muted") || false,
@@ -204,10 +248,17 @@ try {
   assert(!soundState.afterOff.soundEnabled, "sound toggle did not disable sound");
   assert(soundState.afterOff.icon === "sound-off", `sound icon did not switch off: ${soundState.afterOff.icon}`);
   assert(soundState.afterOff.muted, "sound button did not show muted state");
+  assert(soundState.afterToolbarOn.soundEnabled, "toolbar sound toggle did not re-enable sound");
+  assert(soundState.afterToolbarOn.audioCalls === 1, `toolbar sound toggle did not initialize audio once: ${soundState.afterToolbarOn.audioCalls}`);
+  if (soundState.settingsTogglePresent) {
+    assert(!soundState.afterSettingsOff.soundEnabled, "settings sound toggle did not disable sound");
+    assert(soundState.afterSettingsOff.icon === "sound-off", `settings sound toggle did not switch off icon: ${soundState.afterSettingsOff.icon}`);
+    assert(soundState.afterSettingsOff.audioCalls === 1, `settings sound off should not initialize audio: ${soundState.afterSettingsOff.audioCalls}`);
+  }
   assert(soundState.soundEnabled, "sound toggle did not re-enable sound");
   assert(soundState.icon === "sound-on", `sound icon did not switch on: ${soundState.icon}`);
   assert(!soundState.muted, "sound button stayed muted after re-enable");
-  assert(soundState.audioCalls === 1, `sound toggle did not initialize audio once: ${soundState.audioCalls}`);
+  assert(soundState.audioCalls === (soundState.settingsTogglePresent ? 2 : 1), `sound toggles did not initialize audio on each enable: ${soundState.audioCalls}`);
 
   assert(errors.length === 0, `browser errors: ${errors.join("; ")}`);
   console.log(JSON.stringify({

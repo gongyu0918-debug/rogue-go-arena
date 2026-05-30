@@ -1,33 +1,57 @@
 // Legacy settings drawer controls and card editor entry points.
 
+const QUICKTHINK_CARD_ID = "quickthink";
+
+function currentWinrate() {
+  return analysis ? analysis.winrate : 0.5;
+}
+
+function setToggleClass(id, enabled) {
+  const toggle = document.getElementById(id);
+  if (toggle) toggle.className = "toggle" + (enabled ? " on" : "");
+}
+
+function refreshCurrentWinrate() {
+  updateWinRate(currentWinrate());
+}
+
+function buildCardEditorUrl() {
+  const url = new URL("/card-editor", window.location.href);
+  url.searchParams.set("embed", "1");
+  url.searchParams.set("ts", String(Date.now()));
+  return url.href;
+}
+
+function setHintOverlayState(enabled) {
+  showHints = enabled;
+  setToggleClass("hint-toggle", showHints);
+}
+
+function hasChallengeCard(cardId) {
+  return Array.isArray(gameState?.challenge_cards) && gameState.challenge_cards.includes(cardId);
+}
+
 function refreshHintVisibility() {
   const wrap = document.getElementById("winrate-bar-wrap");
   const locked = isHintLockedByCard();
   if (locked && showHints) {
-    showHints = false;
-    const toggle = document.getElementById("hint-toggle");
-    if (toggle) toggle.className = "toggle";
+    setHintOverlayState(false);
   }
   const topSlot = document.getElementById("top-winrate-slot");
   if (wrap) wrap.style.display = "block";
   if (topSlot) topSlot.classList.add("active");
-  updateWinRate(analysis ? analysis.winrate : 0.5);
+  refreshCurrentWinrate();
 }
 
 function isHintLockedByCard() {
-  if (activeRogueCard === "quickthink") return true;
-  if (Array.isArray(gameState?.challenge_cards) && gameState.challenge_cards.includes("quickthink")) return true;
-  return false;
+  return activeRogueCard === QUICKTHINK_CARD_ID || hasChallengeCard(QUICKTHINK_CARD_ID);
 }
 
 function openCardEditorPanel() {
   const modal = document.getElementById("card-editor-modal");
   const frame = document.getElementById("card-editor-frame");
   if (!modal || !frame) return;
-  const url = new URL("/card-editor", window.location.href);
-  url.searchParams.set("embed", "1");
-  url.searchParams.set("ts", String(Date.now()));
-  frame.src = url.href;
+  frame.src = buildCardEditorUrl();
   modal.classList.add("show");
 }
 
@@ -43,36 +67,31 @@ function toggleTerritory() {
 }
 
 function toggleHintOverlay() {
-  const hintToggle = document.getElementById("hint-toggle");
   if (isHintLockedByCard()) {
-    showHints = false;
-    if (hintToggle) hintToggle.className = "toggle";
+    setHintOverlayState(false);
     refreshHintVisibility();
     logI18n("⚡ 快速思考已禁用推荐点位", "⚡ Quick Think disables hints.", "⚡ クイック思考により推薦着点は無効です", "⚡ 빠른 사고로 추천 착점이 비활성화됨");
     render();
     return;
   }
-  showHints = !showHints;
-  if (hintToggle) hintToggle.className = "toggle" + (showHints ? " on" : "");
+  setHintOverlayState(!showHints);
   refreshHintVisibility();
-  updateWinRate(analysis ? analysis.winrate : 0.5);
+  refreshCurrentWinrate();
   if (showHints && gameState) sendWS({ action: "request_hint" });
   render();
 }
 
 function toggleTerritoryOverlay() {
   showTerritory = !showTerritory;
-  const toggle = document.getElementById("territory-toggle");
-  if (toggle) toggle.className = "toggle" + (showTerritory ? " on" : "");
+  setToggleClass("territory-toggle", showTerritory);
   setTerritoryToggleVisual();
-  updateWinRate(analysis ? analysis.winrate : 0.5);
+  refreshCurrentWinrate();
   render();
 }
 
 function toggleMoveNumbersOverlay() {
   showMoveNumbers = !showMoveNumbers;
-  const toggle = document.getElementById("move-number-toggle");
-  if (toggle) toggle.className = "toggle" + (showMoveNumbers ? " on" : "");
+  setToggleClass("move-number-toggle", showMoveNumbers);
   render();
 }
 
