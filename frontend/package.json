@@ -9,7 +9,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "preview": "vite preview --host 127.0.0.1",
     "smoke:react-preview": "node scripts/react-preview-smoke.mjs",
-    "smoke:legacy-responsive": "node scripts/legacy-responsive-smoke.mjs"
+    "smoke:legacy-responsive": "node scripts/legacy-responsive-smoke.mjs",
+    "smoke:legacy-wood-select": "node scripts/legacy-wood-select-smoke.mjs"
   },
   "dependencies": {
     "react": "^19.0.0",

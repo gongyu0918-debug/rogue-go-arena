@@ -104,10 +104,12 @@ Done:
 - `static/js/server_event_i18n.js`
   - Server event translation tables for legacy logs and card-effect banners
   - Chinese passthrough and English/Japanese/Korean pattern translations
+- `static/js/wood_select.js`
+  - Custom select enhancement, popover placement, and menu close behavior
+  - Shared `syncWoodSelect`, `syncWoodSelects`, and `closeWoodSelectMenu` globals used by legacy modules
 
 Still in `static/index.html`:
 
-- Wood select control implementation
 - WebSocket message dispatch
 - i18n bootstrap and generic UI localization
 - Review/SGF controls
