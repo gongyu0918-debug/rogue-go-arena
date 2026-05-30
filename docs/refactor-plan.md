@@ -125,10 +125,13 @@ Done:
 - `static/js/settings_controls.js`
   - Settings drawer toggles, sound control, level/handicap setup bindings
   - Card editor modal entry point
+- `static/js/toolbar_actions.js`
+  - Main in-game toolbar actions for pass, undo, score, and resign
+  - Shared toolbar button enable/disable state
 
 Still in `static/index.html`:
 
-- Legacy DOM event handlers for in-game toolbar actions
+- Legacy inline markup handlers for top quick actions, modals, setup mode buttons, and overlay shortcuts
 
 ## Frontend Extraction Roadmap
 
