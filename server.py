@@ -83,6 +83,11 @@ from app.runtime.ai_style_adapters import (
     build_ai_style_move_deps,
     generate_ai_style_move as generate_ai_style_move_adapter,
 )
+from app.runtime.ai_turn_adapters import (
+    AiTurnBinding,
+    build_ai_turn_flow_deps,
+    run_ai_turn as run_ai_turn_adapter,
+)
 from app.runtime.config_api import (
     balance_payload,
     card_config_payload as build_card_config_payload,
@@ -289,7 +294,7 @@ from app.gameplay.ai_move_flow import (
     try_finish_suboptimal_rogue_move,
 )
 from app.gameplay.ai_style_move_flow import AiStyleMoveDeps
-from app.gameplay.ai_turn_flow import AiTurnFlowDeps, run_ai_turn
+from app.gameplay.ai_turn_flow import AiTurnFlowDeps
 from app.gameplay.move_placement import (
     place_auxiliary_ai_move_on_board as place_auxiliary_ai_move_on_board_state,
 )
@@ -1636,8 +1641,8 @@ async def _refresh_ai_turn_fog_restriction(
     )
 
 
-def _ai_turn_flow_deps() -> AiTurnFlowDeps:
-    return AiTurnFlowDeps(
+def _ai_turn_binding() -> AiTurnBinding:
+    return AiTurnBinding(
         engine_ready=lambda: engine.ready,
         sync_board_to_katago=_sync_board_to_katago,
         snapshot_turn=lambda game: snapshot_ai_turn(game, _rogue_card_ids),
@@ -1668,8 +1673,13 @@ def _ai_turn_flow_deps() -> AiTurnFlowDeps:
     )
 
 
+def _ai_turn_flow_deps() -> AiTurnFlowDeps:
+    return build_ai_turn_flow_deps(_ai_turn_binding())
+
+
 async def _ai_move(game: GoGame, send_fn):
-    await run_ai_turn(game, send_fn, _ai_turn_flow_deps())
+    await run_ai_turn_adapter(game, send_fn, _ai_turn_binding())
+
 
 
 async def _ai_move_avoid_points(game, color, visits, time_limit, forbidden):
