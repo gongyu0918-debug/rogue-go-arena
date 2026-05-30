@@ -81,6 +81,7 @@ from app.domain.sgf import generate_sgf
 from app.runtime.access_urls import get_access_urls as build_access_urls
 from app.runtime.engine_gateway import EngineRuntimeGateway
 from app.runtime.gpu_info import apply_runtime_gpu_overrides, detect_gpu_info
+from app.runtime.request_json import read_json_body
 from app.runtime.status_payload import build_status_payload
 from app.gameplay.card_selection import (
     pick_ai_rogue_card,
@@ -517,13 +518,10 @@ async def get_card_config_schema():
 
 @app.post("/api/card-config")
 async def save_card_config_payload(request: Request):
-    try:
-        body = await request.json()
-    except Exception:
-        return JSONResponse(
-            {"ok": False, "errors": ["request body must be JSON"]},
-            status_code=400,
-        )
+    json_body = await read_json_body(request)
+    if not json_body.ok:
+        return json_body.error_response
+    body = json_body.body
     config = body.get("config") if isinstance(body, dict) else None
     result = card_config_service.save_payload(config)
     if not result.get("ok"):
@@ -546,13 +544,10 @@ async def get_balance_lab_payload():
 
 @app.post("/api/balance")
 async def save_balance_lab_payload(request: Request):
-    try:
-        body = await request.json()
-    except Exception:
-        return JSONResponse(
-            {"ok": False, "errors": ["request body must be JSON"]},
-            status_code=400,
-        )
+    json_body = await read_json_body(request)
+    if not json_body.ok:
+        return json_body.error_response
+    body = json_body.body
     values = body.get("values", {}) if isinstance(body, dict) else {}
     result = save_balance_overrides(values)
     if not result.get("ok"):
