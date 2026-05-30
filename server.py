@@ -91,6 +91,7 @@ from app.runtime.config_api import (
 from app.runtime.engine_control_api import restart_katago_request, stop_katago_request
 from app.runtime.engine_gateway import EngineRuntimeGateway
 from app.runtime.gpu_info import CachedGpuInfo, apply_runtime_gpu_overrides
+from app.runtime.no_cache import apply_no_cache_headers_for_html
 from app.runtime.rank_api import build_rank_options
 from app.runtime.sgf_export import build_sgf_export_response
 from app.runtime.static_files import serve_existing_file
@@ -469,12 +470,7 @@ app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets"), check_dir
 @app.middleware("http")
 async def no_cache_html(request: Request, call_next):
     response = await call_next(request)
-    # Prevent browser from caching HTML / API responses
-    if "text/html" in response.headers.get("content-type", ""):
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
-    return response
+    return apply_no_cache_headers_for_html(response)
 
 
 @app.get("/")
