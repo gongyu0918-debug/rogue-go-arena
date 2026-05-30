@@ -110,11 +110,14 @@ Done:
 - `static/js/review_controls.js`
   - Local review board replay helpers used by the legacy renderer
   - SGF import/export, review navigation, keyboard shortcuts, and review analysis requests
+- `static/js/localization_ui.js`
+  - Legacy language select bindings and `applyLanguage` refresh flow
+  - Localized shell, settings, overlay, setup option, and runtime view labels
 
 Still in `static/index.html`:
 
 - WebSocket message dispatch
-- i18n bootstrap and generic UI localization
+- Legacy page bootstrap orchestration, including the initial `ensureLocale(currentLang)` and `applyLanguage()` call
 
 ## Frontend Extraction Roadmap
 
