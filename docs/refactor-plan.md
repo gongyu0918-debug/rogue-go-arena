@@ -113,10 +113,12 @@ Done:
 - `static/js/localization_ui.js`
   - Legacy language select bindings and `applyLanguage` refresh flow
   - Localized shell, settings, overlay, setup option, and runtime view labels
+- `static/js/websocket_messages.js`
+  - Legacy WebSocket message dispatch table
+  - Named handlers for game state, analysis, Rogue, Ultimate, reconnect, and error messages
 
 Still in `static/index.html`:
 
-- WebSocket message dispatch
 - Legacy page bootstrap orchestration, including the initial `ensureLocale(currentLang)` and `applyLanguage()` call
 
 ## Frontend Extraction Roadmap
