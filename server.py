@@ -288,6 +288,7 @@ from app.gameplay.rogue_effects import (
     rogue_has as _rogue_has,
 )
 from app.services.card_config_service import CardConfigService
+from app.services.balance_sync import sync_live_balance_globals
 from app.gameplay.ultimate_effects import (
     apply_ultimate_card_effect as apply_ultimate_card_effect_state,
     apply_ultimate_foolish_wisdom_wave,
@@ -353,12 +354,11 @@ def log(message: str):
 
 
 def _sync_balance_globals() -> None:
-    for key in gameplay_config.BALANCE_DEFAULTS:
-        if key in globals():
-            globals()[key] = getattr(gameplay_config, key)
-    for key in ("ROGUE_COACH_BASE_TURNS", "ROGUE_SEAL_POINT_COUNT", "ULTIMATE_JOSEKI_TARGET_COUNT"):
-        if hasattr(ws_actions_module, key):
-            setattr(ws_actions_module, key, getattr(gameplay_config, key))
+    sync_live_balance_globals(
+        target_globals=globals(),
+        gameplay_config=gameplay_config,
+        ws_actions_module=ws_actions_module,
+    )
 
 
 card_config_service = CardConfigService(
