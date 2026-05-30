@@ -1,3 +1,4 @@
+(() => {
 let activeWoodSelect = null;
 let woodSelectPopover = null;
 
@@ -13,19 +14,49 @@ function selectedOption(select) {
   return select?.selectedOptions?.[0] || Array.from(select?.options || []).find(opt => opt.selected) || select?.options?.[0] || null;
 }
 
+function woodSelectParts(select) {
+  const wrap = select?.closest(".wood-select") || null;
+  return {
+    wrap,
+    button: wrap?.querySelector(".wood-select-button") || null,
+    value: wrap?.querySelector(".wood-select-value") || null,
+  };
+}
+
+function selectedOptionLabel(select) {
+  const opt = selectedOption(select);
+  return opt ? opt.textContent : "";
+}
+
+function woodSelectMenuIsOpen(select) {
+  return activeWoodSelect === select && woodSelectPopover?.classList.contains("open");
+}
+
+function setWoodSelectExpanded(select, expanded) {
+  const { wrap, button } = woodSelectParts(select);
+  if (expanded) {
+    wrap?.classList.add("open");
+  } else {
+    wrap?.classList.remove("open");
+  }
+  if (button) button.setAttribute("aria-expanded", expanded ? "true" : "false");
+}
+
+function syncWoodSelectButton(select) {
+  const { wrap, button, value } = woodSelectParts(select);
+  if (!wrap) return false;
+  if (value) value.textContent = selectedOptionLabel(select);
+  if (button) {
+    button.disabled = !!select.disabled;
+    button.setAttribute("aria-expanded", wrap.classList.contains("open") ? "true" : "false");
+  }
+  return true;
+}
+
 function syncWoodSelect(select) {
   if (!select) return;
-  const wrap = select.closest(".wood-select");
-  if (!wrap) return;
-  const valueEl = wrap.querySelector(".wood-select-value");
-  const btn = wrap.querySelector(".wood-select-button");
-  const opt = selectedOption(select);
-  if (valueEl) valueEl.textContent = opt ? opt.textContent : "";
-  if (btn) {
-    btn.disabled = !!select.disabled;
-    btn.setAttribute("aria-expanded", wrap.classList.contains("open") ? "true" : "false");
-  }
-  if (activeWoodSelect === select && woodSelectPopover?.classList.contains("open")) {
+  if (!syncWoodSelectButton(select)) return;
+  if (woodSelectMenuIsOpen(select)) {
     renderWoodSelectMenu(select);
   }
 }
@@ -36,10 +67,7 @@ function syncWoodSelects() {
 
 function closeWoodSelectMenu() {
   if (activeWoodSelect) {
-    const wrap = activeWoodSelect.closest(".wood-select");
-    if (wrap) wrap.classList.remove("open");
-    const btn = wrap?.querySelector(".wood-select-button");
-    if (btn) btn.setAttribute("aria-expanded", "false");
+    setWoodSelectExpanded(activeWoodSelect, false);
   }
   activeWoodSelect = null;
   if (woodSelectPopover) {
@@ -49,11 +77,10 @@ function closeWoodSelectMenu() {
 }
 
 function placeWoodSelectMenu(select) {
-  const wrap = select.closest(".wood-select");
-  const btn = wrap?.querySelector(".wood-select-button");
+  const { button } = woodSelectParts(select);
   const pop = ensureWoodSelectPopover();
-  if (!btn) return;
-  const rect = btn.getBoundingClientRect();
+  if (!button) return;
+  const rect = button.getBoundingClientRect();
   const width = Math.max(rect.width, 180);
   pop.style.width = `${width}px`;
   pop.style.left = `${Math.round(rect.left)}px`;
@@ -64,25 +91,33 @@ function placeWoodSelectMenu(select) {
   }
 }
 
+function chooseWoodSelectOption(select, opt) {
+  select.value = opt.value;
+  select.dispatchEvent(new Event("change", { bubbles: true }));
+  syncWoodSelect(select);
+  closeWoodSelectMenu();
+}
+
+function createWoodSelectOption(select, opt) {
+  const item = document.createElement("div");
+  item.className = "wood-select-option" + (opt.disabled ? " disabled" : "");
+  item.textContent = opt.textContent;
+  item.setAttribute("role", "option");
+  item.setAttribute("aria-selected", opt.value === select.value ? "true" : "false");
+  if (!opt.disabled) {
+    item.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      chooseWoodSelectOption(select, opt);
+    });
+  }
+  return item;
+}
+
 function renderWoodSelectMenu(select) {
   const pop = ensureWoodSelectPopover();
   pop.innerHTML = "";
   Array.from(select.options).forEach((opt) => {
-    const item = document.createElement("div");
-    item.className = "wood-select-option" + (opt.disabled ? " disabled" : "");
-    item.textContent = opt.textContent;
-    item.setAttribute("role", "option");
-    item.setAttribute("aria-selected", opt.value === select.value ? "true" : "false");
-    if (!opt.disabled) {
-      item.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        select.value = opt.value;
-        select.dispatchEvent(new Event("change", { bubbles: true }));
-        syncWoodSelect(select);
-        closeWoodSelectMenu();
-      });
-    }
-    pop.appendChild(item);
+    pop.appendChild(createWoodSelectOption(select, opt));
   });
   pop.classList.add("open");
   placeWoodSelectMenu(select);
@@ -90,27 +125,30 @@ function renderWoodSelectMenu(select) {
 
 function openWoodSelectMenu(select) {
   if (!select || select.disabled) return;
-  if (activeWoodSelect === select && woodSelectPopover?.classList.contains("open")) {
+  if (woodSelectMenuIsOpen(select)) {
     closeWoodSelectMenu();
     return;
   }
   closeWoodSelectMenu();
   activeWoodSelect = select;
-  const wrap = select.closest(".wood-select");
-  wrap?.classList.add("open");
-  const btn = wrap?.querySelector(".wood-select-button");
-  if (btn) btn.setAttribute("aria-expanded", "true");
+  setWoodSelectExpanded(select, true);
   renderWoodSelectMenu(select);
 }
 
-function enhanceWoodSelect(select) {
-  if (!select || select.dataset.woodEnhanced === "1") return;
-  select.dataset.woodEnhanced = "1";
-  select.classList.add("wood-select-native");
-  const wrap = document.createElement("span");
-  wrap.className = "wood-select";
-  select.parentNode.insertBefore(wrap, select);
-  wrap.appendChild(select);
+function woodSelectKeyOpensMenu(key) {
+  return key === "Enter" || key === " " || key === "ArrowDown";
+}
+
+function handleWoodSelectKeydown(select, e) {
+  if (woodSelectKeyOpensMenu(e.key)) {
+    e.preventDefault();
+    openWoodSelectMenu(select);
+  } else if (e.key === "Escape") {
+    closeWoodSelectMenu();
+  }
+}
+
+function createWoodSelectButton(select) {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "wood-select-button";
@@ -121,15 +159,19 @@ function enhanceWoodSelect(select) {
     e.preventDefault();
     openWoodSelectMenu(select);
   });
-  btn.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
-      e.preventDefault();
-      openWoodSelectMenu(select);
-    } else if (e.key === "Escape") {
-      closeWoodSelectMenu();
-    }
-  });
-  wrap.appendChild(btn);
+  btn.addEventListener("keydown", (e) => handleWoodSelectKeydown(select, e));
+  return btn;
+}
+
+function enhanceWoodSelect(select) {
+  if (!select || select.dataset.woodEnhanced === "1") return;
+  select.dataset.woodEnhanced = "1";
+  select.classList.add("wood-select-native");
+  const wrap = document.createElement("span");
+  wrap.className = "wood-select";
+  select.parentNode.insertBefore(wrap, select);
+  wrap.appendChild(select);
+  wrap.appendChild(createWoodSelectButton(select));
   select.addEventListener("change", () => syncWoodSelect(select));
   syncWoodSelect(select);
 }
@@ -138,11 +180,16 @@ function enhanceWoodSelects() {
   document.querySelectorAll("select").forEach(enhanceWoodSelect);
 }
 
+function pointerIsInsideActiveWoodSelect(target) {
+  if (!activeWoodSelect) return false;
+  const { wrap } = woodSelectParts(activeWoodSelect);
+  const pop = ensureWoodSelectPopover();
+  return !!(wrap?.contains(target) || pop.contains(target));
+}
+
 document.addEventListener("mousedown", (e) => {
   if (!activeWoodSelect) return;
-  const wrap = activeWoodSelect.closest(".wood-select");
-  const pop = ensureWoodSelectPopover();
-  if (wrap?.contains(e.target) || pop.contains(e.target)) return;
+  if (pointerIsInsideActiveWoodSelect(e.target)) return;
   closeWoodSelectMenu();
 });
 
@@ -153,3 +200,9 @@ window.addEventListener("resize", () => {
 document.addEventListener("scroll", () => {
   if (activeWoodSelect) closeWoodSelectMenu();
 }, true);
+
+window.enhanceWoodSelects = enhanceWoodSelects;
+window.syncWoodSelect = syncWoodSelect;
+window.syncWoodSelects = syncWoodSelects;
+window.closeWoodSelectMenu = closeWoodSelectMenu;
+})();
