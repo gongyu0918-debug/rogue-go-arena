@@ -163,6 +163,10 @@ from app.gameplay.ai_move_flow import (
     try_finish_suboptimal_rogue_move,
 )
 from app.gameplay.ai_turn_flow import AiTurnFlowDeps, run_ai_turn
+from app.gameplay.forced_rogue_ai_turn_flow import (
+    ForcedRogueAiTurnDeps,
+    try_finish_forced_rogue_ai_turn_event,
+)
 from app.gameplay.generated_ai_turn_flow import (
     GeneratedAiTurnDeps,
     try_finish_generated_ai_turn_event,
@@ -1349,24 +1353,25 @@ async def _try_finish_forced_rogue_ai_turn(
     turn: AiTurnSnapshot,
     run_engine_command,
 ) -> bool:
-    return await try_finish_forced_rogue_ai_move(
+    return await try_finish_forced_rogue_ai_turn_event(
         game,
         send_fn,
-        color=turn.color,
-        card=turn.card,
-        rogue_cards=turn.rogue_cards,
-        roll_random=random.random,
-        dice_pass_chance=ROGUE_DICE_PASS_CHANCE,
-        mirror_chance=ROGUE_MIRROR_CHANCE,
-        gtp_to_coord=gtp_to_coord,
-        coord_to_gtp=coord_to_gtp,
-        mirror_coord=_mirror_coord,
-        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
         run_engine_command=run_engine_command,
-        finalize_forced_pass=finalize_forced_ai_pass,
-        finalize_forced_stone=try_finalize_forced_ai_stone,
-        apply_puppet_move=try_apply_puppet_ai_move,
-        finish_ai_move=_finish_ai_move,
+        turn=turn,
+        deps=ForcedRogueAiTurnDeps(
+            try_finish_forced_rogue_ai_move=try_finish_forced_rogue_ai_move,
+            roll_random=random.random,
+            dice_pass_chance=ROGUE_DICE_PASS_CHANCE,
+            mirror_chance=ROGUE_MIRROR_CHANCE,
+            gtp_to_coord=gtp_to_coord,
+            coord_to_gtp=coord_to_gtp,
+            mirror_coord=_mirror_coord,
+            prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+            finalize_forced_pass=finalize_forced_ai_pass,
+            finalize_forced_stone=try_finalize_forced_ai_stone,
+            apply_puppet_move=try_apply_puppet_ai_move,
+            finish_ai_move=_finish_ai_move,
+        ),
     )
 
 
