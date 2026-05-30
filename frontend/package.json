@@ -13,6 +13,7 @@
     "smoke:legacy-setup-controls": "node scripts/legacy-setup-controls-smoke.mjs",
     "smoke:legacy-settings-controls": "node scripts/legacy-settings-controls-smoke.mjs",
     "smoke:legacy-toolbar-actions": "node scripts/legacy-toolbar-actions-smoke.mjs",
+    "smoke:legacy-inline-actions": "node scripts/legacy-inline-actions-smoke.mjs",
     "smoke:legacy-localization": "node scripts/legacy-localization-smoke.mjs",
     "smoke:legacy-websocket-messages": "node scripts/legacy-websocket-messages-smoke.mjs",
     "smoke:legacy-responsive": "node scripts/legacy-responsive-smoke.mjs",

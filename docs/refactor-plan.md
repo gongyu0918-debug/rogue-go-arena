@@ -128,10 +128,13 @@ Done:
 - `static/js/toolbar_actions.js`
   - Main in-game toolbar actions for pass, undo, score, and resign
   - Shared toolbar button enable/disable state
+- `static/js/inline_actions.js`
+  - Top quick actions, modal closes, setup mode buttons, settings drawer open/close, and overlay shortcuts
+  - Replaces remaining inline `onclick` markup handlers
 
 Still in `static/index.html`:
 
-- Legacy inline markup handlers for top quick actions, modals, setup mode buttons, and overlay shortcuts
+- Legacy rank selector setup, UI text helpers, and runtime view/update functions
 
 ## Frontend Extraction Roadmap
 

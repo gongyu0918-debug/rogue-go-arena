@@ -2742,9 +2742,9 @@ header::before { display: none; }
   </div>
   <button id="sound-toggle" type="button" title="音效开关" aria-label="音效开关"><span class="toolbar-icon" data-icon="sound-on" aria-hidden="true"></span></button>
   <div class="client-actions">
-    <button class="client-action primary" id="quick-rogue" onclick="quickStartRogue()">Rogue</button>
-    <button class="client-action" id="quick-setup" onclick="openNormalSetup()">开始</button>
-    <button class="client-action" id="quick-fullscreen" onclick="toggleFullscreen()">全屏</button>
+    <button class="client-action primary" id="quick-rogue">Rogue</button>
+    <button class="client-action" id="quick-setup">开始</button>
+    <button class="client-action" id="quick-fullscreen">全屏</button>
   </div>
   <div class="client-locale-controls">
     <select id="lang-toggle" class="lang-chip" title="切换语言" aria-label="语言">
@@ -2812,15 +2812,15 @@ header::before { display: none; }
 
     <!-- Smart Board Toolbar -->
     <div class="board-toolbar" id="main-toolbar">
-      <button id="btn-setup" title="开始" onclick="openSetupModal()"><span class="toolbar-icon" data-icon="setup" aria-hidden="true"></span><span class="tool-label">开始</span></button>
-      <button id="btn-quick-rogue" title="Rogue" onclick="quickStartRogue()"><span class="toolbar-icon" data-icon="rogue" aria-hidden="true"></span><span class="tool-label">Rogue</span></button>
-      <button id="btn-rogue-wiki" title="Wiki" onclick="openRogueWiki()"><span class="toolbar-icon" data-icon="wiki" aria-hidden="true"></span><span class="tool-label">Wiki</span></button>
+      <button id="btn-setup" title="开始"><span class="toolbar-icon" data-icon="setup" aria-hidden="true"></span><span class="tool-label">开始</span></button>
+      <button id="btn-quick-rogue" title="Rogue"><span class="toolbar-icon" data-icon="rogue" aria-hidden="true"></span><span class="tool-label">Rogue</span></button>
+      <button id="btn-rogue-wiki" title="Wiki"><span class="toolbar-icon" data-icon="wiki" aria-hidden="true"></span><span class="tool-label">Wiki</span></button>
       <button id="btn-pass" title="虚手" disabled><span class="toolbar-icon" data-icon="pass" aria-hidden="true"></span><span class="tool-label">虚手</span></button>
       <button id="btn-undo" title="悔棋" disabled><span class="toolbar-icon" data-icon="undo" aria-hidden="true"></span><span class="tool-label">悔棋</span></button>
       <button id="btn-score" title="计算" disabled><span class="toolbar-icon" data-icon="score" aria-hidden="true"></span><span class="tool-label">计算</span></button>
-      <button id="btn-territory-toggle" title="形势" onclick="toggleTerritory()"><span class="toolbar-icon" data-icon="territory-on" aria-hidden="true"></span><span class="tool-label">形势</span></button>
+      <button id="btn-territory-toggle" title="形势"><span class="toolbar-icon" data-icon="territory-on" aria-hidden="true"></span><span class="tool-label">形势</span></button>
       <button id="btn-resign" title="认输" disabled><span class="toolbar-icon" data-icon="resign" aria-hidden="true"></span><span class="tool-label">认输</span></button>
-      <button id="btn-settings" title="设置" onclick="document.getElementById('settings-drawer').classList.add('open')"><span class="toolbar-icon" data-icon="settings" aria-hidden="true"></span><span class="tool-label">设置</span></button>
+      <button id="btn-settings" title="设置"><span class="toolbar-icon" data-icon="settings" aria-hidden="true"></span><span class="tool-label">设置</span></button>
       <button id="btn-skill" class="skill-btn" title="主动技能" style="display:none" disabled>
         <span class="toolbar-icon skill-btn-icon" data-icon="skill" aria-hidden="true"></span>
         <span class="tool-label">技能</span>
@@ -2836,13 +2836,13 @@ header::before { display: none; }
       <button id="btn-review-next" title="下一手"><span class="toolbar-icon" data-icon="review-next" aria-hidden="true"></span></button>
       <button id="btn-review-last" title="最后一手">⏭</button>
       <button id="btn-review-exit" title="退出复盘">⏏</button>
-      <button id="btn-review-settings" title="打开功能" onclick="document.getElementById('settings-drawer').classList.add('open')"><span class="toolbar-icon" data-icon="settings" aria-hidden="true"></span></button>
+      <button id="btn-review-settings" title="打开功能"><span class="toolbar-icon" data-icon="settings" aria-hidden="true"></span></button>
     </div>
   </div>
 
   <!-- Settings Drawer Details -->
   <div class="settings-drawer" id="settings-drawer">
-    <button class="drawer-close" onclick="document.getElementById('settings-drawer').classList.remove('open')" title="关闭">✕</button>
+    <button class="drawer-close" id="settings-drawer-close" title="关闭">✕</button>
     <h2 style="color:#f4e2a3; margin-bottom: 12px; font-size: 1.2rem; letter-spacing:.08em;">棋局控制台</h2>
 
     <!-- Options -->
@@ -2950,7 +2950,7 @@ header::before { display: none; }
 <div id="overlay">
   <div id="overlay-content">
     <div id="overlay-sparks"></div>
-    <button id="overlay-close" onclick="closeOverlay()" title="关闭">✕</button>
+    <button id="overlay-close" title="关闭">✕</button>
     <h2 id="overlay-title">对局结束</h2>
     <p  id="overlay-msg"></p>
     <div class="score-row">
@@ -2964,8 +2964,8 @@ header::before { display: none; }
       </div>
     </div>
     <div class="btn-row" style="justify-content:center;gap:12px">
-      <button class="btn-primary"   onclick="enterReviewMode()">复盘</button>
-      <button class="btn-secondary" onclick="newGameFromOverlay()">再来一局</button>
+      <button class="btn-primary" id="overlay-review">复盘</button>
+      <button class="btn-secondary" id="overlay-new-game">再来一局</button>
     </div>
   </div>
 </div>
@@ -2973,17 +2973,17 @@ header::before { display: none; }
 <!-- Setup Modal Overlay -->
 <div id="setup-modal" class="overlay-modal">
   <div class="modal-content">
-    <button class="modal-close" onclick="closeSetupModal()" title="关闭">✕</button>
+    <button class="modal-close" id="setup-modal-close" title="关闭">✕</button>
     <h2 style="color:#f4e2a3; margin-bottom:8px; font-size:1.36rem; margin-top:0; letter-spacing:.06em;">开始对弈</h2>
     <p class="setup-subtitle">选择模式、难度与规则，让这一局围棋更像一场不断变化的冒险。</p>
 
     <div class="setup-mode-strip">
       <div class="mode-row">
-        <div class="mode-btn active" id="mode-normal" onclick="setMode('normal')">对局</div>
-        <div class="mode-btn" id="mode-rogue" onclick="setMode('rogue')">Rogue</div>
-        <div class="mode-btn" id="mode-watch"  onclick="setMode('watch')">学习</div>
-        <div class="mode-btn" id="mode-two"    onclick="setMode('two')">双人</div>
-        <div class="mode-btn" id="mode-challenge" onclick="setMode('challenge')">闯关</div>
+        <div class="mode-btn active" id="mode-normal" data-mode="normal">对局</div>
+        <div class="mode-btn" id="mode-rogue" data-mode="rogue">Rogue</div>
+        <div class="mode-btn" id="mode-watch" data-mode="watch">学习</div>
+        <div class="mode-btn" id="mode-two" data-mode="two">双人</div>
+        <div class="mode-btn" id="mode-challenge" data-mode="challenge">闯关</div>
       </div>
     </div>
 
@@ -3161,7 +3161,7 @@ header::before { display: none; }
 <!-- Rogue Wiki Overlay -->
 <div id="rogue-wiki-modal" class="overlay-modal">
   <div class="modal-content">
-    <button class="modal-close" onclick="closeRogueWiki()" title="关闭">✕</button>
+    <button class="modal-close" id="rogue-wiki-close" title="关闭">✕</button>
     <div class="wiki-shell">
       <div>
         <h2 id="rogue-wiki-title" style="color:#f4e2a3; margin-bottom:8px; font-size:1.34rem; margin-top:0; letter-spacing:.06em;">ROGUE AI WIKI</h2>
@@ -3194,7 +3194,7 @@ header::before { display: none; }
   <div class="modal-content" style="max-width:320px;">
     <p id="confirm-msg"></p>
     <div class="btn-row" style="justify-content:center;">
-      <button class="btn-secondary" onclick="closeConfirmModal()" style="flex:1">取消</button>
+      <button class="btn-secondary" id="confirm-cancel" style="flex:1">取消</button>
       <button class="btn-primary" id="btn-confirm-ok" style="flex:1">确定</button>
     </div>
   </div>
@@ -3222,6 +3222,7 @@ header::before { display: none; }
 <script src="/static/js/app_bootstrap.js?v=20260530a"></script>
 <script src="/static/js/setup_controls.js?v=20260530a"></script>
 <script src="/static/js/toolbar_actions.js?v=20260530a"></script>
+<script src="/static/js/inline_actions.js?v=20260530a"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS & RANK TABLES
