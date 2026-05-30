@@ -225,6 +225,10 @@ from app.runtime.ws_context import (
     WebSocketContextDeps,
     build_websocket_action_context,
 )
+from app.runtime.ws_context_adapters import (
+    WebSocketContextBinding,
+    build_websocket_context_deps,
+)
 from app.gameplay.card_selection import (
     pick_ai_rogue_card,
     pick_ai_ultimate_card,
@@ -709,8 +713,8 @@ def _bind_ai_move_service_runtime():
     bind_ai_move_service_runtime(ai_move_service, _ai_move_service_binding())
 
 
-def _ws_context_deps() -> WebSocketContextDeps:
-    return WebSocketContextDeps(
+def _ws_context_binding() -> WebSocketContextBinding:
+    return WebSocketContextBinding(
         active_games=active_games,
         engine=engine,
         run_in_executor=run_in_executor,
@@ -753,6 +757,10 @@ def _ws_context_deps() -> WebSocketContextDeps:
         random_hidden_center=_random_hidden_center,
         diamond_points=_diamond_points,
     )
+
+
+def _ws_context_deps() -> WebSocketContextDeps:
+    return build_websocket_context_deps(_ws_context_binding())
 
 
 @app.websocket("/ws/{game_id}")
