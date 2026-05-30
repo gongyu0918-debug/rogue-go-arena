@@ -149,6 +149,12 @@ from app.gameplay.ai_move_flow import (
     try_finish_shadow_restriction_move,
     try_finish_suboptimal_rogue_move,
 )
+from app.gameplay.ai_observer import (
+    AiObserverLoopDeps,
+    apply_observer_ai_move_to_board as apply_observer_ai_move_to_board_state,
+    finish_observer_double_pass as finish_observer_double_pass_state,
+    run_ai_observer_loop as run_ai_observer_loop_state,
+)
 from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
 from app.gameplay.turn_modifiers import (
     apply_ultimate_ai_move_result as apply_ultimate_ai_move_result_state,
@@ -1607,45 +1613,41 @@ async def _run_coach_turn_if_needed(game: GoGame, send_fn):
 
 
 async def _finish_observer_double_pass(game: GoGame, send_fn) -> bool:
-    if not (game.passed["B"] and game.passed["W"]):
-        return False
-
-    resp_score = await _send_engine_command("final_score")
-    score_str = resp_score.replace("=", "").strip()
-    winner = "B" if score_str.startswith("B") else "W"
-    game.game_over = True
-    game.winner = winner
-    await send_fn({"type": "game_over", "winner": winner, "score": score_str, "reason": "double_pass"})
-    return True
+    return await finish_observer_double_pass_state(
+        game,
+        send_fn,
+        run_engine_command=_send_engine_command,
+    )
 
 
 def _apply_observer_ai_move_to_board(game: GoGame, color: str, gtp_move: str) -> AiMovePlacement:
-    coord = gtp_to_coord(gtp_move, game.size)
-    return _place_auxiliary_ai_move_on_board(game, color, gtp_move, coord)
+    return apply_observer_ai_move_to_board_state(
+        game,
+        color,
+        gtp_move,
+        gtp_to_coord=gtp_to_coord,
+        place_auxiliary_move=_place_auxiliary_ai_move_on_board,
+    )
 
 
 async def _run_ai_observer_loop(game: GoGame, send_fn):
     try:
-        while not game.game_over and game.ai_observer and engine.ready:
-            await _sync_board_to_katago(game)
-            color = game.current_player
-            level = game.ai_level_black if color == "B" else game.ai_level_white
-            visits = get_game_visits(level, len(game.moves))
-            time_limit = 4.0 if len(game.moves) < OPENING_MOVE_THRESHOLD else 8.0
-            gtp_move = await _generate_ai_style_move(game, color, visits, time_limit)
-            if _is_suspicious_ai_pass(game, gtp_move, color):
-                fallback_move = await _pick_nonpass_fallback_move(game, color, visits)
-                if fallback_move:
-                    gtp_move = fallback_move
-            placement = _apply_observer_ai_move_to_board(game, color, gtp_move)
-            coord = placement.coord
-            await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color, "x": coord[0] if coord else None, "y": coord[1] if coord else None})
-            game.current_player = "W" if color == "B" else "B"
-            game.push_history()
-            await send_fn({"type": "game_state", **game.to_state()})
-            if await _finish_observer_double_pass(game, send_fn):
-                break
-            await asyncio.sleep(0.35)
+        await run_ai_observer_loop_state(
+            game,
+            send_fn,
+            AiObserverLoopDeps(
+                engine_ready=lambda: engine.ready,
+                sync_board=_sync_board_to_katago,
+                get_game_visits=get_game_visits,
+                generate_ai_style_move=_generate_ai_style_move,
+                is_suspicious_ai_pass=_is_suspicious_ai_pass,
+                pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
+                place_ai_move_on_board=_apply_observer_ai_move_to_board,
+                finish_double_pass=_finish_observer_double_pass,
+                sleep=asyncio.sleep,
+                opening_move_threshold=OPENING_MOVE_THRESHOLD,
+            ),
+        )
     except WebSocketDisconnect:
         return
 

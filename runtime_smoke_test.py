@@ -279,6 +279,49 @@ async def ultimate_smoke(base_ws: str) -> dict:
     }
 
 
+async def observer_smoke(base_ws: str) -> dict:
+    game_id = "runtime-observer-" + uuid.uuid4().hex[:8]
+    transcript: list[dict] = []
+    async with websocket_connect(base_ws, game_id) as ws:
+        await ws.send(json.dumps({
+            "action": "new_game",
+            "size": 9,
+            "komi": 7.5,
+            "handicap": 0,
+            "player_color": "B",
+            "level": "5k",
+            "ai_level_black": "5k",
+            "ai_level_white": "5k",
+            "two_player": False,
+            "ai_observer": True,
+            "rogue": False,
+            "ai_rogue": False,
+            "ultimate": False,
+            "challenge_beta": False,
+        }))
+        await recv_until(ws, lambda m: m.get("type") == "game_start", timeout=20, transcript=transcript)
+        ai_move = await recv_until(ws, lambda m: m.get("type") == "ai_move", timeout=35, transcript=transcript)
+        state = await recv_until(
+            ws,
+            lambda m: m.get("type") == "game_state" and int(m.get("move_number") or 0) >= 1,
+            timeout=20,
+            transcript=transcript,
+        )
+
+    passed = (
+        ai_move.get("color") in {"B", "W"}
+        and bool(ai_move.get("gtp"))
+        and state.get("ai_observer") is True
+    )
+    return {
+        "game_id": game_id,
+        "ai_move": ai_move.get("gtp"),
+        "color": ai_move.get("color"),
+        "move_number": state.get("move_number"),
+        "status": "passed" if passed else "failed",
+    }
+
+
 async def capture_smoke(base_ws: str) -> dict:
     game_id = "runtime-capture-" + uuid.uuid4().hex[:8]
     transcript: list[dict] = []
@@ -395,6 +438,7 @@ async def run_smoke(base_url: str) -> dict:
         "normal": await normal_smoke(base_url, ws_base),
         "rogue": await rogue_smoke(ws_base),
         "ultimate": await ultimate_smoke(ws_base),
+        "observer": await observer_smoke(ws_base),
         "capture_rule": await capture_smoke(ws_base),
         "ko_rule": await ko_smoke(ws_base),
     }
@@ -414,7 +458,7 @@ def main() -> int:
     print(json.dumps(results, ensure_ascii=False, indent=2))
 
     failures = [
-        key for key in ("normal", "rogue", "ultimate", "capture_rule", "ko_rule")
+        key for key in ("normal", "rogue", "ultimate", "observer", "capture_rule", "ko_rule")
         if results.get(key, {}).get("status") != "passed"
     ]
     return 1 if failures else 0
