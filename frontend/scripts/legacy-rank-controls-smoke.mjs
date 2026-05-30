@@ -66,6 +66,9 @@ try {
         woodValue: document.querySelector(`#${id} + .wood-select-button .wood-select-value`)?.textContent?.trim() || "",
       };
     });
+    const customSelect = document.createElement("select");
+    populateRankSelect(customSelect, "p3d");
+    const customOptions = Array.from(customSelect.options);
     return {
       publicFns: [
         typeof window.initializeRankControls,
@@ -74,10 +77,22 @@ try {
         typeof window.populateRankSelect,
       ],
       selectStates,
+      customSelect: {
+        value: customSelect.value,
+        optionCount: customOptions.length,
+        disabledCount: customOptions.filter(option => option.disabled).length,
+        selectedP3d: customSelect.querySelector('option[value="p3d"]')?.selected || false,
+        selectedText: customSelect.querySelector('option[value="p3d"]')?.textContent || "",
+      },
     };
   });
 
   assert(initialState.publicFns.every(type => type === "function"), `rank control globals missing: ${initialState.publicFns.join(", ")}`);
+  assert(initialState.customSelect.value === "p3d", `custom default rank did not select p3d: ${JSON.stringify(initialState.customSelect)}`);
+  assert(initialState.customSelect.optionCount === 39, `custom rank option count changed: ${initialState.customSelect.optionCount}`);
+  assert(initialState.customSelect.disabledCount === 3, `custom rank separator count changed: ${initialState.customSelect.disabledCount}`);
+  assert(initialState.customSelect.selectedP3d, `custom p3d option was not selected: ${JSON.stringify(initialState.customSelect)}`);
+  assert(initialState.customSelect.selectedText.length > 0, "custom selected rank text missing");
   initialState.selectStates.forEach(state => {
     assert(state.value === "5k", `${state.id}: GPU default rank did not apply: ${state.value}`);
     assert(state.optionCount === 39, `${state.id}: rank option count changed: ${state.optionCount}`);
