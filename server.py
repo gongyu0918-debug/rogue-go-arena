@@ -87,6 +87,16 @@ from app.runtime.config_api import (
     save_balance_request,
     save_card_config_request,
 )
+from app.runtime.challenge_adapters import (
+    ChallengeFlowBinding,
+    ChallengeLoadoutBinding,
+    apply_challenge_loadout,
+    apply_challenge_trap_bonus as apply_challenge_trap_bonus_adapter,
+    build_challenge_flow_deps,
+    build_challenge_loadout_flow_deps,
+    emit_challenge_set_status,
+    maybe_reduce_challenge_level,
+)
 from app.runtime.engine_control_api import restart_katago_request, stop_katago_request
 from app.runtime.engine_gateway import EngineRuntimeGateway
 from app.runtime.gpu_info import CachedGpuInfo, apply_runtime_gpu_overrides
@@ -140,10 +150,6 @@ from app.gameplay.card_selection import (
 from app.gameplay.challenge_flow import (
     ChallengeFlowDeps,
     ChallengeLoadoutFlowDeps,
-    apply_challenge_rogue_loadout_event,
-    apply_challenge_trap_bonus_event,
-    emit_challenge_set_bonus_status,
-    maybe_reduce_challenge_ai_level,
 )
 from app.gameplay.line_trigger_flow import (
     RogueFiveInRowDeps,
@@ -877,8 +883,8 @@ def _get_ai_rogue_forbidden_points(game: GoGame) -> list[tuple[int, int]]:
     return get_ai_rogue_forbidden_points_adapter(game)
 
 
-def _challenge_flow_deps() -> ChallengeFlowDeps:
-    return ChallengeFlowDeps(
+def _challenge_flow_binding() -> ChallengeFlowBinding:
+    return ChallengeFlowBinding(
         roll_random=random.random,
         trap_extra_turn_chance=CHALLENGE_TRAP_EXTRA_TURN_CHANCE,
         restriction_decay_chance=CHALLENGE_RESTRICTION_DECAY_CHANCE,
@@ -892,8 +898,12 @@ def _challenge_flow_deps() -> ChallengeFlowDeps:
     )
 
 
-def _challenge_loadout_flow_deps() -> ChallengeLoadoutFlowDeps:
-    return ChallengeLoadoutFlowDeps(
+def _challenge_flow_deps() -> ChallengeFlowDeps:
+    return build_challenge_flow_deps(_challenge_flow_binding())
+
+
+def _challenge_loadout_binding() -> ChallengeLoadoutBinding:
+    return ChallengeLoadoutBinding(
         apply_loadout=apply_challenge_rogue_loadout_state,
         card_ids_fn=rogue_card_ids,
         get_rogue_card_fn=get_rogue_card,
@@ -914,28 +924,32 @@ def _challenge_loadout_flow_deps() -> ChallengeLoadoutFlowDeps:
     )
 
 
+def _challenge_loadout_flow_deps() -> ChallengeLoadoutFlowDeps:
+    return build_challenge_loadout_flow_deps(_challenge_loadout_binding())
+
+
 async def _challenge_apply_trap_bonus(game: GoGame, send_fn, source_name: str) -> None:
-    await apply_challenge_trap_bonus_event(
+    await apply_challenge_trap_bonus_adapter(
         game,
         send_fn,
         source_name,
-        _challenge_flow_deps(),
+        _challenge_flow_binding(),
     )
 
 
 async def _challenge_maybe_reduce_ai_level(game: GoGame, send_fn) -> None:
-    await maybe_reduce_challenge_ai_level(
+    await maybe_reduce_challenge_level(
         game,
         send_fn,
-        _challenge_flow_deps(),
+        _challenge_flow_binding(),
     )
 
 
 async def _challenge_emit_set_bonus_status(game: GoGame, send_fn) -> None:
-    await emit_challenge_set_bonus_status(
+    await emit_challenge_set_status(
         game,
         send_fn,
-        _challenge_flow_deps(),
+        _challenge_flow_binding(),
     )
 
 
@@ -1022,10 +1036,10 @@ async def _activate_ai_rogue_card(game: GoGame, send_fn, card_id: str):
 
 
 async def _apply_challenge_rogue_loadout(game: GoGame, send_fn):
-    await apply_challenge_rogue_loadout_event(
+    await apply_challenge_loadout(
         game,
         send_fn,
-        _challenge_loadout_flow_deps(),
+        _challenge_loadout_binding(),
     )
 
 
