@@ -1,12 +1,41 @@
 // Server event message translation helpers for the legacy UI.
-function translateServerEventMessageLegacy(message) {
-  if (currentLang !== "en" || !message) return message || "";
-  const translateCorner = (corner) => ({
+const SERVER_EVENT_CORNER_LABELS = {
+  en: {
     "左上角": "top-left corner",
     "右上角": "top-right corner",
     "左下角": "bottom-left corner",
     "右下角": "bottom-right corner",
-  }[corner] || corner);
+  },
+  ja: {
+    "左上角": "左上隅",
+    "右上角": "右上隅",
+    "左下角": "左下隅",
+    "右下角": "右下隅",
+  },
+  ko: {
+    "左上角": "좌상귀",
+    "右上角": "우상귀",
+    "左下角": "좌하귀",
+    "右下角": "우하귀",
+  },
+};
+
+function translateServerEventCorner(corner, lang) {
+  const fallbackLang = lang === "en" || lang === "ja" ? lang : "ko";
+  return SERVER_EVENT_CORNER_LABELS[fallbackLang]?.[corner] || corner;
+}
+
+function translateServerEventByPatterns(source, patterns) {
+  for (const [pattern, formatter] of patterns) {
+    const match = source.match(pattern);
+    if (match) return formatter(...match.slice(1));
+  }
+  return null;
+}
+
+function translateServerEventMessageLegacy(message) {
+  if (currentLang !== "en" || !message) return message || "";
+  const translateCorner = (corner) => translateServerEventCorner(corner, "en");
   const patterns = [
     [/^🎭 傀儡术待命：你先正常落子，随后 AI 会被迫下在 (.+)$/, (gtp) => `🎭 Puppet ready: play normally first, then the AI will be forced to ${gtp}.`],
     [/^⚡ 双子星辰！你可以继续落子$/, () => "⚡ Combo: you may play again."],
@@ -74,11 +103,8 @@ function translateServerEventMessageLegacy(message) {
     [/^🐛 蚕食！AI 提 (\d+) 子，贴目变为 (.+)$/, (captured, komi) => `🐛 Erosion! The AI captured ${captured} stones, komi is now ${komi}.`],
     [/^打劫禁着：不能立即提回$/, () => "Ko rule: you cannot immediately recapture."],
   ];
-  for (const [pattern, formatter] of patterns) {
-    const m = message.match(pattern);
-    if (m) return formatter(...m.slice(1));
-  }
-  return message;
+  const translated = translateServerEventByPatterns(message, patterns);
+  return translated === null ? message : translated;
 }
 
 function translateServerEventMessage(message) {
@@ -87,12 +113,7 @@ function translateServerEventMessage(message) {
   if (currentLang === "en") return translateServerEventMessageLegacy(source);
   if (currentLang === "zh") return source;
   const pick = (ja, ko) => currentLang === "ja" ? ja : ko;
-  const translateCorner = (corner) => ({
-    "左上角": pick("左上隅", "좌상귀"),
-    "右上角": pick("右上隅", "우상귀"),
-    "左下角": pick("左下隅", "좌하귀"),
-    "右下角": pick("右下隅", "우하귀"),
-  }[corner] || corner);
+  const translateCorner = (corner) => translateServerEventCorner(corner, currentLang);
   const patterns = [
     [/^暂无进行中的对局$/, () => pick("進行中の対局はありません", "진행 중인 대국이 없습니다")],
     [/^KataGo尚未就绪，当前不能进行 AI 对局$/, () => pick("KataGoはまだ準備できていないため、AI対局は開始できません", "KataGo가 아직 준비되지 않아 AI 대국을 진행할 수 없습니다")],
@@ -192,10 +213,7 @@ function translateServerEventMessage(message) {
     [/^蚕食反制：AI 提掉了 (\d+) 子，当前贴目变为 (.+)$/, (captured, komi) => pick(`蚕食反制：AIが${captured}子を取り、コミは${komi}になりました`, `잠식 반격: AI가 ${captured}자를 따냈고 덤은 ${komi}입니다`)],
     [/^🐛 蚕食！AI 提 (\d+) 子，贴目变为 (.+)$/, (captured, komi) => pick(`🐛 蚕食！AIが${captured}子を取り、コミは${komi}になりました`, `🐛 잠식! AI가 ${captured}자를 따냈고 덤은 ${komi}입니다`)],
   ];
-  for (const [pattern, formatter] of patterns) {
-    const match = source.match(pattern);
-    if (match) return formatter(...match.slice(1));
-  }
-  return source;
+  const translated = translateServerEventByPatterns(source, patterns);
+  return translated === null ? source : translated;
 }
 

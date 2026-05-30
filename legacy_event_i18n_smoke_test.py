@@ -39,6 +39,9 @@ expect("en", "打劫禁着：不能立即提回", "Ko rule: you cannot immediate
 expect("ja", "打劫禁着：不能立即提回", "コウの禁着：すぐに取り返せません");
 expect("ko", "打劫禁着：不能立即提回", "패 금지: 즉시 되따낼 수 없습니다");
 expect("en", "黄金角已封锁 左上角 的 4x4 区域", "Golden Corner sealed the 4x4 area in the top-left corner.");
+expect("ja", "黄金角已封锁 左上角 的 4x4 区域", "黄金角が左上隅の4x4領域を封鎖しました");
+expect("ko", "黄金角已封锁 左上角 的 4x4 区域", "황금귀가 좌상귀의 4x4 구역을 봉쇄했습니다");
+expect("fr", "黄金角已封锁 左上角 的 4x4 区域", "황금귀가 좌상귀의 4x4 구역을 봉쇄했습니다");
 expect("ja", "你可以继续落子", "続けて着手できます");
 expect("ko", "你可以继续落子", "계속 착수할 수 있습니다");
 expect("en", "unmatched server event", "unmatched server event");
