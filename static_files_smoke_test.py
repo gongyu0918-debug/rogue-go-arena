@@ -8,6 +8,12 @@ from fastapi.responses import FileResponse
 
 import server as s
 from app.runtime.static_files import serve_existing_file
+from app.runtime.static_pages import (
+    serve_balance_lab_page,
+    serve_card_editor_page,
+    serve_react_preview_page,
+    serve_root_page,
+)
 
 
 def body_text(response) -> str:
@@ -37,6 +43,42 @@ def smoke_static_file_helper_preserves_file_and_missing_responses() -> None:
         assert missing_response.status_code == 404
         assert missing_response.media_type == "text/plain; charset=utf-8"
         assert body_text(missing_response) == "custom missing"
+
+
+def smoke_static_page_helpers_preserve_paths_and_missing_messages() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        root = Path(temp_dir)
+        (root / "react").mkdir()
+        (root / "index.html").write_text("legacy", encoding="utf-8")
+        (root / "react" / "index.html").write_text("react", encoding="utf-8")
+        (root / "card_editor.html").write_text("editor", encoding="utf-8")
+
+        assert Path(serve_root_page(root).path) == root / "index.html"
+        assert Path(serve_react_preview_page(root).path) == root / "react" / "index.html"
+        assert Path(serve_balance_lab_page(root).path) == root / "card_editor.html"
+        assert Path(serve_card_editor_page(root).path) == root / "card_editor.html"
+
+        (root / "index.html").unlink()
+        (root / "react" / "index.html").unlink()
+        (root / "card_editor.html").unlink()
+
+        missing_root = serve_root_page(root)
+        assert missing_root.status_code == 500
+        assert body_text(missing_root) == "static/index.html not found"
+
+        missing_preview = serve_react_preview_page(root)
+        assert missing_preview.status_code == 404
+        assert body_text(missing_preview) == (
+            "static/react/index.html not found. Run npm run build --prefix frontend."
+        )
+
+        missing_editor = serve_balance_lab_page(root)
+        assert missing_editor.status_code == 500
+        assert body_text(missing_editor) == "static/card_editor.html not found"
+
+        missing_card_editor = serve_card_editor_page(root)
+        assert missing_card_editor.status_code == 500
+        assert body_text(missing_card_editor) == "static/card_editor.html not found"
 
 
 async def smoke_server_static_routes_preserve_paths_and_missing_messages() -> None:
@@ -72,12 +114,17 @@ async def smoke_server_static_routes_preserve_paths_and_missing_messages() -> No
             missing_editor = await s.balance_lab()
             assert missing_editor.status_code == 500
             assert body_text(missing_editor) == "static/card_editor.html not found"
+
+            missing_card_editor = await s.card_editor()
+            assert missing_card_editor.status_code == 500
+            assert body_text(missing_card_editor) == "static/card_editor.html not found"
         finally:
             s.STATIC_DIR = original_static_dir
 
 
 async def main() -> None:
     smoke_static_file_helper_preserves_file_and_missing_responses()
+    smoke_static_page_helpers_preserve_paths_and_missing_messages()
     await smoke_server_static_routes_preserve_paths_and_missing_messages()
     print("static files smoke test: OK")
 

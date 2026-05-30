@@ -106,7 +106,12 @@ from app.runtime.service_bindings import (
     sync_engine_komi,
 )
 from app.runtime.sgf_export import build_sgf_export_response
-from app.runtime.static_files import serve_existing_file
+from app.runtime.static_pages import (
+    serve_balance_lab_page,
+    serve_card_editor_page,
+    serve_react_preview_page,
+    serve_root_page,
+)
 from app.runtime.status_endpoint import build_runtime_status_payload
 from app.runtime.ws_context import (
     WebSocketContextDeps,
@@ -482,34 +487,22 @@ async def no_cache_html(request: Request, call_next):
 
 @app.get("/")
 async def root():
-    return serve_existing_file(
-        STATIC_DIR / "index.html",
-        missing_message="static/index.html not found",
-        missing_status_code=500,
-    )
+    return serve_root_page(STATIC_DIR)
 
 
 @app.get("/react-preview")
 async def react_preview():
-    return serve_existing_file(
-        STATIC_DIR / "react" / "index.html",
-        missing_message="static/react/index.html not found. Run npm run build --prefix frontend.",
-        missing_status_code=404,
-    )
+    return serve_react_preview_page(STATIC_DIR)
 
 
 @app.get("/balance-lab")
 async def balance_lab():
-    return serve_existing_file(
-        STATIC_DIR / "card_editor.html",
-        missing_message="static/card_editor.html not found",
-        missing_status_code=500,
-    )
+    return serve_balance_lab_page(STATIC_DIR)
 
 
 @app.get("/card-editor")
 async def card_editor():
-    return await balance_lab()
+    return serve_card_editor_page(STATIC_DIR)
 
 
 @app.get("/api/card-config")
