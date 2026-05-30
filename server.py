@@ -99,6 +99,16 @@ from app.runtime.challenge_adapters import (
 )
 from app.runtime.engine_control_api import restart_katago_request, stop_katago_request
 from app.runtime.engine_gateway import EngineRuntimeGateway
+from app.runtime.generated_ai_adapters import (
+    GeneratedAiTurnBinding,
+    GeneratedMoveCandidateBinding,
+    GeneratedMoveFinishBinding,
+    GeneratedMovePreparationBinding,
+    build_generated_move_candidate_deps,
+    build_generated_move_finish_deps,
+    build_generated_move_preparation_deps,
+    try_finish_generated_ai_turn as try_finish_generated_ai_turn_adapter,
+)
 from app.runtime.gpu_info import CachedGpuInfo, apply_runtime_gpu_overrides
 from app.runtime.katago_paths import (
     UserKataGoPaths,
@@ -240,10 +250,6 @@ from app.gameplay.shadow_rogue_ai_turn_flow import (
 from app.gameplay.suboptimal_rogue_ai_turn_flow import (
     SuboptimalRogueAiTurnDeps,
     try_finish_suboptimal_rogue_ai_turn_event,
-)
-from app.gameplay.generated_ai_turn_flow import (
-    GeneratedAiTurnDeps,
-    try_finish_generated_ai_turn_event,
 )
 from app.gameplay.ai_observer import (
     AiObserverLoopDeps,
@@ -1301,8 +1307,8 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
     )
 
 
-def _generated_ai_move_candidate_deps() -> GeneratedMoveCandidateDeps:
-    return GeneratedMoveCandidateDeps(
+def _generated_ai_move_candidate_binding() -> GeneratedMoveCandidateBinding:
+    return GeneratedMoveCandidateBinding(
         choose_candidate=choose_ai_move_candidate,
         choose_avoid_move=_ai_move_avoid_points,
         analyze_position=_analyze_current_position,
@@ -1313,8 +1319,12 @@ def _generated_ai_move_candidate_deps() -> GeneratedMoveCandidateDeps:
     )
 
 
-def _generated_ai_move_preparation_deps() -> GeneratedMovePreparationDeps:
-    return GeneratedMovePreparationDeps(
+def _generated_ai_move_candidate_deps() -> GeneratedMoveCandidateDeps:
+    return build_generated_move_candidate_deps(_generated_ai_move_candidate_binding())
+
+
+def _generated_ai_move_preparation_binding() -> GeneratedMovePreparationBinding:
+    return GeneratedMovePreparationBinding(
         prepare_move=prepare_generated_ai_move,
         apply_suspicious_pass_fallback_fn=apply_suspicious_pass_fallback,
         is_suspicious_pass=_is_suspicious_ai_pass,
@@ -1333,8 +1343,12 @@ def _generated_ai_move_preparation_deps() -> GeneratedMovePreparationDeps:
     )
 
 
-def _generated_ai_move_finish_deps(run_engine_command) -> GeneratedMoveFinishDeps:
-    return GeneratedMoveFinishDeps(
+def _generated_ai_move_preparation_deps() -> GeneratedMovePreparationDeps:
+    return build_generated_move_preparation_deps(_generated_ai_move_preparation_binding())
+
+
+def _generated_ai_move_finish_binding(run_engine_command) -> GeneratedMoveFinishBinding:
+    return GeneratedMoveFinishBinding(
         finish_move=finish_prepared_ai_move,
         apply_placement_effects=apply_ai_move_placement_effects,
         finish_turn_response=finish_ai_turn_response,
@@ -1364,6 +1378,21 @@ def _generated_ai_move_finish_deps(run_engine_command) -> GeneratedMoveFinishDep
         run_double_pass_command=run_engine_command,
         send_ai_move_response=send_ai_move_and_run_coach,
         run_coach_turn_if_needed=_run_coach_turn_if_needed,
+    )
+
+
+def _generated_ai_move_finish_deps(run_engine_command) -> GeneratedMoveFinishDeps:
+    return build_generated_move_finish_deps(_generated_ai_move_finish_binding(run_engine_command))
+
+
+def _generated_ai_turn_binding() -> GeneratedAiTurnBinding:
+    return GeneratedAiTurnBinding(
+        rogue_forbidden_points=rogue_forbidden_points,
+        challenge_zone_points=_challenge_zone_points,
+        try_finish_generated_ai_move=try_finish_generated_ai_move,
+        candidate_deps=_generated_ai_move_candidate_deps,
+        preparation_deps=_generated_ai_move_preparation_deps,
+        finish_deps=_generated_ai_move_finish_deps,
     )
 
 
@@ -1480,20 +1509,13 @@ async def _try_finish_generated_ai_turn(
     ai_plan: AiMovePlan,
     run_engine_command,
 ) -> bool:
-    return await try_finish_generated_ai_turn_event(
+    return await try_finish_generated_ai_turn_adapter(
         game,
         send_fn,
         turn,
         ai_plan,
         run_engine_command,
-        GeneratedAiTurnDeps(
-            rogue_forbidden_points=rogue_forbidden_points,
-            challenge_zone_points=_challenge_zone_points,
-            try_finish_generated_ai_move=try_finish_generated_ai_move,
-            candidate_deps=_generated_ai_move_candidate_deps,
-            preparation_deps=_generated_ai_move_preparation_deps,
-            finish_deps=_generated_ai_move_finish_deps,
-        ),
+        _generated_ai_turn_binding(),
     )
 
 
