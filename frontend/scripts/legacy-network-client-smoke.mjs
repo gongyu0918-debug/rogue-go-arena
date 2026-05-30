@@ -65,8 +65,43 @@ try {
     const manualBadgeState = {
       cachedBackend: window.__rogueGoArenaNetworkStatus?.engine_backend || "",
       engineValue: document.querySelector("#client-engine-value")?.textContent || "",
+      engineTitle: document.querySelector("#client-engine-value")?.title || "",
       hudEngine: document.querySelector("#hud-engine")?.textContent || "",
     };
+
+    const defaultCardLabel = document.querySelector("#hud-card")?.textContent || "";
+    activeRogueCard = "quickthink";
+    ultimateMode = false;
+    syncClientShell();
+    const rogueCardLabel = document.querySelector("#hud-card")?.textContent || "";
+    const expectedRogueCardLabel = getRogueCardName("quickthink") || "";
+    activeRogueCard = null;
+    ultimateMode = true;
+    ultimatePlayerCard = "chain";
+    syncClientShell();
+    const ultimateCardLabel = document.querySelector("#hud-card")?.textContent || "";
+    const expectedUltimateCardLabel = getUltimateCardName("chain") || "";
+    ultimateMode = false;
+    ultimatePlayerCard = null;
+    syncClientShell();
+
+    const previousLang = currentLang;
+    await ensureLocale("en");
+    await ensureLocale("ja");
+    await ensureLocale("ko");
+    currentLang = "en";
+    const englishEngineState = {
+      localized: localizeEngineText("CUDA(升级包) 引擎已就绪 CPU 模式 高端"),
+      ready: engineStatusText({ katago_ready: true, engine_backend: "CUDA(升级包)", engine_model: "SmokeModel" }, true),
+      modelReady: engineStatusText({ katago_model: true, katago_model_name: "SmokeModel" }, true),
+      standby: engineStatusText({}, true),
+      checking: engineStatusText({}, false),
+    };
+    currentLang = "ja";
+    const japaneseEngineText = localizeEngineText("引擎初始化中 CPU 模式");
+    currentLang = "ko";
+    const koreanEngineText = localizeEngineText("AI 在线 高端");
+    currentLang = previousLang;
 
     const originalSync = syncClientShell;
     let syncCalls = 0;
@@ -110,6 +145,14 @@ try {
       afterClosedSendCount,
       afterNullSendCount,
       manualBadgeState,
+      defaultCardLabel,
+      rogueCardLabel,
+      expectedRogueCardLabel,
+      ultimateCardLabel,
+      expectedUltimateCardLabel,
+      englishEngineState,
+      japaneseEngineText,
+      koreanEngineText,
       afterLiveRefresh,
       afterNotOk,
       afterFailure,
@@ -124,7 +167,21 @@ try {
   assert(state.afterNullSendCount === 1, `null WebSocket should not send: ${state.afterNullSendCount}`);
   assert(state.manualBadgeState.cachedBackend === "SmokeEngine", `manual network cache changed: ${JSON.stringify(state.manualBadgeState)}`);
   assert(state.manualBadgeState.engineValue.includes("SmokeEngine"), `manual engine text changed: ${state.manualBadgeState.engineValue}`);
+  assert(state.manualBadgeState.engineTitle.includes("SmokeEngine"), `manual engine title changed: ${state.manualBadgeState.engineTitle}`);
   assert(state.manualBadgeState.hudEngine.includes("SmokeEngine"), `manual HUD engine changed: ${state.manualBadgeState.hudEngine}`);
+  assert(state.defaultCardLabel.includes("无卡牌") || state.defaultCardLabel.includes("No Card"), `default card HUD changed: ${state.defaultCardLabel}`);
+  assert(state.expectedRogueCardLabel.length > 0, "expected rogue card label missing");
+  assert(state.rogueCardLabel === state.expectedRogueCardLabel, `rogue card HUD changed: ${state.rogueCardLabel}`);
+  assert(state.expectedUltimateCardLabel.length > 0, "expected ultimate card label missing");
+  assert(state.ultimateCardLabel === state.expectedUltimateCardLabel, `ultimate card HUD changed: ${state.ultimateCardLabel}`);
+  assert(state.englishEngineState.localized.includes("CUDA (upgrade pack)") && state.englishEngineState.localized.includes("engine ready"), `English engine localization changed: ${state.englishEngineState.localized}`);
+  assert(state.englishEngineState.localized.includes("CPU mode") && state.englishEngineState.localized.includes("high-end"), `English engine replacements incomplete: ${state.englishEngineState.localized}`);
+  assert(state.englishEngineState.ready === "CUDA (upgrade pack) · SmokeModel", `ready engine status changed: ${state.englishEngineState.ready}`);
+  assert(state.englishEngineState.modelReady === "Model ready · SmokeModel", `model-ready engine status changed: ${state.englishEngineState.modelReady}`);
+  assert(state.englishEngineState.standby === "AI standby", `connected fallback engine status changed: ${state.englishEngineState.standby}`);
+  assert(state.englishEngineState.checking === "Checking...", `checking fallback engine status changed: ${state.englishEngineState.checking}`);
+  assert(state.japaneseEngineText.includes("エンジン起動中") && state.japaneseEngineText.includes("CPUモード"), `Japanese engine localization changed: ${state.japaneseEngineText}`);
+  assert(state.koreanEngineText.includes("AI 온라인") && state.koreanEngineText.includes("하이엔드"), `Korean engine localization changed: ${state.koreanEngineText}`);
   assert(state.afterLiveRefresh.returnedObject, "refreshNetworkInfo did not return live status object");
   assert(state.afterLiveRefresh.cachedSameObject, "refreshNetworkInfo did not cache returned status object");
   assert(state.afterLiveRefresh.syncCalls >= 1, `refreshNetworkInfo did not sync shell on success: ${state.afterLiveRefresh.syncCalls}`);

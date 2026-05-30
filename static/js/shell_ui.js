@@ -1,5 +1,44 @@
 // Shared UI shell helpers for labels, connection state, and top HUD state.
 
+const ENGINE_TEXT_REPLACEMENTS = {
+  en: [
+    [/CUDA\(升级包\)/g, "CUDA (upgrade pack)"],
+    [/升级包/g, "upgrade pack"],
+    [/引擎已就绪/g, "engine ready"],
+    [/引擎初始化中/g, "engine starting"],
+    [/引擎检测中/g, "checking engine"],
+    [/检测中/g, "checking"],
+    [/AI 待命/g, "AI ready"],
+    [/AI 在线/g, "AI online"],
+    [/CPU 模式/g, "CPU mode"],
+    [/高端/g, "high-end"],
+  ],
+  ja: [
+    [/CUDA\(升级包\)/g, "CUDA(アップグレード版)"],
+    [/升级包/g, "アップグレード版"],
+    [/引擎已就绪/g, "エンジン準備完了"],
+    [/引擎初始化中/g, "エンジン起動中"],
+    [/引擎检测中/g, "エンジン確認中"],
+    [/检测中/g, "確認中"],
+    [/AI 待命/g, "AI待機中"],
+    [/AI 在线/g, "AIオンライン"],
+    [/CPU 模式/g, "CPUモード"],
+    [/高端/g, "ハイエンド"],
+  ],
+  ko: [
+    [/CUDA\(升级包\)/g, "CUDA(업그레이드팩)"],
+    [/升级包/g, "업그레이드팩"],
+    [/引擎已就绪/g, "엔진 준비됨"],
+    [/引擎初始化中/g, "엔진 시작 중"],
+    [/引擎检测中/g, "엔진 확인 중"],
+    [/检测中/g, "확인 중"],
+    [/AI 待命/g, "AI 대기"],
+    [/AI 在线/g, "AI 온라인"],
+    [/CPU 模式/g, "CPU 모드"],
+    [/高端/g, "하이엔드"],
+  ],
+};
+
 function setText(selector, text) {
   const el = document.querySelector(selector);
   if (el) el.textContent = text;
@@ -95,45 +134,10 @@ function localizeEngineText(text) {
   if (!text) return "";
   const source = String(text);
   if (currentLang === "zh") return source;
-  const maps = {
-    en: [
-      [/CUDA\(升级包\)/g, "CUDA (upgrade pack)"],
-      [/升级包/g, "upgrade pack"],
-      [/引擎已就绪/g, "engine ready"],
-      [/引擎初始化中/g, "engine starting"],
-      [/引擎检测中/g, "checking engine"],
-      [/检测中/g, "checking"],
-      [/AI 待命/g, "AI ready"],
-      [/AI 在线/g, "AI online"],
-      [/CPU 模式/g, "CPU mode"],
-      [/高端/g, "high-end"],
-    ],
-    ja: [
-      [/CUDA\(升级包\)/g, "CUDA(アップグレード版)"],
-      [/升级包/g, "アップグレード版"],
-      [/引擎已就绪/g, "エンジン準備完了"],
-      [/引擎初始化中/g, "エンジン起動中"],
-      [/引擎检测中/g, "エンジン確認中"],
-      [/检测中/g, "確認中"],
-      [/AI 待命/g, "AI待機中"],
-      [/AI 在线/g, "AIオンライン"],
-      [/CPU 模式/g, "CPUモード"],
-      [/高端/g, "ハイエンド"],
-    ],
-    ko: [
-      [/CUDA\(升级包\)/g, "CUDA(업그레이드팩)"],
-      [/升级包/g, "업그레이드팩"],
-      [/引擎已就绪/g, "엔진 준비됨"],
-      [/引擎初始化中/g, "엔진 시작 중"],
-      [/引擎检测中/g, "엔진 확인 중"],
-      [/检测中/g, "확인 중"],
-      [/AI 待命/g, "AI 대기"],
-      [/AI 在线/g, "AI 온라인"],
-      [/CPU 模式/g, "CPU 모드"],
-      [/高端/g, "하이엔드"],
-    ],
-  };
-  return (maps[currentLang] || []).reduce((value, [pattern, replacement]) => value.replace(pattern, replacement), source);
+  return (ENGINE_TEXT_REPLACEMENTS[currentLang] || []).reduce(
+    (value, [pattern, replacement]) => value.replace(pattern, replacement),
+    source
+  );
 }
 
 function engineStatusText(net, connected) {
@@ -152,39 +156,67 @@ function engineStatusText(net, connected) {
   return connected ? ui("AI 待命", "AI ready") : ui("检测中…", "Checking...");
 }
 
+function clientShellElements() {
+  return {
+    statusValue: document.getElementById("client-status-value"),
+    engineValue: document.getElementById("client-engine-value"),
+    modeValue: document.getElementById("client-mode-value"),
+    runValue: document.getElementById("client-run-value"),
+    hudMode: document.getElementById("hud-mode"),
+    hudMove: document.getElementById("hud-move"),
+    hudTurn: document.getElementById("hud-turn"),
+    hudCard: document.getElementById("hud-card"),
+    hudEngine: document.getElementById("hud-engine"),
+  };
+}
+
+function currentCardLabel() {
+  if (ultimateMode) return `${getUltimateCardName(ultimatePlayerCard) || ui("待选大招", "Pick Ultimate")}`;
+  return activeRogueCard ? getRogueCardName(activeRogueCard) : ui("无卡牌", "No Card");
+}
+
+function setEngineShellValue(engineValue, net, connected) {
+  if (!engineValue) return;
+  const engineText = engineStatusText(net, connected);
+  engineValue.textContent = engineText;
+  engineValue.title = net.katago_model_name
+    ? `${engineText} · ${net.katago_model_name}`
+    : engineText;
+}
+
+function hudEngineText(net, connected) {
+  return net.engine_backend
+    ? localizeEngineText(net.engine_backend)
+    : (connected ? ui("AI 在线", "AI online") : ui("AI 待命", "AI standby"));
+}
+
 function syncClientShell() {
-  const statusValue = document.getElementById("client-status-value");
-  const engineValue = document.getElementById("client-engine-value");
-  const modeValue = document.getElementById("client-mode-value");
-  const runValue = document.getElementById("client-run-value");
-  const hudMode = document.getElementById("hud-mode");
-  const hudMove = document.getElementById("hud-move");
-  const hudTurn = document.getElementById("hud-turn");
-  const hudCard = document.getElementById("hud-card");
-  const hudEngine = document.getElementById("hud-engine");
+  const {
+    statusValue,
+    engineValue,
+    modeValue,
+    runValue,
+    hudMode,
+    hudMove,
+    hudTurn,
+    hudCard,
+    hudEngine,
+  } = clientShellElements();
   const connected = !!ws && ws.readyState === WebSocket.OPEN;
   const net = window.__rogueGoArenaNetworkStatus || {};
   const modeLabel = currentModeLabel();
   const turnLabel = currentTurnLabel();
   const moveText = String(gameState?.move_number || 0);
-  const cardText = ultimateMode
-    ? `${getUltimateCardName(ultimatePlayerCard) || ui("待选大招", "Pick Ultimate")}`
-    : (activeRogueCard ? getRogueCardName(activeRogueCard) : ui("无卡牌", "No Card"));
+  const cardText = currentCardLabel();
   if (statusValue) statusValue.textContent = connected ? ui("已连接", "Connected") : ui("连接中…", "Connecting...");
-  if (engineValue) {
-    const engineText = engineStatusText(net, connected);
-    engineValue.textContent = engineText;
-    engineValue.title = net.katago_model_name
-      ? `${engineText} · ${net.katago_model_name}`
-      : engineText;
-  }
+  setEngineShellValue(engineValue, net, connected);
   if (modeValue) modeValue.textContent = modeLabel;
   if (runValue) runValue.textContent = gameState ? `${moveNumberText(moveText)} · ${turnLabel}` : ui("待开始", "Ready");
   if (hudMode) hudMode.textContent = modeLabel;
   if (hudMove) hudMove.textContent = `${ui("手数", "Move")} ${moveText}`;
   if (hudTurn) hudTurn.textContent = turnLabel;
   if (hudCard) hudCard.textContent = cardText;
-  if (hudEngine) hudEngine.textContent = net.engine_backend ? localizeEngineText(net.engine_backend) : (connected ? ui("AI 在线", "AI online") : ui("AI 待命", "AI standby"));
+  if (hudEngine) hudEngine.textContent = hudEngineText(net, connected);
 }
 
 function quickStartRogue() {
