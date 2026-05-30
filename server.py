@@ -155,6 +155,12 @@ from app.gameplay.ai_observer import (
     finish_observer_double_pass as finish_observer_double_pass_state,
     run_ai_observer_loop as run_ai_observer_loop_state,
 )
+from app.gameplay.coach_mode import (
+    CoachMoveChoiceDeps,
+    CoachTurnDeps,
+    choose_coach_ai_move as choose_coach_ai_move_state,
+    run_coach_turn_if_needed as run_coach_turn_if_needed_state,
+)
 from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
 from app.gameplay.turn_modifiers import (
     apply_ultimate_ai_move_result as apply_ultimate_ai_move_result_state,
@@ -1563,53 +1569,37 @@ def _place_auxiliary_ai_move_on_board(
 
 
 async def _choose_coach_ai_move(game: GoGame, color: str) -> tuple[str, tuple[int, int] | None]:
-    visits = max(ROGUE_COACH_VISITS, get_game_visits(game.level, len(game.moves), mode="rogue"))
-    time_limit = min(MAX_MOVE_TIME, 8.0)
-    gtp_move = await _generate_ai_style_move(game, color, visits, time_limit)
-    if gtp_move.upper() == "RESIGN":
-        gtp_move = "pass"
-
-    coord = gtp_to_coord(gtp_move, game.size)
-    if coord and gtp_move.upper() != "PASS" and game.is_ko(coord[0], coord[1], color):
-        gtp_move = await _ai_retry_avoiding_ko(game, color)
-        coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
-
-    return gtp_move, coord
+    return await choose_coach_ai_move_state(
+        game,
+        color,
+        CoachMoveChoiceDeps(
+            get_game_visits=get_game_visits,
+            generate_ai_style_move=_generate_ai_style_move,
+            gtp_to_coord=gtp_to_coord,
+            retry_avoiding_ko=_ai_retry_avoiding_ko,
+            coach_visits=ROGUE_COACH_VISITS,
+            max_move_time=MAX_MOVE_TIME,
+        ),
+    )
 
 
 async def _run_coach_turn_if_needed(game: GoGame, send_fn):
-    if (
-        game.game_over
-        or game.two_player
-        or game.current_player != game.player_color
-        or game.rogue_card != "coach_mode"
-        or game.rogue_coach_moves_left <= 0
-        or not engine.ready
-    ):
-        return
-
-    color = game.player_color
-    gtp_move, coord = await _choose_coach_ai_move(game, color)
-    placement = _place_auxiliary_ai_move_on_board(game, color, gtp_move, coord)
-    coord = placement.coord
-    captured = placement.captured
-    game.current_player = game.ai_color
-    game.rogue_coach_moves_left = max(0, game.rogue_coach_moves_left - 1)
-    await _check_capture_foul(game, send_fn, color, captured, ultimate=False)
-    if coord:
-        await _apply_player_rogue_move_effects(game, send_fn, coord[0], coord[1], color, captured)
-        await _apply_ai_rogue_response_effects(game, send_fn, coord[0], coord[1], color)
-    game.push_history()
-    await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color, "x": coord[0] if coord else None, "y": coord[1] if coord else None})
-    await send_fn({"type": "rogue_event", "msg": f"🎓 代练上号：强化 AI 接管了一手，剩余 {game.rogue_coach_moves_left} 手"})
-    await send_fn({"type": "game_state", **game.to_state()})
-    if game.rogue_coach_moves_left == 0 and not game.rogue_coach_bonus_checked:
-        game.rogue_coach_bonus_checked = True
-        if await _estimate_side_winrate(game, color) < ROGUE_COACH_BONUS_THRESHOLD:
-            game.rogue_coach_moves_left += ROGUE_COACH_BONUS_TURNS
-            await send_fn({"type": "rogue_event", "msg": f"🎓 代练上号追加触发：胜率仍低于 50%，额外再代打 {ROGUE_COACH_BONUS_TURNS} 手"})
-    if not game.game_over and engine.ready and game.current_player == game.ai_color:
-        await _ai_move(game, send_fn)
+    await run_coach_turn_if_needed_state(
+        game,
+        send_fn,
+        CoachTurnDeps(
+            engine_ready=lambda: engine.ready,
+            choose_coach_ai_move=_choose_coach_ai_move,
+            place_auxiliary_move=_place_auxiliary_ai_move_on_board,
+            check_capture_foul=_check_capture_foul,
+            apply_player_rogue_move_effects=_apply_player_rogue_move_effects,
+            apply_ai_rogue_response_effects=_apply_ai_rogue_response_effects,
+            estimate_side_winrate=_estimate_side_winrate,
+            ai_move=_ai_move,
+            bonus_threshold=ROGUE_COACH_BONUS_THRESHOLD,
+            bonus_turns=ROGUE_COACH_BONUS_TURNS,
+        ),
+    )
 
 
 async def _finish_observer_double_pass(game: GoGame, send_fn) -> bool:

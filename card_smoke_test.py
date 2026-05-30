@@ -6,7 +6,12 @@ import threading
 import server as s
 from app.data import cards as card_data
 from app.gameplay.effect_utils import clear_random_enemy_stones, get_square_points
-from app.runtime.ws_actions import WebSocketActionContext, handle_rogue_use_exchange, handle_rogue_use_puppet
+from app.runtime.ws_actions import (
+    WebSocketActionContext,
+    handle_rogue_use_coach,
+    handle_rogue_use_exchange,
+    handle_rogue_use_puppet,
+)
 
 s.gameplay_config.apply_balance_values(s.gameplay_config.BALANCE_DEFAULTS)
 s._sync_balance_globals()
@@ -321,6 +326,32 @@ async def smoke_exchange_shift():
     assert game.current_player == game.player_color
     assert synced["count"] == 1
     assert any(msg.get("type") == "rogue_event" and "乾坤挪移" in msg.get("msg", "") for msg in sent)
+
+
+async def smoke_coach_use_action():
+    game = make_game()
+    game.rogue_enabled = True
+    game.rogue_card = "coach_mode"
+    game.rogue_uses["coach_mode"] = 1
+    sent = []
+    ctx = make_ws_context(game, sent)
+    coach_calls = []
+
+    async def run_coach(game_arg, send_arg):
+        coach_calls.append((game_arg is game, send_arg is ctx.send))
+        await send_arg({"type": "coach_called"})
+
+    ctx.run_coach_turn_if_needed = run_coach
+    await handle_rogue_use_coach(ctx, {})
+
+    assert game.rogue_uses["coach_mode"] == 0
+    assert game.rogue_coach_moves_left == s.ROGUE_COACH_BASE_TURNS
+    assert game.rogue_coach_bonus_checked is False
+    assert coach_calls == [(True, True)]
+    assert any(msg.get("type") == "rogue_event" and "代练上号启动" in msg.get("msg", "") for msg in sent)
+    assert any(msg.get("type") == "rogue_uses_update" and msg.get("uses", {}).get("coach_mode") == 0 for msg in sent)
+    assert any(msg.get("type") == "game_state" and msg.get("rogue_coach_moves_left") == s.ROGUE_COACH_BASE_TURNS for msg in sent)
+    assert sent[-1] == {"type": "coach_called"}
 
 
 async def smoke_ai_rogue_cards():
@@ -1546,6 +1577,7 @@ async def main():
         await smoke_joseki_completion()
         await smoke_puppet_flow()
         await smoke_exchange_shift()
+        await smoke_coach_use_action()
         await smoke_ai_rogue_cards()
         await smoke_slip_card()
         await smoke_new_rogue_cards()

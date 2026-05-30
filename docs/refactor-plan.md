@@ -190,6 +190,7 @@ Still in `static/index.html`:
 1. `app/gameplay/rogue_effects.py`
    - Move player Rogue effect activation and per-move hooks.
    - Keep functions pure where possible: input `GoGame`, return effect result.
+   - Coach-mode AI takeover flow now lives in `app/gameplay/coach_mode.py`.
 
 2. `app/gameplay/ultimate_effects.py`
    - Move `_apply_ultimate_effect`, `_ultimate_ai_move`, `_ultimate_force_score`.
