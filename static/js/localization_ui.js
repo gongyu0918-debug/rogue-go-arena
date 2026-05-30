@@ -15,6 +15,71 @@ const AI_STYLE_OPTIONS = [
   ["defense", "注重防守", "Defense", "守り重視", "수비 중시"],
 ];
 
+const CLIENT_HEADER_TEXT_BINDINGS = [
+  ["#header-main h1", "围棋对弈场", "Rogue Go Arena", "囲碁対局場", "바둑 대국장"],
+  ["#client-kicker", "ROGUE", "ROGUE"],
+  ["#client-title", "rogue-go-arena", "rogue-go-arena", "rogue-go-arena", "rogue-go-arena"],
+  ["#quick-rogue", "Rogue", "Rogue"],
+  ["#quick-setup", "开始", "Start"],
+  ["#quick-fullscreen", "全屏", "Fullscreen"],
+  ["#client-status-label", "连接", "Connection"],
+  ["#client-engine-label", "引擎", "Engine"],
+  ["#client-mode-label", "模式", "Mode"],
+  ["#client-run-label", "手数", "Move"],
+];
+
+const TOOLBAR_TITLE_BINDINGS = [
+  ["#sound-toggle", "音效开关", "Sound", "効果音", "효과음"],
+  ["#btn-setup", "开始", "Start", "開始", "시작"],
+  ["#btn-quick-rogue", "Rogue", "Rogue", "Rogue", "Rogue"],
+  ["#btn-pass", "虚手", "Pass", "パス", "패스"],
+  ["#btn-undo", "悔棋", "Undo", "待った", "무르기"],
+  ["#btn-score", "计算", "Score", "計算", "계산"],
+  ["#btn-territory-toggle", "形势", "Territory", "形勢", "형세"],
+  ["#btn-resign", "认输", "Resign", "投了", "불계패"],
+  ["#btn-rogue-wiki", "Wiki", "Wiki"],
+  ["#btn-settings", "设置", "Settings", "設定", "설정"],
+  ["#btn-review-settings", "打开功能", "Settings", "機能を開く", "기능 열기"],
+  ["#btn-review-first", "第一手", "First Move", "初手", "첫 수"],
+  ["#btn-review-prev", "上一手", "Previous Move", "前の手", "이전 수"],
+  ["#btn-review-next", "下一手", "Next Move", "次の手", "다음 수"],
+  ["#btn-review-last", "最后一手", "Last Move", "最終手", "마지막 수"],
+  ["#btn-review-exit", "退出复盘", "Exit Review", "検討を終了", "복기 종료"],
+  [".drawer-close", "关闭", "Close"],
+  ["#overlay-close", "关闭", "Close"],
+  [".modal-close", "关闭", "Close"],
+  ["#ft-up", "上移", "Up", "上へ", "위로"],
+  ["#ft-down", "下移", "Down", "下へ", "아래로"],
+  ["#ft-left", "左移", "Left", "左へ", "왼쪽"],
+  ["#ft-right", "右移", "Right", "右へ", "오른쪽"],
+  ["#ft-ok", "确认落子", "Confirm Move", "着手を確定", "착수 확정"],
+];
+
+const TOOLBAR_LABEL_BINDINGS = [
+  ["#btn-setup .tool-label", "开始", "Start", "開始", "시작"],
+  ["#btn-quick-rogue .tool-label", "Rogue", "Rogue"],
+  ["#btn-rogue-wiki .tool-label", "Wiki", "Wiki"],
+  ["#btn-pass .tool-label", "虚手", "Pass", "パス", "패스"],
+  ["#btn-undo .tool-label", "悔棋", "Undo", "待った", "무르기"],
+  ["#btn-score .tool-label", "计算", "Score", "計算", "계산"],
+  ["#btn-territory-toggle .tool-label", "形势", "Area", "形勢", "형세"],
+  ["#btn-resign .tool-label", "认输", "Resign", "投了", "불계패"],
+  ["#btn-settings .tool-label", "设置", "Settings", "設定", "설정"],
+  ["#btn-skill .tool-label", "技能", "Skill", "スキル", "스킬"],
+];
+
+function bindingText([, zh, en, ja, ko]) {
+  return ui(zh, en, ja, ko);
+}
+
+function applyTextBindings(bindings) {
+  bindings.forEach((binding) => setText(binding[0], bindingText(binding)));
+}
+
+function applyTitleBindings(bindings) {
+  bindings.forEach((binding) => setTitle(binding[0], bindingText(binding)));
+}
+
 function ensureLanguageControl() {
   const panel = document.getElementById("lang-panel")
     || document.getElementById("lang-panel-title")?.closest(".panel-card")
@@ -44,55 +109,12 @@ function syncLanguageSelectControls() {
 }
 
 function localizeClientHeader() {
-  setText("#header-main h1", ui("围棋对弈场", "Rogue Go Arena", "囲碁対局場", "바둑 대국장"));
-  setText("#client-kicker", ui("ROGUE", "ROGUE"));
-  setText("#client-title", ui("rogue-go-arena", "rogue-go-arena", "rogue-go-arena", "rogue-go-arena"));
-  setText("#quick-rogue", ui("Rogue", "Rogue"));
-  setText("#quick-setup", ui("开始", "Start"));
-  setText("#quick-fullscreen", ui("全屏", "Fullscreen"));
-  setText("#client-status-label", ui("连接", "Connection"));
-  setText("#client-engine-label", ui("引擎", "Engine"));
-  setText("#client-mode-label", ui("模式", "Mode"));
-  setText("#client-run-label", ui("手数", "Move"));
+  applyTextBindings(CLIENT_HEADER_TEXT_BINDINGS);
 }
 
 function localizeToolbarControls() {
-  setTitle("#sound-toggle", ui("音效开关", "Sound", "効果音", "효과음"));
-  setTitle("#btn-setup", ui("开始", "Start", "開始", "시작"));
-  setTitle("#btn-quick-rogue", ui("Rogue", "Rogue", "Rogue", "Rogue"));
-  setTitle("#btn-pass", ui("虚手", "Pass", "パス", "패스"));
-  setTitle("#btn-undo", ui("悔棋", "Undo", "待った", "무르기"));
-  setTitle("#btn-score", ui("计算", "Score", "計算", "계산"));
-  setTitle("#btn-territory-toggle", ui("形势", "Territory", "形勢", "형세"));
-  setTitle("#btn-resign", ui("认输", "Resign", "投了", "불계패"));
-  setTitle("#btn-rogue-wiki", ui("Wiki", "Wiki"));
-  setTitle("#btn-settings", ui("设置", "Settings", "設定", "설정"));
-  setTitle("#btn-review-settings", ui("打开功能", "Settings", "機能を開く", "기능 열기"));
-  setTitle("#btn-review-first", ui("第一手", "First Move", "初手", "첫 수"));
-  setTitle("#btn-review-prev", ui("上一手", "Previous Move", "前の手", "이전 수"));
-  setTitle("#btn-review-next", ui("下一手", "Next Move", "次の手", "다음 수"));
-  setTitle("#btn-review-last", ui("最后一手", "Last Move", "最終手", "마지막 수"));
-  setTitle("#btn-review-exit", ui("退出复盘", "Exit Review", "検討を終了", "복기 종료"));
-  [
-    ["#btn-setup .tool-label", "开始", "Start", "開始", "시작"],
-    ["#btn-quick-rogue .tool-label", "Rogue", "Rogue"],
-    ["#btn-rogue-wiki .tool-label", "Wiki", "Wiki"],
-    ["#btn-pass .tool-label", "虚手", "Pass", "パス", "패스"],
-    ["#btn-undo .tool-label", "悔棋", "Undo", "待った", "무르기"],
-    ["#btn-score .tool-label", "计算", "Score", "計算", "계산"],
-    ["#btn-territory-toggle .tool-label", "形势", "Area", "形勢", "형세"],
-    ["#btn-resign .tool-label", "认输", "Resign", "投了", "불계패"],
-    ["#btn-settings .tool-label", "设置", "Settings", "設定", "설정"],
-    ["#btn-skill .tool-label", "技能", "Skill", "スキル", "스킬"],
-  ].forEach(([selector, zh, en, ja, ko]) => setText(selector, ui(zh, en, ja, ko)));
-  setTitle(".drawer-close", ui("关闭", "Close"));
-  setTitle("#overlay-close", ui("关闭", "Close"));
-  setTitle(".modal-close", ui("关闭", "Close"));
-  setTitle("#ft-up", ui("上移", "Up", "上へ", "위로"));
-  setTitle("#ft-down", ui("下移", "Down", "下へ", "아래로"));
-  setTitle("#ft-left", ui("左移", "Left", "左へ", "왼쪽"));
-  setTitle("#ft-right", ui("右移", "Right", "右へ", "오른쪽"));
-  setTitle("#ft-ok", ui("确认落子", "Confirm Move", "着手を確定", "착수 확정"));
+  applyTitleBindings(TOOLBAR_TITLE_BINDINGS);
+  applyTextBindings(TOOLBAR_LABEL_BINDINGS);
 }
 
 function localizeSettingsDrawer() {

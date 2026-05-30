@@ -46,6 +46,11 @@ async function assertLanguageState(page, expected) {
     setupButton: document.querySelector("#btn-new")?.textContent?.trim() || "",
     settingsLanguageLabel: document.querySelector("#settings-language-label")?.textContent?.trim() || "",
     headerTitle: document.querySelector("#header-main h1")?.textContent?.trim() || "",
+    passTitle: document.querySelector("#btn-pass")?.title || "",
+    passLabel: document.querySelector("#btn-pass .tool-label")?.textContent?.trim() || "",
+    scoreLabel: document.querySelector("#btn-score .tool-label")?.textContent?.trim() || "",
+    settingsTitle: document.querySelector("#btn-settings")?.title || "",
+    reviewNextTitle: document.querySelector("#btn-review-next")?.title || "",
     publicFns: [
       typeof window.applyLanguage,
       typeof window.ensureLanguageControl,
@@ -71,6 +76,11 @@ async function assertLanguageState(page, expected) {
   assert(state.setupButton === expected.setupButton, `unexpected setup button text: ${state.setupButton}`);
   assert(state.settingsLanguageLabel === expected.settingsLabel, `unexpected settings label: ${state.settingsLanguageLabel}`);
   assert(state.headerTitle === expected.headerTitle, `unexpected header title: ${state.headerTitle}`);
+  assert(state.passTitle === expected.passTitle, `unexpected pass title: ${state.passTitle}`);
+  assert(state.passLabel === expected.passLabel, `unexpected pass label: ${state.passLabel}`);
+  assert(state.scoreLabel === expected.scoreLabel, `unexpected score label: ${state.scoreLabel}`);
+  assert(state.settingsTitle === expected.settingsTitle, `unexpected settings title: ${state.settingsTitle}`);
+  assert(state.reviewNextTitle === expected.reviewNextTitle, `unexpected review next title: ${state.reviewNextTitle}`);
   assert(state.publicFns.every((type) => type === "function"), `localization globals missing: ${state.publicFns.join(", ")}`);
   assert(!state.staleLanguagePanel, "stale language panel was not removed");
 }
@@ -97,6 +107,11 @@ try {
     setupButton: "确认开始",
     settingsLabel: "语言",
     headerTitle: "围棋对弈场",
+    passTitle: "虚手",
+    passLabel: "虚手",
+    scoreLabel: "计算",
+    settingsTitle: "设置",
+    reviewNextTitle: "下一手",
   });
 
   await chooseWoodOption(page, "lang-toggle", "English");
@@ -107,6 +122,11 @@ try {
     setupButton: "Start",
     settingsLabel: "Language",
     headerTitle: "Rogue Go Arena",
+    passTitle: "Pass",
+    passLabel: "Pass",
+    scoreLabel: "Score",
+    settingsTitle: "Settings",
+    reviewNextTitle: "Next Move",
   });
 
   await page.locator("#btn-settings").click();
@@ -119,6 +139,11 @@ try {
     setupButton: "시작",
     settingsLabel: "언어",
     headerTitle: "바둑 대국장",
+    passTitle: "패스",
+    passLabel: "패스",
+    scoreLabel: "계산",
+    settingsTitle: "설정",
+    reviewNextTitle: "다음 수",
   });
 
   await chooseWoodOption(page, "settings-language-select", "일본어");
@@ -129,6 +154,11 @@ try {
     setupButton: "開始する",
     settingsLabel: "言語",
     headerTitle: "囲碁対局場",
+    passTitle: "パス",
+    passLabel: "パス",
+    scoreLabel: "計算",
+    settingsTitle: "設定",
+    reviewNextTitle: "次の手",
   });
 
   await chooseWoodOption(page, "settings-language-select", "中国語");
@@ -139,6 +169,11 @@ try {
     setupButton: "确认开始",
     settingsLabel: "语言",
     headerTitle: "围棋对弈场",
+    passTitle: "虚手",
+    passLabel: "虚手",
+    scoreLabel: "计算",
+    settingsTitle: "设置",
+    reviewNextTitle: "下一手",
   });
 
   assert(errors.length === 0, `browser errors: ${errors.join("; ")}`);
