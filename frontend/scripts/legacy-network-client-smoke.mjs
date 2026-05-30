@@ -44,11 +44,38 @@ try {
       typeof window.refreshNetworkInfo,
       typeof window.sendWS,
     ];
+    const shellPublicFns = [
+      typeof window.setText,
+      typeof window.setTitle,
+      typeof window.setThinkingText,
+      typeof window.setSoundToggleVisual,
+      typeof window.setTerritoryToggleVisual,
+      typeof window.hasUsableAnalysis,
+      typeof window.analysisPanelEnabled,
+      typeof window.setConnectionIndicator,
+      typeof window.currentModeLabel,
+      typeof window.currentTurnLabel,
+      typeof window.moveNumberText,
+      typeof window.localizeEngineText,
+      typeof window.engineStatusText,
+      typeof window.syncClientShell,
+      typeof window.quickStartRogue,
+      typeof window.openNormalSetup,
+      typeof window.toggleFullscreen,
+      typeof window.setOptionText,
+    ];
     const networkStatusDescriptor = Object.getOwnPropertyDescriptor(window, "__rogueGoArenaNetworkStatus");
     const privateFns = [
       typeof window.normalizeNetworkStatus,
       typeof window.fetchNetworkStatus,
       typeof window.websocketIsOpen,
+    ];
+    const shellPrivateFns = [
+      typeof ENGINE_TEXT_REPLACEMENTS,
+      typeof clientShellElements,
+      typeof currentCardLabel,
+      typeof setEngineShellValue,
+      typeof hudEngineText,
     ];
 
     const originalWs = ws;
@@ -124,11 +151,49 @@ try {
     const koreanEngineText = localizeEngineText("AI 在线 高端");
     currentLang = previousLang;
 
+    const originalCurrentModeLabel = window.currentModeLabel;
+    const originalCurrentTurnLabel = window.currentTurnLabel;
+    const originalMoveNumberText = window.moveNumberText;
+    const originalEngineStatusText = window.engineStatusText;
+    const originalLocalizeEngineText = window.localizeEngineText;
+    window.currentModeLabel = () => "Patched Mode";
+    window.currentTurnLabel = () => "Patched Turn";
+    window.moveNumberText = value => `Patched Move ${value}`;
+    window.engineStatusText = () => "Patched Engine";
+    window.localizeEngineText = value => `Patched Localized ${value}`;
+    gameState = { move_number: 42, current_player: "B", game_over: false };
+    window.__rogueGoArenaNetworkStatus = { engine_backend: "PatchedBackend", engine_model: "PatchedModel" };
+    syncClientShell();
+    const shellMonkeypatchState = {
+      modeValue: document.querySelector("#client-mode-value")?.textContent || "",
+      runValue: document.querySelector("#client-run-value")?.textContent || "",
+      hudMode: document.querySelector("#hud-mode")?.textContent || "",
+      hudTurn: document.querySelector("#hud-turn")?.textContent || "",
+      engineValue: document.querySelector("#client-engine-value")?.textContent || "",
+      hudEngine: document.querySelector("#hud-engine")?.textContent || "",
+    };
+    window.currentModeLabel = originalCurrentModeLabel;
+    window.currentTurnLabel = originalCurrentTurnLabel;
+    window.moveNumberText = originalMoveNumberText;
+    window.engineStatusText = originalEngineStatusText;
+    window.localizeEngineText = originalLocalizeEngineText;
+    gameState = null;
+    updateNetworkBadge({ katago_ready: true, engine_backend: "SmokeEngine", engine_model: "SmokeModel" });
+    syncClientShell();
+
     const originalSync = syncClientShell;
     let syncCalls = 0;
     syncClientShell = window.syncClientShell = (...args) => {
       syncCalls += 1;
       return originalSync.apply(window, args);
+    };
+
+    setConnectionIndicator(true, "Smoke Connected");
+    const connectionIndicatorState = {
+      syncCalls,
+      statusText: document.querySelector("#status-text")?.textContent || "",
+      dotClass: document.querySelector("#status-dot")?.className || "",
+      dotTitle: document.querySelector("#status-dot")?.title || "",
     };
 
     const liveStatus = await refreshNetworkInfo();
@@ -171,12 +236,14 @@ try {
 
     return {
       publicFns,
+      shellPublicFns,
       networkStatusDescriptor: {
         get: typeof networkStatusDescriptor?.get,
         set: typeof networkStatusDescriptor?.set,
         value: typeof networkStatusDescriptor?.value,
       },
       privateFns,
+      shellPrivateFns,
       openSend,
       afterClosedSendCount,
       afterNullSendCount,
@@ -191,6 +258,8 @@ try {
       englishEngineState,
       japaneseEngineText,
       koreanEngineText,
+      shellMonkeypatchState,
+      connectionIndicatorState,
       afterLiveRefresh,
       afterNotOk,
       afterOkNull,
@@ -199,9 +268,11 @@ try {
   });
 
   assert(state.publicFns.every(type => type === "function"), `network client globals missing: ${state.publicFns.join(", ")}`);
+  assert(state.shellPublicFns.every(type => type === "function"), `shell UI globals missing: ${state.shellPublicFns.join(", ")}`);
   assert(state.networkStatusDescriptor.get === "function" && state.networkStatusDescriptor.set === "function", `network status cache is not an accessor: ${JSON.stringify(state.networkStatusDescriptor)}`);
   assert(state.networkStatusDescriptor.value === "undefined", `network status cache unexpectedly has data value: ${JSON.stringify(state.networkStatusDescriptor)}`);
   assert(state.privateFns.every(type => type === "undefined"), `network client private helpers leaked globally: ${state.privateFns.join(", ")}`);
+  assert(state.shellPrivateFns.every(type => type === "undefined"), `shell UI private helpers leaked globally: ${state.shellPrivateFns.join(", ")}`);
   assert(state.openSend.length === 1, `open WebSocket send count changed: ${JSON.stringify(state.openSend)}`);
   assert(JSON.parse(state.openSend[0]).action === "network_smoke", `open WebSocket payload changed: ${state.openSend[0]}`);
   assert(JSON.parse(state.openSend[0]).nested.value === 7, `open WebSocket nested payload changed: ${state.openSend[0]}`);
@@ -229,6 +300,16 @@ try {
   assert(state.englishEngineState.checking === "Checking...", `checking fallback engine status changed: ${state.englishEngineState.checking}`);
   assert(state.japaneseEngineText.includes("エンジン起動中") && state.japaneseEngineText.includes("CPUモード"), `Japanese engine localization changed: ${state.japaneseEngineText}`);
   assert(state.koreanEngineText.includes("AI 온라인") && state.koreanEngineText.includes("하이엔드"), `Korean engine localization changed: ${state.koreanEngineText}`);
+  assert(state.shellMonkeypatchState.modeValue === "Patched Mode", `syncClientShell did not use patched currentModeLabel: ${JSON.stringify(state.shellMonkeypatchState)}`);
+  assert(state.shellMonkeypatchState.hudMode === "Patched Mode", `HUD mode did not use patched currentModeLabel: ${JSON.stringify(state.shellMonkeypatchState)}`);
+  assert(state.shellMonkeypatchState.runValue === "Patched Move 42 · Patched Turn", `run summary did not use patched move/turn helpers: ${JSON.stringify(state.shellMonkeypatchState)}`);
+  assert(state.shellMonkeypatchState.hudTurn === "Patched Turn", `HUD turn did not use patched currentTurnLabel: ${JSON.stringify(state.shellMonkeypatchState)}`);
+  assert(state.shellMonkeypatchState.engineValue === "Patched Engine", `engine shell did not use patched engineStatusText: ${JSON.stringify(state.shellMonkeypatchState)}`);
+  assert(state.shellMonkeypatchState.hudEngine === "Patched Localized PatchedBackend", `HUD engine did not use patched localizeEngineText: ${JSON.stringify(state.shellMonkeypatchState)}`);
+  assert(state.connectionIndicatorState.syncCalls === 1, `setConnectionIndicator did not call monkeypatched syncClientShell: ${JSON.stringify(state.connectionIndicatorState)}`);
+  assert(state.connectionIndicatorState.statusText === "Smoke Connected", `connection indicator text changed: ${state.connectionIndicatorState.statusText}`);
+  assert(state.connectionIndicatorState.dotClass === "ready", `connection indicator dot class changed: ${state.connectionIndicatorState.dotClass}`);
+  assert(state.connectionIndicatorState.dotTitle === "Smoke Connected", `connection indicator title changed: ${state.connectionIndicatorState.dotTitle}`);
   assert(state.afterLiveRefresh.returnedObject, "refreshNetworkInfo did not return live status object");
   assert(state.afterLiveRefresh.cachedSameObject, "refreshNetworkInfo did not cache returned status object");
   assert(state.afterLiveRefresh.syncCalls >= 1, `refreshNetworkInfo did not sync shell on success: ${state.afterLiveRefresh.syncCalls}`);

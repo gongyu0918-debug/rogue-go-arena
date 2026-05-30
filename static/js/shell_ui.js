@@ -1,4 +1,5 @@
 // Shared UI shell helpers for labels, connection state, and top HUD state.
+(() => {
 
 const ENGINE_TEXT_REPLACEMENTS = {
   en: [
@@ -98,7 +99,7 @@ function setConnectionIndicator(ready, text) {
     dot.setAttribute("aria-label", label);
   }
   if (status) status.textContent = label;
-  syncClientShell();
+  window.syncClientShell();
 }
 
 function currentModeLabel() {
@@ -142,7 +143,7 @@ function localizeEngineText(text) {
 
 function engineStatusText(net, connected) {
   if (net.katago_ready) {
-    const backend = net.engine_backend ? localizeEngineText(net.engine_backend) : "KataGo";
+    const backend = net.engine_backend ? window.localizeEngineText(net.engine_backend) : "KataGo";
     const model = net.engine_model || net.katago_model_name || "";
     return model ? `${backend} · ${model}` : backend;
   }
@@ -152,7 +153,7 @@ function engineStatusText(net, connected) {
       ? ui(`模型就绪 · ${model}`, `Model ready · ${model}`, `モデル準備完了 · ${model}`, `모델 준비됨 · ${model}`)
       : ui("模型就绪", "Model ready", "モデル準備完了", "모델 준비됨");
   }
-  if (net.engine_message) return localizeEngineText(net.engine_message);
+  if (net.engine_message) return window.localizeEngineText(net.engine_message);
   return connected ? ui("AI 待命", "AI ready") : ui("检测中…", "Checking...");
 }
 
@@ -177,7 +178,7 @@ function currentCardLabel() {
 
 function setEngineShellValue(engineValue, net, connected) {
   if (!engineValue) return;
-  const engineText = engineStatusText(net, connected);
+  const engineText = window.engineStatusText(net, connected);
   engineValue.textContent = engineText;
   engineValue.title = net.katago_model_name
     ? `${engineText} · ${net.katago_model_name}`
@@ -186,7 +187,7 @@ function setEngineShellValue(engineValue, net, connected) {
 
 function hudEngineText(net, connected) {
   return net.engine_backend
-    ? localizeEngineText(net.engine_backend)
+    ? window.localizeEngineText(net.engine_backend)
     : (connected ? ui("AI 在线", "AI online") : ui("AI 待命", "AI standby"));
 }
 
@@ -204,14 +205,14 @@ function syncClientShell() {
   } = clientShellElements();
   const connected = !!ws && ws.readyState === WebSocket.OPEN;
   const net = window.__rogueGoArenaNetworkStatus || {};
-  const modeLabel = currentModeLabel();
-  const turnLabel = currentTurnLabel();
+  const modeLabel = window.currentModeLabel();
+  const turnLabel = window.currentTurnLabel();
   const moveText = String(gameState?.move_number || 0);
   const cardText = currentCardLabel();
   if (statusValue) statusValue.textContent = connected ? ui("已连接", "Connected") : ui("连接中…", "Connecting...");
   setEngineShellValue(engineValue, net, connected);
   if (modeValue) modeValue.textContent = modeLabel;
-  if (runValue) runValue.textContent = gameState ? `${moveNumberText(moveText)} · ${turnLabel}` : ui("待开始", "Ready");
+  if (runValue) runValue.textContent = gameState ? `${window.moveNumberText(moveText)} · ${turnLabel}` : ui("待开始", "Ready");
   if (hudMode) hudMode.textContent = modeLabel;
   if (hudMove) hudMove.textContent = `${ui("手数", "Move")} ${moveText}`;
   if (hudTurn) hudTurn.textContent = turnLabel;
@@ -249,3 +250,23 @@ function setOptionText(selectId, pairs) {
   });
   syncWoodSelect(el);
 }
+
+window.setText = setText;
+window.setTitle = setTitle;
+window.setThinkingText = setThinkingText;
+window.setSoundToggleVisual = setSoundToggleVisual;
+window.setTerritoryToggleVisual = setTerritoryToggleVisual;
+window.hasUsableAnalysis = hasUsableAnalysis;
+window.analysisPanelEnabled = analysisPanelEnabled;
+window.setConnectionIndicator = setConnectionIndicator;
+window.currentModeLabel = currentModeLabel;
+window.currentTurnLabel = currentTurnLabel;
+window.moveNumberText = moveNumberText;
+window.localizeEngineText = localizeEngineText;
+window.engineStatusText = engineStatusText;
+window.syncClientShell = syncClientShell;
+window.quickStartRogue = quickStartRogue;
+window.openNormalSetup = openNormalSetup;
+window.toggleFullscreen = toggleFullscreen;
+window.setOptionText = setOptionText;
+})();
