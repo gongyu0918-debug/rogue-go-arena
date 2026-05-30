@@ -116,10 +116,13 @@ Done:
 - `static/js/websocket_messages.js`
   - Legacy WebSocket message dispatch table
   - Named handlers for game state, analysis, Rogue, Ultimate, reconnect, and error messages
+- `static/js/app_bootstrap.js`
+  - Legacy WebSocket connection setup
+  - Startup sequence and board recovery/resize hooks
 
 Still in `static/index.html`:
 
-- Legacy page bootstrap orchestration, including the initial `ensureLocale(currentLang)` and `applyLanguage()` call
+- Legacy DOM event handlers for setup, settings, modal controls, and toolbar actions
 
 ## Frontend Extraction Roadmap
 

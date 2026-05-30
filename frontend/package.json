@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "preview": "vite preview --host 127.0.0.1",
     "smoke:react-preview": "node scripts/react-preview-smoke.mjs",
+    "smoke:legacy-bootstrap": "node scripts/legacy-bootstrap-smoke.mjs",
     "smoke:legacy-localization": "node scripts/legacy-localization-smoke.mjs",
     "smoke:legacy-websocket-messages": "node scripts/legacy-websocket-messages-smoke.mjs",
     "smoke:legacy-responsive": "node scripts/legacy-responsive-smoke.mjs",
