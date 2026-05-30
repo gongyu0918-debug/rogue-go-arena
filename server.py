@@ -82,6 +82,7 @@ from app.runtime.access_urls import get_access_urls as build_access_urls
 from app.runtime.engine_gateway import EngineRuntimeGateway
 from app.runtime.gpu_info import CachedGpuInfo, apply_runtime_gpu_overrides
 from app.runtime.request_json import read_json_body
+from app.runtime.sgf_export import build_sgf_export_response
 from app.runtime.static_files import serve_existing_file
 from app.runtime.status_payload import build_status_payload
 from app.gameplay.card_selection import (
@@ -614,15 +615,10 @@ async def get_gpu_info():
 
 @app.get("/sgf/{game_id}")
 async def export_sgf(game_id: str):
-    active_games.prune()
-    game = active_games.get(game_id, touch=True)
-    if not game:
-        return Response(content="Game not found", status_code=404)
-    sgf = generate_sgf(game)
-    return Response(
-        content=sgf,
-        media_type="application/x-go-sgf",
-        headers={"Content-Disposition": f'attachment; filename="rogue-go-arena_{game_id}.sgf"'},
+    return build_sgf_export_response(
+        game_id=game_id,
+        active_games=active_games,
+        generate_sgf=generate_sgf,
     )
 
 
