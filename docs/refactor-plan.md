@@ -193,6 +193,7 @@ Still in `static/index.html`:
    - Coach-mode AI takeover flow now lives in `app/gameplay/coach_mode.py`.
    - Challenge set message/engine synchronization flow now lives in `app/gameplay/challenge_flow.py`.
    - Capture-foul event emission and komi synchronization now live in `app/gameplay/capture_foul_flow.py`.
+   - Rogue/Ultimate five-in-row and last-stand trigger orchestration now lives in `app/gameplay/line_trigger_flow.py`.
 
 2. `app/gameplay/ultimate_effects.py`
    - Move `_apply_ultimate_effect`, `_ultimate_ai_move`, `_ultimate_force_score`.

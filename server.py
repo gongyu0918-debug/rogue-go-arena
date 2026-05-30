@@ -95,6 +95,16 @@ from app.gameplay.challenge_flow import (
     emit_challenge_set_bonus_status,
     maybe_reduce_challenge_ai_level,
 )
+from app.gameplay.line_trigger_flow import (
+    RogueFiveInRowDeps,
+    RogueLastStandDeps,
+    UltimateFiveInRowDeps,
+    UltimateLastStandDeps,
+    trigger_rogue_five_in_row as trigger_rogue_five_in_row_state,
+    trigger_rogue_last_stand as trigger_rogue_last_stand_state,
+    trigger_ultimate_five_in_row as trigger_ultimate_five_in_row_state,
+    trigger_ultimate_last_stand as trigger_ultimate_last_stand_state,
+)
 from app.gameplay.ai_moves import (
     AiMoveService,
     AiMovePlan,
@@ -754,17 +764,19 @@ async def _estimate_side_winrate(game: GoGame, color: str) -> float:
 
 
 async def _trigger_rogue_five_in_row(game: GoGame, send_fn, color: str):
-    result = apply_rogue_five_in_row(
+    await trigger_rogue_five_in_row_state(
         game,
+        send_fn,
         color,
-        shuffle_points=random.shuffle,
-        should_bonus_derivative_fn=_challenge_should_bonus_derivative,
-        support_stones=ROGUE_FIVE_IN_ROW_SUPPORT_STONES,
+        RogueFiveInRowDeps(
+            apply_five_in_row=apply_rogue_five_in_row,
+            shuffle_points=random.shuffle,
+            should_bonus_derivative=_challenge_should_bonus_derivative,
+            support_stones=ROGUE_FIVE_IN_ROW_SUPPORT_STONES,
+            engine_ready=lambda: engine.ready,
+            sync_board=_sync_board_to_katago,
+        ),
     )
-    if result.modified and engine.ready:
-        await _sync_board_to_katago(game)
-    for message in result.messages:
-        await send_fn({"type": "rogue_event", "msg": message})
 
 
 async def _trigger_rogue_last_stand(
@@ -773,49 +785,49 @@ async def _trigger_rogue_last_stand(
     color: str,
     center: tuple[int, int],
 ):
-    if game.rogue_last_stand_done.get(color):
-        return
-    if await _estimate_side_winrate(game, color) >= ROGUE_LAST_STAND_THRESHOLD:
-        return
-    result = apply_rogue_last_stand(
+    await trigger_rogue_last_stand_state(
         game,
+        send_fn,
         color,
         center,
-        rng=random.Random(time.time_ns()),
-        forbidden_points=_get_player_bonus_forbidden_points(game, color),
-        clear_count=ROGUE_LAST_STAND_CLEAR_COUNT,
-        spawn_count=ROGUE_LAST_STAND_SPAWN_COUNT,
+        RogueLastStandDeps(
+            apply_last_stand=apply_rogue_last_stand,
+            estimate_side_winrate=_estimate_side_winrate,
+            make_rng=lambda: random.Random(time.time_ns()),
+            get_forbidden_points=_get_player_bonus_forbidden_points,
+            clear_count=ROGUE_LAST_STAND_CLEAR_COUNT,
+            spawn_count=ROGUE_LAST_STAND_SPAWN_COUNT,
+            threshold=ROGUE_LAST_STAND_THRESHOLD,
+            engine_ready=lambda: engine.ready,
+            sync_board=_sync_board_to_katago,
+        ),
     )
-    if result.modified and engine.ready:
-        await _sync_board_to_katago(game)
-    for message in result.messages:
-        await send_fn({"type": "rogue_event", "msg": message})
 
 
 async def _trigger_ultimate_last_stand(game: GoGame, send_fn, color: str):
-    if game.ultimate_last_stand_done.get(color):
-        return False
-    if await _estimate_side_winrate(game, color) >= ULTIMATE_LAST_STAND_THRESHOLD:
-        return False
-    result = apply_ultimate_last_stand(
+    return await trigger_ultimate_last_stand_state(
         game,
+        send_fn,
         color,
-        rng=random.Random(time.time_ns()),
+        UltimateLastStandDeps(
+            apply_last_stand=apply_ultimate_last_stand,
+            estimate_side_winrate=_estimate_side_winrate,
+            make_rng=lambda: random.Random(time.time_ns()),
+            threshold=ULTIMATE_LAST_STAND_THRESHOLD,
+        ),
     )
-    for message in result.messages:
-        await send_fn({"type": "rogue_event", "msg": message})
-    return result.modified
 
 
 async def _trigger_ultimate_five_in_row(game: GoGame, send_fn, color: str):
-    result = apply_ultimate_five_in_row(
+    return await trigger_ultimate_five_in_row_state(
         game,
+        send_fn,
         color,
-        rng=random.Random(time.time_ns()),
+        UltimateFiveInRowDeps(
+            apply_five_in_row=apply_ultimate_five_in_row,
+            make_rng=lambda: random.Random(time.time_ns()),
+        ),
     )
-    for message in result.messages:
-        await send_fn({"type": "rogue_event", "msg": message})
-    return result.modified
 
 
 def _player_non_pass_coords(game: GoGame, color: str, limit: Optional[int] = None) -> list[tuple[int, int]]:
