@@ -3,7 +3,7 @@
 This project is stable enough to play, but the codebase has two high-risk growth points:
 
 - `static/index.html` has been acting as the UI shell, WebSocket client, board renderer, i18n layer, and card UI host.
-- `server.py` still owns HTTP routes, WebSocket flow, AI move orchestration, Rogue effects, Ultimate effects, scoring helpers, and KataGo sync.
+- `server.py` still owns HTTP routes, WebSocket dependency wiring, AI move orchestration, Rogue effects, Ultimate effects, scoring helpers, and KataGo sync.
 
 The goal is controlled extraction, not a broad rewrite. Every step should leave the app runnable and covered by smoke tests.
 
@@ -200,7 +200,8 @@ Still in `static/index.html`:
    - Keep KataGo calls behind a small engine adapter.
 
 4. `app/runtime/ws_handlers.py`
-   - Split the 600+ line `websocket_endpoint` into action handlers.
+   - WebSocket session lifecycle and dispatch now live in `app/runtime/ws_session.py`.
+   - Continue moving action dependencies out of `server.py` without changing wire payloads.
    - Preserve the current `WebSocketActionContext` direction; expand it instead of passing many globals.
 
 5. `app/services/card_config_service.py`

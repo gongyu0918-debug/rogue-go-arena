@@ -3,7 +3,6 @@ rogue-go-arena server - KataGo-powered board game with FastAPI WebSocket backend
 """
 import argparse
 import asyncio
-import json
 import random
 import re
 import traceback
@@ -232,6 +231,7 @@ from app.gameplay.ultimate_scoring import finalize_ultimate_score
 from app.runtime.engine import KataGoEngine
 from app.runtime.game_store import ActiveGameStore
 from app.runtime.startup import EnginePaths, EngineStartupManager
+from app.runtime.ws_session import run_websocket_game_session
 from app.runtime.ws_actions import WS_ACTION_HANDLERS, WebSocketActionContext
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -612,137 +612,65 @@ def _bind_ai_move_service_runtime():
 
 @app.websocket("/ws/{game_id}")
 async def websocket_endpoint(websocket: WebSocket, game_id: str):
-    await websocket.accept()
-    websocket_closed = False
+    def make_context(game, send, send_error, do_analysis, do_analysis_bg):
+        return WebSocketActionContext(
+            game_id=game_id,
+            game=game,
+            active_games=active_games,
+            engine=engine,
+            send=send,
+            send_error=send_error,
+            do_analysis=do_analysis,
+            do_analysis_bg=do_analysis_bg,
+            run_in_executor=run_in_executor,
+            GoGame=GoGame,
+            coord_to_gtp=coord_to_gtp,
+            gtp_to_coord=gtp_to_coord,
+            engine_state_snapshot=_engine_state_snapshot,
+            start_engine_background=engine_runtime.start_background,
+            reload_live_card_config=reload_live_card_config,
+            get_game_visits=get_game_visits,
+            pick_rogue_choices=pick_rogue_choices,
+            pick_ultimate_choices=pick_ultimate_choices,
+            pick_challenge_beta_choices=pick_challenge_beta_choices,
+            pick_ai_rogue_card=pick_ai_rogue_card,
+            pick_ai_ultimate_card=pick_ai_ultimate_card,
+            apply_challenge_rogue_loadout=_apply_challenge_rogue_loadout,
+            activate_rogue_card=_activate_rogue_card,
+            activate_ai_rogue_card=_activate_ai_rogue_card,
+            ai_move=_ai_move,
+            ultimate_ai_move=_ultimate_ai_move,
+            ultimate_force_score=_ultimate_force_score,
+            run_coach_turn_if_needed=_run_coach_turn_if_needed,
+            run_ai_observer_loop=_run_ai_observer_loop,
+            sync_board_to_katago=_sync_board_to_katago,
+            challenge_remaining=_challenge_remaining,
+            challenge_zone_points=_challenge_zone_points,
+            rogue_has=_rogue_has,
+            get_ai_rogue_forbidden_points=_get_ai_rogue_forbidden_points,
+            ultimate_get_territory_forbidden=_ultimate_get_territory_forbidden,
+            record_ultimate_player_action=_record_ultimate_player_action,
+            check_capture_foul=_check_capture_foul,
+            count_stones=_count_stones,
+            apply_ultimate_effect=_apply_ultimate_effect,
+            resolve_pending_ultimate_shadow_links=_resolve_pending_ultimate_shadow_links,
+            apply_player_rogue_move_effects=_apply_player_rogue_move_effects,
+            apply_ai_rogue_response_effects=_apply_ai_rogue_response_effects,
+            prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+            finish_ultimate_quickthink_turn=_finish_ultimate_quickthink_turn,
+            pick_joseki_targets=_pick_joseki_targets,
+            random_hidden_center=_random_hidden_center,
+            diamond_points=_diamond_points,
+        )
 
-    # Restore existing game if this gameId is already known
-    active_games.prune()
-    game: Optional[GoGame] = active_games.get(game_id, touch=True)
-
-    async def send(data: dict):
-        nonlocal websocket_closed
-        if websocket_closed:
-            raise WebSocketDisconnect(code=1006)
-        try:
-            await websocket.send_text(json.dumps(data))
-            active_games.touch(game_id)
-        except WebSocketDisconnect:
-            websocket_closed = True
-            raise
-        except RuntimeError as exc:
-            message = str(exc)
-            if (
-                "websocket.close" in message
-                or "WebSocket is not connected" in message
-                or "response already completed" in message
-            ):
-                websocket_closed = True
-                raise WebSocketDisconnect(code=1006) from exc
-            raise
-
-    async def send_error(msg: str):
-        await send({"type": "error", "message": msg})
-
-    async def do_analysis(g: GoGame) -> dict:
-        return await _analyze_current_position(g)
-
-    async def do_analysis_bg(g: GoGame):
-        """Run analysis in background so the AI move is shown immediately."""
-        try:
-            move_count_before = len(g.moves)
-            result = await do_analysis(g)
-            # Skip sending if game state changed during analysis (stale)
-            if g.game_over or len(g.moves) != move_count_before:
-                return
-            await send({"type": "analysis", **result})
-        except WebSocketDisconnect:
-            return
-        except Exception as ex:
-            print(f"[Analysis-bg] error: {ex}")
-
-    ws_action_context = WebSocketActionContext(
-        game_id=game_id,
-        game=game,
+    await run_websocket_game_session(
+        websocket,
+        game_id,
         active_games=active_games,
-        engine=engine,
-        send=send,
-        send_error=send_error,
-        do_analysis=do_analysis,
-        do_analysis_bg=do_analysis_bg,
-        run_in_executor=run_in_executor,
-        GoGame=GoGame,
-        coord_to_gtp=coord_to_gtp,
-        gtp_to_coord=gtp_to_coord,
-        engine_state_snapshot=_engine_state_snapshot,
-        start_engine_background=engine_runtime.start_background,
-        reload_live_card_config=reload_live_card_config,
-        get_game_visits=get_game_visits,
-        pick_rogue_choices=pick_rogue_choices,
-        pick_ultimate_choices=pick_ultimate_choices,
-        pick_challenge_beta_choices=pick_challenge_beta_choices,
-        pick_ai_rogue_card=pick_ai_rogue_card,
-        pick_ai_ultimate_card=pick_ai_ultimate_card,
-        apply_challenge_rogue_loadout=_apply_challenge_rogue_loadout,
-        activate_rogue_card=_activate_rogue_card,
-        activate_ai_rogue_card=_activate_ai_rogue_card,
-        ai_move=_ai_move,
-        ultimate_ai_move=_ultimate_ai_move,
-        ultimate_force_score=_ultimate_force_score,
-        run_coach_turn_if_needed=_run_coach_turn_if_needed,
-        run_ai_observer_loop=_run_ai_observer_loop,
-        sync_board_to_katago=_sync_board_to_katago,
-        challenge_remaining=_challenge_remaining,
-        challenge_zone_points=_challenge_zone_points,
-        rogue_has=_rogue_has,
-        get_ai_rogue_forbidden_points=_get_ai_rogue_forbidden_points,
-        ultimate_get_territory_forbidden=_ultimate_get_territory_forbidden,
-        record_ultimate_player_action=_record_ultimate_player_action,
-        check_capture_foul=_check_capture_foul,
-        count_stones=_count_stones,
-        apply_ultimate_effect=_apply_ultimate_effect,
-        resolve_pending_ultimate_shadow_links=_resolve_pending_ultimate_shadow_links,
-        apply_player_rogue_move_effects=_apply_player_rogue_move_effects,
-        apply_ai_rogue_response_effects=_apply_ai_rogue_response_effects,
-        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
-        finish_ultimate_quickthink_turn=_finish_ultimate_quickthink_turn,
-        pick_joseki_targets=_pick_joseki_targets,
-        random_hidden_center=_random_hidden_center,
-        diamond_points=_diamond_points,
+        action_handlers=WS_ACTION_HANDLERS,
+        analyze_position=_analyze_current_position,
+        make_context=make_context,
     )
-
-    try:
-        while True:
-            data = json.loads(await websocket.receive_text())
-            action = data.get("action")
-            try:
-                ws_action_context.game = game
-                handler = WS_ACTION_HANDLERS.get(action)
-                if handler is not None:
-                    await handler(ws_action_context, data)
-                    game = ws_action_context.game
-                    continue
-
-                continue
-
-            except WebSocketDisconnect:
-                raise
-            except Exception as e:
-                import traceback
-                print(f"[WS {game_id}] Action error ({action}): {e}")
-                traceback.print_exc()
-                try:
-                    await send_error(f"处理出错: {e}")
-                except Exception:
-                    pass
-
-    except WebSocketDisconnect:
-        pass  # Keep game state for reconnection
-    except Exception as e:
-        print(f"[WS {game_id}] Fatal error: {e}")
-        try:
-            await send({"type": "error", "message": f"服务器错误: {e}"})
-        except Exception:
-            pass
 
 
 def _record_ultimate_turn(game: GoGame) -> None:
