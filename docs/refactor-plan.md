@@ -131,6 +131,8 @@ Done:
   - Game timer state, absolute/byoyomi countdowns, display refresh, and timeout dispatch
 - `static/js/visual_effects.js`
   - Sound state, stone/capture animations, board intro/ripples, overlay sparks, and card-effect visual bursts
+- `static/js/network_client.js`
+  - `/status` refresh, network status cache, shell sync, and shared WebSocket JSON send helper
 - `static/js/toolbar_actions.js`
   - Main in-game toolbar actions for pass, undo, score, and resign
   - Shared toolbar button enable/disable state
@@ -143,7 +145,7 @@ Done:
 
 Still in `static/index.html`:
 
-- Challenge session state, network helpers, current-board helpers, and board-diff helpers
+- Challenge session state, current-board helpers, and board-diff helpers
 
 ## Frontend Extraction Roadmap
 

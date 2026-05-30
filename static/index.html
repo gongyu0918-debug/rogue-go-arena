@@ -3211,6 +3211,7 @@ header::before { display: none; }
 <script src="/static/js/card_turn_timer.js?v=20260430b"></script>
 <script src="/static/js/visual_effects.js?v=20260530a"></script>
 <script src="/static/js/shell_ui.js?v=20260430h"></script>
+<script src="/static/js/network_client.js?v=20260530a"></script>
 <script src="/static/js/settings_controls.js?v=20260530a"></script>
 <script src="/static/js/runtime_status_ui.js?v=20260530a"></script>
 <script src="/static/js/game_timers.js?v=20260530a"></script>
@@ -3346,24 +3347,6 @@ function updateChallengeInfo() {
   );
 }
 
-function updateNetworkBadge(status) {
-  window.__rogueGoArenaNetworkStatus = status || null;
-}
-
-async function refreshNetworkInfo() {
-  try {
-    const resp = await fetch("/status", { cache: "no-store" });
-    if (!resp.ok) return null;
-    const status = await resp.json();
-    updateNetworkBadge(status);
-    syncClientShell();
-    return status;
-  } catch (_) {
-    syncClientShell();
-    return null;
-  }
-}
-
 function getCurrentBoard() {
   if (reviewMode) {
     const b = buildBoardAtIndex(reviewMoves, reviewBoardSize, reviewIndex);
@@ -3406,13 +3389,6 @@ function detectNewStone(oldBoard, newBoard, size) {
     }
   }
   return null;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// WEBSOCKET
-// ═══════════════════════════════════════════════════════════════════════════════
-function sendWS(data) {
-  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data));
 }
 
 initializeRankControls();
