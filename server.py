@@ -172,6 +172,11 @@ from app.runtime.turn_modifier_adapters import (
     record_ultimate_turn as record_ultimate_turn_adapter,
     refresh_ai_rogue_player_turn as refresh_ai_rogue_player_turn_adapter,
 )
+from app.runtime.ultimate_effect_adapters import (
+    UltimateEffectBinding,
+    apply_ultimate_effect as apply_ultimate_effect_adapter,
+    build_ultimate_effect_flow_deps,
+)
 from app.runtime.ws_context import (
     WebSocketContextDeps,
     build_websocket_action_context,
@@ -273,10 +278,7 @@ from app.gameplay.rogue_move_effect_flow import (
     apply_ai_rogue_response_effects_event,
     apply_player_rogue_move_effects_event,
 )
-from app.gameplay.ultimate_effect_flow import (
-    UltimateEffectFlowDeps,
-    apply_ultimate_effect_event,
-)
+from app.gameplay.ultimate_effect_flow import UltimateEffectFlowDeps
 from app.gameplay.turn_modifiers import (
     apply_ultimate_ai_move_result as apply_ultimate_ai_move_result_state,
     choose_ultimate_ai_bonus_turn as choose_ultimate_ai_bonus_turn_state,
@@ -1144,8 +1146,8 @@ def _ultimate_get_territory_forbidden(game: GoGame, for_color_val: int) -> set:
     return get_ultimate_territory_forbidden_points(game, for_color_val)
 
 
-def _ultimate_effect_flow_deps() -> UltimateEffectFlowDeps:
-    return UltimateEffectFlowDeps(
+def _ultimate_effect_binding() -> UltimateEffectBinding:
+    return UltimateEffectBinding(
         apply_effect=apply_ultimate_card_effect_state,
         coord_to_gtp=coord_to_gtp,
         gtp_to_coord=gtp_to_coord,
@@ -1158,18 +1160,22 @@ def _ultimate_effect_flow_deps() -> UltimateEffectFlowDeps:
     )
 
 
+def _ultimate_effect_flow_deps() -> UltimateEffectFlowDeps:
+    return build_ultimate_effect_flow_deps(_ultimate_effect_binding())
+
+
 async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
                                   color: str, card: str):
     """Apply a single ultimate card effect after a stone is placed at (x,y).
     Returns True if board was modified (needs KataGo sync)."""
-    return await apply_ultimate_effect_event(
+    return await apply_ultimate_effect_adapter(
         game,
         send_fn,
         x=x,
         y=y,
         color=color,
         card=card,
-        deps=_ultimate_effect_flow_deps(),
+        binding=_ultimate_effect_binding(),
     )
 
 
