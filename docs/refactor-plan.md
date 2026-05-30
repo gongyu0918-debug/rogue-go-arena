@@ -119,10 +119,13 @@ Done:
 - `static/js/app_bootstrap.js`
   - Legacy WebSocket connection setup
   - Startup sequence and board recovery/resize hooks
+- `static/js/setup_controls.js`
+  - Setup modal, mode selection, and new-game payload wiring
+  - Time, Rogue variant, and stage preset setup controls
 
 Still in `static/index.html`:
 
-- Legacy DOM event handlers for setup, settings, modal controls, and toolbar actions
+- Legacy DOM event handlers for card editor, settings toggles, and in-game toolbar actions
 
 ## Frontend Extraction Roadmap
 
