@@ -131,9 +131,6 @@ async def smoke_server_wrapper_resolves_runtime_deps_late() -> None:
         ai_move_count=2,
     )
     ai_plan = SimpleNamespace(visits=99, time_limit=1.5)
-    candidate_deps = object()
-    preparation_deps = object()
-    finish_deps = object()
 
     async def send(payload):
         sent.append(payload)
@@ -157,45 +154,49 @@ async def smoke_server_wrapper_resolves_runtime_deps_late() -> None:
         kwargs["challenge_zone_points"](game_arg, [(4, 4)])
         return [(5, 5)]
 
-    def candidate_factory():
-        calls.append(("candidate_factory",))
-        return candidate_deps
-
-    def preparation_factory():
-        calls.append(("preparation_factory",))
-        return preparation_deps
-
-    def finish_factory(engine_command):
-        calls.append(("finish_factory", engine_command is run_engine))
-        return finish_deps
-
     async def try_finish(game_arg, send_fn, **kwargs):
         calls.append((
             "try_finish",
             game_arg is game,
             send_fn is send,
             kwargs["forbidden"],
-            kwargs["candidate_deps"] is candidate_deps,
-            kwargs["preparation_deps"] is preparation_deps,
-            kwargs["finish_deps"] is finish_deps,
+            kwargs["candidate_deps"].choose_candidate is s.choose_ai_move_candidate,
+            kwargs["preparation_deps"].prepare_move is s.prepare_generated_ai_move,
+            kwargs["finish_deps"].run_double_pass_command is run_engine,
         ))
         return True
+
+    original_candidate_binding = s._generated_ai_move_candidate_binding
+    original_preparation_binding = s._generated_ai_move_preparation_binding
+    original_finish_binding = s._generated_ai_move_finish_binding
+
+    def candidate_binding():
+        calls.append(("candidate_binding",))
+        return original_candidate_binding()
+
+    def preparation_binding():
+        calls.append(("preparation_binding",))
+        return original_preparation_binding()
+
+    def finish_binding(engine_command):
+        calls.append(("finish_binding", engine_command is run_engine))
+        return original_finish_binding(engine_command)
 
     originals = {
         "rogue_forbidden_points": s.rogue_forbidden_points,
         "_challenge_zone_points": s._challenge_zone_points,
         "try_finish_generated_ai_move": s.try_finish_generated_ai_move,
-        "_generated_ai_move_candidate_deps": s._generated_ai_move_candidate_deps,
-        "_generated_ai_move_preparation_deps": s._generated_ai_move_preparation_deps,
-        "_generated_ai_move_finish_deps": s._generated_ai_move_finish_deps,
+        "_generated_ai_move_candidate_binding": s._generated_ai_move_candidate_binding,
+        "_generated_ai_move_preparation_binding": s._generated_ai_move_preparation_binding,
+        "_generated_ai_move_finish_binding": s._generated_ai_move_finish_binding,
     }
     try:
         s.rogue_forbidden_points = rogue_forbidden_points
         s._challenge_zone_points = challenge_zone_points
         s.try_finish_generated_ai_move = try_finish
-        s._generated_ai_move_candidate_deps = candidate_factory
-        s._generated_ai_move_preparation_deps = preparation_factory
-        s._generated_ai_move_finish_deps = finish_factory
+        s._generated_ai_move_candidate_binding = candidate_binding
+        s._generated_ai_move_preparation_binding = preparation_binding
+        s._generated_ai_move_finish_binding = finish_binding
 
         result = await s._try_finish_generated_ai_turn(
             game,
@@ -212,9 +213,9 @@ async def smoke_server_wrapper_resolves_runtime_deps_late() -> None:
     assert calls == [
         ("forbidden", True, {"gravity"}, 2, True),
         ("zone", True, ((4, 4),)),
-        ("candidate_factory",),
-        ("preparation_factory",),
-        ("finish_factory", True),
+        ("candidate_binding",),
+        ("preparation_binding",),
+        ("finish_binding", True),
         ("try_finish", True, True, [(5, 5)], True, True, True),
     ]
     assert sent == []

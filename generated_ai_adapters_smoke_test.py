@@ -171,9 +171,6 @@ async def smoke_generated_turn_binding_delegates_with_factories() -> None:
     calls = []
     turn = SimpleNamespace(color="W", card="fog", rogue_cards={"fog"}, ai_move_count=2)
     ai_plan = SimpleNamespace(visits=123, time_limit=1.5)
-    candidate_deps = object()
-    preparation_deps = object()
-    finish_deps = object()
 
     async def send(payload):
         sent.append(payload)
@@ -197,17 +194,71 @@ async def smoke_generated_turn_binding_delegates_with_factories() -> None:
         kwargs["challenge_zone_points"](game_arg, [(1, 1)])
         return [(2, 2)]
 
-    def candidate_factory():
-        calls.append(("candidate",))
-        return candidate_deps
+    def candidate_binding():
+        calls.append(("candidate_binding",))
+        return GeneratedMoveCandidateBinding(
+            choose_candidate=fake_sync,
+            choose_avoid_move=fake_async,
+            analyze_position=fake_async,
+            choose_style_move=fake_async,
+            generate_move=fake_async,
+            gtp_to_coord=fake_gtp_to_coord,
+            log_error=fake_sync,
+        )
 
-    def preparation_factory():
-        calls.append(("preparation",))
-        return preparation_deps
+    def preparation_binding():
+        calls.append(("preparation_binding",))
+        return GeneratedMovePreparationBinding(
+            prepare_move=fake_async,
+            apply_suspicious_pass_fallback_fn=fake_async,
+            is_suspicious_pass=fake_sync,
+            pick_nonpass_fallback_move=fake_async,
+            log_event=fake_sync,
+            resolve_resign_move=fake_async,
+            no_resign_move=fake_async,
+            apply_slip_move=fake_sync,
+            roll_random=fake_sync,
+            choose_point=fake_sync,
+            gtp_to_coord=fake_gtp_to_coord,
+            coord_to_gtp=fake_coord_to_gtp,
+            adjacent_points=fake_sync,
+            retry_ko_move=fake_async,
+            retry_avoiding_ko=fake_async,
+        )
 
-    def finish_factory(engine_command):
-        calls.append(("finish", engine_command is run_engine))
-        return finish_deps
+    def finish_binding(engine_command):
+        calls.append(("finish_binding", engine_command is run_engine))
+        return GeneratedMoveFinishBinding(
+            finish_move=fake_async,
+            apply_placement_effects=fake_async,
+            finish_turn_response=fake_async,
+            gtp_to_coord=fake_gtp_to_coord,
+            sync_board_to_engine=fake_async,
+            engine_is_ready=lambda: True,
+            apply_move_to_board=fake_sync,
+            apply_sansan_trap_counter=fake_async,
+            try_no_regret_bonus=fake_async,
+            trap_stones=3,
+            get_sansan_points=fake_sync,
+            adjacent_points=fake_sync,
+            shuffle_points=fake_sync,
+            spawn_bonus_points=fake_sync,
+            coord_to_gtp=fake_coord_to_gtp,
+            apply_trap_bonus=fake_async,
+            no_regret_chance=0.4,
+            roll_random=fake_sync,
+            has_rogue_card=fake_sync,
+            pick_best_point=fake_async,
+            prepare_player_turn_modifiers=fake_sync,
+            apply_erosion_counter=fake_async,
+            erosion_shift=1.5,
+            run_erosion_command=engine_command,
+            erosion_message=lambda capture_count, komi: f"{capture_count}:{komi}",
+            finalize_double_pass=fake_async,
+            run_double_pass_command=engine_command,
+            send_ai_move_response=fake_async,
+            run_coach_turn_if_needed=fake_async,
+        )
 
     async def finish_move(game_arg, send_fn, **kwargs):
         calls.append((
@@ -215,9 +266,9 @@ async def smoke_generated_turn_binding_delegates_with_factories() -> None:
             game_arg is game,
             send_fn is send,
             kwargs["forbidden"],
-            kwargs["candidate_deps"] is candidate_deps,
-            kwargs["preparation_deps"] is preparation_deps,
-            kwargs["finish_deps"] is finish_deps,
+            kwargs["candidate_deps"].choose_candidate is fake_sync,
+            kwargs["preparation_deps"].prepare_move is fake_async,
+            kwargs["finish_deps"].run_double_pass_command is run_engine,
         ))
         await send_fn({"type": "ai_move", "gtp": "D4"})
         return True
@@ -226,18 +277,18 @@ async def smoke_generated_turn_binding_delegates_with_factories() -> None:
         rogue_forbidden_points=rogue_forbidden_points,
         challenge_zone_points=challenge_zone_points,
         try_finish_generated_ai_move=finish_move,
-        candidate_deps=candidate_factory,
-        preparation_deps=preparation_factory,
-        finish_deps=finish_factory,
+        candidate_binding=candidate_binding,
+        preparation_binding=preparation_binding,
+        finish_binding=finish_binding,
     )
 
     deps = build_generated_ai_turn_deps(binding)
     assert deps.rogue_forbidden_points is rogue_forbidden_points
     assert deps.challenge_zone_points is challenge_zone_points
     assert deps.try_finish_generated_ai_move is finish_move
-    assert deps.candidate_deps is candidate_factory
-    assert deps.preparation_deps is preparation_factory
-    assert deps.finish_deps is finish_factory
+    assert callable(deps.candidate_deps)
+    assert callable(deps.preparation_deps)
+    assert callable(deps.finish_deps)
 
     result = await try_finish_generated_ai_turn(
         game,
@@ -252,9 +303,9 @@ async def smoke_generated_turn_binding_delegates_with_factories() -> None:
     assert calls == [
         ("forbidden", True, {"fog"}, 2, True),
         ("zone", True, ((1, 1),)),
-        ("candidate",),
-        ("preparation",),
-        ("finish", True),
+        ("candidate_binding",),
+        ("preparation_binding",),
+        ("finish_binding", True),
         ("finish_move", True, True, [(2, 2)], True, True, True),
     ]
     assert sent == [{"type": "ai_move", "gtp": "D4"}]
@@ -272,9 +323,9 @@ def smoke_server_generated_bindings_resolve_current_runtime() -> None:
         s.engine.ready = True
 
         candidate = s._generated_ai_move_candidate_binding()
-        candidate_deps = s._generated_ai_move_candidate_deps()
+        candidate_deps = build_generated_move_candidate_deps(candidate)
         finish = s._generated_ai_move_finish_binding(fake_async)
-        finish_deps = s._generated_ai_move_finish_deps(fake_async)
+        finish_deps = build_generated_move_finish_deps(finish)
         turn = s._generated_ai_turn_binding()
 
         assert candidate.choose_candidate is fake_sync
@@ -288,8 +339,8 @@ def smoke_server_generated_bindings_resolve_current_runtime() -> None:
         assert finish_deps.run_double_pass_command is fake_async
         assert turn.rogue_forbidden_points is s.rogue_forbidden_points
         assert turn.challenge_zone_points is s._challenge_zone_points
-        assert turn.candidate_deps is s._generated_ai_move_candidate_deps
-        assert turn.finish_deps is s._generated_ai_move_finish_deps
+        assert turn.candidate_binding is s._generated_ai_move_candidate_binding
+        assert turn.finish_binding is s._generated_ai_move_finish_binding
     finally:
         s.choose_ai_move_candidate = original_choose_candidate
         s._ai_generate_move = original_generate_move

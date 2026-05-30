@@ -13,7 +13,7 @@ from app.gameplay.generated_ai_turn_flow import (
     GeneratedAiTurnDeps,
     try_finish_generated_ai_turn_event,
 )
-from app.callback_types import DepsFactory, EngineCommandFn, FinishDepsFactory, SendFn
+from app.callback_types import EngineCommandFn, SendFn
 
 
 @dataclass(frozen=True)
@@ -84,9 +84,9 @@ class GeneratedAiTurnBinding:
     rogue_forbidden_points: Callable[..., list[tuple[int, int]]]
     challenge_zone_points: Callable[[Any, list[tuple[int, int]]], list[tuple[int, int]]]
     try_finish_generated_ai_move: Callable[..., Awaitable[bool]]
-    candidate_deps: DepsFactory
-    preparation_deps: DepsFactory
-    finish_deps: FinishDepsFactory
+    candidate_binding: Callable[[], GeneratedMoveCandidateBinding]
+    preparation_binding: Callable[[], GeneratedMovePreparationBinding]
+    finish_binding: Callable[[EngineCommandFn], GeneratedMoveFinishBinding]
 
 
 def build_generated_move_candidate_deps(binding: GeneratedMoveCandidateBinding) -> GeneratedMoveCandidateDeps:
@@ -160,9 +160,11 @@ def build_generated_ai_turn_deps(binding: GeneratedAiTurnBinding) -> GeneratedAi
         rogue_forbidden_points=binding.rogue_forbidden_points,
         challenge_zone_points=binding.challenge_zone_points,
         try_finish_generated_ai_move=binding.try_finish_generated_ai_move,
-        candidate_deps=binding.candidate_deps,
-        preparation_deps=binding.preparation_deps,
-        finish_deps=binding.finish_deps,
+        candidate_deps=lambda: build_generated_move_candidate_deps(binding.candidate_binding()),
+        preparation_deps=lambda: build_generated_move_preparation_deps(binding.preparation_binding()),
+        finish_deps=lambda run_engine_command: build_generated_move_finish_deps(
+            binding.finish_binding(run_engine_command),
+        ),
     )
 
 

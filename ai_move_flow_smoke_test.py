@@ -43,6 +43,11 @@ from app.gameplay.ai_move_flow import (
     try_finalize_forced_ai_stone,
     try_finish_suboptimal_rogue_move,
 )
+from app.runtime.generated_ai_adapters import (
+    build_generated_move_candidate_deps,
+    build_generated_move_finish_deps,
+    build_generated_move_preparation_deps,
+)
 
 
 async def _unused_no_resign(_game, _color):
@@ -5854,9 +5859,15 @@ def test_server_generated_ai_move_deps_bind_runtime_globals() -> None:
     s.finish_prepared_ai_move = fake_finish
     s._sync_board_to_katago = fake_sync
     try:
-        candidate_deps = s._generated_ai_move_candidate_deps()
-        preparation_deps = s._generated_ai_move_preparation_deps()
-        finish_deps = s._generated_ai_move_finish_deps(fake_run_command)
+        candidate_deps = build_generated_move_candidate_deps(
+            s._generated_ai_move_candidate_binding(),
+        )
+        preparation_deps = build_generated_move_preparation_deps(
+            s._generated_ai_move_preparation_binding(),
+        )
+        finish_deps = build_generated_move_finish_deps(
+            s._generated_ai_move_finish_binding(fake_run_command),
+        )
         first_ready = finish_deps.engine_is_ready()
         s.engine.ready = False
         second_ready = finish_deps.engine_is_ready()
@@ -6117,8 +6128,6 @@ async def _server_generated_turn_helper_binds_runtime_globals() -> None:
         move_count=9,
         ai_move_count=4,
     )
-    candidate_deps = object()
-    preparation_deps = object()
     calls = []
 
     async def send(payload):
@@ -6144,18 +6153,6 @@ async def _server_generated_turn_helper_binds_runtime_globals() -> None:
         ))
         return [(0, 0), *challenge_points]
 
-    def fake_candidate_deps():
-        calls.append(("candidate_deps",))
-        return candidate_deps
-
-    def fake_preparation_deps():
-        calls.append(("preparation_deps",))
-        return preparation_deps
-
-    def fake_finish_deps(run_engine_command):
-        calls.append(("finish_deps", run_engine_command is run_engine))
-        return SimpleNamespace(run_engine=run_engine_command)
-
     async def fake_generated_flow(game_arg, send_fn, **kwargs):
         calls.append((
             "generated_flow",
@@ -6167,27 +6164,43 @@ async def _server_generated_turn_helper_binds_runtime_globals() -> None:
             kwargs["forbidden"],
             kwargs["visits"],
             kwargs["time_limit"],
-            kwargs["candidate_deps"] is candidate_deps,
-            kwargs["preparation_deps"] is preparation_deps,
-            kwargs["finish_deps"].run_engine is run_engine,
+            kwargs["candidate_deps"].choose_candidate is s.choose_ai_move_candidate,
+            kwargs["preparation_deps"].prepare_move is s.prepare_generated_ai_move,
+            kwargs["finish_deps"].run_double_pass_command is run_engine,
         ))
-        engine_result = await kwargs["finish_deps"].run_engine("final_score")
+        engine_result = await kwargs["finish_deps"].run_double_pass_command("final_score")
         calls.append(("generated_engine", engine_result))
         return True
+
+    original_candidate_binding = s._generated_ai_move_candidate_binding
+    original_preparation_binding = s._generated_ai_move_preparation_binding
+    original_finish_binding = s._generated_ai_move_finish_binding
+
+    def fake_candidate_binding():
+        calls.append(("candidate_binding",))
+        return original_candidate_binding()
+
+    def fake_preparation_binding():
+        calls.append(("preparation_binding",))
+        return original_preparation_binding()
+
+    def fake_finish_binding(run_engine_command):
+        calls.append(("finish_binding", run_engine_command is run_engine))
+        return original_finish_binding(run_engine_command)
 
     originals = {
         "forbidden": s.rogue_forbidden_points,
         "challenge_zone": s._challenge_zone_points,
-        "candidate_deps": s._generated_ai_move_candidate_deps,
-        "preparation_deps": s._generated_ai_move_preparation_deps,
-        "finish_deps": s._generated_ai_move_finish_deps,
+        "candidate_binding": s._generated_ai_move_candidate_binding,
+        "preparation_binding": s._generated_ai_move_preparation_binding,
+        "finish_binding": s._generated_ai_move_finish_binding,
         "generated_flow": s.try_finish_generated_ai_move,
     }
     s.rogue_forbidden_points = fake_forbidden
     s._challenge_zone_points = fake_challenge_zone
-    s._generated_ai_move_candidate_deps = fake_candidate_deps
-    s._generated_ai_move_preparation_deps = fake_preparation_deps
-    s._generated_ai_move_finish_deps = fake_finish_deps
+    s._generated_ai_move_candidate_binding = fake_candidate_binding
+    s._generated_ai_move_preparation_binding = fake_preparation_binding
+    s._generated_ai_move_finish_binding = fake_finish_binding
     s.try_finish_generated_ai_move = fake_generated_flow
     try:
         handled = await s._try_finish_generated_ai_turn(
@@ -6200,18 +6213,18 @@ async def _server_generated_turn_helper_binds_runtime_globals() -> None:
     finally:
         s.rogue_forbidden_points = originals["forbidden"]
         s._challenge_zone_points = originals["challenge_zone"]
-        s._generated_ai_move_candidate_deps = originals["candidate_deps"]
-        s._generated_ai_move_preparation_deps = originals["preparation_deps"]
-        s._generated_ai_move_finish_deps = originals["finish_deps"]
+        s._generated_ai_move_candidate_binding = originals["candidate_binding"]
+        s._generated_ai_move_preparation_binding = originals["preparation_binding"]
+        s._generated_ai_move_finish_binding = originals["finish_binding"]
         s.try_finish_generated_ai_move = originals["generated_flow"]
 
     assert handled is True
     assert calls == [
         ("challenge_zone", True, (1, 1)),
         ("forbidden", True, {"seal", "fog"}, 4, True, [(3, 3)]),
-        ("candidate_deps",),
-        ("preparation_deps",),
-        ("finish_deps", True),
+        ("candidate_binding",),
+        ("preparation_binding",),
+        ("finish_binding", True),
         (
             "generated_flow",
             True,
