@@ -44,6 +44,12 @@ try {
       typeof window.refreshNetworkInfo,
       typeof window.sendWS,
     ];
+    const networkStatusDescriptor = Object.getOwnPropertyDescriptor(window, "__rogueGoArenaNetworkStatus");
+    const privateFns = [
+      typeof window.normalizeNetworkStatus,
+      typeof window.fetchNetworkStatus,
+      typeof window.websocketIsOpen,
+    ];
 
     const originalWs = ws;
     const sent = [];
@@ -59,6 +65,21 @@ try {
     sendWS({ action: "null_smoke" });
     const afterNullSendCount = sent.length;
     ws = originalWs;
+
+    window.__rogueGoArenaNetworkStatus = { katago_ready: true, engine_backend: "AssignedEngine", engine_model: "AssignedModel" };
+    syncClientShell();
+    const assignedBadgeState = {
+      cachedBackend: window.__rogueGoArenaNetworkStatus?.engine_backend || "",
+      engineValue: document.querySelector("#client-engine-value")?.textContent || "",
+      hudEngine: document.querySelector("#hud-engine")?.textContent || "",
+    };
+
+    window.__rogueGoArenaNetworkStatus = null;
+    syncClientShell();
+    const clearedBadgeState = {
+      cached: window.__rogueGoArenaNetworkStatus,
+      engineValue: document.querySelector("#client-engine-value")?.textContent || "",
+    };
 
     updateNetworkBadge({ katago_ready: true, engine_backend: "SmokeEngine", engine_model: "SmokeModel" });
     syncClientShell();
@@ -127,6 +148,15 @@ try {
       syncCalls,
     };
 
+    window.fetch = async () => ({ ok: true, json: async () => null });
+    const okNullStatus = await refreshNetworkInfo();
+    const afterOkNull = {
+      returnedNull: okNullStatus === null,
+      cached: window.__rogueGoArenaNetworkStatus,
+      syncCalls,
+      engineText: document.querySelector("#client-engine-value")?.textContent || "",
+    };
+
     window.fetch = async () => { throw new Error("network smoke failure"); };
     const failedStatus = await refreshNetworkInfo();
     const afterFailure = {
@@ -141,9 +171,17 @@ try {
 
     return {
       publicFns,
+      networkStatusDescriptor: {
+        get: typeof networkStatusDescriptor?.get,
+        set: typeof networkStatusDescriptor?.set,
+        value: typeof networkStatusDescriptor?.value,
+      },
+      privateFns,
       openSend,
       afterClosedSendCount,
       afterNullSendCount,
+      assignedBadgeState,
+      clearedBadgeState,
       manualBadgeState,
       defaultCardLabel,
       rogueCardLabel,
@@ -155,16 +193,25 @@ try {
       koreanEngineText,
       afterLiveRefresh,
       afterNotOk,
+      afterOkNull,
       afterFailure,
     };
   });
 
   assert(state.publicFns.every(type => type === "function"), `network client globals missing: ${state.publicFns.join(", ")}`);
+  assert(state.networkStatusDescriptor.get === "function" && state.networkStatusDescriptor.set === "function", `network status cache is not an accessor: ${JSON.stringify(state.networkStatusDescriptor)}`);
+  assert(state.networkStatusDescriptor.value === "undefined", `network status cache unexpectedly has data value: ${JSON.stringify(state.networkStatusDescriptor)}`);
+  assert(state.privateFns.every(type => type === "undefined"), `network client private helpers leaked globally: ${state.privateFns.join(", ")}`);
   assert(state.openSend.length === 1, `open WebSocket send count changed: ${JSON.stringify(state.openSend)}`);
   assert(JSON.parse(state.openSend[0]).action === "network_smoke", `open WebSocket payload changed: ${state.openSend[0]}`);
   assert(JSON.parse(state.openSend[0]).nested.value === 7, `open WebSocket nested payload changed: ${state.openSend[0]}`);
   assert(state.afterClosedSendCount === 1, `closed WebSocket should not send: ${state.afterClosedSendCount}`);
   assert(state.afterNullSendCount === 1, `null WebSocket should not send: ${state.afterNullSendCount}`);
+  assert(state.assignedBadgeState.cachedBackend === "AssignedEngine", `assigned network cache changed: ${JSON.stringify(state.assignedBadgeState)}`);
+  assert(state.assignedBadgeState.engineValue.includes("AssignedEngine"), `assigned engine shell text changed: ${state.assignedBadgeState.engineValue}`);
+  assert(state.assignedBadgeState.hudEngine.includes("AssignedEngine"), `assigned HUD engine changed: ${state.assignedBadgeState.hudEngine}`);
+  assert(state.clearedBadgeState.cached === null, `cleared network cache should be null: ${JSON.stringify(state.clearedBadgeState)}`);
+  assert(state.clearedBadgeState.engineValue.length > 0, "cleared network cache did not leave engine fallback text");
   assert(state.manualBadgeState.cachedBackend === "SmokeEngine", `manual network cache changed: ${JSON.stringify(state.manualBadgeState)}`);
   assert(state.manualBadgeState.engineValue.includes("SmokeEngine"), `manual engine text changed: ${state.manualBadgeState.engineValue}`);
   assert(state.manualBadgeState.engineTitle.includes("SmokeEngine"), `manual engine title changed: ${state.manualBadgeState.engineTitle}`);
@@ -189,8 +236,12 @@ try {
   assert(state.afterLiveRefresh.engineText.length > 0, "engine text missing after live refresh");
   assert(state.afterNotOk.returnedNull, "non-ok refresh should return null");
   assert(state.afterNotOk.syncCalls === state.afterLiveRefresh.syncCalls, "non-ok refresh should preserve prior no-sync behavior");
+  assert(state.afterOkNull.returnedNull, "ok null refresh should return null");
+  assert(state.afterOkNull.cached === null, `ok null refresh should cache null: ${JSON.stringify(state.afterOkNull)}`);
+  assert(state.afterOkNull.syncCalls === state.afterLiveRefresh.syncCalls + 1, `ok null refresh should sync shell: ${JSON.stringify(state.afterOkNull)}`);
+  assert(state.afterOkNull.engineText.length > 0, "ok null refresh did not leave engine fallback text");
   assert(state.afterFailure.returnedNull, "failed refresh should return null");
-  assert(state.afterFailure.syncCalls === state.afterLiveRefresh.syncCalls + 1, `failed refresh did not sync shell: ${JSON.stringify(state.afterFailure)}`);
+  assert(state.afterFailure.syncCalls === state.afterOkNull.syncCalls + 1, `failed refresh did not sync shell: ${JSON.stringify(state.afterFailure)}`);
   assert(state.afterFailure.clientStatus.length > 0, "client status text missing after failed refresh");
   assert(errors.length === 0, `browser errors: ${errors.join("; ")}`);
 
