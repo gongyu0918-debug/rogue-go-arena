@@ -163,6 +163,10 @@ from app.gameplay.ai_move_flow import (
     try_finish_suboptimal_rogue_move,
 )
 from app.gameplay.ai_finish_move_flow import AiFinishMoveDeps, finish_ai_move_event
+from app.gameplay.ai_style_move_flow import (
+    AiStyleMoveDeps,
+    generate_ai_style_move_event,
+)
 from app.gameplay.ai_turn_flow import AiTurnFlowDeps, run_ai_turn
 from app.gameplay.forced_rogue_ai_turn_flow import (
     ForcedRogueAiTurnDeps,
@@ -1616,21 +1620,20 @@ async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
 
 
 async def _generate_ai_style_move(game: GoGame, color: str, visits: int, time_limit: float) -> str:
-    await _sync_board_to_katago(game)
-    style = game.ai_style
-    if game.ai_observer:
-        style = game.ai_style_black if color == "B" else game.ai_style_white
-    return await choose_or_generate_ai_style_move(
+    return await generate_ai_style_move_event(
         game,
         color=color,
         visits=visits,
         time_limit=time_limit,
-        style=style,
-        analyze_position=_analyze_current_position,
-        choose_style_move=choose_ai_style_move,
-        generate_move=_ai_generate_move,
-        gtp_to_coord=gtp_to_coord,
-        play_chosen_move=_send_engine_command,
+        deps=AiStyleMoveDeps(
+            sync_board_to_katago=_sync_board_to_katago,
+            choose_or_generate_style_move=choose_or_generate_ai_style_move,
+            analyze_position=_analyze_current_position,
+            choose_style_move=choose_ai_style_move,
+            generate_move=_ai_generate_move,
+            gtp_to_coord=gtp_to_coord,
+            play_chosen_move=_send_engine_command,
+        ),
     )
 
 
