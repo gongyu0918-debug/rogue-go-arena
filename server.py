@@ -175,6 +175,12 @@ from app.gameplay.coach_mode import (
     run_coach_turn_if_needed as run_coach_turn_if_needed_state,
 )
 from app.gameplay.capture_foul_flow import check_capture_foul_event
+from app.gameplay.rogue_card_flow import (
+    AiRogueCardActivationFlowDeps,
+    RogueCardActivationFlowDeps,
+    activate_ai_rogue_card_event,
+    activate_rogue_card_event,
+)
 from app.gameplay.ultimate_effect_flow import (
     UltimateEffectFlowDeps,
     apply_ultimate_effect_event,
@@ -952,54 +958,51 @@ async def _pick_best_point(game: GoGame, color: str) -> Optional[tuple[int, int]
     return await _pick_analysis_point(game, color, start_index=0)
 
 
-async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
-    """Apply immediate effects when the player picks a rogue card."""
-    cdef = get_rogue_card(card_id)
-    result = apply_rogue_card_activation(
-        game,
-        card_id,
-        cdef,
+def _rogue_card_activation_flow_deps() -> RogueCardActivationFlowDeps:
+    return RogueCardActivationFlowDeps(
+        get_card=get_rogue_card,
+        apply_activation=apply_rogue_card_activation,
         coord_to_gtp=coord_to_gtp,
         choose_corner=lambda: random.randint(0, 3),
         make_rng=lambda: random.Random(time.time_ns()),
-        get_blackhole_points_fn=_get_blackhole_points,
-        get_golden_corner_points_fn=_get_golden_corner_points,
-        pick_joseki_targets_fn=_pick_joseki_targets,
-        random_hidden_center_fn=_random_hidden_center,
-        diamond_points_fn=_diamond_points,
+        get_blackhole_points=_get_blackhole_points,
+        get_golden_corner_points=_get_golden_corner_points,
+        pick_joseki_targets=_pick_joseki_targets,
+        random_hidden_center=_random_hidden_center,
+        diamond_points=_diamond_points,
+        sync_engine_komi=_sync_engine_komi,
     )
-    for message in result.messages:
-        await send_fn({"type": "rogue_event", "msg": message})
-    if result.sync_komi:
-        await _sync_engine_komi(game)
-
-    await send_fn({"type": "rogue_card_selected",
-                   "card_id": card_id,
-                   "name": cdef["name"],
-                   "icon": cdef["icon"],
-                   "waiting_seal": card_id == "seal",
-                   **game.to_state()})
 
 
-async def _activate_ai_rogue_card(game: GoGame, send_fn, card_id: str):
-    cdef = get_rogue_card(card_id)
-    apply_ai_rogue_card_activation(
-        game,
-        card_id,
+def _ai_rogue_card_activation_flow_deps() -> AiRogueCardActivationFlowDeps:
+    return AiRogueCardActivationFlowDeps(
+        get_card=get_rogue_card,
+        apply_activation=apply_ai_rogue_card_activation,
         choose_corner=lambda: random.randint(0, 3),
-        get_blackhole_points_fn=_get_blackhole_points,
-        get_golden_corner_points_fn=_get_golden_corner_points,
-        refresh_ai_rogue_player_turn_fn=_refresh_ai_rogue_player_turn,
+        get_blackhole_points=_get_blackhole_points,
+        get_golden_corner_points=_get_golden_corner_points,
+        refresh_ai_rogue_player_turn=_refresh_ai_rogue_player_turn,
         golden_corner_span=ROGUE_GOLDEN_CORNER_SPAN,
     )
 
-    await send_fn({
-        "type": "rogue_ai_selected",
-        "card_id": card_id,
-        "name": cdef["name"],
-        "icon": cdef["icon"],
-        **game.to_state(),
-    })
+
+async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
+    """Apply immediate effects when the player picks a rogue card."""
+    await activate_rogue_card_event(
+        game,
+        send_fn,
+        card_id,
+        _rogue_card_activation_flow_deps(),
+    )
+
+
+async def _activate_ai_rogue_card(game: GoGame, send_fn, card_id: str):
+    await activate_ai_rogue_card_event(
+        game,
+        send_fn,
+        card_id,
+        _ai_rogue_card_activation_flow_deps(),
+    )
 
 
 async def _apply_challenge_rogue_loadout(game: GoGame, send_fn):
