@@ -175,6 +175,10 @@ from app.gameplay.coach_mode import (
     run_coach_turn_if_needed as run_coach_turn_if_needed_state,
 )
 from app.gameplay.capture_foul_flow import check_capture_foul_event
+from app.gameplay.ultimate_effect_flow import (
+    UltimateEffectFlowDeps,
+    apply_ultimate_effect_event,
+)
 from app.gameplay.turn_modifiers import (
     apply_ultimate_ai_move_result as apply_ultimate_ai_move_result_state,
     choose_ultimate_ai_bonus_turn as choose_ultimate_ai_bonus_turn_state,
@@ -1104,25 +1108,32 @@ def _ultimate_get_territory_forbidden(game: GoGame, for_color_val: int) -> set:
     return get_ultimate_territory_forbidden_points(game, for_color_val)
 
 
+def _ultimate_effect_flow_deps() -> UltimateEffectFlowDeps:
+    return UltimateEffectFlowDeps(
+        apply_effect=apply_ultimate_card_effect_state,
+        coord_to_gtp=coord_to_gtp,
+        gtp_to_coord=gtp_to_coord,
+        trigger_five_in_row=_trigger_ultimate_five_in_row,
+        trigger_last_stand=_trigger_ultimate_last_stand,
+        apply_foolish_wisdom_wave=apply_ultimate_foolish_wisdom_wave,
+        make_rng=lambda: random.Random(time.time_ns()),
+        sleep=asyncio.sleep,
+        foolish_chain_delay=ULTIMATE_FOOLISH_CHAIN_DELAY,
+    )
+
+
 async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
                                   color: str, card: str):
     """Apply a single ultimate card effect after a stone is placed at (x,y).
     Returns True if board was modified (needs KataGo sync)."""
-    return await apply_ultimate_card_effect_state(
+    return await apply_ultimate_effect_event(
         game,
         send_fn,
         x=x,
         y=y,
         color=color,
         card=card,
-        coord_to_gtp=coord_to_gtp,
-        gtp_to_coord=gtp_to_coord,
-        trigger_five_in_row_fn=_trigger_ultimate_five_in_row,
-        trigger_last_stand_fn=_trigger_ultimate_last_stand,
-        apply_foolish_wisdom_wave_fn=apply_ultimate_foolish_wisdom_wave,
-        make_rng=lambda: random.Random(time.time_ns()),
-        sleep_fn=asyncio.sleep,
-        foolish_chain_delay=ULTIMATE_FOOLISH_CHAIN_DELAY,
+        deps=_ultimate_effect_flow_deps(),
     )
 
 
