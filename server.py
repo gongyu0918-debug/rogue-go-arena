@@ -97,6 +97,10 @@ from app.runtime.config_api import (
     save_balance_request,
     save_card_config_request,
 )
+from app.runtime.capture_foul_adapters import (
+    CaptureFoulBinding,
+    check_capture_foul_violation as check_capture_foul_violation_adapter,
+)
 from app.runtime.challenge_adapters import (
     ChallengeFlowBinding,
     ChallengeLoadoutBinding,
@@ -298,7 +302,6 @@ from app.gameplay.ai_turn_flow import AiTurnFlowDeps
 from app.gameplay.move_placement import (
     place_auxiliary_ai_move_on_board as place_auxiliary_ai_move_on_board_state,
 )
-from app.gameplay.capture_foul_flow import check_capture_foul_event
 from app.gameplay.rogue_card_flow import AiRogueCardActivationFlowDeps, RogueCardActivationFlowDeps
 from app.gameplay.rogue_move_effect_flow import (
     AiRogueResponseEffectDeps,
@@ -790,6 +793,10 @@ def _finish_ultimate_quickthink_turn(game: GoGame) -> None:
     finish_ultimate_quickthink_turn_adapter(game)
 
 
+def _capture_foul_binding() -> CaptureFoulBinding:
+    return CaptureFoulBinding(sync_komi=_sync_engine_komi)
+
+
 async def _check_capture_foul(game: GoGame, send_fn, offender: str, captured: int, *, ultimate: bool) -> None:
     """Track capture-foul progress and penalise when threshold is met.
 
@@ -798,13 +805,13 @@ async def _check_capture_foul(game: GoGame, send_fn, offender: str, captured: in
       - Ultimate: whoever picked the card → only the other side is punished.
     ``offender`` is the colour that just captured stones.
     """
-    await check_capture_foul_event(
+    await check_capture_foul_violation_adapter(
         game,
         send_fn,
         offender,
         captured,
         ultimate=ultimate,
-        sync_komi=_sync_engine_komi,
+        binding=_capture_foul_binding(),
     )
 
 
