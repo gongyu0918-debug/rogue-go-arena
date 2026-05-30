@@ -242,7 +242,7 @@ async def smoke_server_binding_resolves_current_runtime() -> None:
         s._send_engine_command = command
 
         binding = s._ai_turn_binding()
-        deps = s._ai_turn_flow_deps()
+        deps = build_ai_turn_flow_deps(binding)
 
         assert binding.engine_ready() is True
         assert deps.sync_board_to_katago is sync_board

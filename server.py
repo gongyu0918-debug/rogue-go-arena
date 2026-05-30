@@ -80,7 +80,6 @@ from app.domain.sgf import generate_sgf
 from app.runtime.access_urls import get_access_urls as build_access_urls
 from app.runtime.ai_style_adapters import (
     AiStyleMoveBinding,
-    build_ai_style_move_deps,
     generate_ai_style_move as generate_ai_style_move_adapter,
 )
 from app.runtime.ai_move_service_adapters import (
@@ -97,7 +96,6 @@ from app.runtime.ai_move_service_adapters import (
 )
 from app.runtime.ai_turn_adapters import (
     AiTurnBinding,
-    build_ai_turn_flow_deps,
     run_ai_turn as run_ai_turn_adapter,
 )
 from app.runtime.config_api import (
@@ -299,8 +297,6 @@ from app.gameplay.ai_move_flow import (
     try_finish_shadow_restriction_move,
     try_finish_suboptimal_rogue_move,
 )
-from app.gameplay.ai_style_move_flow import AiStyleMoveDeps
-from app.gameplay.ai_turn_flow import AiTurnFlowDeps
 from app.gameplay.move_placement import (
     place_auxiliary_ai_move_on_board as place_auxiliary_ai_move_on_board_state,
 )
@@ -1632,10 +1628,6 @@ def _ai_turn_binding() -> AiTurnBinding:
     )
 
 
-def _ai_turn_flow_deps() -> AiTurnFlowDeps:
-    return build_ai_turn_flow_deps(_ai_turn_binding())
-
-
 async def _ai_move(game: GoGame, send_fn):
     await run_ai_turn_adapter(game, send_fn, _ai_turn_binding())
 
@@ -1723,10 +1715,6 @@ def _ai_style_move_binding() -> AiStyleMoveBinding:
         gtp_to_coord=gtp_to_coord,
         play_chosen_move=_send_engine_command,
     )
-
-
-def _ai_style_move_deps() -> AiStyleMoveDeps:
-    return build_ai_style_move_deps(_ai_style_move_binding())
 
 
 async def _generate_ai_style_move(game: GoGame, color: str, visits: int, time_limit: float) -> str:

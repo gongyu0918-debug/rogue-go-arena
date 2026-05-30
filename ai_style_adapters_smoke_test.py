@@ -201,7 +201,7 @@ async def smoke_server_binding_resolves_current_runtime() -> None:
         s._send_engine_command = play
 
         binding = s._ai_style_move_binding()
-        deps = s._ai_style_move_deps()
+        deps = build_ai_style_move_deps(binding)
         assert binding.sync_board_to_katago is sync
         assert deps.choose_or_generate_style_move is choose_or_generate
         assert deps.analyze_position is analyze
