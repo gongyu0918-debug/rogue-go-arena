@@ -133,6 +133,14 @@ from app.runtime.observer_adapters import (
     run_ai_observer_loop as run_ai_observer_loop_adapter,
 )
 from app.runtime.rank_api import build_rank_options
+from app.runtime.rogue_activation_adapters import (
+    AiRogueCardActivationBinding,
+    RogueCardActivationBinding,
+    activate_ai_rogue_card as activate_ai_rogue_card_adapter,
+    activate_rogue_card as activate_rogue_card_adapter,
+    build_ai_rogue_card_activation_deps,
+    build_rogue_card_activation_deps,
+)
 from app.runtime.rogue_ai_turn_adapters import (
     ForcedRogueAiTurnBinding,
     RestrictionRogueAiTurnBinding,
@@ -266,12 +274,7 @@ from app.gameplay.move_placement import (
     place_auxiliary_ai_move_on_board as place_auxiliary_ai_move_on_board_state,
 )
 from app.gameplay.capture_foul_flow import check_capture_foul_event
-from app.gameplay.rogue_card_flow import (
-    AiRogueCardActivationFlowDeps,
-    RogueCardActivationFlowDeps,
-    activate_ai_rogue_card_event,
-    activate_rogue_card_event,
-)
+from app.gameplay.rogue_card_flow import AiRogueCardActivationFlowDeps, RogueCardActivationFlowDeps
 from app.gameplay.rogue_move_effect_flow import (
     AiRogueResponseEffectDeps,
     PlayerRogueMoveEffectDeps,
@@ -994,8 +997,8 @@ async def _pick_best_point(game: GoGame, color: str) -> Optional[tuple[int, int]
     return await _pick_analysis_point(game, color, start_index=0)
 
 
-def _rogue_card_activation_flow_deps() -> RogueCardActivationFlowDeps:
-    return RogueCardActivationFlowDeps(
+def _rogue_card_activation_binding() -> RogueCardActivationBinding:
+    return RogueCardActivationBinding(
         get_card=get_rogue_card,
         apply_activation=apply_rogue_card_activation,
         coord_to_gtp=coord_to_gtp,
@@ -1010,8 +1013,12 @@ def _rogue_card_activation_flow_deps() -> RogueCardActivationFlowDeps:
     )
 
 
-def _ai_rogue_card_activation_flow_deps() -> AiRogueCardActivationFlowDeps:
-    return AiRogueCardActivationFlowDeps(
+def _rogue_card_activation_flow_deps() -> RogueCardActivationFlowDeps:
+    return build_rogue_card_activation_deps(_rogue_card_activation_binding())
+
+
+def _ai_rogue_card_activation_binding() -> AiRogueCardActivationBinding:
+    return AiRogueCardActivationBinding(
         get_card=get_rogue_card,
         apply_activation=apply_ai_rogue_card_activation,
         choose_corner=lambda: random.randint(0, 3),
@@ -1022,22 +1029,26 @@ def _ai_rogue_card_activation_flow_deps() -> AiRogueCardActivationFlowDeps:
     )
 
 
+def _ai_rogue_card_activation_flow_deps() -> AiRogueCardActivationFlowDeps:
+    return build_ai_rogue_card_activation_deps(_ai_rogue_card_activation_binding())
+
+
 async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
     """Apply immediate effects when the player picks a rogue card."""
-    await activate_rogue_card_event(
+    await activate_rogue_card_adapter(
         game,
         send_fn,
         card_id,
-        _rogue_card_activation_flow_deps(),
+        _rogue_card_activation_binding(),
     )
 
 
 async def _activate_ai_rogue_card(game: GoGame, send_fn, card_id: str):
-    await activate_ai_rogue_card_event(
+    await activate_ai_rogue_card_adapter(
         game,
         send_fn,
         card_id,
-        _ai_rogue_card_activation_flow_deps(),
+        _ai_rogue_card_activation_binding(),
     )
 
 
