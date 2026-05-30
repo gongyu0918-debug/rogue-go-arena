@@ -162,6 +162,7 @@ from app.gameplay.ai_move_flow import (
     try_finish_shadow_restriction_move,
     try_finish_suboptimal_rogue_move,
 )
+from app.gameplay.ai_turn_flow import AiTurnFlowDeps, run_ai_turn
 from app.gameplay.ai_observer import (
     AiObserverLoopDeps,
     apply_observer_ai_move_to_board as apply_observer_ai_move_to_board_state,
@@ -1475,51 +1476,69 @@ async def _try_finish_generated_ai_turn(
     )
 
 
-async def _ai_move(game: GoGame, send_fn):
-    if game.game_over or not engine.ready:
-        return
-
-    await _sync_board_to_katago(game)
-
-    turn = snapshot_ai_turn(game, _rogue_card_ids)
-    rogue_cards = turn.rogue_cards
-    move_count = turn.move_count
-    ai_move_count = turn.ai_move_count
-
-    if await _try_finish_forced_rogue_ai_turn(game, send_fn, turn, _send_engine_command):
-        return
-
-    ai_plan = plan_rogue_ai_search(
+def _plan_ai_turn_search(game: GoGame, turn: AiTurnSnapshot) -> AiMovePlan:
+    return plan_rogue_ai_search(
         game,
-        rogue_cards,
-        move_count=move_count,
-        ai_move_count=ai_move_count,
+        turn.rogue_cards,
+        move_count=turn.move_count,
+        ai_move_count=turn.ai_move_count,
         get_game_visits=get_game_visits,
         weaken_rank=weaken_rank,
     )
 
+
+async def _refresh_ai_turn_fog_restriction(
+    game: GoGame,
+    send_fn,
+    turn: AiTurnSnapshot,
+    _ai_plan: AiMovePlan,
+) -> None:
     await refresh_fog_restriction_points(
         game,
         send_fn,
-        rogue_cards=rogue_cards,
-        ai_move_count=ai_move_count,
+        rogue_cards=turn.rogue_cards,
+        ai_move_count=turn.ai_move_count,
         make_rng=lambda: random.Random(time.time_ns()),
         challenge_zone_points=_challenge_zone_points,
         pick_fog_mask=_pick_fog_mask,
         pick_fog_point=_pick_fog_point,
     )
 
-    if await _try_finish_rogue_restriction_ai_turn(game, send_fn, turn, ai_plan, _send_engine_command):
-        return
 
-    if await _try_finish_shadow_rogue_ai_turn(game, send_fn, turn, ai_plan):
-        return
+def _ai_turn_flow_deps() -> AiTurnFlowDeps:
+    return AiTurnFlowDeps(
+        engine_ready=lambda: engine.ready,
+        sync_board_to_katago=_sync_board_to_katago,
+        snapshot_turn=lambda game: snapshot_ai_turn(game, _rogue_card_ids),
+        try_finish_forced=lambda game, send_fn, turn: _try_finish_forced_rogue_ai_turn(
+            game,
+            send_fn,
+            turn,
+            _send_engine_command,
+        ),
+        plan_search=_plan_ai_turn_search,
+        refresh_fog_restriction=_refresh_ai_turn_fog_restriction,
+        try_finish_restriction=lambda game, send_fn, turn, plan: _try_finish_rogue_restriction_ai_turn(
+            game,
+            send_fn,
+            turn,
+            plan,
+            _send_engine_command,
+        ),
+        try_finish_shadow=_try_finish_shadow_rogue_ai_turn,
+        try_finish_suboptimal=_try_finish_suboptimal_rogue_ai_turn,
+        try_finish_generated=lambda game, send_fn, turn, plan: _try_finish_generated_ai_turn(
+            game,
+            send_fn,
+            turn,
+            plan,
+            _send_engine_command,
+        ),
+    )
 
-    if await _try_finish_suboptimal_rogue_ai_turn(game, send_fn, turn, ai_plan):
-        return
 
-    if await _try_finish_generated_ai_turn(game, send_fn, turn, ai_plan, _send_engine_command):
-        return
+async def _ai_move(game: GoGame, send_fn):
+    await run_ai_turn(game, send_fn, _ai_turn_flow_deps())
 
 
 async def _ai_move_avoid_points(game, color, visits, time_limit, forbidden):
