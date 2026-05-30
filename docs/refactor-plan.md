@@ -131,10 +131,13 @@ Done:
 - `static/js/inline_actions.js`
   - Top quick actions, modal closes, setup mode buttons, settings drawer open/close, and overlay shortcuts
   - Replaces remaining inline `onclick` markup handlers
+- `static/js/rank_controls.js`
+  - Rank select population, GPU default rank, and slow-rank warnings
+  - Shared rank-label refresh used by localization
 
 Still in `static/index.html`:
 
-- Legacy rank selector setup, UI text helpers, and runtime view/update functions
+- Legacy UI text helpers, effects/timers, and runtime view/update functions
 
 ## Frontend Extraction Roadmap
 

@@ -3203,6 +3203,7 @@ header::before { display: none; }
 
 <script src="/static/js/wood_select.js?v=20260530a"></script>
 <script src="/static/js/i18n.js?v=20260430g"></script>
+<script src="/static/js/rank_controls.js?v=20260530a"></script>
 <script src="/static/js/card_state.js?v=20260430b"></script>
 <script src="/static/js/card_catalog.js?v=20260430b"></script>
 <script src="/static/js/rogue_cards_ui.js?v=20260430b"></script>
@@ -4081,89 +4082,7 @@ function closeOverlay() {
   if (sparks) sparks.innerHTML = "";
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// RANK SELECTOR (with GPU-based defaults and slow-rank warnings)
-// ═══════════════════════════════════════════════════════════════════════════════
-const RANK_ORDER = ["18k","17k","16k","15k","14k","13k","12k","11k","10k",
-  "9k","8k","7k","6k","5k","4k","3k","2k","1k",
-  "a1d","a2d","a3d","a4d","a5d","a6d","a7d","a8d","a9d",
-  "p1d","p2d","p3d","p4d","p5d","p6d","p7d","p8d","p9d"];
-
-function populateRankSelect(selectEl, defaultRank = "a3d") {
-  if (!selectEl) return;
-  selectEl.innerHTML = "";
-  RANK_GROUPS.forEach(r => {
-    const opt = document.createElement("option");
-    if (r.separator) {
-      opt.disabled = true;
-      opt.textContent = rankGroupLabel(r.label);
-      opt.style.color = "#888";
-    } else {
-      opt.value = r.id;
-      opt.textContent = rankLabel(r.id);
-      if (r.id === defaultRank) opt.selected = true;
-    }
-    selectEl.appendChild(opt);
-  });
-}
-
-const rankSelects = [
-  document.getElementById("sel-level"),
-  document.getElementById("sel-level-black"),
-  document.getElementById("sel-level-white"),
-].filter(Boolean);
-rankSelects.forEach(selectEl => populateRankSelect(selectEl));
-
-let gpuSlowFrom = "";
-
-function slowRankSuffix() {
-  return ui("(推理较慢)", "(slower)", "（推論遅め）", "(추론 느림)");
-}
-
-function applySlowRankWarnings() {
-  const slowIdx = RANK_ORDER.indexOf(gpuSlowFrom);
-  if (slowIdx < 0) return;
-  rankSelects.forEach(selectEl => {
-    for (const opt of selectEl.options) {
-      if (opt.disabled) continue;
-      const rIdx = RANK_ORDER.indexOf(opt.value);
-      if (rIdx >= slowIdx) {
-        opt.textContent = `⚠ ${rankLabel(opt.value)} ${slowRankSuffix()}`;
-        opt.style.color = "#ff9800";
-        opt.dataset.slowMarked = "1";
-      }
-    }
-  });
-}
-
-function refreshRankSelectLabels() {
-  rankSelects.forEach(selectEl => {
-    const previous = selectEl.value || "a3d";
-    populateRankSelect(selectEl, previous);
-    selectEl.value = previous;
-    syncWoodSelect(selectEl);
-  });
-  applySlowRankWarnings();
-}
-
-// Fetch GPU info and adjust rank selector
-(async function detectGPU() {
-  try {
-    const resp = await fetch("/gpu");
-    if (!resp.ok) return;
-    const gpu = await resp.json();
-
-    // Set default rank based on GPU tier
-    if (gpu.default_rank) {
-      rankSelects.forEach(selectEl => { selectEl.value = gpu.default_rank; });
-    }
-
-    // Mark slow ranks with warning
-    gpuSlowFrom = gpu.slow_from || "";
-    applySlowRankWarnings();
-    syncWoodSelects();
-  } catch(e) { /* GPU detection unavailable */ }
-})();
+initializeRankControls();
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INIT
