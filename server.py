@@ -151,6 +151,14 @@ from app.runtime.rogue_ai_turn_adapters import (
     try_finish_shadow_rogue_ai_turn as try_finish_shadow_rogue_ai_turn_adapter,
     try_finish_suboptimal_rogue_ai_turn as try_finish_suboptimal_rogue_ai_turn_adapter,
 )
+from app.runtime.rogue_move_effect_adapters import (
+    AiRogueResponseEffectBinding,
+    PlayerRogueMoveEffectBinding,
+    apply_ai_rogue_response_effects as apply_ai_rogue_response_effects_adapter,
+    apply_player_rogue_move_effects as apply_player_rogue_move_effects_adapter,
+    build_ai_rogue_response_effect_deps,
+    build_player_rogue_move_effect_deps,
+)
 from app.runtime.service_bindings import (
     AiMoveServiceBinding,
     EngineGatewayBinding,
@@ -278,8 +286,6 @@ from app.gameplay.rogue_card_flow import AiRogueCardActivationFlowDeps, RogueCar
 from app.gameplay.rogue_move_effect_flow import (
     AiRogueResponseEffectDeps,
     PlayerRogueMoveEffectDeps,
-    apply_ai_rogue_response_effects_event,
-    apply_player_rogue_move_effects_event,
 )
 from app.gameplay.ultimate_effect_flow import UltimateEffectFlowDeps
 from app.gameplay.turn_modifiers import (
@@ -1060,8 +1066,8 @@ async def _apply_challenge_rogue_loadout(game: GoGame, send_fn):
     )
 
 
-def _player_rogue_move_effect_deps() -> PlayerRogueMoveEffectDeps:
-    return PlayerRogueMoveEffectDeps(
+def _player_rogue_move_effect_binding() -> PlayerRogueMoveEffectBinding:
+    return PlayerRogueMoveEffectBinding(
         has_rogue=_rogue_has,
         erosion_shift=ROGUE_EROSION_SHIFT,
         sync_engine_komi=_sync_engine_komi,
@@ -1077,23 +1083,27 @@ def _player_rogue_move_effect_deps() -> PlayerRogueMoveEffectDeps:
     )
 
 
+def _player_rogue_move_effect_deps() -> PlayerRogueMoveEffectDeps:
+    return build_player_rogue_move_effect_deps(_player_rogue_move_effect_binding())
+
+
 async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                                            x: int, y: int,
                                            color: str, captured: int):
     """Apply player-side rogue effects after a successful move."""
-    await apply_player_rogue_move_effects_event(
+    await apply_player_rogue_move_effects_adapter(
         game,
         send_fn,
         x=x,
         y=y,
         color=color,
         captured=captured,
-        deps=_player_rogue_move_effect_deps(),
+        binding=_player_rogue_move_effect_binding(),
     )
 
 
-def _ai_rogue_response_effect_deps() -> AiRogueResponseEffectDeps:
-    return AiRogueResponseEffectDeps(
+def _ai_rogue_response_effect_binding() -> AiRogueResponseEffectBinding:
+    return AiRogueResponseEffectBinding(
         apply_board_effects=apply_ai_rogue_response_board_effects,
         coord_to_gtp=coord_to_gtp,
         shuffle_points=random.shuffle,
@@ -1102,16 +1112,20 @@ def _ai_rogue_response_effect_deps() -> AiRogueResponseEffectDeps:
     )
 
 
+def _ai_rogue_response_effect_deps() -> AiRogueResponseEffectDeps:
+    return build_ai_rogue_response_effect_deps(_ai_rogue_response_effect_binding())
+
+
 async def _apply_ai_rogue_response_effects(game: GoGame, send_fn,
                                            x: int, y: int,
                                            color: str):
-    await apply_ai_rogue_response_effects_event(
+    await apply_ai_rogue_response_effects_adapter(
         game,
         send_fn,
         x=x,
         y=y,
         color=color,
-        deps=_ai_rogue_response_effect_deps(),
+        binding=_ai_rogue_response_effect_binding(),
     )
 
 
