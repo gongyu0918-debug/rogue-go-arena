@@ -88,6 +88,7 @@ from app.runtime.config_api import (
     save_balance_request,
     save_card_config_request,
 )
+from app.runtime.engine_control_api import restart_katago_request, stop_katago_request
 from app.runtime.engine_gateway import EngineRuntimeGateway
 from app.runtime.gpu_info import CachedGpuInfo, apply_runtime_gpu_overrides
 from app.runtime.sgf_export import build_sgf_export_response
@@ -553,13 +554,16 @@ async def get_ranks():
 @app.post("/stop_katago")
 async def stop_katago():
     """Stop the KataGo engine while keeping the server running."""
-    return await run_in_executor(engine_runtime.stop_via_api)
+    return await stop_katago_request(
+        engine_runtime=engine_runtime,
+        run_in_executor=run_in_executor,
+    )
 
 
 @app.post("/restart_katago")
 async def restart_katago():
     """Restart the KataGo engine."""
-    return engine_runtime.restart_via_api()
+    return restart_katago_request(engine_runtime=engine_runtime)
 
 
 @app.get("/status")
