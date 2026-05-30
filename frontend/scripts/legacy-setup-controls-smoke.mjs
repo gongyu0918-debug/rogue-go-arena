@@ -55,6 +55,8 @@ try {
         typeof window.closeConfirmModal,
         typeof window.newGameFromOverlay,
         typeof window.setMode,
+        typeof window.updateVariantOptionRows,
+        typeof window.refreshSetupModeHint,
         typeof window.startGameFromSetup,
       ],
       startMode,
@@ -76,7 +78,72 @@ try {
   assert(modeState.sizeValue === "19", `rogue mode did not force 19x19: ${modeState.sizeValue}`);
   assert(modeState.handicapValue === "0", `rogue mode did not clear handicap: ${modeState.handicapValue}`);
 
+  const modeMatrixState = await page.evaluate(() => {
+    const rowDisplay = (id) => document.querySelector(`#${id}`)?.style.display || "";
+    const captureMode = (mode) => {
+      setMode(mode);
+      return {
+        mode,
+        startMode,
+        active: document.querySelector(`#mode-${mode}`)?.classList.contains("active") || false,
+        hint: document.querySelector("#mode-hint")?.textContent || "",
+        rowColor: rowDisplay("row-color"),
+        rowRogueVariant: rowDisplay("row-rogue-variant"),
+        rowSize: rowDisplay("row-size"),
+        rowHandicap: rowDisplay("row-handicap"),
+        rowTime: rowDisplay("row-time"),
+        rowLevel: rowDisplay("row-level"),
+        rowLevelBlack: rowDisplay("row-level-black"),
+        rowLevelWhite: rowDisplay("row-level-white"),
+        rowStyle: rowDisplay("row-style"),
+        rowStyleBlack: rowDisplay("row-style-black"),
+        rowStyleWhite: rowDisplay("row-style-white"),
+      };
+    };
+    return {
+      normal: captureMode("normal"),
+      watch: captureMode("watch"),
+      two: captureMode("two"),
+      challenge: captureMode("challenge"),
+    };
+  });
+
+  assert(modeMatrixState.normal.startMode === "normal" && modeMatrixState.normal.active, "normal mode did not activate");
+  assert(modeMatrixState.normal.rowColor === "flex", `normal color row changed: ${modeMatrixState.normal.rowColor}`);
+  assert(modeMatrixState.normal.rowRogueVariant === "none", `normal rogue row changed: ${modeMatrixState.normal.rowRogueVariant}`);
+  assert(modeMatrixState.normal.rowSize === "flex", `normal size row changed: ${modeMatrixState.normal.rowSize}`);
+  assert(modeMatrixState.normal.rowHandicap === "flex", `normal handicap row changed: ${modeMatrixState.normal.rowHandicap}`);
+  assert(modeMatrixState.normal.rowLevel === "flex", `normal level row changed: ${modeMatrixState.normal.rowLevel}`);
+  assert(modeMatrixState.normal.rowStyle === "flex", `normal style row changed: ${modeMatrixState.normal.rowStyle}`);
+  assert(modeMatrixState.normal.hint.includes("对局"), `normal hint changed: ${modeMatrixState.normal.hint}`);
+
+  assert(modeMatrixState.watch.startMode === "watch" && modeMatrixState.watch.active, "watch mode did not activate");
+  assert(modeMatrixState.watch.rowColor === "none", `watch color row changed: ${modeMatrixState.watch.rowColor}`);
+  assert(modeMatrixState.watch.rowHandicap === "none", `watch handicap row changed: ${modeMatrixState.watch.rowHandicap}`);
+  assert(modeMatrixState.watch.rowLevel === "none", `watch level row changed: ${modeMatrixState.watch.rowLevel}`);
+  assert(modeMatrixState.watch.rowLevelBlack === "flex", `watch black level row changed: ${modeMatrixState.watch.rowLevelBlack}`);
+  assert(modeMatrixState.watch.rowLevelWhite === "flex", `watch white level row changed: ${modeMatrixState.watch.rowLevelWhite}`);
+  assert(modeMatrixState.watch.rowStyle === "none", `watch style row changed: ${modeMatrixState.watch.rowStyle}`);
+  assert(modeMatrixState.watch.rowStyleBlack === "flex", `watch black style row changed: ${modeMatrixState.watch.rowStyleBlack}`);
+  assert(modeMatrixState.watch.rowStyleWhite === "flex", `watch white style row changed: ${modeMatrixState.watch.rowStyleWhite}`);
+  assert(modeMatrixState.watch.hint.includes("学习"), `watch hint changed: ${modeMatrixState.watch.hint}`);
+
+  assert(modeMatrixState.two.startMode === "two" && modeMatrixState.two.active, "two mode did not activate");
+  assert(modeMatrixState.two.rowColor === "none", `two color row changed: ${modeMatrixState.two.rowColor}`);
+  assert(modeMatrixState.two.rowHandicap === "flex", `two handicap row changed: ${modeMatrixState.two.rowHandicap}`);
+  assert(modeMatrixState.two.rowLevel === "flex", `two level row changed: ${modeMatrixState.two.rowLevel}`);
+  assert(modeMatrixState.two.rowStyle === "none", `two style row changed: ${modeMatrixState.two.rowStyle}`);
+  assert(modeMatrixState.two.hint.includes("双人"), `two hint changed: ${modeMatrixState.two.hint}`);
+
+  assert(modeMatrixState.challenge.startMode === "challenge" && modeMatrixState.challenge.active, "challenge mode did not activate");
+  assert(modeMatrixState.challenge.rowColor === "none", `challenge color row changed: ${modeMatrixState.challenge.rowColor}`);
+  assert(modeMatrixState.challenge.rowHandicap === "none", `challenge handicap row changed: ${modeMatrixState.challenge.rowHandicap}`);
+  assert(modeMatrixState.challenge.rowLevel === "flex", `challenge level row changed: ${modeMatrixState.challenge.rowLevel}`);
+  assert(modeMatrixState.challenge.rowStyle === "none", `challenge style row changed: ${modeMatrixState.challenge.rowStyle}`);
+  assert(modeMatrixState.challenge.hint.includes("闯关"), `challenge hint changed: ${modeMatrixState.challenge.hint}`);
+
   const variantAndTimeState = await page.evaluate(() => {
+    setMode("rogue");
     document.querySelector("#sel-rogue-variant").value = "dual";
     document.querySelector("#sel-rogue-variant").dispatchEvent(new Event("change", { bubbles: true }));
     document.querySelector("#sel-time-mode").value = "byoyomi";

@@ -121,7 +121,7 @@ Done:
   - Startup sequence and board recovery/resize hooks
 - `static/js/setup_controls.js`
   - Setup modal, mode selection, and new-game payload wiring
-  - Time, Rogue variant, and stage preset setup controls
+  - Setup row visibility, mode hints, time, Rogue variant, and stage preset controls
 - `static/js/settings_controls.js`
   - Settings drawer toggles, sound control, level/handicap setup bindings
   - Card editor modal entry point
@@ -137,7 +137,7 @@ Done:
 
 Still in `static/index.html`:
 
-- Legacy UI text helpers, effects/timers, and runtime view/update functions
+- Legacy UI text helpers, effects/timers, score formatting, and runtime view/update functions
 
 ## Frontend Extraction Roadmap
 
