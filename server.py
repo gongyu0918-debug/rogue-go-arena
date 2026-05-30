@@ -78,6 +78,11 @@ from app.domain.coordinates import coord_to_gtp, gtp_to_coord
 from app.domain.game_state import GoGame
 from app.domain.sgf import generate_sgf
 from app.runtime.access_urls import get_access_urls as build_access_urls
+from app.runtime.ai_style_adapters import (
+    AiStyleMoveBinding,
+    build_ai_style_move_deps,
+    generate_ai_style_move as generate_ai_style_move_adapter,
+)
 from app.runtime.config_api import (
     balance_payload,
     card_config_payload as build_card_config_payload,
@@ -283,10 +288,7 @@ from app.gameplay.ai_move_flow import (
     try_finish_shadow_restriction_move,
     try_finish_suboptimal_rogue_move,
 )
-from app.gameplay.ai_style_move_flow import (
-    AiStyleMoveDeps,
-    generate_ai_style_move_event,
-)
+from app.gameplay.ai_style_move_flow import AiStyleMoveDeps
 from app.gameplay.ai_turn_flow import AiTurnFlowDeps, run_ai_turn
 from app.gameplay.move_placement import (
     place_auxiliary_ai_move_on_board as place_auxiliary_ai_move_on_board_state,
@@ -1734,21 +1736,29 @@ async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
     )
 
 
+def _ai_style_move_binding() -> AiStyleMoveBinding:
+    return AiStyleMoveBinding(
+        sync_board_to_katago=_sync_board_to_katago,
+        choose_or_generate_style_move=choose_or_generate_ai_style_move,
+        analyze_position=_analyze_current_position,
+        choose_style_move=choose_ai_style_move,
+        generate_move=_ai_generate_move,
+        gtp_to_coord=gtp_to_coord,
+        play_chosen_move=_send_engine_command,
+    )
+
+
+def _ai_style_move_deps() -> AiStyleMoveDeps:
+    return build_ai_style_move_deps(_ai_style_move_binding())
+
+
 async def _generate_ai_style_move(game: GoGame, color: str, visits: int, time_limit: float) -> str:
-    return await generate_ai_style_move_event(
+    return await generate_ai_style_move_adapter(
         game,
         color=color,
         visits=visits,
         time_limit=time_limit,
-        deps=AiStyleMoveDeps(
-            sync_board_to_katago=_sync_board_to_katago,
-            choose_or_generate_style_move=choose_or_generate_ai_style_move,
-            analyze_position=_analyze_current_position,
-            choose_style_move=choose_ai_style_move,
-            generate_move=_ai_generate_move,
-            gtp_to_coord=gtp_to_coord,
-            play_chosen_move=_send_engine_command,
-        ),
+        binding=_ai_style_move_binding(),
     )
 
 
