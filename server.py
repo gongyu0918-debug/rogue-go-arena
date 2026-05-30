@@ -171,6 +171,10 @@ from app.gameplay.restriction_rogue_ai_turn_flow import (
     RestrictionRogueAiTurnDeps,
     try_finish_restriction_rogue_ai_turn_event,
 )
+from app.gameplay.shadow_rogue_ai_turn_flow import (
+    ShadowRogueAiTurnDeps,
+    try_finish_shadow_rogue_ai_turn_event,
+)
 from app.gameplay.generated_ai_turn_flow import (
     GeneratedAiTurnDeps,
     try_finish_generated_ai_turn_event,
@@ -1417,24 +1421,23 @@ async def _try_finish_shadow_rogue_ai_turn(
     turn: AiTurnSnapshot,
     ai_plan: AiMovePlan,
 ) -> bool:
-    return await try_finish_shadow_restriction_move(
+    return await try_finish_shadow_rogue_ai_turn_event(
         game,
         send_fn,
-        color=turn.color,
-        card=turn.card,
-        rogue_cards=turn.rogue_cards,
-        ai_move_count=turn.ai_move_count,
-        visits=ai_plan.visits,
-        time_limit=ai_plan.time_limit,
-        roll_random=random.random,
-        choose_restriction=lambda game_arg, color_arg, ai_count: shadow_followup_points(
-            game_arg,
-            color_arg,
-            ai_count,
-            gtp_to_coord=gtp_to_coord,
+        turn,
+        ai_plan,
+        ShadowRogueAiTurnDeps(
+            try_finish_shadow_restriction_move=try_finish_shadow_restriction_move,
+            roll_random=random.random,
+            choose_restriction=lambda game_arg, color_arg, ai_count: shadow_followup_points(
+                game_arg,
+                color_arg,
+                ai_count,
+                gtp_to_coord=gtp_to_coord,
+            ),
+            choose_allowed_move=_ai_move_avoid_points_allow_only,
+            finish_ai_move=_finish_ai_move,
         ),
-        choose_allowed_move=_ai_move_avoid_points_allow_only,
-        finish_ai_move=_finish_ai_move,
     )
 
 
