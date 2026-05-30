@@ -97,6 +97,14 @@ from app.runtime.katago_paths import (
 )
 from app.runtime.no_cache import apply_no_cache_headers_for_html
 from app.runtime.rank_api import build_rank_options
+from app.runtime.service_bindings import (
+    AiMoveServiceBinding,
+    EngineGatewayBinding,
+    bind_ai_move_service_runtime,
+    bind_engine_gateway_runtime,
+    send_engine_command,
+    sync_engine_komi,
+)
 from app.runtime.sgf_export import build_sgf_export_response
 from app.runtime.static_files import serve_existing_file
 from app.runtime.status_endpoint import build_runtime_status_payload
@@ -622,8 +630,8 @@ engine_gateway = EngineRuntimeGateway(
 )
 
 
-def _bind_engine_gateway_runtime() -> None:
-    engine_gateway.bind_runtime(
+def _engine_gateway_binding() -> EngineGatewayBinding:
+    return EngineGatewayBinding(
         engine=engine,
         get_game_visits=get_game_visits,
         gtp_to_coord=gtp_to_coord,
@@ -633,14 +641,16 @@ def _bind_engine_gateway_runtime() -> None:
     )
 
 
+def _bind_engine_gateway_runtime() -> None:
+    bind_engine_gateway_runtime(engine_gateway, _engine_gateway_binding())
+
+
 async def _send_engine_command(command: str) -> str:
-    _bind_engine_gateway_runtime()
-    return await engine_gateway.send_command(command)
+    return await send_engine_command(engine_gateway, command, _engine_gateway_binding())
 
 
 async def _sync_engine_komi(game: GoGame) -> None:
-    _bind_engine_gateway_runtime()
-    await engine_gateway.sync_komi(game)
+    await sync_engine_komi(engine_gateway, game, _engine_gateway_binding())
 
 
 ai_move_service = AiMoveService(
@@ -652,8 +662,15 @@ ai_move_service = AiMoveService(
 )
 
 
+def _ai_move_service_binding() -> AiMoveServiceBinding:
+    return AiMoveServiceBinding(
+        engine=engine,
+        run_in_executor=run_in_executor,
+    )
+
+
 def _bind_ai_move_service_runtime():
-    ai_move_service.bind_runtime(engine=engine, run_in_executor=run_in_executor)
+    bind_ai_move_service_runtime(ai_move_service, _ai_move_service_binding())
 
 
 def _ws_context_deps() -> WebSocketContextDeps:
