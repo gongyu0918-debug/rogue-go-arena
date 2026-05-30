@@ -83,6 +83,18 @@ from app.runtime.ai_style_adapters import (
     build_ai_style_move_deps,
     generate_ai_style_move as generate_ai_style_move_adapter,
 )
+from app.runtime.ai_move_service_adapters import (
+    AiMoveServiceRuntime,
+    allow_only_points as ai_service_allow_only_points,
+    avoid_points as ai_service_avoid_points,
+    bind_ai_move_service as bind_ai_move_service_adapter,
+    generate_move as ai_service_generate_move,
+    no_resign_move as ai_service_no_resign_move,
+    pick_nonpass_fallback_move as ai_service_pick_nonpass_fallback_move,
+    pick_ranked_legal_move as ai_service_pick_ranked_legal_move,
+    retry_avoiding_ko as ai_service_retry_avoiding_ko,
+    suboptimal_move as ai_service_suboptimal_move,
+)
 from app.runtime.ai_turn_adapters import (
     AiTurnBinding,
     build_ai_turn_flow_deps,
@@ -190,7 +202,6 @@ from app.runtime.rogue_move_effect_adapters import (
 from app.runtime.service_bindings import (
     AiMoveServiceBinding,
     EngineGatewayBinding,
-    bind_ai_move_service_runtime,
     bind_engine_gateway_runtime,
     send_engine_command,
     sync_engine_komi,
@@ -709,8 +720,15 @@ def _ai_move_service_binding() -> AiMoveServiceBinding:
     )
 
 
+def _ai_move_service_runtime() -> AiMoveServiceRuntime:
+    return AiMoveServiceRuntime(
+        service=ai_move_service,
+        binding=_ai_move_service_binding(),
+    )
+
+
 def _bind_ai_move_service_runtime():
-    bind_ai_move_service_runtime(ai_move_service, _ai_move_service_binding())
+    bind_ai_move_service_adapter(_ai_move_service_runtime())
 
 
 def _ws_context_binding() -> WebSocketContextBinding:
@@ -1283,7 +1301,13 @@ async def _pick_nonpass_fallback_move(
     visits: int,
     forbidden: Optional[set[tuple[int, int]]] = None,
 ) -> Optional[str]:
-    return await ai_move_service.pick_nonpass_fallback_move(game, color, visits, forbidden)
+    return await ai_service_pick_nonpass_fallback_move(
+        _ai_move_service_runtime(),
+        game,
+        color,
+        visits,
+        forbidden,
+    )
 
 
 async def _pick_ranked_legal_move(
@@ -1294,7 +1318,8 @@ async def _pick_ranked_legal_move(
     *,
     time_limit: float = 1.5,
 ) -> Optional[str]:
-    return await ai_move_service.pick_ranked_legal_move(
+    return await ai_service_pick_ranked_legal_move(
+        _ai_move_service_runtime(),
         game,
         color,
         visits,
@@ -1696,21 +1721,32 @@ async def _ai_move(game: GoGame, send_fn):
     await run_ai_turn_adapter(game, send_fn, _ai_turn_binding())
 
 
-
 async def _ai_move_avoid_points(game, color, visits, time_limit, forbidden):
-    _bind_ai_move_service_runtime()
-    return await ai_move_service.avoid_points(game, color, visits, time_limit, forbidden)
+    return await ai_service_avoid_points(
+        _ai_move_service_runtime(),
+        game,
+        color,
+        visits,
+        time_limit,
+        forbidden,
+    )
 
 
 async def _ai_move_avoid_points_allow_only(game, color, visits, time_limit,
                                            allowed: list[tuple[int, int]]):
-    _bind_ai_move_service_runtime()
-    return await ai_move_service.allow_only_points(game, color, visits, time_limit, allowed)
+    return await ai_service_allow_only_points(
+        _ai_move_service_runtime(),
+        game,
+        color,
+        visits,
+        time_limit,
+        allowed,
+    )
 
 
 async def _ai_move_suboptimal(game, color, visits, time_limit, start_idx=2, end_idx=5):
-    _bind_ai_move_service_runtime()
-    return await ai_move_service.suboptimal_move(
+    return await ai_service_suboptimal_move(
+        _ai_move_service_runtime(),
         game,
         color,
         visits,
@@ -1721,18 +1757,15 @@ async def _ai_move_suboptimal(game, color, visits, time_limit, start_idx=2, end_
 
 
 async def _ai_move_no_resign(game, color: str) -> str:
-    _bind_ai_move_service_runtime()
-    return await ai_move_service.no_resign_move(game, color)
+    return await ai_service_no_resign_move(_ai_move_service_runtime(), game, color)
 
 
 async def _ai_retry_avoiding_ko(game, color):
-    _bind_ai_move_service_runtime()
-    return await ai_move_service.retry_avoiding_ko(game, color)
+    return await ai_service_retry_avoiding_ko(_ai_move_service_runtime(), game, color)
 
 
 async def _ai_generate_move(color: str, visits: int, time_limit: float) -> str:
-    _bind_ai_move_service_runtime()
-    return await ai_move_service.generate_move(color, visits, time_limit)
+    return await ai_service_generate_move(_ai_move_service_runtime(), color, visits, time_limit)
 
 
 def _ai_finish_move_binding() -> AiFinishMoveBinding:
