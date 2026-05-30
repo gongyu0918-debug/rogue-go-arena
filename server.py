@@ -224,13 +224,9 @@ from app.runtime.ultimate_ai_adapters import (
     run_ultimate_ai_bonus_turn_adapter,
     select_ultimate_ai_move,
 )
-from app.runtime.ws_context import (
-    WebSocketContextDeps,
-    build_websocket_action_context,
-)
 from app.runtime.ws_context_adapters import (
     WebSocketContextBinding,
-    build_websocket_context_deps,
+    build_websocket_action_context_from_binding,
 )
 from app.gameplay.card_selection import (
     pick_ai_rogue_card,
@@ -743,21 +739,17 @@ def _ws_context_binding() -> WebSocketContextBinding:
     )
 
 
-def _ws_context_deps() -> WebSocketContextDeps:
-    return build_websocket_context_deps(_ws_context_binding())
-
-
 @app.websocket("/ws/{game_id}")
 async def websocket_endpoint(websocket: WebSocket, game_id: str):
     def make_context(game, send, send_error, do_analysis, do_analysis_bg):
-        return build_websocket_action_context(
+        return build_websocket_action_context_from_binding(
             game_id=game_id,
             game=game,
             send=send,
             send_error=send_error,
             do_analysis=do_analysis,
             do_analysis_bg=do_analysis_bg,
-            deps=_ws_context_deps(),
+            binding=_ws_context_binding(),
         )
 
     await run_websocket_game_session(

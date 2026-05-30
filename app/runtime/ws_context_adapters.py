@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, fields
 from typing import Any
 
+from app.runtime.ws_actions import WebSocketActionContext
 from app.runtime.ws_context import (
     WebSocketCardSelectionDeps,
     WebSocketContextDeps,
@@ -10,6 +11,7 @@ from app.runtime.ws_context import (
     WebSocketModeFlowDeps,
     WebSocketRuleEffectDeps,
     WebSocketRuntimeDeps,
+    build_websocket_action_context,
 )
 
 
@@ -69,4 +71,25 @@ def build_websocket_context_deps(binding: WebSocketContextBinding) -> WebSocketC
         card_selection=_build_group(binding, WebSocketCardSelectionDeps),
         mode_flow=_build_group(binding, WebSocketModeFlowDeps),
         rule_effects=_build_group(binding, WebSocketRuleEffectDeps),
+    )
+
+
+def build_websocket_action_context_from_binding(
+    *,
+    game_id: str,
+    game: Any,
+    send: Any,
+    send_error: Any,
+    do_analysis: Any,
+    do_analysis_bg: Any,
+    binding: WebSocketContextBinding,
+) -> WebSocketActionContext:
+    return build_websocket_action_context(
+        game_id=game_id,
+        game=game,
+        send=send,
+        send_error=send_error,
+        do_analysis=do_analysis,
+        do_analysis_bg=do_analysis_bg,
+        deps=build_websocket_context_deps(binding),
     )

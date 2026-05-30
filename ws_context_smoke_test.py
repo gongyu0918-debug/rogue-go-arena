@@ -88,7 +88,7 @@ def assert_bound_method(actual, expected) -> None:
 
 
 def smoke_server_ws_context_deps_maps_current_runtime_objects() -> None:
-    deps = s._ws_context_deps()
+    deps = build_websocket_context_deps(s._ws_context_binding())
 
     expected = {
         "active_games": s.active_games,

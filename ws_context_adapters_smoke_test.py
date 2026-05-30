@@ -17,6 +17,7 @@ from app.runtime.ws_context import (
 )
 from app.runtime.ws_context_adapters import (
     WebSocketContextBinding,
+    build_websocket_action_context_from_binding,
     build_websocket_context_deps,
 )
 
@@ -76,9 +77,32 @@ def smoke_context_deps_copy_and_special_lookup_are_safe() -> None:
     assert not hasattr(deps, "__setstate__")
 
 
+async def async_marker(*_args, **_kwargs):
+    return None
+
+
+def smoke_action_context_builder_uses_binding() -> None:
+    binding = make_binding()
+    ctx = build_websocket_action_context_from_binding(
+        game_id="adapter-context",
+        game=None,
+        send=async_marker,
+        send_error=async_marker,
+        do_analysis=async_marker,
+        do_analysis_bg=async_marker,
+        binding=binding,
+    )
+
+    assert ctx.game_id == "adapter-context"
+    assert ctx.send is async_marker
+    assert ctx.do_analysis_bg is async_marker
+    for name in WEBSOCKET_CONTEXT_FIELD_NAMES:
+        assert getattr(ctx, name) is getattr(binding, name), name
+
+
 def smoke_server_binding_maps_current_runtime_objects() -> None:
     binding = s._ws_context_binding()
-    deps = s._ws_context_deps()
+    deps = build_websocket_context_deps(binding)
 
     expected = {
         "active_games": s.active_games,
@@ -156,7 +180,7 @@ def smoke_server_binding_resolves_patched_runtime_objects() -> None:
         s._check_capture_foul = patched_check_capture_foul
 
         binding = s._ws_context_binding()
-        deps = s._ws_context_deps()
+        deps = build_websocket_context_deps(binding)
     finally:
         s.active_games = originals["active_games"]
         s.coord_to_gtp = originals["coord_to_gtp"]
@@ -178,6 +202,7 @@ def main() -> None:
     smoke_binding_maps_every_field()
     smoke_context_groups_have_unique_flat_fields()
     smoke_context_deps_copy_and_special_lookup_are_safe()
+    smoke_action_context_builder_uses_binding()
     smoke_server_binding_maps_current_runtime_objects()
     smoke_server_binding_resolves_patched_runtime_objects()
     print("ws context adapters smoke test: OK")
