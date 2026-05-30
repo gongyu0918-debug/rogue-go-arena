@@ -144,10 +144,16 @@ Done:
 - `static/js/rank_controls.js`
   - Rank select population, GPU default rank, and slow-rank warnings
   - Shared rank-label refresh used by localization
+- `static/js/legacy_state.js`
+  - Legacy global constants and mutable runtime state used by classic scripts
+  - Game id persistence, rank labels, board defaults, player colors, and analysis defaults
+- `static/js/legacy_entry.js`
+  - Classic frontend startup sequence
+  - Rogue skill binding, rank initialization, bootstrap hooks, and app boot
 
 Still in `static/index.html`:
 
-- Legacy global state declarations and bootstrap calls
+- Static markup, inline CSS, and script loading order for the legacy root page
 
 ## Frontend Extraction Roadmap
 

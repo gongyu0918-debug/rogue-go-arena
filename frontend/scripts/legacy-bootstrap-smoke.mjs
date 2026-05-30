@@ -45,6 +45,35 @@ async function pageState(page) {
         typeof window.bootstrapApp,
         typeof window.installLegacyBootstrapHooks,
       ],
+      stateGlobals: {
+        rankGroups: Array.isArray(RANK_GROUPS) ? RANK_GROUPS.length : 0,
+        rankLabel18k: RANK_LABELS["18k"] || "",
+        cols: COLS.join(""),
+        gameId,
+        persistedGameId: localStorage.getItem("rogue_go_arena_game_id") || "",
+        boardSize,
+        myColor,
+        aiColor,
+        gameStateIsNull: gameState === null,
+        previousBoardIsNull: previousBoard === null,
+        lastAiMoveIsNull: lastAiMove === null,
+        isMyTurn,
+        twoPlayerMode,
+        showHints,
+        showTerritory,
+        showMoveNumbers,
+        startMode,
+        stagePreset,
+        analysis: {
+          winrate: analysis?.winrate,
+          score: analysis?.score,
+          topMovesLength: Array.isArray(analysis?.top_moves) ? analysis.top_moves.length : -1,
+          ownershipLength: Array.isArray(analysis?.ownership) ? analysis.ownership.length : -1,
+          analysisReady: analysis?.analysis_ready,
+        },
+        analysisReady,
+        winrateHistoryLength: winrateHistory.length,
+      },
       htmlLang: document.documentElement.lang,
       currentLang,
       wsReadyState: ws?.readyState ?? -1,
@@ -81,6 +110,29 @@ try {
 
   const initialState = await pageState(page);
   assert(initialState.publicFns.every((type) => type === "function"), `bootstrap globals missing: ${initialState.publicFns.join(", ")}`);
+  assert(initialState.stateGlobals.rankGroups >= 30, `rank groups did not load from legacy state: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.rankLabel18k === "18级", `rank labels did not load from legacy state: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.cols === "ABCDEFGHJKLMNOPQRST", `board columns changed: ${initialState.stateGlobals.cols}`);
+  assert(initialState.stateGlobals.gameId && initialState.stateGlobals.gameId === initialState.stateGlobals.persistedGameId, `game id persistence changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.boardSize === 19, `board size default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.myColor === "B" && initialState.stateGlobals.aiColor === "W", `player color defaults changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.gameStateIsNull, `gameState default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.previousBoardIsNull, `previousBoard default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.lastAiMoveIsNull, `lastAiMove default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.isMyTurn === false, `isMyTurn default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.twoPlayerMode === false, `twoPlayerMode default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.showHints === false, `showHints default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.showTerritory === true, `showTerritory default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.showMoveNumbers === false, `showMoveNumbers default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.startMode === "normal", `start mode default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.stagePreset.length > 0, `stage preset default missing: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.analysis.winrate === 0.5, `analysis winrate default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.analysis.score === 0, `analysis score default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.analysis.topMovesLength === 0, `analysis top_moves default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.analysis.ownershipLength === 0, `analysis ownership default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.analysis.analysisReady === false, `analysis.analysis_ready default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.analysisReady === false, `analysis ready default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stateGlobals.winrateHistoryLength === 0, `winrate history default changed: ${JSON.stringify(initialState.stateGlobals)}`);
   assert(initialState.htmlLang === "zh-CN", `bootstrap did not apply language: ${initialState.htmlLang}`);
   assert(initialState.wsReadyState === initialState.wsOpenConstant, `websocket did not connect: ${initialState.wsReadyState}`);
   assert(initialState.statusText.includes("已连接"), `connection indicator did not update: ${initialState.statusText}`);
