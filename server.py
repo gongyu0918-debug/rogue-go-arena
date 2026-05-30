@@ -128,6 +128,12 @@ from app.runtime.coach_adapters import (
     run_coach_turn_if_needed as run_coach_turn_if_needed_adapter,
 )
 from app.runtime.engine_control_api import restart_katago_request, stop_katago_request
+from app.runtime.engine_gateway_adapters import (
+    EngineGatewayRuntime,
+    bind_engine_gateway as bind_engine_gateway_adapter,
+    send_engine_command as send_engine_command_adapter,
+    sync_engine_komi as sync_engine_komi_adapter,
+)
 from app.runtime.engine_gateway import EngineRuntimeGateway
 from app.runtime.generated_ai_adapters import (
     GeneratedAiTurnBinding,
@@ -187,9 +193,6 @@ from app.runtime.rogue_move_effect_adapters import (
 from app.runtime.service_bindings import (
     AiMoveServiceBinding,
     EngineGatewayBinding,
-    bind_engine_gateway_runtime,
-    send_engine_command,
-    sync_engine_komi,
 )
 from app.runtime.sgf_export import build_sgf_export_response
 from app.runtime.static_pages import (
@@ -654,16 +657,23 @@ def _engine_gateway_binding() -> EngineGatewayBinding:
     )
 
 
+def _engine_gateway_runtime() -> EngineGatewayRuntime:
+    return EngineGatewayRuntime(
+        gateway=engine_gateway,
+        binding=_engine_gateway_binding(),
+    )
+
+
 def _bind_engine_gateway_runtime() -> None:
-    bind_engine_gateway_runtime(engine_gateway, _engine_gateway_binding())
+    bind_engine_gateway_adapter(_engine_gateway_runtime())
 
 
 async def _send_engine_command(command: str) -> str:
-    return await send_engine_command(engine_gateway, command, _engine_gateway_binding())
+    return await send_engine_command_adapter(_engine_gateway_runtime(), command)
 
 
 async def _sync_engine_komi(game: GoGame) -> None:
-    await sync_engine_komi(engine_gateway, game, _engine_gateway_binding())
+    await sync_engine_komi_adapter(_engine_gateway_runtime(), game)
 
 
 ai_move_service = AiMoveService(
