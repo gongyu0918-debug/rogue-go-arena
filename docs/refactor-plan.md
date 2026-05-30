@@ -101,10 +101,12 @@ Done:
   - Localized log append helpers
   - Server event log bridge
   - Log rendering and clearing
+- `static/js/server_event_i18n.js`
+  - Server event translation tables for legacy logs and card-effect banners
+  - Chinese passthrough and English/Japanese/Korean pattern translations
 
 Still in `static/index.html`:
 
-- Server event translation tables
 - Wood select control implementation
 - WebSocket message dispatch
 - i18n bootstrap and generic UI localization
