@@ -17,6 +17,9 @@ RandomFloatFn = Callable[[], float]
 WeakenRankFn = Callable[[str], str]
 VisitsFn = Callable[..., int]
 SetVisitsFn = Callable[[int], Any]
+LoadoutFn = Callable[..., Any]
+SyncEngineKomiFn = Callable[[Any], Awaitable[None]]
+EmitSetBonusStatusFn = Callable[[Any, SendFn], Awaitable[None]]
 
 
 @dataclass(frozen=True)
@@ -31,6 +34,54 @@ class ChallengeFlowDeps:
     get_game_visits: VisitsFn
     run_in_executor: RunInExecutorFn
     set_engine_visits: SetVisitsFn
+
+
+@dataclass(frozen=True)
+class ChallengeLoadoutFlowDeps:
+    apply_loadout: LoadoutFn
+    card_ids_fn: Callable[..., Any]
+    get_rogue_card_fn: Callable[..., Any]
+    active_use_bonus_fn: Callable[..., Any]
+    challenge_zone_points_fn: Callable[..., Any]
+    choose_corner: Callable[[], int]
+    make_rng: Callable[[], Any]
+    get_blackhole_points_fn: Callable[..., Any]
+    get_golden_corner_points_fn: Callable[..., Any]
+    pick_joseki_targets_fn: Callable[..., Any]
+    random_hidden_center_fn: Callable[..., Any]
+    diamond_points_fn: Callable[..., Any]
+    golden_corner_span: int
+    joseki_target_count: int
+    godhand_radius: int
+    sync_engine_komi: SyncEngineKomiFn
+    emit_set_bonus_status: EmitSetBonusStatusFn
+
+
+async def apply_challenge_rogue_loadout_event(
+    game: Any,
+    send_fn: SendFn,
+    deps: ChallengeLoadoutFlowDeps,
+) -> Any:
+    result = deps.apply_loadout(
+        game,
+        card_ids_fn=deps.card_ids_fn,
+        get_rogue_card_fn=deps.get_rogue_card_fn,
+        active_use_bonus_fn=deps.active_use_bonus_fn,
+        challenge_zone_points_fn=deps.challenge_zone_points_fn,
+        choose_corner=deps.choose_corner,
+        make_rng=deps.make_rng,
+        get_blackhole_points_fn=deps.get_blackhole_points_fn,
+        get_golden_corner_points_fn=deps.get_golden_corner_points_fn,
+        pick_joseki_targets_fn=deps.pick_joseki_targets_fn,
+        random_hidden_center_fn=deps.random_hidden_center_fn,
+        diamond_points_fn=deps.diamond_points_fn,
+        golden_corner_span=deps.golden_corner_span,
+        joseki_target_count=deps.joseki_target_count,
+        godhand_radius=deps.godhand_radius,
+    )
+    await deps.sync_engine_komi(game)
+    await deps.emit_set_bonus_status(game, send_fn)
+    return result
 
 
 async def apply_challenge_trap_bonus_event(

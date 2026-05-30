@@ -91,6 +91,8 @@ from app.gameplay.card_selection import (
 )
 from app.gameplay.challenge_flow import (
     ChallengeFlowDeps,
+    ChallengeLoadoutFlowDeps,
+    apply_challenge_rogue_loadout_event,
     apply_challenge_trap_bonus_event,
     emit_challenge_set_bonus_status,
     maybe_reduce_challenge_ai_level,
@@ -864,6 +866,28 @@ def _challenge_flow_deps() -> ChallengeFlowDeps:
     )
 
 
+def _challenge_loadout_flow_deps() -> ChallengeLoadoutFlowDeps:
+    return ChallengeLoadoutFlowDeps(
+        apply_loadout=apply_challenge_rogue_loadout_state,
+        card_ids_fn=rogue_card_ids,
+        get_rogue_card_fn=get_rogue_card,
+        active_use_bonus_fn=_challenge_active_use_bonus,
+        challenge_zone_points_fn=_challenge_zone_points,
+        choose_corner=lambda: random.randint(0, 3),
+        make_rng=lambda: random.Random(time.time_ns()),
+        get_blackhole_points_fn=_get_blackhole_points,
+        get_golden_corner_points_fn=_get_golden_corner_points,
+        pick_joseki_targets_fn=_pick_joseki_targets,
+        random_hidden_center_fn=_random_hidden_center,
+        diamond_points_fn=_diamond_points,
+        golden_corner_span=ROGUE_GOLDEN_CORNER_SPAN,
+        joseki_target_count=ROGUE_JOSEKI_TARGET_COUNT,
+        godhand_radius=ROGUE_GODHAND_RADIUS,
+        sync_engine_komi=_sync_engine_komi,
+        emit_set_bonus_status=_challenge_emit_set_bonus_status,
+    )
+
+
 async def _challenge_apply_trap_bonus(game: GoGame, send_fn, source_name: str) -> None:
     await apply_challenge_trap_bonus_event(
         game,
@@ -975,25 +999,11 @@ async def _activate_ai_rogue_card(game: GoGame, send_fn, card_id: str):
 
 
 async def _apply_challenge_rogue_loadout(game: GoGame, send_fn):
-    result = apply_challenge_rogue_loadout_state(
+    await apply_challenge_rogue_loadout_event(
         game,
-        card_ids_fn=rogue_card_ids,
-        get_rogue_card_fn=get_rogue_card,
-        active_use_bonus_fn=_challenge_active_use_bonus,
-        challenge_zone_points_fn=_challenge_zone_points,
-        choose_corner=lambda: random.randint(0, 3),
-        make_rng=lambda: random.Random(time.time_ns()),
-        get_blackhole_points_fn=_get_blackhole_points,
-        get_golden_corner_points_fn=_get_golden_corner_points,
-        pick_joseki_targets_fn=_pick_joseki_targets,
-        random_hidden_center_fn=_random_hidden_center,
-        diamond_points_fn=_diamond_points,
-        golden_corner_span=ROGUE_GOLDEN_CORNER_SPAN,
-        joseki_target_count=ROGUE_JOSEKI_TARGET_COUNT,
-        godhand_radius=ROGUE_GODHAND_RADIUS,
+        send_fn,
+        _challenge_loadout_flow_deps(),
     )
-    await _sync_engine_komi(game)
-    await _challenge_emit_set_bonus_status(game, send_fn)
 
 
 async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
