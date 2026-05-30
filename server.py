@@ -96,6 +96,10 @@ from app.runtime.rank_api import build_rank_options
 from app.runtime.sgf_export import build_sgf_export_response
 from app.runtime.static_files import serve_existing_file
 from app.runtime.status_endpoint import build_runtime_status_payload
+from app.runtime.ws_context import (
+    WebSocketContextDeps,
+    build_websocket_action_context,
+)
 from app.gameplay.card_selection import (
     pick_ai_rogue_card,
     pick_ai_ultimate_card,
@@ -307,7 +311,7 @@ from app.runtime.engine import KataGoEngine
 from app.runtime.game_store import ActiveGameStore
 from app.runtime.startup import EnginePaths, EngineStartupManager
 from app.runtime.ws_session import run_websocket_game_session
-from app.runtime.ws_actions import WS_ACTION_HANDLERS, WebSocketActionContext
+from app.runtime.ws_actions import WS_ACTION_HANDLERS
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(line_buffering=True)
@@ -657,57 +661,63 @@ def _bind_ai_move_service_runtime():
     ai_move_service.bind_runtime(engine=engine, run_in_executor=run_in_executor)
 
 
+def _ws_context_deps() -> WebSocketContextDeps:
+    return WebSocketContextDeps(
+        active_games=active_games,
+        engine=engine,
+        run_in_executor=run_in_executor,
+        GoGame=GoGame,
+        coord_to_gtp=coord_to_gtp,
+        gtp_to_coord=gtp_to_coord,
+        engine_state_snapshot=_engine_state_snapshot,
+        start_engine_background=engine_runtime.start_background,
+        reload_live_card_config=reload_live_card_config,
+        get_game_visits=get_game_visits,
+        pick_rogue_choices=pick_rogue_choices,
+        pick_ultimate_choices=pick_ultimate_choices,
+        pick_challenge_beta_choices=pick_challenge_beta_choices,
+        pick_ai_rogue_card=pick_ai_rogue_card,
+        pick_ai_ultimate_card=pick_ai_ultimate_card,
+        apply_challenge_rogue_loadout=_apply_challenge_rogue_loadout,
+        activate_rogue_card=_activate_rogue_card,
+        activate_ai_rogue_card=_activate_ai_rogue_card,
+        ai_move=_ai_move,
+        ultimate_ai_move=_ultimate_ai_move,
+        ultimate_force_score=_ultimate_force_score,
+        run_coach_turn_if_needed=_run_coach_turn_if_needed,
+        run_ai_observer_loop=_run_ai_observer_loop,
+        sync_board_to_katago=_sync_board_to_katago,
+        challenge_remaining=_challenge_remaining,
+        challenge_zone_points=_challenge_zone_points,
+        rogue_has=_rogue_has,
+        get_ai_rogue_forbidden_points=_get_ai_rogue_forbidden_points,
+        ultimate_get_territory_forbidden=_ultimate_get_territory_forbidden,
+        record_ultimate_player_action=_record_ultimate_player_action,
+        check_capture_foul=_check_capture_foul,
+        count_stones=_count_stones,
+        apply_ultimate_effect=_apply_ultimate_effect,
+        resolve_pending_ultimate_shadow_links=_resolve_pending_ultimate_shadow_links,
+        apply_player_rogue_move_effects=_apply_player_rogue_move_effects,
+        apply_ai_rogue_response_effects=_apply_ai_rogue_response_effects,
+        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+        finish_ultimate_quickthink_turn=_finish_ultimate_quickthink_turn,
+        pick_joseki_targets=_pick_joseki_targets,
+        random_hidden_center=_random_hidden_center,
+        diamond_points=_diamond_points,
+    )
+
+
 @app.websocket("/ws/{game_id}")
 async def websocket_endpoint(websocket: WebSocket, game_id: str):
     def make_context(game, send, send_error, do_analysis, do_analysis_bg):
-        return WebSocketActionContext(
+        return build_websocket_action_context(
             game_id=game_id,
             game=game,
-            active_games=active_games,
-            engine=engine,
             send=send,
             send_error=send_error,
             do_analysis=do_analysis,
             do_analysis_bg=do_analysis_bg,
-            run_in_executor=run_in_executor,
-            GoGame=GoGame,
-            coord_to_gtp=coord_to_gtp,
-            gtp_to_coord=gtp_to_coord,
-            engine_state_snapshot=_engine_state_snapshot,
-            start_engine_background=engine_runtime.start_background,
-            reload_live_card_config=reload_live_card_config,
-            get_game_visits=get_game_visits,
-            pick_rogue_choices=pick_rogue_choices,
-            pick_ultimate_choices=pick_ultimate_choices,
-            pick_challenge_beta_choices=pick_challenge_beta_choices,
-            pick_ai_rogue_card=pick_ai_rogue_card,
-            pick_ai_ultimate_card=pick_ai_ultimate_card,
-            apply_challenge_rogue_loadout=_apply_challenge_rogue_loadout,
-            activate_rogue_card=_activate_rogue_card,
-            activate_ai_rogue_card=_activate_ai_rogue_card,
-            ai_move=_ai_move,
-            ultimate_ai_move=_ultimate_ai_move,
-            ultimate_force_score=_ultimate_force_score,
-            run_coach_turn_if_needed=_run_coach_turn_if_needed,
-            run_ai_observer_loop=_run_ai_observer_loop,
-            sync_board_to_katago=_sync_board_to_katago,
-            challenge_remaining=_challenge_remaining,
-            challenge_zone_points=_challenge_zone_points,
-            rogue_has=_rogue_has,
-            get_ai_rogue_forbidden_points=_get_ai_rogue_forbidden_points,
-            ultimate_get_territory_forbidden=_ultimate_get_territory_forbidden,
-            record_ultimate_player_action=_record_ultimate_player_action,
-            check_capture_foul=_check_capture_foul,
-            count_stones=_count_stones,
-            apply_ultimate_effect=_apply_ultimate_effect,
-            resolve_pending_ultimate_shadow_links=_resolve_pending_ultimate_shadow_links,
-            apply_player_rogue_move_effects=_apply_player_rogue_move_effects,
-            apply_ai_rogue_response_effects=_apply_ai_rogue_response_effects,
-            prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
-            finish_ultimate_quickthink_turn=_finish_ultimate_quickthink_turn,
-            pick_joseki_targets=_pick_joseki_targets,
-            random_hidden_center=_random_hidden_center,
-            diamond_points=_diamond_points,
+            deps=_ws_context_deps(),
         )
 
     await run_websocket_game_session(
