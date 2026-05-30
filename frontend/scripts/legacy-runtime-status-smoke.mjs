@@ -63,6 +63,19 @@ try {
       typeof window.updateUI,
       typeof window.updateWinRate,
     ];
+    const privateFns = [
+      typeof WINRATE_CURVE_PADDING,
+      typeof clampRange,
+      typeof getWinrateCurveLayout,
+      typeof resizeCanvasForDpr,
+      typeof drawWinrateHistoryLine,
+      typeof overlayKindForTitle,
+      typeof scoreWinnerLabel,
+      typeof scoreUnitText,
+      typeof winrateUiReady,
+      typeof setWinratePendingState,
+      typeof syncScoreButtonForWinrate,
+    ];
 
     setThinking(true);
     const thinkingOn = document.querySelector("#thinking-indicator")?.className || "";
@@ -81,8 +94,16 @@ try {
     };
     closeOverlay();
     const overlayClosed = document.querySelector("#overlay")?.className || "";
+    showOverlay("平局", "runtime draw smoke", "平局", "0");
+    const drawOverlayClass = document.querySelector("#overlay")?.className || "";
+    closeOverlay();
+    showOverlay("失败", "runtime defeat smoke", "白棋", "W+R");
+    const defeatOverlayClass = document.querySelector("#overlay")?.className || "";
+    closeOverlay();
 
     await ensureLocale("en");
+    await ensureLocale("ja");
+    await ensureLocale("ko");
     const previousLang = currentLang;
     currentLang = "zh";
     const scoreZh = formatScoreDisplay("B+3.5", 7.5);
@@ -90,6 +111,10 @@ try {
     currentLang = "en";
     const scoreEn = formatScoreDisplay("W+R", 6.5);
     const reasonEn = reasonText("score");
+    currentLang = "ja";
+    const scoreJa = formatScoreDisplay("B+2.5", 7.5);
+    currentLang = "ko";
+    const scoreKo = formatScoreDisplay("W+1.5", 6.5);
     currentLang = previousLang;
 
     gameState = {
@@ -142,6 +167,18 @@ try {
     updateUI();
     const observerLevel = document.querySelector("#info-level")?.textContent || "";
 
+    const originalDrawWinrateCurve = window.drawWinrateCurve;
+    let monkeypatchDrawCalls = 0;
+    window.drawWinrateCurve = () => { monkeypatchDrawCalls += 1; };
+    resetWinrateHistory();
+    gameState.move_number = 7;
+    pushWinratePoint(0.55, 0.5);
+    window.drawWinrateCurve = originalDrawWinrateCurve;
+    const monkeypatchState = {
+      drawCalls: monkeypatchDrawCalls,
+      count: winrateHistory.length,
+    };
+
     resetWinrateHistory();
     const emptyCurve = sampleCanvas("#winrate-curve");
     gameState.move_number = 9;
@@ -176,6 +213,16 @@ try {
       scoreTitle: document.querySelector("#btn-score")?.title || "",
     };
 
+    updateWinRate(0.6);
+    const lowReadyState = {
+      blackWidth: document.querySelector("#wr-black")?.style.width || "",
+      whiteWidth: document.querySelector("#wr-white")?.style.width || "",
+      blackLabel: document.querySelector("#wr-black-label")?.textContent || "",
+      whiteLabel: document.querySelector("#wr-white-label")?.textContent || "",
+      scoreDisabled: document.querySelector("#btn-score")?.disabled || false,
+      scoreTitle: document.querySelector("#btn-score")?.title || "",
+    };
+
     activeRogueCard = "quickthink";
     updateWinRate(0.85);
     const lockedState = {
@@ -186,27 +233,35 @@ try {
 
     return {
       publicFns,
+      privateFns,
       thinkingOn,
       thinkingPanelOn,
       thinkingOff,
       overlayOpen,
       overlayClosed,
+      drawOverlayClass,
+      defeatOverlayClass,
       scoreZh,
       reasonZh,
       scoreEn,
       reasonEn,
+      scoreJa,
+      scoreKo,
       soloInfo,
       twoPlayerInfo,
       observerLevel,
+      monkeypatchState,
       emptyCurve,
       curveState,
       pendingState,
       readyState,
+      lowReadyState,
       lockedState,
     };
   });
 
   assert(state.publicFns.every(type => type === "function"), `runtime status globals missing: ${state.publicFns.join(", ")}`);
+  assert(state.privateFns.every(type => type === "undefined"), `runtime status private helpers leaked globally: ${state.privateFns.join(", ")}`);
   assert(state.thinkingOn === "show" && state.thinkingPanelOn === "show", "setThinking(true) did not show indicators");
   assert(state.thinkingOff === "", `setThinking(false) did not clear indicator: ${state.thinkingOff}`);
   assert(state.overlayOpen.cls.includes("show") && state.overlayOpen.cls.includes("victory"), `overlay did not open as victory: ${state.overlayOpen.cls}`);
@@ -216,10 +271,14 @@ try {
   assert(state.overlayOpen.score === "B+R", `overlay score changed: ${state.overlayOpen.score}`);
   assert(state.overlayOpen.sparks > 0, "overlay sparks did not spawn");
   assert(state.overlayClosed === "", `closeOverlay did not clear class: ${state.overlayClosed}`);
+  assert(state.drawOverlayClass.includes("show") && state.drawOverlayClass.includes("draw"), `draw overlay kind changed: ${state.drawOverlayClass}`);
+  assert(state.defeatOverlayClass.includes("show") && state.defeatOverlayClass.includes("defeat"), `defeat overlay kind changed: ${state.defeatOverlayClass}`);
   assert(state.scoreZh === "黑胜3.5子", `Chinese score formatting changed: ${state.scoreZh}`);
   assert(state.reasonZh === "超时", `Chinese reason text changed: ${state.reasonZh}`);
   assert(state.scoreEn === "White +R points", `English score formatting changed: ${state.scoreEn}`);
   assert(state.reasonEn === "Scoring", `English reason text changed: ${state.reasonEn}`);
+  assert(state.scoreJa === "黒2.5子勝ち", `Japanese score formatting changed: ${state.scoreJa}`);
+  assert(state.scoreKo === "백 1.5집 승", `Korean score formatting changed: ${state.scoreKo}`);
   assert(state.soloInfo.color.includes("黑棋"), `solo color text changed: ${state.soloInfo.color}`);
   assert(state.soloInfo.player.includes("白（AI）"), `solo player text changed: ${state.soloInfo.player}`);
   assert(state.soloInfo.move === "8", `move info changed: ${state.soloInfo.move}`);
@@ -235,6 +294,8 @@ try {
   assert(state.twoPlayerInfo.hudTurn.includes("黑棋落子"), `two-player HUD turn changed: ${state.twoPlayerInfo.hudTurn}`);
   assert(state.twoPlayerInfo.clientMode.includes("双人"), `two-player client mode changed: ${state.twoPlayerInfo.clientMode}`);
   assert(state.observerLevel.includes("9级") && state.observerLevel.includes("8级"), `observer rank text changed: ${state.observerLevel}`);
+  assert(state.monkeypatchState.drawCalls === 2, `drawWinrateCurve monkeypatch calls changed: ${JSON.stringify(state.monkeypatchState)}`);
+  assert(state.monkeypatchState.count === 1, `winrate history after monkeypatch changed: ${JSON.stringify(state.monkeypatchState)}`);
   assert(state.emptyCurve, "empty winrate curve did not render placeholder");
   assert(state.curveState.count === 2, `winrate history dedupe/count changed: ${state.curveState.count}`);
   assert(state.curveState.nonblank, "winrate curve did not render after points");
@@ -244,6 +305,10 @@ try {
   assert(state.readyState.blackWidth === "85%" && state.readyState.whiteWidth === "15%", `ready winrate widths changed: ${JSON.stringify(state.readyState)}`);
   assert(state.readyState.blackLabel.includes("85.0%") && state.readyState.whiteLabel.includes("15.0%"), `ready labels changed: ${JSON.stringify(state.readyState)}`);
   assert(!state.readyState.scoreDisabled, "high winrate should enable score button");
+  assert(state.lowReadyState.blackWidth === "60%" && state.lowReadyState.whiteWidth === "40%", `low winrate widths changed: ${JSON.stringify(state.lowReadyState)}`);
+  assert(state.lowReadyState.blackLabel.includes("60.0%") && state.lowReadyState.whiteLabel.includes("40.0%"), `low winrate labels changed: ${JSON.stringify(state.lowReadyState)}`);
+  assert(state.lowReadyState.scoreDisabled, "low winrate should disable score button");
+  assert(state.lowReadyState.scoreTitle.includes("80"), `low winrate score title changed: ${state.lowReadyState.scoreTitle}`);
   assert(state.lockedState.wrapClass.includes("analysis-off"), `quickthink lock did not mark analysis off: ${state.lockedState.wrapClass}`);
   assert(state.lockedState.blackLabel === "", `locked analysis should clear labels: ${state.lockedState.blackLabel}`);
   assert(state.lockedState.scoreDisabled, "locked analysis should disable score button");

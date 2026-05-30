@@ -1,4 +1,5 @@
 // Runtime status, overlay, score, and winrate UI helpers.
+(() => {
 const WINRATE_CURVE_PADDING = { left: 28, right: 16, top: 14, bottom: 22 };
 
 function clampRange(value, min, max) {
@@ -36,7 +37,7 @@ function drawWinrateHistoryLine(c, points, plotX, stepX, yForPoint) {
 
 function resetWinrateHistory() {
   winrateHistory = [];
-  drawWinrateCurve();
+  window.drawWinrateCurve();
 }
 
 function pushWinratePoint(winrate, score) {
@@ -47,7 +48,7 @@ function pushWinratePoint(winrate, score) {
   }
   winrateHistory.push({ move, winrate, score });
   if (winrateHistory.length > 400) winrateHistory.shift();
-  drawWinrateCurve();
+  window.drawWinrateCurve();
 }
 
 function drawWinrateCurve() {
@@ -161,13 +162,19 @@ function setThinking(v) {
   document.getElementById("thinking-indicator-panel").className = v ? "show" : "";
 }
 
+function overlayKindForTitle(title) {
+  if (/win|胜|赢/.test(title)) return "victory";
+  if (/draw|平/.test(title)) return "draw";
+  return "defeat";
+}
+
 function showOverlay(title, sub, winner, score) {
   document.getElementById("overlay-title").textContent = title;
   document.getElementById("overlay-msg").textContent = sub;
   document.getElementById("overlay-winner").textContent = winner;
   document.getElementById("overlay-score").textContent = score;
   const overlay = document.getElementById("overlay");
-  const kind = /win|胜|赢/.test(title) ? "victory" : (/draw|平/.test(title) ? "draw" : "defeat");
+  const kind = overlayKindForTitle(title);
   overlay.className = `show ${kind}`;
   spawnOverlaySparks(kind);
 }
@@ -189,16 +196,27 @@ function reasonText(r) {
   }[r] || r || "";
 }
 
+function scoreWinnerLabel(color) {
+  return color === "B" ? ui("黑", "Black", "黒", "흑") : ui("白", "White", "白", "백");
+}
+
+function scoreUnitText(isChineseRules) {
+  if (currentLang === "en") return isChineseRules ? "stones" : "points";
+  if (currentLang === "ko") return "집";
+  return isChineseRules ? "子" : "目";
+}
+
 function formatScoreDisplay(score, komi) {
   const rawScore = score || "—";
   const m = String(rawScore).match(/^([BW])\+(.+)$/);
   if (!m) return rawScore;
-  const who = m[1] === "B" ? ui("黑", "Black", "黒", "흑") : ui("白", "White", "白", "백");
+  const who = scoreWinnerLabel(m[1]);
   const isChineseRules = komi === 7.5;
-  if (currentLang === "en") return `${who} +${m[2]} ${isChineseRules ? "stones" : "points"}`;
-  if (currentLang === "ja") return `${who}${m[2]}${isChineseRules ? "子" : "目"}勝ち`;
-  if (currentLang === "ko") return `${who} ${m[2]}집 승`;
-  return `${who}胜${m[2]}${isChineseRules ? "子" : "目"}`;
+  const unit = scoreUnitText(isChineseRules);
+  if (currentLang === "en") return `${who} +${m[2]} ${unit}`;
+  if (currentLang === "ja") return `${who}${m[2]}${unit}勝ち`;
+  if (currentLang === "ko") return `${who} ${m[2]}${unit} 승`;
+  return `${who}胜${m[2]}${unit}`;
 }
 
 function updateUI() {
@@ -232,11 +250,38 @@ function updateUI() {
   syncClientShell();
 }
 
+function winrateUiReady(value) {
+  return analysisPanelEnabled() && analysisReady && Number.isFinite(Number(value));
+}
+
+function setWinratePendingState(btnScore) {
+  const black = document.getElementById("wr-black");
+  const white = document.getElementById("wr-white");
+  const blackLabel = document.getElementById("wr-black-label");
+  const whiteLabel = document.getElementById("wr-white-label");
+  if (black) black.style.width = "50%";
+  if (white) white.style.width = "50%";
+  if (blackLabel) blackLabel.textContent = "";
+  if (whiteLabel) whiteLabel.textContent = "";
+  if (btnScore && gameState && !gameState.game_over) {
+    btnScore.disabled = true;
+    btnScore.title = ui("计算胜负", "Score");
+  }
+}
+
+function syncScoreButtonForWinrate(btnScore, rawBlack, rawWhite) {
+  if (!btnScore || !gameState || gameState.game_over) return;
+  const canScore = rawBlack >= 80 || rawWhite >= 80;
+  btnScore.disabled = !canScore;
+  btnScore.title = canScore ? ui("计算胜负", "Score") : ui("胜率需≥80%才可计算胜负", "Win rate must reach 80% to score");
+}
+
 function updateWinRate(wr) {
   const wrap = document.getElementById("winrate-bar-wrap");
   const topSlot = document.getElementById("top-winrate-slot");
   const enabled = analysisPanelEnabled();
-  const ready = enabled && analysisReady && Number.isFinite(Number(wr));
+  const ready = winrateUiReady(wr);
+  const btnScore = document.getElementById("btn-score");
   if (wrap) {
     wrap.style.display = "block";
     wrap.classList.toggle("analysis-off", !enabled);
@@ -244,19 +289,7 @@ function updateWinRate(wr) {
   }
   if (topSlot) topSlot.classList.add("active");
   if (!ready) {
-    const black = document.getElementById("wr-black");
-    const white = document.getElementById("wr-white");
-    const blackLabel = document.getElementById("wr-black-label");
-    const whiteLabel = document.getElementById("wr-white-label");
-    if (black) black.style.width = "50%";
-    if (white) white.style.width = "50%";
-    if (blackLabel) blackLabel.textContent = "";
-    if (whiteLabel) whiteLabel.textContent = "";
-    const btnScore = document.getElementById("btn-score");
-    if (btnScore && gameState && !gameState.game_over) {
-      btnScore.disabled = true;
-      btnScore.title = ui("计算胜负", "Score");
-    }
+    setWinratePendingState(btnScore);
     return;
   }
   const rawBlack = Math.max(0, Math.min(100, Number(wr) * 100));
@@ -267,12 +300,7 @@ function updateWinRate(wr) {
   document.getElementById("wr-white").style.width = rawWhite + "%";
   document.getElementById("wr-black-label").textContent = `${ui("黑", "Black")} ${b}%`;
   document.getElementById("wr-white-label").textContent = `${ui("白", "White")} ${w}%`;
-  const btnScore = document.getElementById("btn-score");
-  if (btnScore && gameState && !gameState.game_over) {
-    const canScore = rawBlack >= 80 || rawWhite >= 80;
-    btnScore.disabled = !canScore;
-    btnScore.title = canScore ? ui("计算胜负", "Score") : ui("胜率需≥80%才可计算胜负", "Win rate must reach 80% to score");
-  }
+  syncScoreButtonForWinrate(btnScore, rawBlack, rawWhite);
 }
 
 window.resetWinrateHistory = resetWinrateHistory;
@@ -285,3 +313,4 @@ window.reasonText = reasonText;
 window.formatScoreDisplay = formatScoreDisplay;
 window.updateUI = updateUI;
 window.updateWinRate = updateWinRate;
+})();
