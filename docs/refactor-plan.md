@@ -129,6 +129,8 @@ Done:
   - Thinking indicator, game-over overlay, score/reason text, runtime info panel, and winrate history UI
 - `static/js/game_timers.js`
   - Game timer state, absolute/byoyomi countdowns, display refresh, and timeout dispatch
+- `static/js/visual_effects.js`
+  - Sound state, stone/capture animations, board intro/ripples, overlay sparks, and card-effect visual bursts
 - `static/js/toolbar_actions.js`
   - Main in-game toolbar actions for pass, undo, score, and resign
   - Shared toolbar button enable/disable state
@@ -141,7 +143,7 @@ Done:
 
 Still in `static/index.html`:
 
-- Challenge session state, effects/animations, sound helpers, network helpers, and board-diff helpers
+- Challenge session state, network helpers, current-board helpers, and board-diff helpers
 
 ## Frontend Extraction Roadmap
 
