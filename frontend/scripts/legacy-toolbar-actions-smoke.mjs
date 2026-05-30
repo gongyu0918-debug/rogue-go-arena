@@ -91,10 +91,55 @@ try {
     score: !document.querySelector("#btn-score")?.disabled,
     resign: !document.querySelector("#btn-resign")?.disabled,
     newDisabled: document.querySelector("#btn-new")?.disabled || false,
+    newText: document.querySelector("#btn-new")?.textContent || "",
+    newOpacity: document.querySelector("#btn-new")?.style.opacity || "",
+    newCursor: document.querySelector("#btn-new")?.style.cursor || "",
     setupDisabled: document.querySelector("#btn-setup")?.disabled || false,
+    setupOpacity: document.querySelector("#btn-setup")?.style.opacity || "",
+    setupCursor: document.querySelector("#btn-setup")?.style.cursor || "",
   }));
   assert(activeButtons.pass && activeButtons.undo && activeButtons.score && activeButtons.resign, `setButtons(true) did not enable toolbar: ${JSON.stringify(activeButtons)}`);
   assert(activeButtons.newDisabled && activeButtons.setupDisabled, `setButtons(true) did not disable start controls: ${JSON.stringify(activeButtons)}`);
+  assert(activeButtons.newText.includes("对局进行中"), `setButtons(true) did not update start text: ${JSON.stringify(activeButtons)}`);
+  assert(activeButtons.newOpacity === "0.5" && activeButtons.newCursor === "not-allowed", `setButtons(true) did not lock start button style: ${JSON.stringify(activeButtons)}`);
+  assert(activeButtons.setupOpacity === "0.5" && activeButtons.setupCursor === "not-allowed", `setButtons(true) did not lock setup button style: ${JSON.stringify(activeButtons)}`);
+
+  const whiteDominantScoreState = await page.evaluate(() => {
+    analysis.winrate = 0.15;
+    setButtons(true);
+    const state = {
+      scoreDisabled: document.querySelector("#btn-score")?.disabled || false,
+      scoreTitle: document.querySelector("#btn-score")?.title || "",
+    };
+    analysis.winrate = 0.85;
+    setButtons(true);
+    return state;
+  });
+  assert(!whiteDominantScoreState.scoreDisabled, `white-dominant score should be enabled: ${JSON.stringify(whiteDominantScoreState)}`);
+  assert(whiteDominantScoreState.scoreTitle.includes("计算胜负") || whiteDominantScoreState.scoreTitle.includes("Score"), `white-dominant score title changed: ${whiteDominantScoreState.scoreTitle}`);
+
+  const inactiveButtonsState = await page.evaluate(() => {
+    setButtons(false);
+    const state = {
+      passDisabled: document.querySelector("#btn-pass")?.disabled || false,
+      undoDisabled: document.querySelector("#btn-undo")?.disabled || false,
+      scoreDisabled: document.querySelector("#btn-score")?.disabled || false,
+      resignDisabled: document.querySelector("#btn-resign")?.disabled || false,
+      newDisabled: document.querySelector("#btn-new")?.disabled || false,
+      newText: document.querySelector("#btn-new")?.textContent || "",
+      newOpacity: document.querySelector("#btn-new")?.style.opacity || "",
+      newCursor: document.querySelector("#btn-new")?.style.cursor || "",
+      setupDisabled: document.querySelector("#btn-setup")?.disabled || false,
+      setupOpacity: document.querySelector("#btn-setup")?.style.opacity || "",
+      setupCursor: document.querySelector("#btn-setup")?.style.cursor || "",
+    };
+    setButtons(true);
+    return state;
+  });
+  assert(inactiveButtonsState.passDisabled && inactiveButtonsState.undoDisabled && inactiveButtonsState.scoreDisabled && inactiveButtonsState.resignDisabled, `setButtons(false) did not disable active toolbar: ${JSON.stringify(inactiveButtonsState)}`);
+  assert(!inactiveButtonsState.newDisabled && inactiveButtonsState.newText.includes("确认开始"), `setButtons(false) did not reset start button: ${JSON.stringify(inactiveButtonsState)}`);
+  assert(inactiveButtonsState.newOpacity === "" && inactiveButtonsState.newCursor === "", `setButtons(false) did not clear start button lock styles: ${JSON.stringify(inactiveButtonsState)}`);
+  assert(!inactiveButtonsState.setupDisabled && inactiveButtonsState.setupOpacity === "" && inactiveButtonsState.setupCursor === "", `setButtons(false) did not clear setup button lock styles: ${JSON.stringify(inactiveButtonsState)}`);
 
   await page.locator("#btn-pass").click();
   const passState = await page.evaluate(() => ({
