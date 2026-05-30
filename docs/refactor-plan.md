@@ -107,12 +107,14 @@ Done:
 - `static/js/wood_select.js`
   - Custom select enhancement, popover placement, and menu close behavior
   - Shared `syncWoodSelect`, `syncWoodSelects`, and `closeWoodSelectMenu` globals used by legacy modules
+- `static/js/review_controls.js`
+  - Local review board replay helpers used by the legacy renderer
+  - SGF import/export, review navigation, keyboard shortcuts, and review analysis requests
 
 Still in `static/index.html`:
 
 - WebSocket message dispatch
 - i18n bootstrap and generic UI localization
-- Review/SGF controls
 
 ## Frontend Extraction Roadmap
 
