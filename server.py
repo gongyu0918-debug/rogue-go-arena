@@ -79,17 +79,7 @@ from app.domain.coordinates import coord_to_gtp, gtp_to_coord
 from app.domain.game_state import GoGame
 from app.domain.sgf import generate_sgf
 from app.runtime.access_urls import get_access_urls as build_access_urls
-from app.runtime.analysis import (
-    analyze_current_position as analyze_current_position_state,
-    empty_analysis_result as empty_analysis_result_state,
-    estimate_side_winrate as estimate_side_winrate_state,
-    pick_analysis_point as pick_analysis_point_state,
-)
-from app.runtime.board_sync import (
-    gtp_safe_sync_sgf_path as build_gtp_safe_sync_sgf_path,
-    has_gtp_unsafe_whitespace as check_gtp_unsafe_whitespace,
-    sync_board_to_katago_locked as sync_board_to_katago_locked_state,
-)
+from app.runtime.engine_gateway import EngineRuntimeGateway
 from app.runtime.gpu_info import apply_runtime_gpu_overrides, detect_gpu_info
 from app.runtime.status_payload import build_status_payload
 from app.gameplay.card_selection import (
@@ -588,13 +578,36 @@ async def run_in_executor(func, *args):
     return await loop.run_in_executor(None, func, *args)
 
 
+engine_gateway = EngineRuntimeGateway(
+    engine=engine,
+    base_dir=BASE_DIR,
+    get_game_visits=get_game_visits,
+    gtp_to_coord=gtp_to_coord,
+    run_in_executor=run_in_executor,
+    log_fn=print,
+    traceback_fn=traceback.print_exc,
+)
+
+
+def _bind_engine_gateway_runtime() -> None:
+    engine_gateway.bind_runtime(
+        engine=engine,
+        get_game_visits=get_game_visits,
+        gtp_to_coord=gtp_to_coord,
+        run_in_executor=run_in_executor,
+        log_fn=print,
+        traceback_fn=traceback.print_exc,
+    )
+
+
 async def _send_engine_command(command: str) -> str:
-    return await run_in_executor(engine.send_command, command)
+    _bind_engine_gateway_runtime()
+    return await engine_gateway.send_command(command)
 
 
 async def _sync_engine_komi(game: GoGame) -> None:
-    if engine.ready:
-        await _send_engine_command(f"komi {game.komi}")
+    _bind_engine_gateway_runtime()
+    await engine_gateway.sync_komi(game)
 
 
 ai_move_service = AiMoveService(
@@ -719,14 +732,11 @@ def _get_player_bonus_forbidden_points(game: GoGame, color: str) -> set[tuple[in
 
 
 async def _estimate_side_winrate(game: GoGame, color: str) -> float:
-    return await estimate_side_winrate_state(
+    _bind_engine_gateway_runtime()
+    return await engine_gateway.estimate_side_winrate(
         game,
         color,
-        engine_ready=engine.ready,
         sync_board=_sync_board_to_katago,
-        analyze=engine.analyze,
-        parse_analysis=engine.parse_analysis,
-        run_in_executor=run_in_executor,
     )
 
 
@@ -873,17 +883,8 @@ def _clear_player_turn_modifiers(game: GoGame):
 
 
 async def _pick_analysis_point(game: GoGame, color: str, *, start_index: int = 0) -> Optional[tuple[int, int]]:
-    return await pick_analysis_point_state(
-        game,
-        color,
-        start_index=start_index,
-        engine_ready=engine.ready,
-        get_game_visits=get_game_visits,
-        analyze=engine.analyze,
-        parse_analysis=engine.parse_analysis,
-        run_in_executor=run_in_executor,
-        gtp_to_coord=gtp_to_coord,
-    )
+    _bind_engine_gateway_runtime()
+    return await engine_gateway.pick_analysis_point(game, color, start_index=start_index)
 
 
 async def _pick_second_best_point(game: GoGame, color: str) -> Optional[tuple[int, int]]:
@@ -1025,42 +1026,36 @@ async def _apply_ai_rogue_response_effects(game: GoGame, send_fn,
 def _sync_board_to_katago_locked(game: GoGame):
     """Reset KataGo board to match game.board using SGF loadsgf.
     Must be called while holding engine.command_lock."""
-    sync_board_to_katago_locked_state(game, engine, base_dir=BASE_DIR)
+    _bind_engine_gateway_runtime()
+    engine_gateway.sync_board_locked(game)
 
 
 def _has_gtp_unsafe_whitespace(path: str) -> bool:
-    return check_gtp_unsafe_whitespace(path)
+    return EngineRuntimeGateway.has_gtp_unsafe_whitespace(path)
 
 
 def _gtp_safe_sync_sgf_path(game: GoGame) -> str:
     """Return a writable SGF path that KataGo GTP will not split on spaces."""
-    return build_gtp_safe_sync_sgf_path(game, base_dir=BASE_DIR)
+    _bind_engine_gateway_runtime()
+    return engine_gateway.gtp_safe_sync_sgf_path(game)
 
 
 async def _sync_board_to_katago(game: GoGame):
     """Reset KataGo board to match game.board (async wrapper)."""
-    def _do():
-        with engine.command_lock:
-            _sync_board_to_katago_locked(game)
-    await run_in_executor(_do)
+    _bind_engine_gateway_runtime()
+    await engine_gateway.sync_board(game)
 
 
 def _empty_analysis_result() -> dict:
-    return empty_analysis_result_state()
+    return EngineRuntimeGateway.empty_analysis_result()
 
 
 async def _analyze_current_position(game: GoGame, color: Optional[str] = None) -> dict:
-    return await analyze_current_position_state(
+    _bind_engine_gateway_runtime()
+    return await engine_gateway.analyze_current_position(
         game,
         color=color,
-        engine_ready=engine.ready,
         sync_board=_sync_board_to_katago,
-        get_game_visits=get_game_visits,
-        analyze=engine.analyze,
-        parse_analysis=engine.parse_analysis,
-        run_in_executor=run_in_executor,
-        log_fn=print,
-        traceback_fn=traceback.print_exc,
     )
 
 

@@ -3,7 +3,7 @@
 This project is stable enough to play, but the codebase has two high-risk growth points:
 
 - `static/index.html` has been acting as the UI shell, WebSocket client, board renderer, i18n layer, and card UI host.
-- `server.py` still owns HTTP routes, WebSocket dependency wiring, AI move orchestration, Rogue effects, Ultimate effects, scoring helpers, and KataGo sync.
+- `server.py` still owns HTTP routes, WebSocket dependency wiring, AI move orchestration, Rogue effects, Ultimate effects, scoring helpers, and KataGo-dependent orchestration.
 
 The goal is controlled extraction, not a broad rewrite. Every step should leave the app runnable and covered by smoke tests.
 
@@ -197,7 +197,8 @@ Still in `static/index.html`:
 
 3. `app/gameplay/ai_moves.py`
    - Move AI move selection variants: avoid points, no-resign retry, suboptimal, style generation.
-   - Keep KataGo calls behind a small engine adapter.
+   - KataGo command, board-sync, komi-sync, and analysis adapters now live in `app/runtime/engine_gateway.py`.
+   - Continue moving AI turn branches behind the existing `AiMoveService` and engine gateway instead of adding direct `engine.*` calls in `server.py`.
 
 4. `app/runtime/ws_handlers.py`
    - WebSocket session lifecycle and dispatch now live in `app/runtime/ws_session.py`.
