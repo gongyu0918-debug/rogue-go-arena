@@ -7,6 +7,7 @@ from app.gameplay.ai_moves import (
     resolve_occupied_ai_move,
     snapshot_ai_turn,
 )
+from app.runtime.game_visits import runtime_game_visits
 
 
 def make_game(size: int = 9) -> GoGame:
@@ -119,6 +120,86 @@ def test_plan_ultimate_ai_search_uses_black_color_value_for_black_ai() -> None:
     assert plan.color_value == 1
     assert calls == [(game, 1)]
     assert plan.forbidden == {(4, 4)}
+
+
+def test_runtime_game_visits_reads_cpu_mode_at_call_time() -> None:
+    cpu_mode = {"value": False}
+    calls = []
+
+    def compute(level, move_count=-1, mode="normal", *, cpu_mode=False):
+        calls.append((level, move_count, mode, cpu_mode))
+        return 100 if cpu_mode else 1000
+
+    first = runtime_game_visits(
+        "5k",
+        12,
+        "rogue",
+        cpu_mode_fn=lambda: cpu_mode["value"],
+        compute_visits_fn=compute,
+    )
+    cpu_mode["value"] = True
+    second = runtime_game_visits(
+        "5k",
+        12,
+        "rogue",
+        cpu_mode_fn=lambda: cpu_mode["value"],
+        compute_visits_fn=compute,
+    )
+
+    assert first == 1000
+    assert second == 100
+    assert calls == [
+        ("5k", 12, "rogue", False),
+        ("5k", 12, "rogue", True),
+    ]
+
+
+def test_runtime_game_visits_forwards_default_arguments() -> None:
+    calls = []
+
+    def compute(level, move_count=-1, mode="normal", *, cpu_mode=False):
+        calls.append((level, move_count, mode, cpu_mode))
+        return 123
+
+    assert runtime_game_visits(
+        "5k",
+        cpu_mode_fn=lambda: True,
+        compute_visits_fn=compute,
+    ) == 123
+    assert calls == [("5k", -1, "normal", True)]
+
+
+def test_server_game_visits_resolves_engine_cpu_mode_late() -> None:
+    class Runtime:
+        cpu_mode = False
+
+    runtime = Runtime()
+    original_runtime = s.engine_runtime
+    try:
+        s.engine_runtime = runtime
+        normal_visits = s.get_game_visits("a9d", 20, "normal")
+        runtime.cpu_mode = True
+        cpu_visits = s.get_game_visits("a9d", 20, "normal")
+    finally:
+        s.engine_runtime = original_runtime
+
+    assert cpu_visits < normal_visits
+    assert cpu_visits == compute_game_visits("a9d", 20, "normal", cpu_mode=True)
+
+
+def test_server_game_visits_accepts_default_arguments() -> None:
+    class Runtime:
+        cpu_mode = True
+
+    runtime = Runtime()
+    original_runtime = s.engine_runtime
+    try:
+        s.engine_runtime = runtime
+        visits = s.get_game_visits("a9d")
+    finally:
+        s.engine_runtime = original_runtime
+
+    assert visits == compute_game_visits("a9d", cpu_mode=True)
 
 
 def test_resolve_occupied_ai_move_keeps_pass_and_empty_move() -> None:
@@ -235,6 +316,10 @@ if __name__ == "__main__":
     test_plan_ultimate_ai_search_uses_ultimate_visits_and_ai_card()
     test_plan_ultimate_ai_search_applies_player_territory_forbidden()
     test_plan_ultimate_ai_search_uses_black_color_value_for_black_ai()
+    test_runtime_game_visits_reads_cpu_mode_at_call_time()
+    test_runtime_game_visits_forwards_default_arguments()
+    test_server_game_visits_resolves_engine_cpu_mode_late()
+    test_server_game_visits_accepts_default_arguments()
     test_resolve_occupied_ai_move_keeps_pass_and_empty_move()
     test_resolve_occupied_ai_move_chooses_legal_empty_point()
     test_resolve_occupied_ai_move_skips_illegal_empty_points()

@@ -242,7 +242,6 @@ from app.gameplay.ai_moves import (
     AiMoveService,
     AiMovePlan,
     AiTurnSnapshot,
-    compute_game_visits,
     choose_ai_style_move,
     choose_tengen_target,
     gravity_allowed_points,
@@ -259,6 +258,7 @@ from app.gameplay.ai_moves import (
     weaken_rank,
     weaken_rank_one_step,
 )
+from app.runtime.game_visits import runtime_game_visits
 from app.gameplay.ai_move_flow import (
     apply_ai_move_to_board,
     apply_ai_move_placement_effects,
@@ -438,11 +438,11 @@ def _runtime_config_path(source_config: Path) -> Path:
 
 def get_game_visits(level: str, move_count: int = -1,
                     mode: str = "normal") -> int:
-    return compute_game_visits(
+    return runtime_game_visits(
         level,
         move_count,
         mode,
-        cpu_mode=engine_runtime.cpu_mode,
+        cpu_mode_fn=lambda: engine_runtime.cpu_mode,
     )
 
 

@@ -212,6 +212,7 @@ Still in `static/index.html`:
    - Move AI move selection variants: avoid points, no-resign retry, suboptimal, style generation.
    - KataGo command, board-sync, komi-sync, and analysis adapters now live in `app/runtime/engine_gateway.py`.
    - AI observer self-play loop now lives in `app/gameplay/ai_observer.py`.
+   - Runtime game-visit policy now lives in `app/runtime/game_visits.py`; `server.py` only supplies current CPU-mode state.
    - Continue moving AI turn branches behind the existing `AiMoveService` and engine gateway instead of adding direct `engine.*` calls in `server.py`.
 
 4. `app/runtime/ws_handlers.py`
