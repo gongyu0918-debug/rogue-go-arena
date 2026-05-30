@@ -91,6 +91,7 @@ from app.runtime.config_api import (
 from app.runtime.engine_control_api import restart_katago_request, stop_katago_request
 from app.runtime.engine_gateway import EngineRuntimeGateway
 from app.runtime.gpu_info import CachedGpuInfo, apply_runtime_gpu_overrides
+from app.runtime.rank_api import build_rank_options
 from app.runtime.sgf_export import build_sgf_export_response
 from app.runtime.static_files import serve_existing_file
 from app.runtime.status_endpoint import build_runtime_status_payload
@@ -548,7 +549,7 @@ async def reset_balance_lab_payload():
 
 @app.get("/ranks")
 async def get_ranks():
-    return [{"id": k, "label": v} for k, v in RANK_LABELS.items()]
+    return build_rank_options(RANK_LABELS)
 
 
 @app.post("/stop_katago")
