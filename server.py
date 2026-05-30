@@ -14,7 +14,7 @@ from typing import Optional
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import Response
 import uvicorn
 import app.config.gameplay as gameplay_config
 import app.runtime.ws_actions as ws_actions_module
@@ -79,9 +79,17 @@ from app.domain.coordinates import coord_to_gtp, gtp_to_coord
 from app.domain.game_state import GoGame
 from app.domain.sgf import generate_sgf
 from app.runtime.access_urls import get_access_urls as build_access_urls
+from app.runtime.config_api import (
+    balance_payload,
+    card_config_payload as build_card_config_payload,
+    card_config_schema as build_card_config_schema,
+    reset_balance_request,
+    reset_card_config_request,
+    save_balance_request,
+    save_card_config_request,
+)
 from app.runtime.engine_gateway import EngineRuntimeGateway
 from app.runtime.gpu_info import CachedGpuInfo, apply_runtime_gpu_overrides
-from app.runtime.request_json import read_json_body
 from app.runtime.sgf_export import build_sgf_export_response
 from app.runtime.static_files import serve_existing_file
 from app.runtime.status_endpoint import build_runtime_status_payload
@@ -501,56 +509,40 @@ async def card_editor():
 
 @app.get("/api/card-config")
 async def get_card_config_payload():
-    return card_config_service.get_payload()
+    return build_card_config_payload(card_config_service)
 
 
 @app.get("/api/card-config/schema")
 async def get_card_config_schema():
-    return card_config_service.get_schema()
+    return build_card_config_schema(card_config_service)
 
 
 @app.post("/api/card-config")
 async def save_card_config_payload(request: Request):
-    json_body = await read_json_body(request)
-    if not json_body.ok:
-        return json_body.error_response
-    body = json_body.body
-    config = body.get("config") if isinstance(body, dict) else None
-    result = card_config_service.save_payload(config)
-    if not result.get("ok"):
-        return JSONResponse(result, status_code=400)
-    return result
+    return await save_card_config_request(request, card_config_service=card_config_service)
 
 
 @app.post("/api/card-config/reset")
 async def reset_card_config_payload():
-    result = card_config_service.reset_payload()
-    if not result.get("ok"):
-        return JSONResponse(result, status_code=400)
-    return result
+    return reset_card_config_request(card_config_service)
 
 
 @app.get("/api/balance")
 async def get_balance_lab_payload():
-    return get_balance_editor_payload()
+    return balance_payload(get_balance_editor_payload)
 
 
 @app.post("/api/balance")
 async def save_balance_lab_payload(request: Request):
-    json_body = await read_json_body(request)
-    if not json_body.ok:
-        return json_body.error_response
-    body = json_body.body
-    values = body.get("values", {}) if isinstance(body, dict) else {}
-    result = save_balance_overrides(values)
-    if not result.get("ok"):
-        return JSONResponse(result, status_code=400)
-    return result
+    return await save_balance_request(
+        request,
+        save_balance_overrides=save_balance_overrides,
+    )
 
 
 @app.post("/api/balance/reset")
 async def reset_balance_lab_payload():
-    return reset_balance_overrides()
+    return reset_balance_request(reset_balance_overrides)
 
 
 @app.get("/ranks")
