@@ -123,6 +123,20 @@ from app.runtime.katago_paths import (
     ensure_user_katago_dirs,
     write_runtime_katago_config,
 )
+from app.runtime.line_trigger_adapters import (
+    RogueFiveInRowBinding,
+    RogueLastStandBinding,
+    UltimateFiveInRowBinding,
+    UltimateLastStandBinding,
+    build_rogue_five_in_row_deps,
+    build_rogue_last_stand_deps,
+    build_ultimate_five_in_row_deps,
+    build_ultimate_last_stand_deps,
+    trigger_rogue_five_in_row as trigger_rogue_five_in_row_adapter,
+    trigger_rogue_last_stand as trigger_rogue_last_stand_adapter,
+    trigger_ultimate_five_in_row as trigger_ultimate_five_in_row_adapter,
+    trigger_ultimate_last_stand as trigger_ultimate_last_stand_adapter,
+)
 from app.runtime.no_cache import apply_no_cache_headers_for_html
 from app.runtime.observer_adapters import (
     AiObserverLoopBinding,
@@ -213,10 +227,6 @@ from app.gameplay.line_trigger_flow import (
     RogueLastStandDeps,
     UltimateFiveInRowDeps,
     UltimateLastStandDeps,
-    trigger_rogue_five_in_row as trigger_rogue_five_in_row_state,
-    trigger_rogue_last_stand as trigger_rogue_last_stand_state,
-    trigger_ultimate_five_in_row as trigger_ultimate_five_in_row_state,
-    trigger_ultimate_last_stand as trigger_ultimate_last_stand_state,
 )
 from app.gameplay.ai_moves import (
     AiMoveService,
@@ -812,20 +822,46 @@ async def _estimate_side_winrate(game: GoGame, color: str) -> float:
     )
 
 
+def _rogue_five_in_row_binding() -> RogueFiveInRowBinding:
+    return RogueFiveInRowBinding(
+        apply_five_in_row=apply_rogue_five_in_row,
+        shuffle_points=random.shuffle,
+        should_bonus_derivative=_challenge_should_bonus_derivative,
+        support_stones=ROGUE_FIVE_IN_ROW_SUPPORT_STONES,
+        engine_ready=lambda: engine.ready,
+        sync_board=_sync_board_to_katago,
+    )
+
+
+def _rogue_five_in_row_deps() -> RogueFiveInRowDeps:
+    return build_rogue_five_in_row_deps(_rogue_five_in_row_binding())
+
+
 async def _trigger_rogue_five_in_row(game: GoGame, send_fn, color: str):
-    await trigger_rogue_five_in_row_state(
+    await trigger_rogue_five_in_row_adapter(
         game,
         send_fn,
         color,
-        RogueFiveInRowDeps(
-            apply_five_in_row=apply_rogue_five_in_row,
-            shuffle_points=random.shuffle,
-            should_bonus_derivative=_challenge_should_bonus_derivative,
-            support_stones=ROGUE_FIVE_IN_ROW_SUPPORT_STONES,
-            engine_ready=lambda: engine.ready,
-            sync_board=_sync_board_to_katago,
-        ),
+        _rogue_five_in_row_binding(),
     )
+
+
+def _rogue_last_stand_binding() -> RogueLastStandBinding:
+    return RogueLastStandBinding(
+        apply_last_stand=apply_rogue_last_stand,
+        estimate_side_winrate=_estimate_side_winrate,
+        make_rng=lambda: random.Random(time.time_ns()),
+        get_forbidden_points=_get_player_bonus_forbidden_points,
+        clear_count=ROGUE_LAST_STAND_CLEAR_COUNT,
+        spawn_count=ROGUE_LAST_STAND_SPAWN_COUNT,
+        threshold=ROGUE_LAST_STAND_THRESHOLD,
+        engine_ready=lambda: engine.ready,
+        sync_board=_sync_board_to_katago,
+    )
+
+
+def _rogue_last_stand_deps() -> RogueLastStandDeps:
+    return build_rogue_last_stand_deps(_rogue_last_stand_binding())
 
 
 async def _trigger_rogue_last_stand(
@@ -834,48 +870,54 @@ async def _trigger_rogue_last_stand(
     color: str,
     center: tuple[int, int],
 ):
-    await trigger_rogue_last_stand_state(
+    await trigger_rogue_last_stand_adapter(
         game,
         send_fn,
         color,
         center,
-        RogueLastStandDeps(
-            apply_last_stand=apply_rogue_last_stand,
-            estimate_side_winrate=_estimate_side_winrate,
-            make_rng=lambda: random.Random(time.time_ns()),
-            get_forbidden_points=_get_player_bonus_forbidden_points,
-            clear_count=ROGUE_LAST_STAND_CLEAR_COUNT,
-            spawn_count=ROGUE_LAST_STAND_SPAWN_COUNT,
-            threshold=ROGUE_LAST_STAND_THRESHOLD,
-            engine_ready=lambda: engine.ready,
-            sync_board=_sync_board_to_katago,
-        ),
+        _rogue_last_stand_binding(),
     )
+
+
+def _ultimate_last_stand_binding() -> UltimateLastStandBinding:
+    return UltimateLastStandBinding(
+        apply_last_stand=apply_ultimate_last_stand,
+        estimate_side_winrate=_estimate_side_winrate,
+        make_rng=lambda: random.Random(time.time_ns()),
+        threshold=ULTIMATE_LAST_STAND_THRESHOLD,
+    )
+
+
+def _ultimate_last_stand_deps() -> UltimateLastStandDeps:
+    return build_ultimate_last_stand_deps(_ultimate_last_stand_binding())
 
 
 async def _trigger_ultimate_last_stand(game: GoGame, send_fn, color: str):
-    return await trigger_ultimate_last_stand_state(
+    return await trigger_ultimate_last_stand_adapter(
         game,
         send_fn,
         color,
-        UltimateLastStandDeps(
-            apply_last_stand=apply_ultimate_last_stand,
-            estimate_side_winrate=_estimate_side_winrate,
-            make_rng=lambda: random.Random(time.time_ns()),
-            threshold=ULTIMATE_LAST_STAND_THRESHOLD,
-        ),
+        _ultimate_last_stand_binding(),
     )
 
 
+def _ultimate_five_in_row_binding() -> UltimateFiveInRowBinding:
+    return UltimateFiveInRowBinding(
+        apply_five_in_row=apply_ultimate_five_in_row,
+        make_rng=lambda: random.Random(time.time_ns()),
+    )
+
+
+def _ultimate_five_in_row_deps() -> UltimateFiveInRowDeps:
+    return build_ultimate_five_in_row_deps(_ultimate_five_in_row_binding())
+
+
 async def _trigger_ultimate_five_in_row(game: GoGame, send_fn, color: str):
-    return await trigger_ultimate_five_in_row_state(
+    return await trigger_ultimate_five_in_row_adapter(
         game,
         send_fn,
         color,
-        UltimateFiveInRowDeps(
-            apply_five_in_row=apply_ultimate_five_in_row,
-            make_rng=lambda: random.Random(time.time_ns()),
-        ),
+        _ultimate_five_in_row_binding(),
     )
 
 
