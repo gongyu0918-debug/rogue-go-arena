@@ -124,6 +124,14 @@ from app.runtime.katago_paths import (
     write_runtime_katago_config,
 )
 from app.runtime.no_cache import apply_no_cache_headers_for_html
+from app.runtime.observer_adapters import (
+    AiObserverLoopBinding,
+    ObserverDoublePassBinding,
+    ObserverMovePlacementBinding,
+    apply_observer_ai_move_to_board as apply_observer_ai_move_to_board_adapter,
+    finish_observer_double_pass as finish_observer_double_pass_adapter,
+    run_ai_observer_loop as run_ai_observer_loop_adapter,
+)
 from app.runtime.rank_api import build_rank_options
 from app.runtime.rogue_ai_turn_adapters import (
     ForcedRogueAiTurnBinding,
@@ -251,12 +259,6 @@ from app.gameplay.ai_style_move_flow import (
 from app.gameplay.ai_turn_flow import AiTurnFlowDeps, run_ai_turn
 from app.gameplay.move_placement import (
     place_auxiliary_ai_move_on_board as place_auxiliary_ai_move_on_board_state,
-)
-from app.gameplay.ai_observer import (
-    AiObserverLoopDeps,
-    apply_observer_ai_move_to_board as apply_observer_ai_move_to_board_state,
-    finish_observer_double_pass as finish_observer_double_pass_state,
-    run_ai_observer_loop as run_ai_observer_loop_state,
 )
 from app.gameplay.capture_foul_flow import check_capture_foul_event
 from app.gameplay.rogue_card_flow import (
@@ -1728,41 +1730,57 @@ async def _run_coach_turn_if_needed(game: GoGame, send_fn):
     )
 
 
-async def _finish_observer_double_pass(game: GoGame, send_fn) -> bool:
-    return await finish_observer_double_pass_state(
-        game,
-        send_fn,
+def _observer_double_pass_binding() -> ObserverDoublePassBinding:
+    return ObserverDoublePassBinding(
         run_engine_command=_send_engine_command,
     )
 
 
-def _apply_observer_ai_move_to_board(game: GoGame, color: str, gtp_move: str) -> AiMovePlacement:
-    return apply_observer_ai_move_to_board_state(
+async def _finish_observer_double_pass(game: GoGame, send_fn) -> bool:
+    return await finish_observer_double_pass_adapter(
         game,
-        color,
-        gtp_move,
+        send_fn,
+        _observer_double_pass_binding(),
+    )
+
+
+def _observer_move_placement_binding() -> ObserverMovePlacementBinding:
+    return ObserverMovePlacementBinding(
         gtp_to_coord=gtp_to_coord,
         place_auxiliary_move=_place_auxiliary_ai_move_on_board,
     )
 
 
+def _apply_observer_ai_move_to_board(game: GoGame, color: str, gtp_move: str) -> AiMovePlacement:
+    return apply_observer_ai_move_to_board_adapter(
+        game,
+        color,
+        gtp_move,
+        _observer_move_placement_binding(),
+    )
+
+
+def _ai_observer_loop_binding() -> AiObserverLoopBinding:
+    return AiObserverLoopBinding(
+        engine_ready=lambda: engine.ready,
+        sync_board=_sync_board_to_katago,
+        get_game_visits=get_game_visits,
+        generate_ai_style_move=_generate_ai_style_move,
+        is_suspicious_ai_pass=_is_suspicious_ai_pass,
+        pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
+        place_ai_move_on_board=_apply_observer_ai_move_to_board,
+        finish_double_pass=_finish_observer_double_pass,
+        sleep=asyncio.sleep,
+        opening_move_threshold=OPENING_MOVE_THRESHOLD,
+    )
+
+
 async def _run_ai_observer_loop(game: GoGame, send_fn):
     try:
-        await run_ai_observer_loop_state(
+        await run_ai_observer_loop_adapter(
             game,
             send_fn,
-            AiObserverLoopDeps(
-                engine_ready=lambda: engine.ready,
-                sync_board=_sync_board_to_katago,
-                get_game_visits=get_game_visits,
-                generate_ai_style_move=_generate_ai_style_move,
-                is_suspicious_ai_pass=_is_suspicious_ai_pass,
-                pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
-                place_ai_move_on_board=_apply_observer_ai_move_to_board,
-                finish_double_pass=_finish_observer_double_pass,
-                sleep=asyncio.sleep,
-                opening_move_threshold=OPENING_MOVE_THRESHOLD,
-            ),
+            _ai_observer_loop_binding(),
         )
     except WebSocketDisconnect:
         return
