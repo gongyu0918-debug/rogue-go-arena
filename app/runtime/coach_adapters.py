@@ -11,7 +11,7 @@ from app.gameplay.coach_mode import (
     choose_coach_ai_move as choose_coach_ai_move_event,
     run_coach_turn_if_needed as run_coach_turn_if_needed_event,
 )
-from app.runtime.callback_types import EngineCommandFn, SendFn
+from app.callback_types import EngineCommandFn, SendFn
 
 
 @dataclass(frozen=True)

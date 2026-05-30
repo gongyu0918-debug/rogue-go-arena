@@ -4,8 +4,8 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
+from app.callback_types import EngineCommandFn
 
-EngineCommandFn = Callable[[str], Awaitable[str]]
 GenerateMoveFn = Callable[[str, int, float], Awaitable[str]]
 
 

@@ -6,7 +6,7 @@ from typing import Any
 
 from app.gameplay.capture_foul import check_capture_foul
 from app.gameplay.capture_foul_flow import check_capture_foul_event
-from app.runtime.callback_types import SendFn
+from app.callback_types import SendFn
 
 
 @dataclass(frozen=True)

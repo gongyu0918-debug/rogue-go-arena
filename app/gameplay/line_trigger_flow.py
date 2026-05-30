@@ -4,8 +4,8 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
+from app.callback_types import SendFn
 
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
 SyncBoardFn = Callable[[Any], Awaitable[None]]
 EstimateWinrateFn = Callable[[Any, str], Awaitable[float]]
 ApplyRogueFiveFn = Callable[..., Any]

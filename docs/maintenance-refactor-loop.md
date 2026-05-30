@@ -15,7 +15,7 @@ This plan keeps the current feature baseline stable while reducing the cost of f
 - Gameplay rules and card effects live under `app/gameplay`; keep them server-agnostic and test them with direct smoke tests.
 - Runtime adapter boundaries live under `app/runtime`; keep server globals behind explicit binding dataclasses.
 - `server.py` is now the composition layer for FastAPI routes, global runtime state, and binding factories. New gameplay branches should not be added there directly.
-- Shared runtime callback types live in `app/runtime/callback_types.py`; use these instead of redefining send or engine-command signatures in new adapters.
+- Shared callback types live in `app/callback_types.py`; use these instead of redefining send or engine-command signatures in new gameplay flows or runtime adapters.
 - `static/index.html` should stay as the stable legacy root while React preview work reaches feature parity.
 
 ## Next Decomposition Loop

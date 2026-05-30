@@ -4,8 +4,8 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
+from app.callback_types import EngineCommandFn as RunEngineCommandFn, SendFn
 
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
 SyncBoardFn = Callable[[Any], Awaitable[None]]
 GameVisitsFn = Callable[[str, int], int]
 GenerateMoveFn = Callable[[Any, str, int, float], Awaitable[str]]
@@ -14,7 +14,6 @@ FallbackMoveFn = Callable[[Any, str, int], Awaitable[str | None]]
 PlaceMoveFn = Callable[[Any, str, str], Any]
 FinishDoublePassFn = Callable[[Any, SendFn], Awaitable[bool]]
 SleepFn = Callable[[float], Awaitable[None]]
-RunEngineCommandFn = Callable[[str], Awaitable[str]]
 CoordParser = Callable[[str, int], tuple[int, int] | None]
 PlaceAuxiliaryMoveFn = Callable[[Any, str, str, tuple[int, int] | None], Any]
 

@@ -12,7 +12,7 @@ from app.gameplay.challenge_flow import (
     emit_challenge_set_bonus_status,
     maybe_reduce_challenge_ai_level,
 )
-from app.runtime.callback_types import SendFn
+from app.callback_types import SendFn
 
 
 @dataclass(frozen=True)

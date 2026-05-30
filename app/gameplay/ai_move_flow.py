@@ -6,16 +6,15 @@ from typing import Any
 
 import app.config.gameplay as gameplay_config
 
+from app.callback_types import EngineCommandFn, SendFn as AsyncSend
 from app.gameplay.move_placement import AiMovePlacement
 
 
-AsyncSend = Callable[[dict[str, Any]], Awaitable[None]]
 CoordParser = Callable[[str, int], tuple[int, int] | None]
 NoResignMoveFn = Callable[[Any, str], Awaitable[str]]
 RetryAvoidingKoFn = Callable[[Any, str], Awaitable[str]]
 CheckCaptureFoulFn = Callable[..., Awaitable[None]]
 PreparePlayerTurnFn = Callable[[Any], None]
-EngineCommandFn = Callable[[str], Awaitable[str]]
 RunCoachTurnFn = Callable[[Any, AsyncSend], Awaitable[None]]
 FinishAiMoveFn = Callable[[Any, AsyncSend, str, str | None, str, str | None], Awaitable[None]]
 RandomFloatFn = Callable[[], float]

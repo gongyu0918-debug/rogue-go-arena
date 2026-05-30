@@ -20,7 +20,7 @@ from app.gameplay.suboptimal_rogue_ai_turn_flow import (
     SuboptimalRogueAiTurnDeps,
     try_finish_suboptimal_rogue_ai_turn_event,
 )
-from app.runtime.callback_types import EngineCommandFn, SendFn
+from app.callback_types import EngineCommandFn, SendFn
 
 
 @dataclass(frozen=True)

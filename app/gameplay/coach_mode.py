@@ -4,8 +4,8 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
+from app.callback_types import SendFn
 
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
 GameVisitsFn = Callable[..., int]
 GenerateMoveFn = Callable[[Any, str, int, float], Awaitable[str]]
 CoordParser = Callable[[str, int], tuple[int, int] | None]

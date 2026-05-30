@@ -13,7 +13,7 @@ from app.gameplay.generated_ai_turn_flow import (
     GeneratedAiTurnDeps,
     try_finish_generated_ai_turn_event,
 )
-from app.runtime.callback_types import DepsFactory, EngineCommandFn, FinishDepsFactory, SendFn
+from app.callback_types import DepsFactory, EngineCommandFn, FinishDepsFactory, SendFn
 
 
 @dataclass(frozen=True)

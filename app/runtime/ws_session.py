@@ -7,8 +7,8 @@ from typing import Any
 
 from fastapi import WebSocket, WebSocketDisconnect
 
+from app.callback_types import SendFn
 
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
 SendErrorFn = Callable[[str], Awaitable[None]]
 AnalysisFn = Callable[[Any], Awaitable[dict[str, Any]]]
 ActionHandler = Callable[[Any, dict[str, Any]], Awaitable[None]]

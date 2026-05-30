@@ -8,7 +8,7 @@ from app.gameplay.ai_style_move_flow import (
     AiStyleMoveDeps,
     generate_ai_style_move_event,
 )
-from app.runtime.callback_types import EngineCommandFn
+from app.callback_types import EngineCommandFn
 
 
 @dataclass(frozen=True)

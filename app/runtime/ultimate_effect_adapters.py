@@ -8,7 +8,7 @@ from app.gameplay.ultimate_effect_flow import (
     UltimateEffectFlowDeps,
     apply_ultimate_effect_event,
 )
-from app.runtime.callback_types import SendFn
+from app.callback_types import SendFn
 
 
 @dataclass(frozen=True)

@@ -10,7 +10,7 @@ from app.gameplay.ai_observer import (
     finish_observer_double_pass as finish_observer_double_pass_event,
     run_ai_observer_loop as run_ai_observer_loop_event,
 )
-from app.runtime.callback_types import EngineCommandFn, SendFn
+from app.callback_types import EngineCommandFn, SendFn
 
 
 @dataclass(frozen=True)

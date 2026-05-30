@@ -10,7 +10,7 @@ from app.gameplay.rogue_card_flow import (
     activate_ai_rogue_card_event,
     activate_rogue_card_event,
 )
-from app.runtime.callback_types import SendFn
+from app.callback_types import SendFn
 
 
 @dataclass(frozen=True)

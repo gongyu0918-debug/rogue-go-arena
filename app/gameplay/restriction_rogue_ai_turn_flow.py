@@ -4,9 +4,8 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
+from app.callback_types import EngineCommandFn, SendFn
 
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
-EngineCommandFn = Callable[[str], Awaitable[str]]
 TryFinishRestrictionFn = Callable[..., Awaitable[bool]]
 
 

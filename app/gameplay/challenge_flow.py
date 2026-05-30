@@ -9,9 +9,9 @@ from app.gameplay.challenge_effects import (
     apply_challenge_trap_bonus,
     challenge_set_bonus_status_message,
 )
+from app.callback_types import SendFn
 
 
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
 RunInExecutorFn = Callable[..., Awaitable[Any]]
 RandomFloatFn = Callable[[], float]
 WeakenRankFn = Callable[[str], str]

@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from app.callback_types import SendFn
 from app.gameplay.capture_foul import check_capture_foul
 
 
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
 SyncKomiFn = Callable[[Any], Awaitable[None]]
 CheckCaptureFoulFn = Callable[..., Any]
 

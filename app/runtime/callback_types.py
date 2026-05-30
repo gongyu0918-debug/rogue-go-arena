@@ -1,10 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
-from typing import Any
+from app.callback_types import DepsFactory, EngineCommandFn, FinishDepsFactory, SendFn
 
-
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
-EngineCommandFn = Callable[[str], Awaitable[str]]
-DepsFactory = Callable[[], Any]
-FinishDepsFactory = Callable[[EngineCommandFn], Any]
+__all__ = ["DepsFactory", "EngineCommandFn", "FinishDepsFactory", "SendFn"]
