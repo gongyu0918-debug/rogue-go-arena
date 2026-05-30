@@ -162,7 +162,7 @@ from app.gameplay.coach_mode import (
     choose_coach_ai_move as choose_coach_ai_move_state,
     run_coach_turn_if_needed as run_coach_turn_if_needed_state,
 )
-from app.gameplay.capture_foul import check_capture_foul as apply_capture_foul
+from app.gameplay.capture_foul_flow import check_capture_foul_event
 from app.gameplay.turn_modifiers import (
     apply_ultimate_ai_move_result as apply_ultimate_ai_move_result_state,
     choose_ultimate_ai_bonus_turn as choose_ultimate_ai_bonus_turn_state,
@@ -722,14 +722,14 @@ async def _check_capture_foul(game: GoGame, send_fn, offender: str, captured: in
       - Ultimate: whoever picked the card → only the other side is punished.
     ``offender`` is the colour that just captured stones.
     """
-    result = apply_capture_foul(game, offender, captured, ultimate=ultimate)
-    if not result.triggered:
-        return
-    await send_fn({
-        "type": "rogue_event",
-        "msg": result.message,
-    })
-    await _sync_engine_komi(game)
+    await check_capture_foul_event(
+        game,
+        send_fn,
+        offender,
+        captured,
+        ultimate=ultimate,
+        sync_komi=_sync_engine_komi,
+    )
 
 
 def _pick_fog_mask(size: int, rng: random.Random) -> list[tuple[int, int]]:
