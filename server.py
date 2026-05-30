@@ -4,7 +4,6 @@ rogue-go-arena server - KataGo-powered board game with FastAPI WebSocket backend
 import argparse
 import asyncio
 import random
-import re
 import traceback
 import time
 import os
@@ -91,6 +90,11 @@ from app.runtime.config_api import (
 from app.runtime.engine_control_api import restart_katago_request, stop_katago_request
 from app.runtime.engine_gateway import EngineRuntimeGateway
 from app.runtime.gpu_info import CachedGpuInfo, apply_runtime_gpu_overrides
+from app.runtime.katago_paths import (
+    UserKataGoPaths,
+    ensure_user_katago_dirs,
+    write_runtime_katago_config,
+)
 from app.runtime.no_cache import apply_no_cache_headers_for_html
 from app.runtime.rank_api import build_rank_options
 from app.runtime.sgf_export import build_sgf_export_response
@@ -337,6 +341,12 @@ USER_DATA_DIR = Path(os.environ.get("LOCALAPPDATA", str(BASE_DIR))) / "rogue-go-
 USER_KATAGO_DIR = USER_DATA_DIR / "katago"
 USER_KATAGO_HOME = USER_KATAGO_DIR / "KataGoData"
 USER_RUNTIME_CONFIG_DIR = USER_KATAGO_DIR / "runtime"
+USER_KATAGO_PATHS = UserKataGoPaths(
+    data_dir=USER_DATA_DIR,
+    katago_dir=USER_KATAGO_DIR,
+    home_dir=USER_KATAGO_HOME,
+    runtime_config_dir=USER_RUNTIME_CONFIG_DIR,
+)
 SERVER_REV = "20260430-card-editor-shell"
 KATAGO_EXE = BASE_DIR / "katago" / "katago.exe"             # CUDA build (legacy/optional)
 KATAGO_CUDA_EXE = BASE_DIR / "katago" / "katago_cuda.exe"   # CUDA (downloaded upgrade)
@@ -383,26 +393,11 @@ if CARD_CONFIG_STARTUP_ERRORS:
 
 
 def _ensure_user_katago_dirs():
-    for path in (USER_DATA_DIR, USER_KATAGO_DIR, USER_KATAGO_HOME, USER_RUNTIME_CONFIG_DIR):
-        path.mkdir(parents=True, exist_ok=True)
+    ensure_user_katago_dirs(USER_KATAGO_PATHS)
 
 
 def _runtime_config_path(source_config: Path) -> Path:
-    _ensure_user_katago_dirs()
-    runtime_path = USER_RUNTIME_CONFIG_DIR / f"{source_config.stem}_runtime.cfg"
-    content = source_config.read_text(encoding="utf-8", errors="ignore")
-    home_dir = USER_KATAGO_HOME.as_posix()
-    if re.search(r"(?m)^\s*#?\s*homeDataDir\s*=", content):
-        content = re.sub(
-            r"(?m)^\s*#?\s*homeDataDir\s*=.*$",
-            f"homeDataDir = {home_dir}",
-            content,
-            count=1,
-        )
-    else:
-        content = content.rstrip() + f"\n\nhomeDataDir = {home_dir}\n"
-    runtime_path.write_text(content, encoding="utf-8")
-    return runtime_path
+    return write_runtime_katago_config(source_config, USER_KATAGO_PATHS)
 
 
 def get_game_visits(level: str, move_count: int = -1,
