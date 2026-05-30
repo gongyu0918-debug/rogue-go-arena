@@ -89,10 +89,11 @@ from app.gameplay.card_selection import (
     pick_rogue_choices,
     pick_ultimate_choices,
 )
-from app.gameplay.challenge_effects import (
-    apply_challenge_level_decay,
-    apply_challenge_trap_bonus,
-    challenge_set_bonus_status_message,
+from app.gameplay.challenge_flow import (
+    ChallengeFlowDeps,
+    apply_challenge_trap_bonus_event,
+    emit_challenge_set_bonus_status,
+    maybe_reduce_challenge_ai_level,
 )
 from app.gameplay.ai_moves import (
     AiMoveService,
@@ -836,40 +837,44 @@ def _get_ai_rogue_forbidden_points(game: GoGame) -> list[tuple[int, int]]:
     return get_ai_rogue_forbidden_points_state(game)
 
 
-async def _challenge_apply_trap_bonus(game: GoGame, send_fn, source_name: str) -> None:
-    message = apply_challenge_trap_bonus(
-        game,
-        source_name,
+def _challenge_flow_deps() -> ChallengeFlowDeps:
+    return ChallengeFlowDeps(
         roll_random=random.random,
-        chance=CHALLENGE_TRAP_EXTRA_TURN_CHANCE,
+        trap_extra_turn_chance=CHALLENGE_TRAP_EXTRA_TURN_CHANCE,
+        restriction_decay_chance=CHALLENGE_RESTRICTION_DECAY_CHANCE,
+        weaken_rank_one_step=weaken_rank_one_step,
+        rank_labels=RANK_LABELS,
+        challenge_set_min_count=CHALLENGE_SET_MIN_COUNT,
+        engine_ready=lambda: engine.ready,
+        get_game_visits=get_game_visits,
+        run_in_executor=run_in_executor,
+        set_engine_visits=engine.set_visits,
     )
-    if message:
-        await send_fn({"type": "rogue_event", "msg": message})
+
+
+async def _challenge_apply_trap_bonus(game: GoGame, send_fn, source_name: str) -> None:
+    await apply_challenge_trap_bonus_event(
+        game,
+        send_fn,
+        source_name,
+        _challenge_flow_deps(),
+    )
 
 
 async def _challenge_maybe_reduce_ai_level(game: GoGame, send_fn) -> None:
-    result = apply_challenge_level_decay(
+    await maybe_reduce_challenge_ai_level(
         game,
-        roll_random=random.random,
-        weaken_rank_one_step=weaken_rank_one_step,
-        rank_labels=RANK_LABELS,
-        chance=CHALLENGE_RESTRICTION_DECAY_CHANCE,
+        send_fn,
+        _challenge_flow_deps(),
     )
-    if result is None:
-        return
-    if engine.ready:
-        visits = get_game_visits(game.level, len(game.moves), mode="rogue")
-        await run_in_executor(engine.set_visits, visits)
-    await send_fn({"type": "rogue_event", "msg": result.message})
 
 
 async def _challenge_emit_set_bonus_status(game: GoGame, send_fn) -> None:
-    message = challenge_set_bonus_status_message(
+    await emit_challenge_set_bonus_status(
         game,
-        min_count=CHALLENGE_SET_MIN_COUNT,
+        send_fn,
+        _challenge_flow_deps(),
     )
-    if message:
-        await send_fn({"type": "rogue_event", "msg": message})
 
 
 def _refresh_ai_rogue_player_turn(game: GoGame):
