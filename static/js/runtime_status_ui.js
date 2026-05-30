@@ -1,4 +1,38 @@
 // Runtime status, overlay, score, and winrate UI helpers.
+const WINRATE_CURVE_PADDING = { left: 28, right: 16, top: 14, bottom: 22 };
+
+function clampRange(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function getWinrateCurveLayout(width, height) {
+  const pad = WINRATE_CURVE_PADDING;
+  const plotX = pad.left;
+  const plotY = pad.top;
+  const plotW = Math.max(10, width - pad.left - pad.right);
+  const plotH = Math.max(10, height - pad.top - pad.bottom);
+  return { plotX, plotY, plotW, plotH };
+}
+
+function resizeCanvasForDpr(canvasEl, width, height, dpr) {
+  const pixelWidth = Math.floor(width * dpr);
+  const pixelHeight = Math.floor(height * dpr);
+  if (canvasEl.width !== pixelWidth || canvasEl.height !== pixelHeight) {
+    canvasEl.width = pixelWidth;
+    canvasEl.height = pixelHeight;
+  }
+}
+
+function drawWinrateHistoryLine(c, points, plotX, stepX, yForPoint) {
+  c.beginPath();
+  points.forEach((point, index) => {
+    const x = plotX + stepX * index;
+    const y = yForPoint(point);
+    if (index === 0) c.moveTo(x, y);
+    else c.lineTo(x, y);
+  });
+  c.stroke();
+}
 
 function resetWinrateHistory() {
   winrateHistory = [];
@@ -22,20 +56,13 @@ function drawWinrateCurve() {
   const width = Math.max(220, Math.floor(canvasEl.clientWidth || 320));
   const height = Math.max(120, Math.floor(canvasEl.clientHeight || 148));
   const dpr = window.devicePixelRatio || 1;
-  if (canvasEl.width !== Math.floor(width * dpr) || canvasEl.height !== Math.floor(height * dpr)) {
-    canvasEl.width = Math.floor(width * dpr);
-    canvasEl.height = Math.floor(height * dpr);
-  }
+  resizeCanvasForDpr(canvasEl, width, height, dpr);
   const c = canvasEl.getContext("2d");
   if (!c) return;
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
   c.clearRect(0, 0, width, height);
 
-  const pad = { left: 28, right: 16, top: 14, bottom: 22 };
-  const plotX = pad.left;
-  const plotY = pad.top;
-  const plotW = Math.max(10, width - pad.left - pad.right);
-  const plotH = Math.max(10, height - pad.top - pad.bottom);
+  const { plotX, plotY, plotW, plotH } = getWinrateCurveLayout(width, height);
 
   c.fillStyle = "rgba(10, 12, 18, 0.92)";
   c.fillRect(0, 0, width, height);
@@ -75,42 +102,21 @@ function drawWinrateCurve() {
 
   const scoreCap = Math.max(10, ...winrateHistory.map(point => Math.abs(point.score)));
   const stepX = winrateHistory.length === 1 ? 0 : plotW / (winrateHistory.length - 1);
-  const mapWinrateY = value => plotY + (1 - Math.max(0, Math.min(1, value))) * plotH;
+  const mapWinrateY = value => plotY + (1 - clampRange(value, 0, 1)) * plotH;
   const mapBlackWinrateY = value => mapWinrateY(1 - value);
-  const mapScoreY = value => plotY + (0.5 - Math.max(-scoreCap, Math.min(scoreCap, value)) / (scoreCap * 2)) * plotH;
+  const mapScoreY = value => plotY + (0.5 - clampRange(value, -scoreCap, scoreCap) / (scoreCap * 2)) * plotH;
 
   c.lineWidth = 1.4;
   c.strokeStyle = "rgba(243, 200, 91, 0.92)";
-  c.beginPath();
-  winrateHistory.forEach((point, index) => {
-    const x = plotX + stepX * index;
-    const y = mapScoreY(point.score);
-    if (index === 0) c.moveTo(x, y);
-    else c.lineTo(x, y);
-  });
-  c.stroke();
+  drawWinrateHistoryLine(c, winrateHistory, plotX, stepX, point => mapScoreY(point.score));
 
   c.lineWidth = 1.7;
   c.strokeStyle = "rgba(159, 179, 217, 0.96)";
-  c.beginPath();
-  winrateHistory.forEach((point, index) => {
-    const x = plotX + stepX * index;
-    const y = mapBlackWinrateY(point.winrate);
-    if (index === 0) c.moveTo(x, y);
-    else c.lineTo(x, y);
-  });
-  c.stroke();
+  drawWinrateHistoryLine(c, winrateHistory, plotX, stepX, point => mapBlackWinrateY(point.winrate));
 
   c.lineWidth = 1.8;
   c.strokeStyle = "rgba(255, 103, 103, 0.96)";
-  c.beginPath();
-  winrateHistory.forEach((point, index) => {
-    const x = plotX + stepX * index;
-    const y = mapWinrateY(point.winrate);
-    if (index === 0) c.moveTo(x, y);
-    else c.lineTo(x, y);
-  });
-  c.stroke();
+  drawWinrateHistoryLine(c, winrateHistory, plotX, stepX, point => mapWinrateY(point.winrate));
 
   const latest = winrateHistory[winrateHistory.length - 1];
   const latestX = plotX + stepX * Math.max(0, winrateHistory.length - 1);
