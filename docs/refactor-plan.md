@@ -150,10 +150,13 @@ Done:
 - `static/js/legacy_entry.js`
   - Classic frontend startup sequence
   - Rogue skill binding, rank initialization, bootstrap hooks, and app boot
+- `static/legacy.css`
+  - Legacy root page visual system and responsive layout
+  - Board shell, toolbar, modals, wiki, setup, settings, and HUD styling
 
 Still in `static/index.html`:
 
-- Static markup, inline CSS, and script loading order for the legacy root page
+- Static markup and script loading order for the legacy root page
 
 ## Frontend Extraction Roadmap
 

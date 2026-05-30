@@ -38,6 +38,8 @@ async function pageState(page) {
       return false;
     };
     const rect = document.querySelector("#board-canvas")?.getBoundingClientRect();
+    const legacyStylesheet = document.querySelector('link[href*="/static/legacy.css"]');
+    const setupIcon = document.querySelector('.toolbar-icon[data-icon="setup"]');
     return {
       publicFns: [
         typeof window.connect,
@@ -73,6 +75,14 @@ async function pageState(page) {
         },
         analysisReady,
         winrateHistoryLength: winrateHistory.length,
+      },
+      stylesheetState: {
+        legacyStylesheetHref: legacyStylesheet?.getAttribute("href") || "",
+        inlineStyleTags: document.querySelectorAll("style").length,
+        bodyDisplay: getComputedStyle(document.body).display,
+        boardContainerPosition: getComputedStyle(document.querySelector("#board-container")).position,
+        toolbarDisplay: getComputedStyle(document.querySelector("#main-toolbar")).display,
+        setupIconBackground: setupIcon ? getComputedStyle(setupIcon).backgroundImage : "",
       },
       htmlLang: document.documentElement.lang,
       currentLang,
@@ -133,6 +143,12 @@ try {
   assert(initialState.stateGlobals.analysis.analysisReady === false, `analysis.analysis_ready default changed: ${JSON.stringify(initialState.stateGlobals)}`);
   assert(initialState.stateGlobals.analysisReady === false, `analysis ready default changed: ${JSON.stringify(initialState.stateGlobals)}`);
   assert(initialState.stateGlobals.winrateHistoryLength === 0, `winrate history default changed: ${JSON.stringify(initialState.stateGlobals)}`);
+  assert(initialState.stylesheetState.legacyStylesheetHref === "/static/legacy.css?v=20260531a", `legacy stylesheet link changed: ${JSON.stringify(initialState.stylesheetState)}`);
+  assert(initialState.stylesheetState.inlineStyleTags === 0, `index.html still has inline style tags: ${JSON.stringify(initialState.stylesheetState)}`);
+  assert(initialState.stylesheetState.bodyDisplay === "flex", `legacy stylesheet did not apply body layout: ${JSON.stringify(initialState.stylesheetState)}`);
+  assert(initialState.stylesheetState.boardContainerPosition === "relative", `legacy stylesheet did not apply board container layout: ${JSON.stringify(initialState.stylesheetState)}`);
+  assert(initialState.stylesheetState.toolbarDisplay === "flex", `legacy stylesheet did not apply toolbar layout: ${JSON.stringify(initialState.stylesheetState)}`);
+  assert(initialState.stylesheetState.setupIconBackground.includes("/static/assets/icons/toolbar-classic/setup.png"), `legacy stylesheet asset path changed: ${JSON.stringify(initialState.stylesheetState)}`);
   assert(initialState.htmlLang === "zh-CN", `bootstrap did not apply language: ${initialState.htmlLang}`);
   assert(initialState.wsReadyState === initialState.wsOpenConstant, `websocket did not connect: ${initialState.wsReadyState}`);
   assert(initialState.statusText.includes("已连接"), `connection indicator did not update: ${initialState.statusText}`);
