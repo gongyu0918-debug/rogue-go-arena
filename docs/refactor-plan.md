@@ -127,6 +127,8 @@ Done:
   - Card editor modal entry point
 - `static/js/runtime_status_ui.js`
   - Thinking indicator, game-over overlay, score/reason text, runtime info panel, and winrate history UI
+- `static/js/game_timers.js`
+  - Game timer state, absolute/byoyomi countdowns, display refresh, and timeout dispatch
 - `static/js/toolbar_actions.js`
   - Main in-game toolbar actions for pass, undo, score, and resign
   - Shared toolbar button enable/disable state
@@ -139,7 +141,7 @@ Done:
 
 Still in `static/index.html`:
 
-- Challenge session state, effects/animations, timers, network helpers, and board-diff helpers
+- Challenge session state, effects/animations, sound helpers, network helpers, and board-diff helpers
 
 ## Frontend Extraction Roadmap
 

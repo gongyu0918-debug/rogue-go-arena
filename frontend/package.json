@@ -16,6 +16,7 @@
     "smoke:legacy-inline-actions": "node scripts/legacy-inline-actions-smoke.mjs",
     "smoke:legacy-rank-controls": "node scripts/legacy-rank-controls-smoke.mjs",
     "smoke:legacy-runtime-status": "node scripts/legacy-runtime-status-smoke.mjs",
+    "smoke:legacy-game-timers": "node scripts/legacy-game-timers-smoke.mjs",
     "smoke:legacy-localization": "node scripts/legacy-localization-smoke.mjs",
     "smoke:legacy-websocket-messages": "node scripts/legacy-websocket-messages-smoke.mjs",
     "smoke:legacy-responsive": "node scripts/legacy-responsive-smoke.mjs",
