@@ -14,7 +14,7 @@ from typing import Optional
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import JSONResponse, Response
 import uvicorn
 import app.config.gameplay as gameplay_config
 import app.runtime.ws_actions as ws_actions_module
@@ -82,6 +82,7 @@ from app.runtime.access_urls import get_access_urls as build_access_urls
 from app.runtime.engine_gateway import EngineRuntimeGateway
 from app.runtime.gpu_info import apply_runtime_gpu_overrides, detect_gpu_info
 from app.runtime.request_json import read_json_body
+from app.runtime.static_files import serve_existing_file
 from app.runtime.status_payload import build_status_payload
 from app.gameplay.card_selection import (
     pick_ai_rogue_card,
@@ -467,38 +468,29 @@ async def no_cache_html(request: Request, call_next):
 
 @app.get("/")
 async def root():
-    index_path = STATIC_DIR / "index.html"
-    if not index_path.exists():
-        return Response(
-            content="static/index.html not found",
-            media_type="text/plain; charset=utf-8",
-            status_code=500,
-        )
-    return FileResponse(str(index_path))
+    return serve_existing_file(
+        STATIC_DIR / "index.html",
+        missing_message="static/index.html not found",
+        missing_status_code=500,
+    )
 
 
 @app.get("/react-preview")
 async def react_preview():
-    preview_path = STATIC_DIR / "react" / "index.html"
-    if not preview_path.exists():
-        return Response(
-            content="static/react/index.html not found. Run npm run build --prefix frontend.",
-            media_type="text/plain; charset=utf-8",
-            status_code=404,
-        )
-    return FileResponse(str(preview_path))
+    return serve_existing_file(
+        STATIC_DIR / "react" / "index.html",
+        missing_message="static/react/index.html not found. Run npm run build --prefix frontend.",
+        missing_status_code=404,
+    )
 
 
 @app.get("/balance-lab")
 async def balance_lab():
-    lab_path = STATIC_DIR / "card_editor.html"
-    if not lab_path.exists():
-        return Response(
-            content="static/card_editor.html not found",
-            media_type="text/plain; charset=utf-8",
-            status_code=500,
-        )
-    return FileResponse(str(lab_path))
+    return serve_existing_file(
+        STATIC_DIR / "card_editor.html",
+        missing_message="static/card_editor.html not found",
+        missing_status_code=500,
+    )
 
 
 @app.get("/card-editor")
