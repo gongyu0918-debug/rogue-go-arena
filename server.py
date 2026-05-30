@@ -154,10 +154,6 @@ from app.runtime.line_trigger_adapters import (
     RogueLastStandBinding,
     UltimateFiveInRowBinding,
     UltimateLastStandBinding,
-    build_rogue_five_in_row_deps,
-    build_rogue_last_stand_deps,
-    build_ultimate_five_in_row_deps,
-    build_ultimate_last_stand_deps,
     trigger_rogue_five_in_row as trigger_rogue_five_in_row_adapter,
     trigger_rogue_last_stand as trigger_rogue_last_stand_adapter,
     trigger_ultimate_five_in_row as trigger_ultimate_five_in_row_adapter,
@@ -258,12 +254,6 @@ from app.gameplay.card_selection import (
 from app.gameplay.challenge_flow import (
     ChallengeFlowDeps,
     ChallengeLoadoutFlowDeps,
-)
-from app.gameplay.line_trigger_flow import (
-    RogueFiveInRowDeps,
-    RogueLastStandDeps,
-    UltimateFiveInRowDeps,
-    UltimateLastStandDeps,
 )
 from app.gameplay.ai_moves import (
     AiMoveService,
@@ -876,10 +866,6 @@ def _rogue_five_in_row_binding() -> RogueFiveInRowBinding:
     )
 
 
-def _rogue_five_in_row_deps() -> RogueFiveInRowDeps:
-    return build_rogue_five_in_row_deps(_rogue_five_in_row_binding())
-
-
 async def _trigger_rogue_five_in_row(game: GoGame, send_fn, color: str):
     await trigger_rogue_five_in_row_adapter(
         game,
@@ -901,10 +887,6 @@ def _rogue_last_stand_binding() -> RogueLastStandBinding:
         engine_ready=lambda: engine.ready,
         sync_board=_sync_board_to_katago,
     )
-
-
-def _rogue_last_stand_deps() -> RogueLastStandDeps:
-    return build_rogue_last_stand_deps(_rogue_last_stand_binding())
 
 
 async def _trigger_rogue_last_stand(
@@ -931,10 +913,6 @@ def _ultimate_last_stand_binding() -> UltimateLastStandBinding:
     )
 
 
-def _ultimate_last_stand_deps() -> UltimateLastStandDeps:
-    return build_ultimate_last_stand_deps(_ultimate_last_stand_binding())
-
-
 async def _trigger_ultimate_last_stand(game: GoGame, send_fn, color: str):
     return await trigger_ultimate_last_stand_adapter(
         game,
@@ -949,10 +927,6 @@ def _ultimate_five_in_row_binding() -> UltimateFiveInRowBinding:
         apply_five_in_row=apply_ultimate_five_in_row,
         make_rng=lambda: random.Random(time.time_ns()),
     )
-
-
-def _ultimate_five_in_row_deps() -> UltimateFiveInRowDeps:
-    return build_ultimate_five_in_row_deps(_ultimate_five_in_row_binding())
 
 
 async def _trigger_ultimate_five_in_row(game: GoGame, send_fn, color: str):

@@ -320,13 +320,13 @@ async def smoke_server_bindings_resolve_current_runtime() -> None:
         s.time.time_ns = lambda: 12345
 
         rogue_five_binding = s._rogue_five_in_row_binding()
-        rogue_five_deps = s._rogue_five_in_row_deps()
+        rogue_five_deps = build_rogue_five_in_row_deps(rogue_five_binding)
         rogue_last_binding = s._rogue_last_stand_binding()
-        rogue_last_deps = s._rogue_last_stand_deps()
+        rogue_last_deps = build_rogue_last_stand_deps(rogue_last_binding)
         ultimate_last_binding = s._ultimate_last_stand_binding()
-        ultimate_last_deps = s._ultimate_last_stand_deps()
+        ultimate_last_deps = build_ultimate_last_stand_deps(ultimate_last_binding)
         ultimate_five_binding = s._ultimate_five_in_row_binding()
-        ultimate_five_deps = s._ultimate_five_in_row_deps()
+        ultimate_five_deps = build_ultimate_five_in_row_deps(ultimate_five_binding)
 
         assert rogue_five_binding.apply_five_in_row is rogue_five
         assert rogue_five_deps.shuffle_points is shuffle
