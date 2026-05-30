@@ -3209,6 +3209,7 @@ header::before { display: none; }
 <script src="/static/js/card_board_marks.js?v=20260430b"></script>
 <script src="/static/js/card_turn_timer.js?v=20260430b"></script>
 <script src="/static/js/shell_ui.js?v=20260430h"></script>
+<script src="/static/js/settings_controls.js?v=20260530a"></script>
 <script src="/static/js/server_event_i18n.js?v=20260530a"></script>
 <script src="/static/js/game_log.js?v=20260430i"></script>
 <script src="/static/js/board_layout.js?v=20260527a"></script>
@@ -4056,26 +4057,6 @@ function drawWinrateCurve() {
   c.fill();
 }
 
-function refreshHintVisibility() {
-  const wrap = document.getElementById("winrate-bar-wrap");
-  const locked = isHintLockedByCard();
-  if (locked && showHints) {
-    showHints = false;
-    const toggle = document.getElementById("hint-toggle");
-    if (toggle) toggle.className = "toggle";
-  }
-  const topSlot = document.getElementById("top-winrate-slot");
-  if (wrap) wrap.style.display = "block";
-  if (topSlot) topSlot.classList.add("active");
-  updateWinRate(analysis ? analysis.winrate : 0.5);
-}
-
-function isHintLockedByCard() {
-  if (activeRogueCard === "quickthink") return true;
-  if (Array.isArray(gameState?.challenge_cards) && gameState.challenge_cards.includes("quickthink")) return true;
-  return false;
-}
-
 function setThinking(v) {
   document.getElementById("thinking-indicator").className = v ? "show" : "";
   document.getElementById("thinking-indicator-panel").className = v ? "show" : "";
@@ -4097,27 +4078,6 @@ function closeOverlay() {
   const sparks = document.getElementById("overlay-sparks");
   if (sparks) sparks.innerHTML = "";
 }
-
-function openCardEditorPanel() {
-  const modal = document.getElementById("card-editor-modal");
-  const frame = document.getElementById("card-editor-frame");
-  if (!modal || !frame) return;
-  const url = new URL("/card-editor", window.location.href);
-  url.searchParams.set("embed", "1");
-  url.searchParams.set("ts", String(Date.now()));
-  frame.src = url.href;
-  modal.classList.add("show");
-}
-
-function closeCardEditorPanel() {
-  const modal = document.getElementById("card-editor-modal");
-  const frame = document.getElementById("card-editor-frame");
-  if (modal) modal.classList.remove("show");
-  if (frame) frame.src = "about:blank";
-}
-
-document.getElementById("btn-card-editor")?.addEventListener("click", openCardEditorPanel);
-document.getElementById("card-editor-modal-close")?.addEventListener("click", closeCardEditorPanel);
 
 document.getElementById("btn-pass").addEventListener("click", () => {
   if (!twoPlayerMode && !isMyTurn) return;
@@ -4171,67 +4131,6 @@ document.getElementById("btn-resign").addEventListener("click", () => {
     setButtons(false);
     logI18n("你认输了", "You resigned", "投了しました", "불계패했습니다");
   });
-});
-
-function toggleTerritory() {
-  document.getElementById("territory-toggle").click();
-}
-
-document.getElementById("hint-toggle").addEventListener("click", () => {
-  if (isHintLockedByCard()) {
-    showHints = false;
-    document.getElementById("hint-toggle").className = "toggle";
-    refreshHintVisibility();
-    logI18n("⚡ 快速思考已禁用推荐点位", "⚡ Quick Think disables hints.", "⚡ クイック思考により推薦着点は無効です", "⚡ 빠른 사고로 추천 착점이 비활성화됨");
-    render();
-    return;
-  }
-  showHints = !showHints;
-  document.getElementById("hint-toggle").className = "toggle" + (showHints ? " on" : "");
-  refreshHintVisibility();
-  updateWinRate(analysis ? analysis.winrate : 0.5);
-  if (showHints && gameState) sendWS({ action: "request_hint" });
-  render();
-});
-
-document.getElementById("territory-toggle").addEventListener("click", () => {
-  showTerritory = !showTerritory;
-  document.getElementById("territory-toggle").className = "toggle" + (showTerritory ? " on" : "");
-  setTerritoryToggleVisual();
-  updateWinRate(analysis ? analysis.winrate : 0.5);
-  render();
-});
-
-document.getElementById("move-number-toggle").addEventListener("click", () => {
-  showMoveNumbers = !showMoveNumbers;
-  document.getElementById("move-number-toggle").className = "toggle" + (showMoveNumbers ? " on" : "");
-  render();
-});
-
-document.getElementById("sel-level").addEventListener("change", e => {
-  if (gameState && !gameState.game_over)
-    sendWS({ action: "set_level", level: e.target.value });
-});
-
-document.getElementById("sel-handicap").addEventListener("change", e => {
-  if (parseInt(e.target.value, 10) > 0) {
-    document.getElementById("sel-komi").value = "0";
-    syncWoodSelect(document.getElementById("sel-komi"));
-  }
-});
-
-// Sound toggle
-document.getElementById("sound-toggle")?.addEventListener("click", () => {
-  soundEnabled = !soundEnabled;
-  setSoundToggleVisual();
-  // Initialize audio context on first user interaction
-  if (soundEnabled) getAudioCtx();
-});
-
-document.getElementById("sound-settings-toggle")?.addEventListener("click", () => {
-  soundEnabled = !soundEnabled;
-  setSoundToggleVisual();
-  if (soundEnabled) getAudioCtx();
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════

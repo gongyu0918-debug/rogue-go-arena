@@ -122,10 +122,13 @@ Done:
 - `static/js/setup_controls.js`
   - Setup modal, mode selection, and new-game payload wiring
   - Time, Rogue variant, and stage preset setup controls
+- `static/js/settings_controls.js`
+  - Settings drawer toggles, sound control, level/handicap setup bindings
+  - Card editor modal entry point
 
 Still in `static/index.html`:
 
-- Legacy DOM event handlers for card editor, settings toggles, and in-game toolbar actions
+- Legacy DOM event handlers for in-game toolbar actions
 
 ## Frontend Extraction Roadmap
 
