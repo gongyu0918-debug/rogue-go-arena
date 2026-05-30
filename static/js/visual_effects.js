@@ -8,6 +8,48 @@ let fxBannerTimer = null;
 let soundEnabled = true;
 let audioCtx = null;
 
+const CARD_EFFECT_THEME_RULES = [
+  { key: "puppet", match: /傀儡|Puppet/i, title: () => ui("傀儡术发动", "Puppet unleashed"), icon: "🎭", cls: "fx-puppet fx-rogue" },
+  { key: "twin", match: /连击|双子星辰|Combo/i, title: () => ui("连击加速", "Combo surge"), icon: "⚡", cls: "fx-twin fx-rogue" },
+  { key: "exchange", match: /乾坤挪移|Swap Turn/i, title: () => ui("回合窃取", "Turn stolen"), icon: "🔄", cls: "fx-exchange fx-rogue" },
+  { key: "fog", match: /迷雾|战争迷雾|Fog/i, title: () => ui("战争迷雾刷新", "Fog of War"), icon: "🌫", cls: "fx-fog fx-rogue" },
+  { key: "seal", match: /封印|Seal/i, title: () => ui("封印术成型", "Seal locked in"), icon: "🚫", cls: "fx-seal fx-rogue" },
+  { key: "god_hand", match: /神之一手|Hand of God/i, title: () => ui("神之一手", "Hand of God"), icon: "✨", cls: "fx-god_hand fx-rogue" },
+  { key: "sanrensei", match: /三连星|Star/i, title: () => ui("星位共鸣", "Star ignition"), icon: "✦", cls: "fx-sanrensei fx-rogue" },
+  { key: "corner_helper", match: /守角|Corner/i, title: () => ui("角部强化", "Corner fortified"), icon: "🏯", cls: "fx-corner_helper fx-rogue" },
+  { key: "foolish_wisdom", match: /大智若愚|愚形|Wise Fool|Fool/i, title: () => ui("愚形连锁", "Ugly shape chain"), icon: "🪤", cls: "fx-foolish_wisdom fx-rogue" },
+  { key: "five_in_row", match: /五子连珠|Five in a Row/i, title: () => ui("五子连珠", "Five in a Row"), icon: "🎯", cls: "fx-five_in_row fx-rogue" },
+  { key: "last_stand", match: /起死回生|Last Stand/i, title: () => ui("起死回生", "Last Stand"), icon: "🫀", cls: "fx-last_stand fx-rogue" },
+  { key: "mirror", match: /镜像|Mirror/i, title: () => ui("镜像偏折", "Mirror pulse"), icon: "🪞", cls: "fx-mirror fx-rogue" },
+  { key: "slip", match: /手滑|Butter/i, title: () => ui("手滑偏移", "Butterfingers"), icon: "🍃", cls: "fx-slip fx-rogue" },
+];
+
+const DEFAULT_CARD_EFFECT_THEME = {
+  key: "rogue",
+  title: () => ui("Rogue 规则生效", "Rogue effect"),
+  icon: "🃏",
+  cls: "fx-rogue",
+};
+
+const CARD_EFFECT_PARTICLE_PALETTES = {
+  puppet: ["rgba(196,170,255,.95)", "rgba(112,78,255,.85)"],
+  twin: ["rgba(255,231,133,.95)", "rgba(255,183,39,.85)"],
+  exchange: ["rgba(119,240,230,.92)", "rgba(57,188,180,.82)"],
+  fog: ["rgba(205,220,235,.7)", "rgba(132,155,186,.7)"],
+  god_hand: ["rgba(255,239,157,.98)", "rgba(255,186,88,.88)"],
+  sanrensei: ["rgba(163,205,255,.95)", "rgba(88,153,255,.84)"],
+  corner_helper: ["rgba(143,228,182,.92)", "rgba(53,176,125,.84)"],
+  foolish_wisdom: ["rgba(210,235,121,.95)", "rgba(160,193,62,.85)"],
+  mirror: ["rgba(185,238,255,.95)", "rgba(97,188,255,.85)"],
+  slip: ["rgba(255,198,129,.95)", "rgba(255,147,74,.82)"],
+  seal: ["rgba(255,154,169,.92)", "rgba(255,99,122,.82)"],
+  rogue: ["rgba(255,228,151,.95)", "rgba(212,175,55,.82)"],
+};
+
+function resolveCardEffectTheme(rule) {
+  return { ...rule, title: rule.title() };
+}
+
 function getAudioCtx() {
   if (!audioCtx) {
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -164,22 +206,8 @@ function spawnOverlaySparks(kind) {
 
 function inferEffectTheme(message) {
   const raw = String(message || "");
-  const rules = [
-    { key: "puppet", match: /傀儡|Puppet/i, title: ui("傀儡术发动", "Puppet unleashed"), icon: "🎭", cls: "fx-puppet fx-rogue" },
-    { key: "twin", match: /连击|双子星辰|Combo/i, title: ui("连击加速", "Combo surge"), icon: "⚡", cls: "fx-twin fx-rogue" },
-    { key: "exchange", match: /乾坤挪移|Swap Turn/i, title: ui("回合窃取", "Turn stolen"), icon: "🔄", cls: "fx-exchange fx-rogue" },
-    { key: "fog", match: /迷雾|战争迷雾|Fog/i, title: ui("战争迷雾刷新", "Fog of War"), icon: "🌫", cls: "fx-fog fx-rogue" },
-    { key: "seal", match: /封印|Seal/i, title: ui("封印术成型", "Seal locked in"), icon: "🚫", cls: "fx-seal fx-rogue" },
-    { key: "god_hand", match: /神之一手|Hand of God/i, title: ui("神之一手", "Hand of God"), icon: "✨", cls: "fx-god_hand fx-rogue" },
-    { key: "sanrensei", match: /三连星|Star/i, title: ui("星位共鸣", "Star ignition"), icon: "✦", cls: "fx-sanrensei fx-rogue" },
-    { key: "corner_helper", match: /守角|Corner/i, title: ui("角部强化", "Corner fortified"), icon: "🏯", cls: "fx-corner_helper fx-rogue" },
-    { key: "foolish_wisdom", match: /大智若愚|愚形|Wise Fool|Fool/i, title: ui("愚形连锁", "Ugly shape chain"), icon: "🪤", cls: "fx-foolish_wisdom fx-rogue" },
-    { key: "five_in_row", match: /五子连珠|Five in a Row/i, title: ui("五子连珠", "Five in a Row"), icon: "🎯", cls: "fx-five_in_row fx-rogue" },
-    { key: "last_stand", match: /起死回生|Last Stand/i, title: ui("起死回生", "Last Stand"), icon: "🫀", cls: "fx-last_stand fx-rogue" },
-    { key: "mirror", match: /镜像|Mirror/i, title: ui("镜像偏折", "Mirror pulse"), icon: "🪞", cls: "fx-mirror fx-rogue" },
-    { key: "slip", match: /手滑|Butter/i, title: ui("手滑偏移", "Butterfingers"), icon: "🍃", cls: "fx-slip fx-rogue" },
-  ];
-  return rules.find((rule) => rule.match.test(raw)) || { key: "rogue", title: ui("Rogue 规则生效", "Rogue effect"), icon: "🃏", cls: "fx-rogue" };
+  const rule = CARD_EFFECT_THEME_RULES.find((item) => item.match.test(raw)) || DEFAULT_CARD_EFFECT_THEME;
+  return resolveCardEffectTheme(rule);
 }
 
 function showCardEffectVisual(message, mode = "rogue") {
@@ -201,21 +229,7 @@ function showCardEffectVisual(message, mode = "rogue") {
   layer.innerHTML = "";
   layer.appendChild(banner);
 
-  const particlePalette = {
-    puppet: ["rgba(196,170,255,.95)", "rgba(112,78,255,.85)"],
-    twin: ["rgba(255,231,133,.95)", "rgba(255,183,39,.85)"],
-    exchange: ["rgba(119,240,230,.92)", "rgba(57,188,180,.82)"],
-    fog: ["rgba(205,220,235,.7)", "rgba(132,155,186,.7)"],
-    god_hand: ["rgba(255,239,157,.98)", "rgba(255,186,88,.88)"],
-    sanrensei: ["rgba(163,205,255,.95)", "rgba(88,153,255,.84)"],
-    corner_helper: ["rgba(143,228,182,.92)", "rgba(53,176,125,.84)"],
-    foolish_wisdom: ["rgba(210,235,121,.95)", "rgba(160,193,62,.85)"],
-    mirror: ["rgba(185,238,255,.95)", "rgba(97,188,255,.85)"],
-    slip: ["rgba(255,198,129,.95)", "rgba(255,147,74,.82)"],
-    seal: ["rgba(255,154,169,.92)", "rgba(255,99,122,.82)"],
-    rogue: ["rgba(255,228,151,.95)", "rgba(212,175,55,.82)"],
-  };
-  const colors = particlePalette[theme.key] || particlePalette.rogue;
+  const colors = CARD_EFFECT_PARTICLE_PALETTES[theme.key] || CARD_EFFECT_PARTICLE_PALETTES.rogue;
   for (let i = 0; i < 14; i++) {
     const p = document.createElement("span");
     p.className = "fx-particle";

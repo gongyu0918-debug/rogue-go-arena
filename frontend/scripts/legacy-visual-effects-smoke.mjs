@@ -128,15 +128,43 @@ try {
       fog: inferEffectTheme("Fog of War").key,
       fallback: inferEffectTheme("unknown smoke event").key,
     };
+    const themeCases = {
+      puppet: "傀儡术发动",
+      twin: "双子星辰",
+      exchange: "Swap Turn",
+      fog: "Fog of War",
+      seal: "封印",
+      god_hand: "神之一手",
+      sanrensei: "三连星",
+      corner_helper: "守角",
+      foolish_wisdom: "大智若愚",
+      five_in_row: "Five in a Row",
+      last_stand: "Last Stand",
+      mirror: "Mirror",
+      slip: "Butter",
+    };
+    const allThemeKeys = Object.fromEntries(
+      Object.entries(themeCases).map(([expectedKey, message]) => [expectedKey, inferEffectTheme(message).key])
+    );
+    const previousLang = currentLang;
+    await ensureLocale("en");
+    currentLang = "en";
+    const englishThemeTitle = inferEffectTheme("Puppet").title;
+    currentLang = previousLang;
 
     clearFx();
     showCardEffectVisual("傀儡术发动", "rogue");
+    const firstParticle = document.querySelector("#board-fx-layer .fx-particle");
+    const fxRing = document.querySelector("#board-fx-layer .fx-ring");
     const cardFxState = {
       bannerClass: document.querySelector("#board-fx-layer .fx-banner")?.className || "",
       title: document.querySelector("#board-fx-layer .fx-banner-title")?.textContent || "",
       desc: document.querySelector("#board-fx-layer .fx-banner-desc")?.textContent || "",
       particles: document.querySelectorAll("#board-fx-layer .fx-particle").length,
       rings: document.querySelectorAll("#board-fx-layer .fx-ring").length,
+      firstParticleCore: firstParticle?.style.getPropertyValue("--core") || "",
+      firstParticleGlow: firstParticle?.style.getPropertyValue("--glow") || "",
+      ringColor: fxRing?.style.getPropertyValue("--ring") || "",
     };
 
     clearFx();
@@ -193,6 +221,8 @@ try {
       rippleCount,
       sparkState,
       themeState,
+      allThemeKeys,
+      englishThemeTitle,
       cardFxState,
       godHandState,
       fogState,
@@ -217,10 +247,17 @@ try {
   assert(state.rippleCount >= 1, `button ripple was not spawned: ${state.rippleCount}`);
   assert(state.sparkState.count === 16, `overlay sparks count changed: ${state.sparkState.count}`);
   assert(state.themeState.puppet === "puppet" && state.themeState.fog === "fog" && state.themeState.fallback === "rogue", `effect theme inference changed: ${JSON.stringify(state.themeState)}`);
+  for (const [expectedKey, actualKey] of Object.entries(state.allThemeKeys)) {
+    assert(actualKey === expectedKey, `theme rule changed for ${expectedKey}: ${actualKey}`);
+  }
+  assert(state.englishThemeTitle === "Puppet unleashed", `theme title was not localized at call time: ${state.englishThemeTitle}`);
   assert(state.cardFxState.bannerClass.includes("fx-puppet"), `card banner class changed: ${state.cardFxState.bannerClass}`);
   assert(state.cardFxState.title.includes("傀儡"), `card banner title changed: ${state.cardFxState.title}`);
   assert(state.cardFxState.desc.length > 0, "card banner description missing");
   assert(state.cardFxState.particles === 14 && state.cardFxState.rings === 1, `card particles changed: ${JSON.stringify(state.cardFxState)}`);
+  assert(state.cardFxState.firstParticleCore === "rgba(196,170,255,.95)", `puppet particle core changed: ${state.cardFxState.firstParticleCore}`);
+  assert(state.cardFxState.firstParticleGlow === "rgba(112,78,255,.85)", `puppet particle glow changed: ${state.cardFxState.firstParticleGlow}`);
+  assert(state.cardFxState.ringColor === "rgba(196,170,255,.95)", `puppet ring color changed: ${state.cardFxState.ringColor}`);
   assert(state.godHandState.flashes === 1, `god hand flash did not spawn: ${state.godHandState.flashes}`);
   assert(state.fogState.veils === 1 && state.fogState.clouds === 3, `fog effect changed: ${JSON.stringify(state.fogState)}`);
   assert(state.starState.pulses >= 5 && state.starState.links >= 4, `star constellation changed: ${JSON.stringify(state.starState)}`);
