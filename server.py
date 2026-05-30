@@ -232,6 +232,14 @@ from app.runtime.ultimate_effect_adapters import (
     apply_ultimate_effect as apply_ultimate_effect_adapter,
     build_ultimate_effect_flow_deps,
 )
+from app.runtime.ultimate_ai_adapters import (
+    UltimateAiBonusTurnBinding,
+    UltimateAiMoveSelectionBinding,
+    UltimateAiTurnFinishBinding,
+    finish_selected_ultimate_ai_move,
+    run_ultimate_ai_bonus_turn_adapter,
+    select_ultimate_ai_move,
+)
 from app.runtime.ws_context import (
     WebSocketContextDeps,
     build_websocket_action_context,
@@ -375,12 +383,7 @@ from app.gameplay.ultimate_effects import (
     get_ultimate_territory_forbidden_points,
     resolve_pending_shadow_links,
 )
-from app.gameplay.ultimate_ai_flow import (
-    apply_ultimate_ai_post_move_effects,
-    choose_ultimate_ai_move,
-    finish_ultimate_ai_turn,
-    run_ultimate_ai_bonus_turn,
-)
+from app.gameplay.ultimate_ai_flow import apply_ultimate_ai_post_move_effects
 from app.gameplay.ultimate_scoring import finalize_ultimate_score
 from app.runtime.engine import KataGoEngine
 from app.runtime.game_store import ActiveGameStore
@@ -1336,56 +1339,31 @@ async def _run_ultimate_ai_bonus_turn(game: GoGame, send_fn, color: str, bonus_t
             allow_double_bonus=next_allow_double_bonus,
         )
 
-    return await run_ultimate_ai_bonus_turn(
+    return await run_ultimate_ai_bonus_turn_adapter(
         game,
         send_fn,
         color,
         bonus_turn,
-        start_bonus_turn=start_ultimate_ai_bonus_turn_state,
-        run_next_ai_move=run_next_ai_move,
+        UltimateAiBonusTurnBinding(
+            start_bonus_turn=start_ultimate_ai_bonus_turn_state,
+            run_next_ai_move=run_next_ai_move,
+        ),
     )
 
 
-async def _ultimate_ai_move(game: GoGame, send_fn,
-                            allow_double_bonus: bool = True):
-    """AI move in ultimate mode - generates move, applies AI's card effect."""
-    if game.game_over or not engine.ready:
-        return
-
-    game.ultimate_extra_turn = False
-
-    await _sync_board_to_katago(game)
-    search_plan = plan_ultimate_ai_search(
-        game,
-        get_territory_forbidden=_ultimate_get_territory_forbidden,
+def _ultimate_ai_move_selection_binding() -> UltimateAiMoveSelectionBinding:
+    return UltimateAiMoveSelectionBinding(
+        engine_ready=lambda: engine.ready,
+        sync_board_to_katago=_sync_board_to_katago,
+        plan_search=lambda game: plan_ultimate_ai_search(
+            game,
+            get_territory_forbidden=_ultimate_get_territory_forbidden,
+            get_game_visits=get_game_visits,
+        ),
+        engine=engine,
+        run_in_executor=run_in_executor,
         get_game_visits=get_game_visits,
-    )
-    color = search_plan.color
-    ai_card = search_plan.ai_card
-    forbidden = search_plan.forbidden
-
-    visits = search_plan.visits
-
-    def _gen():
-        with engine.command_lock:
-            engine._send_command_locked(f"kata-set-param maxVisits {visits}")
-            resp = engine._send_command_locked(f"genmove {color}", timeout=30)
-            engine._send_command_locked(
-                f"kata-set-param maxVisits {get_game_visits(game.level, 0, mode='ultimate')}")
-            return resp.replace("=", "").strip()
-
-    def _undo_engine_move() -> None:
-        with engine.command_lock:
-            engine._send_command_locked("undo")
-
-    choice = await choose_ultimate_ai_move(
-        game,
-        color=color,
-        visits=visits,
-        forbidden=forbidden,
-        generate_move=lambda: run_in_executor(_gen),
         no_resign_move=_ai_move_no_resign,
-        undo_engine_move=_undo_engine_move,
         pick_ranked_legal_move=_pick_ranked_legal_move,
         pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
         retry_avoiding_ko=_ai_retry_avoiding_ko,
@@ -1395,17 +1373,10 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
         coord_to_gtp=coord_to_gtp,
         log_fn=_engine_log,
     )
-    gtp_move = choice.gtp_move
-    coord = choice.coord
 
-    await finish_ultimate_ai_turn(
-        game,
-        send_fn,
-        color=color,
-        ai_card=ai_card,
-        gtp_move=gtp_move,
-        coord=coord,
-        allow_double_bonus=allow_double_bonus,
+
+def _ultimate_ai_turn_finish_binding() -> UltimateAiTurnFinishBinding:
+    return UltimateAiTurnFinishBinding(
         chain_chance=ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
         chain_random=random.random,
         apply_ai_move_result=apply_ultimate_ai_move_result_state,
@@ -1421,6 +1392,25 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
         finish_normal_turn=finish_ultimate_ai_normal_turn_state,
         prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
         force_score=_ultimate_force_score,
+    )
+
+
+async def _ultimate_ai_move(game: GoGame, send_fn,
+                            allow_double_bonus: bool = True):
+    """AI move in ultimate mode - generates move, applies AI's card effect."""
+    selection = await select_ultimate_ai_move(
+        game,
+        _ultimate_ai_move_selection_binding(),
+    )
+    if selection is None:
+        return
+
+    await finish_selected_ultimate_ai_move(
+        game,
+        send_fn,
+        selection,
+        allow_double_bonus=allow_double_bonus,
+        binding=_ultimate_ai_turn_finish_binding(),
     )
 
 
