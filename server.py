@@ -163,6 +163,10 @@ from app.gameplay.ai_move_flow import (
     try_finish_suboptimal_rogue_move,
 )
 from app.gameplay.ai_turn_flow import AiTurnFlowDeps, run_ai_turn
+from app.gameplay.generated_ai_turn_flow import (
+    GeneratedAiTurnDeps,
+    try_finish_generated_ai_turn_event,
+)
 from app.gameplay.ai_observer import (
     AiObserverLoopDeps,
     apply_observer_ai_move_to_board as apply_observer_ai_move_to_board_state,
@@ -1454,25 +1458,20 @@ async def _try_finish_generated_ai_turn(
     ai_plan: AiMovePlan,
     run_engine_command,
 ) -> bool:
-    forbidden = rogue_forbidden_points(
-        game,
-        turn.rogue_cards,
-        turn.ai_move_count,
-        challenge_zone_points=_challenge_zone_points,
-    )
-
-    return await try_finish_generated_ai_move(
+    return await try_finish_generated_ai_turn_event(
         game,
         send_fn,
-        color=turn.color,
-        card=turn.card,
-        rogue_cards=turn.rogue_cards,
-        forbidden=forbidden,
-        visits=ai_plan.visits,
-        time_limit=ai_plan.time_limit,
-        candidate_deps=_generated_ai_move_candidate_deps(),
-        preparation_deps=_generated_ai_move_preparation_deps(),
-        finish_deps=_generated_ai_move_finish_deps(run_engine_command),
+        turn,
+        ai_plan,
+        run_engine_command,
+        GeneratedAiTurnDeps(
+            rogue_forbidden_points=rogue_forbidden_points,
+            challenge_zone_points=_challenge_zone_points,
+            try_finish_generated_ai_move=try_finish_generated_ai_move,
+            candidate_deps=_generated_ai_move_candidate_deps,
+            preparation_deps=_generated_ai_move_preparation_deps,
+            finish_deps=_generated_ai_move_finish_deps,
+        ),
     )
 
 
