@@ -49,6 +49,24 @@ try {
       typeof window.detectCaptures,
       typeof window.detectNewStone,
     ];
+    const stateGlobals = [
+      typeof window.challengeSession,
+    ];
+    const challengeSessionDescriptor = Object.getOwnPropertyDescriptor(window, "challengeSession");
+    const privateFns = [
+      typeof window.DEFAULT_CHALLENGE_RESOURCES,
+      typeof window.cloneChallengeResources,
+      typeof window.createChallengeSession,
+      typeof window.cloneChallengeCards,
+      typeof window.mergeChallengeResources,
+      typeof window.syncChallengeLimits,
+      typeof window.syncChallengeRemaining,
+      typeof window.ensureChallengeInfoElements,
+      typeof window.challengeInfoShouldShow,
+      typeof window.challengeInfoText,
+      typeof window.boardPairIsUsable,
+      typeof window.scanBoardDiff,
+    ];
 
     resetChallengeSession();
     const resetState = JSON.parse(JSON.stringify(challengeSession));
@@ -77,6 +95,41 @@ try {
       challenge_limits: { undo: 7, hint: 11, coach: 2 },
     });
     const defaultRemainingState = JSON.parse(JSON.stringify(challengeSession));
+
+    challengeSession = {
+      active: true,
+      stage: 8,
+      cards: ["assigned"],
+      refreshes: 9,
+      limits: { undo: 1, hint: 2, coach: 3 },
+      remaining: { undo: 1, hint: 2, coach: 3 },
+      cleared: false,
+    };
+    const assignedState = JSON.parse(JSON.stringify(challengeSession));
+
+    window.challengeSession = {
+      active: true,
+      stage: 6,
+      cards: ["quickthink", "seal"],
+      refreshes: 2,
+      limits: { undo: 4, hint: 5, coach: 6 },
+      remaining: { undo: 4, hint: 5, coach: 6 },
+      cleared: false,
+    };
+    showRogueCards([
+      { id: "quickthink", name: "快速思考", desc: "Smoke challenge offer", icon: "⚡" },
+    ], { challenge_beta: true });
+    const challengeOffer = {
+      title: document.querySelector("#rogue-overlay h2")?.textContent || "",
+      sub: document.querySelector("#rogue-overlay p")?.textContent || "",
+      refreshDisplay: document.querySelector("#rogue-refresh-wrap")?.style.display || "",
+      refreshButton: document.querySelector("#rogue-refresh-btn")?.textContent || "",
+      cardCount: document.querySelectorAll("#rogue-cards .rogue-card").length,
+      overlayOpen: document.querySelector("#rogue-overlay")?.classList.contains("show") || false,
+      session: JSON.parse(JSON.stringify(window.challengeSession)),
+    };
+    document.querySelector("#rogue-overlay")?.classList.remove("show");
+    resetChallengeSession();
 
     document.querySelector("#challenge-info-row")?.remove();
     gameState = null;
@@ -137,11 +190,20 @@ try {
 
     return {
       publicFns,
+      stateGlobals,
+      challengeSessionDescriptor: {
+        get: typeof challengeSessionDescriptor?.get,
+        set: typeof challengeSessionDescriptor?.set,
+        value: typeof challengeSessionDescriptor?.value,
+      },
+      privateFns,
       resetState,
       noSyncBefore,
       noSyncAfter,
       syncedState,
       defaultRemainingState,
+      assignedState,
+      challengeOffer,
       hiddenInfo,
       visibleInfo,
       liveBoardValue: liveBoard?.[2]?.[3],
@@ -158,6 +220,10 @@ try {
   });
 
   assert(state.publicFns.every(type => type === "function"), `runtime helper globals missing: ${state.publicFns.join(", ")}`);
+  assert(state.stateGlobals.join("|") === "object", `runtime helper state globals changed: ${state.stateGlobals.join("|")}`);
+  assert(state.challengeSessionDescriptor.get === "function" && state.challengeSessionDescriptor.set === "function", `challengeSession is not an accessor: ${JSON.stringify(state.challengeSessionDescriptor)}`);
+  assert(state.challengeSessionDescriptor.value === "undefined", `challengeSession unexpectedly has a data value: ${JSON.stringify(state.challengeSessionDescriptor)}`);
+  assert(state.privateFns.every(type => type === "undefined"), `runtime helper private helpers leaked globally: ${state.privateFns.join(", ")}`);
   assert(state.resetState.active === true && state.resetState.stage === 1, `challenge reset base state changed: ${JSON.stringify(state.resetState)}`);
   assert(state.resetState.cards.length === 0 && state.resetState.refreshes === 0, `challenge reset card/refresh state changed: ${JSON.stringify(state.resetState)}`);
   assert(state.resetState.limits.undo === 3 && state.resetState.remaining.hint === 10, `challenge reset limits changed: ${JSON.stringify(state.resetState)}`);
@@ -168,6 +234,15 @@ try {
   assert(state.syncedState.limits.undo === 5 && state.syncedState.limits.hint === 8 && state.syncedState.limits.coach === 3, `partial limits changed: ${JSON.stringify(state.syncedState.limits)}`);
   assert(state.syncedState.remaining.undo === 4 && state.syncedState.remaining.hint === 10 && state.syncedState.remaining.coach === 1, `partial remaining changed: ${JSON.stringify(state.syncedState.remaining)}`);
   assert(state.defaultRemainingState.remaining.undo === 7 && state.defaultRemainingState.remaining.hint === 11 && state.defaultRemainingState.remaining.coach === 2, `missing remaining did not default to limits: ${JSON.stringify(state.defaultRemainingState.remaining)}`);
+  assert(state.assignedState.stage === 8 && state.assignedState.cards.join(",") === "assigned", `challengeSession accessor assignment changed: ${JSON.stringify(state.assignedState)}`);
+  assert(state.assignedState.remaining.hint === 2 && state.assignedState.refreshes === 9, `challengeSession assigned resources changed: ${JSON.stringify(state.assignedState)}`);
+  assert(state.challengeOffer.session.stage === 6 && state.challengeOffer.session.refreshes === 2, `window.challengeSession assignment changed: ${JSON.stringify(state.challengeOffer.session)}`);
+  assert(state.challengeOffer.overlayOpen, "challenge Rogue offer did not open overlay");
+  assert(state.challengeOffer.title.includes("第 6 关"), `challenge Rogue title did not use challengeSession stage: ${state.challengeOffer.title}`);
+  assert(state.challengeOffer.sub.includes("刷新 2"), `challenge Rogue subtitle did not use challengeSession refreshes: ${state.challengeOffer.sub}`);
+  assert(state.challengeOffer.refreshDisplay === "", `challenge refresh controls did not show: ${JSON.stringify(state.challengeOffer)}`);
+  assert(state.challengeOffer.refreshButton.includes("(2)"), `challenge refresh button did not use refresh count: ${state.challengeOffer.refreshButton}`);
+  assert(state.challengeOffer.cardCount === 1, `challenge Rogue offer card count changed: ${state.challengeOffer.cardCount}`);
   assert(state.hiddenInfo.rowExists && state.hiddenInfo.display === "none", `challenge info hidden state changed: ${JSON.stringify(state.hiddenInfo)}`);
   assert(state.visibleInfo.display === "" && state.visibleInfo.text.includes("测试第5关"), `challenge info visible text changed: ${JSON.stringify(state.visibleInfo)}`);
   assert(state.visibleInfo.text.includes("卡牌3") && state.visibleInfo.text.includes("刷新4"), `challenge info count text changed: ${state.visibleInfo.text}`);
