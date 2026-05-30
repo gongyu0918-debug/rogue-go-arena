@@ -1,7 +1,74 @@
 // Legacy setup modal, mode selection, and new-game controls.
 
+const SETUP_ROW_DISPLAY_RULES = [
+  { id: "row-color", display: ({ isNormal, isRogue }) => (isNormal || isRogue) ? "flex" : "none" },
+  { id: "row-rogue-variant", display: ({ isRogue }) => isRogue ? "flex" : "none" },
+  { id: "row-size", display: ({ isRogue }) => isRogue ? "none" : "flex" },
+  { id: "row-handicap", display: ({ isWatch, isChallenge, isRogue }) => (isWatch || isChallenge || isRogue) ? "none" : "flex" },
+  { id: "row-time", display: () => "flex" },
+  { id: "row-level", display: ({ isWatch }) => isWatch ? "none" : "flex" },
+  { id: "row-level-black", display: ({ isWatch }) => isWatch ? "flex" : "none" },
+  { id: "row-level-white", display: ({ isWatch }) => isWatch ? "flex" : "none" },
+  { id: "row-style", display: ({ isTwo, isWatch, isChallenge }) => (!isTwo && !isWatch && !isChallenge) ? "flex" : "none" },
+  { id: "row-style-black", display: ({ isWatch }) => isWatch ? "flex" : "none" },
+  { id: "row-style-white", display: ({ isWatch }) => isWatch ? "flex" : "none" },
+];
+
+const SETUP_ROGUE_VARIANT_HINTS = {
+  ultimate: () => ui("当前玩法：大招对战。固定 19×19，用普通规则开局，你与 AI 各自带一张大招卡，20 手决胜。", "Current variant: Ultimate Duel. Fixed at 19x19 with standard rules, one ultimate card per side, and a 20-move showdown."),
+  dual: () => ui("当前玩法：双人抽卡。固定 19×19，你先选 1 张 Rogue 卡，AI 也会从受限卡池获得 1 张。", "Current variant: Dual Draft. Fixed at 19x19. You pick 1 Rogue card, and the AI also receives 1 card from the restricted pool."),
+  solo: () => ui("当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡，保留颜色、贴目、等级、棋风与用时设置。", "Current variant: Solo Draft. Fixed at 19x19. Only you use a Rogue card, while color, komi, rank, style, and time settings stay available."),
+};
+
+const SETUP_MODE_HINTS = {
+  rogue: () => SETUP_ROGUE_VARIANT_HINTS[getRogueVariantMode()]?.() || SETUP_ROGUE_VARIANT_HINTS.solo(),
+  watch: () => ui(
+    "学习：黑白双方都由 AI 对弈，可分别调整黑棋与白棋的等级和棋风。",
+    "Study: both sides are AI, with separate rank and style controls for Black and White."
+  ),
+  two: () => ui(
+    "双人：黑白双方均由玩家落子，可调整棋盘、贴目、让子与用时。",
+    "Two Players: both sides are human, with board size, komi, handicap, and timing controls."
+  ),
+  challenge: () => ui(
+    "闯关：测试版默认执白，按当前关卡自动套用让子与卡组限制。",
+    "Challenge: beta mode defaults you to White and applies stage handicap and loadout rules automatically."
+  ),
+  normal: () => ui(
+    "对局：可手选黑白或随机猜先；选择让子时会自动把贴目设为 0，仍可手动改回 6.5 或 7.5。",
+    "Game: choose Black, White, or random color; handicap auto-sets komi to 0, but you can still change it back to 6.5 or 7.5."
+  ),
+};
+
 function getRogueVariantMode() {
   return document.getElementById("sel-rogue-variant")?.value || "solo";
+}
+
+function getSetupModeContext(mode = startMode) {
+  return {
+    mode,
+    isNormal: mode === "normal",
+    isTwo: mode === "two",
+    isWatch: mode === "watch",
+    isRogue: mode === "rogue",
+    isChallenge: mode === "challenge",
+  };
+}
+
+function setSetupRowDisplay(id, display) {
+  const row = document.getElementById(id);
+  if (row) row.style.display = display;
+}
+
+function forceRogueBoardOptions() {
+  document.getElementById("sel-size").value = "19";
+  document.getElementById("sel-handicap").value = "0";
+  syncWoodSelect(document.getElementById("sel-size"));
+  syncWoodSelect(document.getElementById("sel-handicap"));
+}
+
+function getSetupModeHintText(mode = startMode) {
+  return (SETUP_MODE_HINTS[mode] || SETUP_MODE_HINTS.normal)();
 }
 
 function openSetupModal() {
@@ -51,79 +118,16 @@ function setMode(mode) {
 }
 
 function updateVariantOptionRows() {
-  const levelRow = document.getElementById("row-level");
-  const levelRowBlack = document.getElementById("row-level-black");
-  const levelRowWhite = document.getElementById("row-level-white");
-  const styleRow = document.getElementById("row-style");
-  const styleRowBlack = document.getElementById("row-style-black");
-  const styleRowWhite = document.getElementById("row-style-white");
-  const rowColor = document.getElementById("row-color");
-  const rowRogueVariant = document.getElementById("row-rogue-variant");
-  const rowSize = document.getElementById("row-size");
-  const rowHandicap = document.getElementById("row-handicap");
-  const rowTime = document.getElementById("row-time");
-  const isTwo = startMode === "two";
-  const isWatch = startMode === "watch";
-  const isRogue = startMode === "rogue";
-  const isChallenge = startMode === "challenge";
-  if (rowColor) rowColor.style.display = (startMode === "normal" || isRogue) ? "flex" : "none";
-  if (rowRogueVariant) rowRogueVariant.style.display = isRogue ? "flex" : "none";
-  if (rowSize) rowSize.style.display = isRogue ? "none" : "flex";
-  if (rowHandicap) rowHandicap.style.display = (isWatch || isChallenge || isRogue) ? "none" : "flex";
-  if (rowTime) rowTime.style.display = "flex";
-  if (levelRow) levelRow.style.display = isWatch ? "none" : "flex";
-  if (levelRowBlack) levelRowBlack.style.display = isWatch ? "flex" : "none";
-  if (levelRowWhite) levelRowWhite.style.display = isWatch ? "flex" : "none";
-  if (styleRow) styleRow.style.display = (!isTwo && !isWatch && !isChallenge) ? "flex" : "none";
-  if (styleRowBlack) styleRowBlack.style.display = isWatch ? "flex" : "none";
-  if (styleRowWhite) styleRowWhite.style.display = isWatch ? "flex" : "none";
-  if (isRogue) {
-    document.getElementById("sel-size").value = "19";
-    document.getElementById("sel-handicap").value = "0";
-    syncWoodSelect(document.getElementById("sel-size"));
-    syncWoodSelect(document.getElementById("sel-handicap"));
-  }
+  const context = getSetupModeContext();
+  SETUP_ROW_DISPLAY_RULES.forEach((rule) => setSetupRowDisplay(rule.id, rule.display(context)));
+  if (context.isRogue) forceRogueBoardOptions();
 }
 
 function refreshSetupModeHint() {
   const hint = document.getElementById("mode-hint");
   if (!hint) return;
   hint.style.display = "block";
-  if (startMode === "rogue") {
-    const variant = getRogueVariantMode();
-    const variantText = variant === "ultimate"
-      ? ui("当前玩法：大招对战。固定 19×19，用普通规则开局，你与 AI 各自带一张大招卡，20 手决胜。", "Current variant: Ultimate Duel. Fixed at 19x19 with standard rules, one ultimate card per side, and a 20-move showdown.")
-      : (variant === "dual"
-        ? ui("当前玩法：双人抽卡。固定 19×19，你先选 1 张 Rogue 卡，AI 也会从受限卡池获得 1 张。", "Current variant: Dual Draft. Fixed at 19x19. You pick 1 Rogue card, and the AI also receives 1 card from the restricted pool.")
-        : ui("当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡，保留颜色、贴目、等级、棋风与用时设置。", "Current variant: Solo Draft. Fixed at 19x19. Only you use a Rogue card, while color, komi, rank, style, and time settings stay available."));
-    hint.textContent = variantText;
-    return;
-  }
-  if (startMode === "watch") {
-    hint.textContent = ui(
-      "学习：黑白双方都由 AI 对弈，可分别调整黑棋与白棋的等级和棋风。",
-      "Study: both sides are AI, with separate rank and style controls for Black and White."
-    );
-    return;
-  }
-  if (startMode === "two") {
-    hint.textContent = ui(
-      "双人：黑白双方均由玩家落子，可调整棋盘、贴目、让子与用时。",
-      "Two Players: both sides are human, with board size, komi, handicap, and timing controls."
-    );
-    return;
-  }
-  if (startMode === "challenge") {
-    hint.textContent = ui(
-      "闯关：测试版默认执白，按当前关卡自动套用让子与卡组限制。",
-      "Challenge: beta mode defaults you to White and applies stage handicap and loadout rules automatically."
-    );
-    return;
-  }
-  hint.textContent = ui(
-    "对局：可手选黑白或随机猜先；选择让子时会自动把贴目设为 0，仍可手动改回 6.5 或 7.5。",
-    "Game: choose Black, White, or random color; handicap auto-sets komi to 0, but you can still change it back to 6.5 or 7.5."
-  );
+  hint.textContent = getSetupModeHintText();
 }
 
 function updateTimeSettingsVisibility(mode) {

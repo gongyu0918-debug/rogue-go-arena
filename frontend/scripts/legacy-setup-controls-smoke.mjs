@@ -25,6 +25,90 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+const MODE_ROW_EXPECTATIONS = {
+  rogue: {
+    rowColor: "flex",
+    rowRogueVariant: "flex",
+    rowSize: "none",
+    rowHandicap: "none",
+    rowTime: "flex",
+    rowLevel: "flex",
+    rowLevelBlack: "none",
+    rowLevelWhite: "none",
+    rowStyle: "flex",
+    rowStyleBlack: "none",
+    rowStyleWhite: "none",
+  },
+  normal: {
+    rowColor: "flex",
+    rowRogueVariant: "none",
+    rowSize: "flex",
+    rowHandicap: "flex",
+    rowTime: "flex",
+    rowLevel: "flex",
+    rowLevelBlack: "none",
+    rowLevelWhite: "none",
+    rowStyle: "flex",
+    rowStyleBlack: "none",
+    rowStyleWhite: "none",
+  },
+  watch: {
+    rowColor: "none",
+    rowRogueVariant: "none",
+    rowSize: "flex",
+    rowHandicap: "none",
+    rowTime: "flex",
+    rowLevel: "none",
+    rowLevelBlack: "flex",
+    rowLevelWhite: "flex",
+    rowStyle: "none",
+    rowStyleBlack: "flex",
+    rowStyleWhite: "flex",
+  },
+  two: {
+    rowColor: "none",
+    rowRogueVariant: "none",
+    rowSize: "flex",
+    rowHandicap: "flex",
+    rowTime: "flex",
+    rowLevel: "flex",
+    rowLevelBlack: "none",
+    rowLevelWhite: "none",
+    rowStyle: "none",
+    rowStyleBlack: "none",
+    rowStyleWhite: "none",
+  },
+  challenge: {
+    rowColor: "none",
+    rowRogueVariant: "none",
+    rowSize: "flex",
+    rowHandicap: "none",
+    rowTime: "flex",
+    rowLevel: "flex",
+    rowLevelBlack: "none",
+    rowLevelWhite: "none",
+    rowStyle: "none",
+    rowStyleBlack: "none",
+    rowStyleWhite: "none",
+  },
+};
+
+const MODE_HINT_EXPECTATIONS = {
+  rogue: "单人抽卡",
+  normal: "对局",
+  watch: "学习",
+  two: "双人",
+  challenge: "闯关",
+};
+
+function assertModeMatrix(mode, state) {
+  assert(state.startMode === mode && state.active, `${mode} mode did not activate`);
+  for (const [rowName, expectedDisplay] of Object.entries(MODE_ROW_EXPECTATIONS[mode])) {
+    assert(state[rowName] === expectedDisplay, `${mode} ${rowName} changed: ${state[rowName]}`);
+  }
+  assert(state.hint.includes(MODE_HINT_EXPECTATIONS[mode]), `${mode} hint changed: ${state.hint}`);
+}
+
 const browser = await launchBrowser();
 const page = await browser.newPage({ viewport: { width: 1366, height: 768 }, deviceScaleFactor: 1 });
 const errors = [];
@@ -101,6 +185,7 @@ try {
       };
     };
     return {
+      rogue: captureMode("rogue"),
       normal: captureMode("normal"),
       watch: captureMode("watch"),
       two: captureMode("two"),
@@ -108,49 +193,51 @@ try {
     };
   });
 
-  assert(modeMatrixState.normal.startMode === "normal" && modeMatrixState.normal.active, "normal mode did not activate");
-  assert(modeMatrixState.normal.rowColor === "flex", `normal color row changed: ${modeMatrixState.normal.rowColor}`);
-  assert(modeMatrixState.normal.rowRogueVariant === "none", `normal rogue row changed: ${modeMatrixState.normal.rowRogueVariant}`);
-  assert(modeMatrixState.normal.rowSize === "flex", `normal size row changed: ${modeMatrixState.normal.rowSize}`);
-  assert(modeMatrixState.normal.rowHandicap === "flex", `normal handicap row changed: ${modeMatrixState.normal.rowHandicap}`);
-  assert(modeMatrixState.normal.rowLevel === "flex", `normal level row changed: ${modeMatrixState.normal.rowLevel}`);
-  assert(modeMatrixState.normal.rowStyle === "flex", `normal style row changed: ${modeMatrixState.normal.rowStyle}`);
-  assert(modeMatrixState.normal.hint.includes("对局"), `normal hint changed: ${modeMatrixState.normal.hint}`);
+  for (const mode of Object.keys(MODE_ROW_EXPECTATIONS)) {
+    assertModeMatrix(mode, modeMatrixState[mode]);
+  }
 
-  assert(modeMatrixState.watch.startMode === "watch" && modeMatrixState.watch.active, "watch mode did not activate");
-  assert(modeMatrixState.watch.rowColor === "none", `watch color row changed: ${modeMatrixState.watch.rowColor}`);
-  assert(modeMatrixState.watch.rowHandicap === "none", `watch handicap row changed: ${modeMatrixState.watch.rowHandicap}`);
-  assert(modeMatrixState.watch.rowLevel === "none", `watch level row changed: ${modeMatrixState.watch.rowLevel}`);
-  assert(modeMatrixState.watch.rowLevelBlack === "flex", `watch black level row changed: ${modeMatrixState.watch.rowLevelBlack}`);
-  assert(modeMatrixState.watch.rowLevelWhite === "flex", `watch white level row changed: ${modeMatrixState.watch.rowLevelWhite}`);
-  assert(modeMatrixState.watch.rowStyle === "none", `watch style row changed: ${modeMatrixState.watch.rowStyle}`);
-  assert(modeMatrixState.watch.rowStyleBlack === "flex", `watch black style row changed: ${modeMatrixState.watch.rowStyleBlack}`);
-  assert(modeMatrixState.watch.rowStyleWhite === "flex", `watch white style row changed: ${modeMatrixState.watch.rowStyleWhite}`);
-  assert(modeMatrixState.watch.hint.includes("学习"), `watch hint changed: ${modeMatrixState.watch.hint}`);
-
-  assert(modeMatrixState.two.startMode === "two" && modeMatrixState.two.active, "two mode did not activate");
-  assert(modeMatrixState.two.rowColor === "none", `two color row changed: ${modeMatrixState.two.rowColor}`);
-  assert(modeMatrixState.two.rowHandicap === "flex", `two handicap row changed: ${modeMatrixState.two.rowHandicap}`);
-  assert(modeMatrixState.two.rowLevel === "flex", `two level row changed: ${modeMatrixState.two.rowLevel}`);
-  assert(modeMatrixState.two.rowStyle === "none", `two style row changed: ${modeMatrixState.two.rowStyle}`);
-  assert(modeMatrixState.two.hint.includes("双人"), `two hint changed: ${modeMatrixState.two.hint}`);
-
-  assert(modeMatrixState.challenge.startMode === "challenge" && modeMatrixState.challenge.active, "challenge mode did not activate");
-  assert(modeMatrixState.challenge.rowColor === "none", `challenge color row changed: ${modeMatrixState.challenge.rowColor}`);
-  assert(modeMatrixState.challenge.rowHandicap === "none", `challenge handicap row changed: ${modeMatrixState.challenge.rowHandicap}`);
-  assert(modeMatrixState.challenge.rowLevel === "flex", `challenge level row changed: ${modeMatrixState.challenge.rowLevel}`);
-  assert(modeMatrixState.challenge.rowStyle === "none", `challenge style row changed: ${modeMatrixState.challenge.rowStyle}`);
-  assert(modeMatrixState.challenge.hint.includes("闯关"), `challenge hint changed: ${modeMatrixState.challenge.hint}`);
-
-  const variantAndTimeState = await page.evaluate(() => {
+  const variantAndTimeState = await page.evaluate(async () => {
     setMode("rogue");
     document.querySelector("#sel-rogue-variant").value = "dual";
     document.querySelector("#sel-rogue-variant").dispatchEvent(new Event("change", { bubbles: true }));
+    const dualVariant = getRogueVariantMode();
+    const dualHint = document.querySelector("#mode-hint")?.textContent || "";
+    document.querySelector("#sel-rogue-variant").value = "ultimate";
+    document.querySelector("#sel-rogue-variant").dispatchEvent(new Event("change", { bubbles: true }));
+    const ultimateVariant = getRogueVariantMode();
+    const ultimateHint = document.querySelector("#mode-hint")?.textContent || "";
     document.querySelector("#sel-time-mode").value = "byoyomi";
     document.querySelector("#sel-time-mode").dispatchEvent(new Event("change", { bubbles: true }));
+    const previousLang = currentLang;
+    const englishHints = {};
+    await ensureLocale("en");
+    currentLang = "en";
+    setMode("normal");
+    englishHints.normal = document.querySelector("#mode-hint")?.textContent || "";
+    setMode("watch");
+    englishHints.watch = document.querySelector("#mode-hint")?.textContent || "";
+    setMode("two");
+    englishHints.two = document.querySelector("#mode-hint")?.textContent || "";
+    setMode("challenge");
+    englishHints.challenge = document.querySelector("#mode-hint")?.textContent || "";
+    setMode("rogue");
+    document.querySelector("#sel-rogue-variant").value = "solo";
+    document.querySelector("#sel-rogue-variant").dispatchEvent(new Event("change", { bubbles: true }));
+    englishHints.rogueSolo = document.querySelector("#mode-hint")?.textContent || "";
+    document.querySelector("#sel-rogue-variant").value = "dual";
+    document.querySelector("#sel-rogue-variant").dispatchEvent(new Event("change", { bubbles: true }));
+    englishHints.rogueDual = document.querySelector("#mode-hint")?.textContent || "";
+    document.querySelector("#sel-rogue-variant").value = "ultimate";
+    document.querySelector("#sel-rogue-variant").dispatchEvent(new Event("change", { bubbles: true }));
+    englishHints.rogueUltimate = document.querySelector("#mode-hint")?.textContent || "";
+    currentLang = previousLang;
     return {
-      rogueVariant: getRogueVariantMode(),
-      hint: document.querySelector("#mode-hint")?.textContent || "",
+      rogueVariant: dualVariant,
+      hint: dualHint,
+      ultimateVariant,
+      ultimateHint,
+      englishHints,
       timeSettingsDisplay: document.querySelector("#time-settings")?.style.display || "",
       byoyomiDisplay: document.querySelector("#row-byoyomi")?.style.display || "",
     };
@@ -158,6 +245,15 @@ try {
 
   assert(variantAndTimeState.rogueVariant === "dual", `variant did not update: ${variantAndTimeState.rogueVariant}`);
   assert(variantAndTimeState.hint.includes("双人抽卡"), `variant hint did not update: ${variantAndTimeState.hint}`);
+  assert(variantAndTimeState.ultimateVariant === "ultimate", `ultimate variant did not update: ${variantAndTimeState.ultimateVariant}`);
+  assert(variantAndTimeState.ultimateHint.includes("大招对战"), `ultimate variant hint did not update: ${variantAndTimeState.ultimateHint}`);
+  assert(variantAndTimeState.englishHints.normal.includes("Game:"), `normal hint was not localized at call time: ${variantAndTimeState.englishHints.normal}`);
+  assert(variantAndTimeState.englishHints.watch.includes("Study:"), `watch hint was not localized at call time: ${variantAndTimeState.englishHints.watch}`);
+  assert(variantAndTimeState.englishHints.two.includes("Two Players:"), `two hint was not localized at call time: ${variantAndTimeState.englishHints.two}`);
+  assert(variantAndTimeState.englishHints.challenge.includes("Challenge:"), `challenge hint was not localized at call time: ${variantAndTimeState.englishHints.challenge}`);
+  assert(variantAndTimeState.englishHints.rogueSolo.includes("Solo Draft"), `rogue solo hint was not localized at call time: ${variantAndTimeState.englishHints.rogueSolo}`);
+  assert(variantAndTimeState.englishHints.rogueDual.includes("Dual Draft"), `rogue dual hint was not localized at call time: ${variantAndTimeState.englishHints.rogueDual}`);
+  assert(variantAndTimeState.englishHints.rogueUltimate.includes("Ultimate Duel"), `rogue ultimate hint was not localized at call time: ${variantAndTimeState.englishHints.rogueUltimate}`);
   assert(variantAndTimeState.timeSettingsDisplay === "", `time settings did not show: ${variantAndTimeState.timeSettingsDisplay}`);
   assert(variantAndTimeState.byoyomiDisplay === "flex", `byoyomi row did not show: ${variantAndTimeState.byoyomiDisplay}`);
 
