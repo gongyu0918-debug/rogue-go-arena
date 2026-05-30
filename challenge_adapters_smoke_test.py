@@ -115,7 +115,7 @@ def smoke_server_challenge_flow_binding_resolves_current_runtime() -> None:
         s.get_game_visits = fake_visits
 
         binding = s._challenge_flow_binding()
-        deps = s._challenge_flow_deps()
+        deps = build_challenge_flow_deps(binding)
 
         assert binding.roll_random is fake_random
         assert binding.engine_ready() is True
@@ -150,7 +150,7 @@ def smoke_server_challenge_loadout_binding_resolves_current_runtime() -> None:
         s.ROGUE_GODHAND_RADIUS = 6
 
         binding = s._challenge_loadout_binding()
-        deps = s._challenge_loadout_flow_deps()
+        deps = build_challenge_loadout_flow_deps(binding)
 
         assert binding.apply_loadout is fake_loadout
         assert binding.card_ids_fn is fake_card_ids

@@ -285,9 +285,9 @@ async def smoke_server_wrappers_resolve_current_runtime() -> None:
         s.random.shuffle = fake_sync
 
         player_binding = s._player_rogue_move_effect_binding()
-        player_deps = s._player_rogue_move_effect_deps()
+        player_deps = build_player_rogue_move_effect_deps(player_binding)
         ai_binding = s._ai_rogue_response_effect_binding()
-        ai_deps = s._ai_rogue_response_effect_deps()
+        ai_deps = build_ai_rogue_response_effect_deps(ai_binding)
 
         assert player_binding.has_rogue is has_rogue
         assert player_binding.erosion_shift == 0.25

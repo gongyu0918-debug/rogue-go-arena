@@ -213,9 +213,9 @@ def smoke_server_bindings_resolve_current_runtime() -> None:
         s.time.time_ns = lambda: 456
 
         player = s._rogue_card_activation_binding()
-        player_deps = s._rogue_card_activation_flow_deps()
+        player_deps = build_rogue_card_activation_deps(player)
         ai = s._ai_rogue_card_activation_binding()
-        ai_deps = s._ai_rogue_card_activation_flow_deps()
+        ai_deps = build_ai_rogue_card_activation_deps(ai)
 
         assert player.get_card is fake_get_card
         assert player.apply_activation is fake_sync

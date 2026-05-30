@@ -177,7 +177,7 @@ def smoke_server_binding_resolves_current_runtime() -> None:
         s.time.time_ns = lambda: 12345
 
         binding = s._ultimate_effect_binding()
-        deps = s._ultimate_effect_flow_deps()
+        deps = build_ultimate_effect_flow_deps(binding)
 
         assert binding.apply_effect is fake_async
         assert binding.coord_to_gtp is fake_coord_to_gtp

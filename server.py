@@ -118,8 +118,6 @@ from app.runtime.challenge_adapters import (
     ChallengeLoadoutBinding,
     apply_challenge_loadout,
     apply_challenge_trap_bonus as apply_challenge_trap_bonus_adapter,
-    build_challenge_flow_deps,
-    build_challenge_loadout_flow_deps,
     emit_challenge_set_status,
     maybe_reduce_challenge_level,
 )
@@ -174,8 +172,6 @@ from app.runtime.rogue_activation_adapters import (
     RogueCardActivationBinding,
     activate_ai_rogue_card as activate_ai_rogue_card_adapter,
     activate_rogue_card as activate_rogue_card_adapter,
-    build_ai_rogue_card_activation_deps,
-    build_rogue_card_activation_deps,
 )
 from app.runtime.rogue_ai_turn_adapters import (
     ForcedRogueAiTurnBinding,
@@ -192,8 +188,6 @@ from app.runtime.rogue_move_effect_adapters import (
     PlayerRogueMoveEffectBinding,
     apply_ai_rogue_response_effects as apply_ai_rogue_response_effects_adapter,
     apply_player_rogue_move_effects as apply_player_rogue_move_effects_adapter,
-    build_ai_rogue_response_effect_deps,
-    build_player_rogue_move_effect_deps,
 )
 from app.runtime.service_bindings import (
     AiMoveServiceBinding,
@@ -226,7 +220,6 @@ from app.runtime.turn_modifier_adapters import (
 from app.runtime.ultimate_effect_adapters import (
     UltimateEffectBinding,
     apply_ultimate_effect as apply_ultimate_effect_adapter,
-    build_ultimate_effect_flow_deps,
 )
 from app.runtime.ultimate_ai_adapters import (
     UltimateAiBonusTurnBinding,
@@ -250,10 +243,6 @@ from app.gameplay.card_selection import (
     pick_challenge_beta_choices,
     pick_rogue_choices,
     pick_ultimate_choices,
-)
-from app.gameplay.challenge_flow import (
-    ChallengeFlowDeps,
-    ChallengeLoadoutFlowDeps,
 )
 from app.gameplay.ai_moves import (
     AiMoveService,
@@ -315,12 +304,6 @@ from app.gameplay.ai_turn_flow import AiTurnFlowDeps
 from app.gameplay.move_placement import (
     place_auxiliary_ai_move_on_board as place_auxiliary_ai_move_on_board_state,
 )
-from app.gameplay.rogue_card_flow import AiRogueCardActivationFlowDeps, RogueCardActivationFlowDeps
-from app.gameplay.rogue_move_effect_flow import (
-    AiRogueResponseEffectDeps,
-    PlayerRogueMoveEffectDeps,
-)
-from app.gameplay.ultimate_effect_flow import UltimateEffectFlowDeps
 from app.gameplay.turn_modifiers import (
     apply_ultimate_ai_move_result as apply_ultimate_ai_move_result_state,
     choose_ultimate_ai_bonus_turn as choose_ultimate_ai_bonus_turn_state,
@@ -972,10 +955,6 @@ def _challenge_flow_binding() -> ChallengeFlowBinding:
     )
 
 
-def _challenge_flow_deps() -> ChallengeFlowDeps:
-    return build_challenge_flow_deps(_challenge_flow_binding())
-
-
 def _challenge_loadout_binding() -> ChallengeLoadoutBinding:
     return ChallengeLoadoutBinding(
         apply_loadout=apply_challenge_rogue_loadout_state,
@@ -996,10 +975,6 @@ def _challenge_loadout_binding() -> ChallengeLoadoutBinding:
         sync_engine_komi=_sync_engine_komi,
         emit_set_bonus_status=_challenge_emit_set_bonus_status,
     )
-
-
-def _challenge_loadout_flow_deps() -> ChallengeLoadoutFlowDeps:
-    return build_challenge_loadout_flow_deps(_challenge_loadout_binding())
 
 
 async def _challenge_apply_trap_bonus(game: GoGame, send_fn, source_name: str) -> None:
@@ -1078,10 +1053,6 @@ def _rogue_card_activation_binding() -> RogueCardActivationBinding:
     )
 
 
-def _rogue_card_activation_flow_deps() -> RogueCardActivationFlowDeps:
-    return build_rogue_card_activation_deps(_rogue_card_activation_binding())
-
-
 def _ai_rogue_card_activation_binding() -> AiRogueCardActivationBinding:
     return AiRogueCardActivationBinding(
         get_card=get_rogue_card,
@@ -1092,10 +1063,6 @@ def _ai_rogue_card_activation_binding() -> AiRogueCardActivationBinding:
         refresh_ai_rogue_player_turn=_refresh_ai_rogue_player_turn,
         golden_corner_span=ROGUE_GOLDEN_CORNER_SPAN,
     )
-
-
-def _ai_rogue_card_activation_flow_deps() -> AiRogueCardActivationFlowDeps:
-    return build_ai_rogue_card_activation_deps(_ai_rogue_card_activation_binding())
 
 
 async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
@@ -1142,10 +1109,6 @@ def _player_rogue_move_effect_binding() -> PlayerRogueMoveEffectBinding:
     )
 
 
-def _player_rogue_move_effect_deps() -> PlayerRogueMoveEffectDeps:
-    return build_player_rogue_move_effect_deps(_player_rogue_move_effect_binding())
-
-
 async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                                            x: int, y: int,
                                            color: str, captured: int):
@@ -1169,10 +1132,6 @@ def _ai_rogue_response_effect_binding() -> AiRogueResponseEffectBinding:
         engine_ready=lambda: engine.ready,
         sync_board_to_katago=_sync_board_to_katago,
     )
-
-
-def _ai_rogue_response_effect_deps() -> AiRogueResponseEffectDeps:
-    return build_ai_rogue_response_effect_deps(_ai_rogue_response_effect_binding())
 
 
 async def _apply_ai_rogue_response_effects(game: GoGame, send_fn,
@@ -1242,10 +1201,6 @@ def _ultimate_effect_binding() -> UltimateEffectBinding:
         sleep=asyncio.sleep,
         foolish_chain_delay=ULTIMATE_FOOLISH_CHAIN_DELAY,
     )
-
-
-def _ultimate_effect_flow_deps() -> UltimateEffectFlowDeps:
-    return build_ultimate_effect_flow_deps(_ultimate_effect_binding())
 
 
 async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,
