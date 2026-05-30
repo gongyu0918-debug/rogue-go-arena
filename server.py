@@ -117,6 +117,16 @@ from app.runtime.katago_paths import (
 )
 from app.runtime.no_cache import apply_no_cache_headers_for_html
 from app.runtime.rank_api import build_rank_options
+from app.runtime.rogue_ai_turn_adapters import (
+    ForcedRogueAiTurnBinding,
+    RestrictionRogueAiTurnBinding,
+    ShadowRogueAiTurnBinding,
+    SuboptimalRogueAiTurnBinding,
+    try_finish_forced_rogue_ai_turn as try_finish_forced_rogue_ai_turn_adapter,
+    try_finish_restriction_rogue_ai_turn as try_finish_restriction_rogue_ai_turn_adapter,
+    try_finish_shadow_rogue_ai_turn as try_finish_shadow_rogue_ai_turn_adapter,
+    try_finish_suboptimal_rogue_ai_turn as try_finish_suboptimal_rogue_ai_turn_adapter,
+)
 from app.runtime.service_bindings import (
     AiMoveServiceBinding,
     EngineGatewayBinding,
@@ -234,22 +244,6 @@ from app.gameplay.ai_style_move_flow import (
 from app.gameplay.ai_turn_flow import AiTurnFlowDeps, run_ai_turn
 from app.gameplay.move_placement import (
     place_auxiliary_ai_move_on_board as place_auxiliary_ai_move_on_board_state,
-)
-from app.gameplay.forced_rogue_ai_turn_flow import (
-    ForcedRogueAiTurnDeps,
-    try_finish_forced_rogue_ai_turn_event,
-)
-from app.gameplay.restriction_rogue_ai_turn_flow import (
-    RestrictionRogueAiTurnDeps,
-    try_finish_restriction_rogue_ai_turn_event,
-)
-from app.gameplay.shadow_rogue_ai_turn_flow import (
-    ShadowRogueAiTurnDeps,
-    try_finish_shadow_rogue_ai_turn_event,
-)
-from app.gameplay.suboptimal_rogue_ai_turn_flow import (
-    SuboptimalRogueAiTurnDeps,
-    try_finish_suboptimal_rogue_ai_turn_event,
 )
 from app.gameplay.ai_observer import (
     AiObserverLoopDeps,
@@ -1396,31 +1390,54 @@ def _generated_ai_turn_binding() -> GeneratedAiTurnBinding:
     )
 
 
+def _forced_rogue_ai_turn_binding() -> ForcedRogueAiTurnBinding:
+    return ForcedRogueAiTurnBinding(
+        try_finish_forced_rogue_ai_move=try_finish_forced_rogue_ai_move,
+        roll_random=random.random,
+        dice_pass_chance=ROGUE_DICE_PASS_CHANCE,
+        mirror_chance=ROGUE_MIRROR_CHANCE,
+        gtp_to_coord=gtp_to_coord,
+        coord_to_gtp=coord_to_gtp,
+        mirror_coord=_mirror_coord,
+        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+        finalize_forced_pass=finalize_forced_ai_pass,
+        finalize_forced_stone=try_finalize_forced_ai_stone,
+        apply_puppet_move=try_apply_puppet_ai_move,
+        finish_ai_move=_finish_ai_move,
+    )
+
+
 async def _try_finish_forced_rogue_ai_turn(
     game: GoGame,
     send_fn,
     turn: AiTurnSnapshot,
     run_engine_command,
 ) -> bool:
-    return await try_finish_forced_rogue_ai_turn_event(
+    return await try_finish_forced_rogue_ai_turn_adapter(
         game,
         send_fn,
-        run_engine_command=run_engine_command,
-        turn=turn,
-        deps=ForcedRogueAiTurnDeps(
-            try_finish_forced_rogue_ai_move=try_finish_forced_rogue_ai_move,
-            roll_random=random.random,
-            dice_pass_chance=ROGUE_DICE_PASS_CHANCE,
-            mirror_chance=ROGUE_MIRROR_CHANCE,
-            gtp_to_coord=gtp_to_coord,
-            coord_to_gtp=coord_to_gtp,
-            mirror_coord=_mirror_coord,
-            prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
-            finalize_forced_pass=finalize_forced_ai_pass,
-            finalize_forced_stone=try_finalize_forced_ai_stone,
-            apply_puppet_move=try_apply_puppet_ai_move,
-            finish_ai_move=_finish_ai_move,
-        ),
+        turn,
+        run_engine_command,
+        _forced_rogue_ai_turn_binding(),
+    )
+
+
+def _restriction_rogue_ai_turn_binding() -> RestrictionRogueAiTurnBinding:
+    return RestrictionRogueAiTurnBinding(
+        try_finish_rogue_restriction_ai_move=try_finish_rogue_restriction_ai_move,
+        choose_tengen_target=choose_tengen_target,
+        tengen_followup_points=tengen_followup_points,
+        gravity_allowed_points=gravity_allowed_points,
+        lowline_allowed_points=lowline_allowed_points,
+        sansan_opening_restriction=sansan_opening_restriction,
+        coord_to_gtp=coord_to_gtp,
+        finalize_forced_stone=try_finalize_forced_ai_stone,
+        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+        choose_allowed_move=_ai_move_avoid_points_allow_only,
+        choose_avoid_move=_ai_move_avoid_points,
+        finish_ai_move=_finish_ai_move,
+        finish_allowed_restriction_move=try_finish_allowed_restriction_move,
+        finish_sansan_restriction_move=try_finish_sansan_restriction_move,
     )
 
 
@@ -1431,28 +1448,28 @@ async def _try_finish_rogue_restriction_ai_turn(
     ai_plan: AiMovePlan,
     run_engine_command,
 ) -> bool:
-    return await try_finish_restriction_rogue_ai_turn_event(
+    return await try_finish_restriction_rogue_ai_turn_adapter(
         game,
         send_fn,
-        run_engine_command=run_engine_command,
-        turn=turn,
+        turn,
         ai_plan=ai_plan,
-        deps=RestrictionRogueAiTurnDeps(
-            try_finish_rogue_restriction_ai_move=try_finish_rogue_restriction_ai_move,
-            choose_tengen_target=choose_tengen_target,
-            tengen_followup_points=tengen_followup_points,
-            gravity_allowed_points=gravity_allowed_points,
-            lowline_allowed_points=lowline_allowed_points,
-            sansan_opening_restriction=sansan_opening_restriction,
-            coord_to_gtp=coord_to_gtp,
-            finalize_forced_stone=try_finalize_forced_ai_stone,
-            prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
-            choose_allowed_move=_ai_move_avoid_points_allow_only,
-            choose_avoid_move=_ai_move_avoid_points,
-            finish_ai_move=_finish_ai_move,
-            finish_allowed_restriction_move=try_finish_allowed_restriction_move,
-            finish_sansan_restriction_move=try_finish_sansan_restriction_move,
+        run_engine_command=run_engine_command,
+        binding=_restriction_rogue_ai_turn_binding(),
+    )
+
+
+def _shadow_rogue_ai_turn_binding() -> ShadowRogueAiTurnBinding:
+    return ShadowRogueAiTurnBinding(
+        try_finish_shadow_restriction_move=try_finish_shadow_restriction_move,
+        roll_random=random.random,
+        choose_restriction=lambda game_arg, color_arg, ai_count: shadow_followup_points(
+            game_arg,
+            color_arg,
+            ai_count,
+            gtp_to_coord=gtp_to_coord,
         ),
+        choose_allowed_move=_ai_move_avoid_points_allow_only,
+        finish_ai_move=_finish_ai_move,
     )
 
 
@@ -1462,23 +1479,21 @@ async def _try_finish_shadow_rogue_ai_turn(
     turn: AiTurnSnapshot,
     ai_plan: AiMovePlan,
 ) -> bool:
-    return await try_finish_shadow_rogue_ai_turn_event(
+    return await try_finish_shadow_rogue_ai_turn_adapter(
         game,
         send_fn,
         turn,
         ai_plan,
-        ShadowRogueAiTurnDeps(
-            try_finish_shadow_restriction_move=try_finish_shadow_restriction_move,
-            roll_random=random.random,
-            choose_restriction=lambda game_arg, color_arg, ai_count: shadow_followup_points(
-                game_arg,
-                color_arg,
-                ai_count,
-                gtp_to_coord=gtp_to_coord,
-            ),
-            choose_allowed_move=_ai_move_avoid_points_allow_only,
-            finish_ai_move=_finish_ai_move,
-        ),
+        _shadow_rogue_ai_turn_binding(),
+    )
+
+
+def _suboptimal_rogue_ai_turn_binding() -> SuboptimalRogueAiTurnBinding:
+    return SuboptimalRogueAiTurnBinding(
+        try_finish_suboptimal_rogue_move=try_finish_suboptimal_rogue_move,
+        roll_random=random.random,
+        choose_suboptimal_move=_ai_move_suboptimal,
+        finish_ai_move=_finish_ai_move,
     )
 
 
@@ -1488,17 +1503,12 @@ async def _try_finish_suboptimal_rogue_ai_turn(
     turn: AiTurnSnapshot,
     ai_plan: AiMovePlan,
 ) -> bool:
-    return await try_finish_suboptimal_rogue_ai_turn_event(
+    return await try_finish_suboptimal_rogue_ai_turn_adapter(
         game,
         send_fn,
         turn,
         ai_plan,
-        SuboptimalRogueAiTurnDeps(
-            try_finish_suboptimal_rogue_move=try_finish_suboptimal_rogue_move,
-            roll_random=random.random,
-            choose_suboptimal_move=_ai_move_suboptimal,
-            finish_ai_move=_finish_ai_move,
-        ),
+        _suboptimal_rogue_ai_turn_binding(),
     )
 
 
