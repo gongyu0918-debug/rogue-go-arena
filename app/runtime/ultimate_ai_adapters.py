@@ -10,9 +10,7 @@ from app.gameplay.ultimate_ai_flow import (
     finish_ultimate_ai_turn,
     run_ultimate_ai_bonus_turn,
 )
-
-
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
+from app.runtime.callback_types import SendFn
 
 
 @dataclass(frozen=True)

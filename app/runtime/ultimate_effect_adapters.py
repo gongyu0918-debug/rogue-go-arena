@@ -8,9 +8,7 @@ from app.gameplay.ultimate_effect_flow import (
     UltimateEffectFlowDeps,
     apply_ultimate_effect_event,
 )
-
-
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
+from app.runtime.callback_types import SendFn
 
 
 @dataclass(frozen=True)

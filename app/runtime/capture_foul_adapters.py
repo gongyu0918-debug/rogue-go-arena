@@ -6,9 +6,7 @@ from typing import Any
 
 from app.gameplay.capture_foul import check_capture_foul
 from app.gameplay.capture_foul_flow import check_capture_foul_event
-
-
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
+from app.runtime.callback_types import SendFn
 
 
 @dataclass(frozen=True)

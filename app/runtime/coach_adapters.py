@@ -11,10 +11,7 @@ from app.gameplay.coach_mode import (
     choose_coach_ai_move as choose_coach_ai_move_event,
     run_coach_turn_if_needed as run_coach_turn_if_needed_event,
 )
-
-
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
-EngineCommandFn = Callable[[str], Awaitable[str]]
+from app.runtime.callback_types import EngineCommandFn, SendFn
 
 
 @dataclass(frozen=True)

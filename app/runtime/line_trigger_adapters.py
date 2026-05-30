@@ -14,9 +14,7 @@ from app.gameplay.line_trigger_flow import (
     trigger_ultimate_five_in_row as trigger_ultimate_five_in_row_event,
     trigger_ultimate_last_stand as trigger_ultimate_last_stand_event,
 )
-
-
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
+from app.runtime.callback_types import SendFn
 
 
 @dataclass(frozen=True)

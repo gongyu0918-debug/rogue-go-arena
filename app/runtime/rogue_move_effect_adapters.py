@@ -10,9 +10,7 @@ from app.gameplay.rogue_move_effect_flow import (
     apply_ai_rogue_response_effects_event,
     apply_player_rogue_move_effects_event,
 )
-
-
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
+from app.runtime.callback_types import SendFn
 
 
 @dataclass(frozen=True)

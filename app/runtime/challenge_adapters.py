@@ -12,6 +12,7 @@ from app.gameplay.challenge_flow import (
     emit_challenge_set_bonus_status,
     maybe_reduce_challenge_ai_level,
 )
+from app.runtime.callback_types import SendFn
 
 
 @dataclass(frozen=True)
@@ -46,7 +47,7 @@ class ChallengeLoadoutBinding:
     joseki_target_count: int
     godhand_radius: int
     sync_engine_komi: Callable[[Any], Awaitable[None]]
-    emit_set_bonus_status: Callable[[Any, Callable[[dict[str, Any]], Awaitable[None]]], Awaitable[None]]
+    emit_set_bonus_status: Callable[[Any, SendFn], Awaitable[None]]
 
 
 def build_challenge_flow_deps(binding: ChallengeFlowBinding) -> ChallengeFlowDeps:
@@ -88,7 +89,7 @@ def build_challenge_loadout_flow_deps(binding: ChallengeLoadoutBinding) -> Chall
 
 async def apply_challenge_trap_bonus(
     game: Any,
-    send_fn: Callable[[dict[str, Any]], Awaitable[None]],
+    send_fn: SendFn,
     source_name: str,
     binding: ChallengeFlowBinding,
 ) -> None:
@@ -102,7 +103,7 @@ async def apply_challenge_trap_bonus(
 
 async def maybe_reduce_challenge_level(
     game: Any,
-    send_fn: Callable[[dict[str, Any]], Awaitable[None]],
+    send_fn: SendFn,
     binding: ChallengeFlowBinding,
 ) -> None:
     await maybe_reduce_challenge_ai_level(
@@ -114,7 +115,7 @@ async def maybe_reduce_challenge_level(
 
 async def emit_challenge_set_status(
     game: Any,
-    send_fn: Callable[[dict[str, Any]], Awaitable[None]],
+    send_fn: SendFn,
     binding: ChallengeFlowBinding,
 ) -> None:
     await emit_challenge_set_bonus_status(
@@ -126,7 +127,7 @@ async def emit_challenge_set_status(
 
 async def apply_challenge_loadout(
     game: Any,
-    send_fn: Callable[[dict[str, Any]], Awaitable[None]],
+    send_fn: SendFn,
     binding: ChallengeLoadoutBinding,
 ) -> Any:
     return await apply_challenge_rogue_loadout_event(

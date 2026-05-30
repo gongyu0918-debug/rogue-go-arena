@@ -13,11 +13,7 @@ from app.gameplay.generated_ai_turn_flow import (
     GeneratedAiTurnDeps,
     try_finish_generated_ai_turn_event,
 )
-
-
-EngineCommandFn = Callable[[str], Awaitable[str]]
-DepsFactory = Callable[[], Any]
-FinishDepsFactory = Callable[[EngineCommandFn], Any]
+from app.runtime.callback_types import DepsFactory, EngineCommandFn, FinishDepsFactory, SendFn
 
 
 @dataclass(frozen=True)
@@ -172,7 +168,7 @@ def build_generated_ai_turn_deps(binding: GeneratedAiTurnBinding) -> GeneratedAi
 
 async def try_finish_generated_ai_turn(
     game: Any,
-    send_fn: Callable[[dict[str, Any]], Awaitable[None]],
+    send_fn: SendFn,
     turn: Any,
     ai_plan: Any,
     run_engine_command: EngineCommandFn,

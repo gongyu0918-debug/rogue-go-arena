@@ -5,9 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.gameplay.ai_turn_flow import AiTurnFlowDeps, run_ai_turn as run_ai_turn_event
-
-
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
+from app.runtime.callback_types import SendFn
 
 
 @dataclass(frozen=True)

@@ -20,10 +20,7 @@ from app.gameplay.suboptimal_rogue_ai_turn_flow import (
     SuboptimalRogueAiTurnDeps,
     try_finish_suboptimal_rogue_ai_turn_event,
 )
-
-
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
-EngineCommandFn = Callable[[str], Awaitable[str]]
+from app.runtime.callback_types import EngineCommandFn, SendFn
 
 
 @dataclass(frozen=True)

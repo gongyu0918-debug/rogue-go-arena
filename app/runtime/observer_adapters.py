@@ -10,10 +10,7 @@ from app.gameplay.ai_observer import (
     finish_observer_double_pass as finish_observer_double_pass_event,
     run_ai_observer_loop as run_ai_observer_loop_event,
 )
-
-
-SendFn = Callable[[dict[str, Any]], Awaitable[None]]
-EngineCommandFn = Callable[[str], Awaitable[str]]
+from app.runtime.callback_types import EngineCommandFn, SendFn
 
 
 @dataclass(frozen=True)

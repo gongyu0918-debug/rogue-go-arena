@@ -8,6 +8,7 @@ from app.gameplay.ai_style_move_flow import (
     AiStyleMoveDeps,
     generate_ai_style_move_event,
 )
+from app.runtime.callback_types import EngineCommandFn
 
 
 @dataclass(frozen=True)
@@ -18,7 +19,7 @@ class AiStyleMoveBinding:
     choose_style_move: Callable[..., Any]
     generate_move: Callable[[str, int, float], Awaitable[str]]
     gtp_to_coord: Callable[..., Any]
-    play_chosen_move: Callable[[str], Awaitable[str]]
+    play_chosen_move: EngineCommandFn
 
 
 def build_ai_style_move_deps(binding: AiStyleMoveBinding) -> AiStyleMoveDeps:
