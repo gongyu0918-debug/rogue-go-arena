@@ -6,6 +6,8 @@ from typing import Any
 
 import app.config.gameplay as gameplay_config
 
+from app.gameplay.move_placement import AiMovePlacement
+
 
 AsyncSend = Callable[[dict[str, Any]], Awaitable[None]]
 CoordParser = Callable[[str, int], tuple[int, int] | None]
@@ -86,12 +88,6 @@ class AiMoveResolution:
 class AiMoveCandidate:
     gtp_move: str | None
     completed: bool = False
-
-
-@dataclass(frozen=True)
-class AiMovePlacement:
-    coord: tuple[int, int] | None
-    captured: int = 0
 
 
 @dataclass(frozen=True)

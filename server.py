@@ -168,6 +168,9 @@ from app.gameplay.ai_style_move_flow import (
     generate_ai_style_move_event,
 )
 from app.gameplay.ai_turn_flow import AiTurnFlowDeps, run_ai_turn
+from app.gameplay.move_placement import (
+    place_auxiliary_ai_move_on_board as place_auxiliary_ai_move_on_board_state,
+)
 from app.gameplay.forced_rogue_ai_turn_flow import (
     ForcedRogueAiTurnDeps,
     try_finish_forced_rogue_ai_turn_event,
@@ -1643,14 +1646,7 @@ def _place_auxiliary_ai_move_on_board(
     gtp_move: str,
     coord: tuple[int, int] | None,
 ) -> AiMovePlacement:
-    captured = 0
-    game.moves.append((color, gtp_move))
-    if gtp_move.upper() != "PASS" and coord:
-        captured = game.place_stone(coord[0], coord[1], color)
-        game.passed[color] = False
-    else:
-        game.passed[color] = True
-    return AiMovePlacement(coord=coord, captured=captured)
+    return place_auxiliary_ai_move_on_board_state(game, color, gtp_move, coord)
 
 
 async def _choose_coach_ai_move(game: GoGame, color: str) -> tuple[str, tuple[int, int] | None]:
