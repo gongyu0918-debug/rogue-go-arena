@@ -19,6 +19,7 @@
     "smoke:legacy-game-timers": "node scripts/legacy-game-timers-smoke.mjs",
     "smoke:legacy-visual-effects": "node scripts/legacy-visual-effects-smoke.mjs",
     "smoke:legacy-network-client": "node scripts/legacy-network-client-smoke.mjs",
+    "smoke:legacy-runtime-helpers": "node scripts/legacy-runtime-helpers-smoke.mjs",
     "smoke:legacy-localization": "node scripts/legacy-localization-smoke.mjs",
     "smoke:legacy-websocket-messages": "node scripts/legacy-websocket-messages-smoke.mjs",
     "smoke:legacy-responsive": "node scripts/legacy-responsive-smoke.mjs",
