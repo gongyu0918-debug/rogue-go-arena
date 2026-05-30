@@ -97,6 +97,14 @@ from app.runtime.challenge_adapters import (
     emit_challenge_set_status,
     maybe_reduce_challenge_level,
 )
+from app.runtime.coach_adapters import (
+    AiFinishMoveBinding,
+    CoachMoveChoiceBinding,
+    CoachTurnBinding,
+    choose_coach_ai_move as choose_coach_ai_move_adapter,
+    finish_ai_move as finish_ai_move_adapter,
+    run_coach_turn_if_needed as run_coach_turn_if_needed_adapter,
+)
 from app.runtime.engine_control_api import restart_katago_request, stop_katago_request
 from app.runtime.engine_gateway import EngineRuntimeGateway
 from app.runtime.generated_ai_adapters import (
@@ -236,7 +244,6 @@ from app.gameplay.ai_move_flow import (
     try_finish_shadow_restriction_move,
     try_finish_suboptimal_rogue_move,
 )
-from app.gameplay.ai_finish_move_flow import AiFinishMoveDeps, finish_ai_move_event
 from app.gameplay.ai_style_move_flow import (
     AiStyleMoveDeps,
     generate_ai_style_move_event,
@@ -250,12 +257,6 @@ from app.gameplay.ai_observer import (
     apply_observer_ai_move_to_board as apply_observer_ai_move_to_board_state,
     finish_observer_double_pass as finish_observer_double_pass_state,
     run_ai_observer_loop as run_ai_observer_loop_state,
-)
-from app.gameplay.coach_mode import (
-    CoachMoveChoiceDeps,
-    CoachTurnDeps,
-    choose_coach_ai_move as choose_coach_ai_move_state,
-    run_coach_turn_if_needed as run_coach_turn_if_needed_state,
 )
 from app.gameplay.capture_foul_flow import check_capture_foul_event
 from app.gameplay.rogue_card_flow import (
@@ -1632,25 +1633,29 @@ async def _ai_generate_move(color: str, visits: int, time_limit: float) -> str:
     return await ai_move_service.generate_move(color, visits, time_limit)
 
 
+def _ai_finish_move_binding() -> AiFinishMoveBinding:
+    return AiFinishMoveBinding(
+        finalize_ai_move=finalize_ai_move,
+        gtp_to_coord=gtp_to_coord,
+        no_resign_move=_ai_move_no_resign,
+        retry_avoiding_ko=_ai_retry_avoiding_ko,
+        check_capture_foul=_check_capture_foul,
+        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+        run_engine_command=_send_engine_command,
+        run_coach_turn_if_needed=_run_coach_turn_if_needed,
+    )
+
+
 async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
     """Finalize a rogue-forced AI move: update game state and send messages."""
-    await finish_ai_move_event(
+    await finish_ai_move_adapter(
         game,
         send_fn,
         color=color,
         card=card,
         gtp_move=gtp_move,
         rogue_msg=rogue_msg,
-        deps=AiFinishMoveDeps(
-            finalize_ai_move=finalize_ai_move,
-            gtp_to_coord=gtp_to_coord,
-            no_resign_move=_ai_move_no_resign,
-            retry_avoiding_ko=_ai_retry_avoiding_ko,
-            check_capture_foul=_check_capture_foul,
-            prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
-            run_engine_command=_send_engine_command,
-            run_coach_turn_if_needed=_run_coach_turn_if_needed,
-        ),
+        binding=_ai_finish_move_binding(),
     )
 
 
@@ -1681,37 +1686,45 @@ def _place_auxiliary_ai_move_on_board(
     return place_auxiliary_ai_move_on_board_state(game, color, gtp_move, coord)
 
 
+def _coach_move_choice_binding() -> CoachMoveChoiceBinding:
+    return CoachMoveChoiceBinding(
+        get_game_visits=get_game_visits,
+        generate_ai_style_move=_generate_ai_style_move,
+        gtp_to_coord=gtp_to_coord,
+        retry_avoiding_ko=_ai_retry_avoiding_ko,
+        coach_visits=ROGUE_COACH_VISITS,
+        max_move_time=MAX_MOVE_TIME,
+    )
+
+
 async def _choose_coach_ai_move(game: GoGame, color: str) -> tuple[str, tuple[int, int] | None]:
-    return await choose_coach_ai_move_state(
+    return await choose_coach_ai_move_adapter(
         game,
         color,
-        CoachMoveChoiceDeps(
-            get_game_visits=get_game_visits,
-            generate_ai_style_move=_generate_ai_style_move,
-            gtp_to_coord=gtp_to_coord,
-            retry_avoiding_ko=_ai_retry_avoiding_ko,
-            coach_visits=ROGUE_COACH_VISITS,
-            max_move_time=MAX_MOVE_TIME,
-        ),
+        _coach_move_choice_binding(),
+    )
+
+
+def _coach_turn_binding() -> CoachTurnBinding:
+    return CoachTurnBinding(
+        engine_ready=lambda: engine.ready,
+        choose_coach_ai_move=_choose_coach_ai_move,
+        place_auxiliary_move=_place_auxiliary_ai_move_on_board,
+        check_capture_foul=_check_capture_foul,
+        apply_player_rogue_move_effects=_apply_player_rogue_move_effects,
+        apply_ai_rogue_response_effects=_apply_ai_rogue_response_effects,
+        estimate_side_winrate=_estimate_side_winrate,
+        ai_move=_ai_move,
+        bonus_threshold=ROGUE_COACH_BONUS_THRESHOLD,
+        bonus_turns=ROGUE_COACH_BONUS_TURNS,
     )
 
 
 async def _run_coach_turn_if_needed(game: GoGame, send_fn):
-    await run_coach_turn_if_needed_state(
+    await run_coach_turn_if_needed_adapter(
         game,
         send_fn,
-        CoachTurnDeps(
-            engine_ready=lambda: engine.ready,
-            choose_coach_ai_move=_choose_coach_ai_move,
-            place_auxiliary_move=_place_auxiliary_ai_move_on_board,
-            check_capture_foul=_check_capture_foul,
-            apply_player_rogue_move_effects=_apply_player_rogue_move_effects,
-            apply_ai_rogue_response_effects=_apply_ai_rogue_response_effects,
-            estimate_side_winrate=_estimate_side_winrate,
-            ai_move=_ai_move,
-            bonus_threshold=ROGUE_COACH_BONUS_THRESHOLD,
-            bonus_turns=ROGUE_COACH_BONUS_TURNS,
-        ),
+        _coach_turn_binding(),
     )
 
 
