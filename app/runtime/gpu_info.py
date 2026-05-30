@@ -58,6 +58,21 @@ def detect_gpu_info(
     return result
 
 
+class CachedGpuInfo:
+    def __init__(self, detect_fn: Callable[[], dict[str, Any]] = detect_gpu_info) -> None:
+        self._detect_fn = detect_fn
+        self._cache: dict[str, Any] = {}
+
+    def detect(self) -> dict[str, Any]:
+        if self._cache:
+            return self._cache
+        self._cache.update(self._detect_fn())
+        return self._cache
+
+    def clear(self) -> None:
+        self._cache.clear()
+
+
 def classify_gpu_tier(
     gpu_name: str,
     vram_mb: int,

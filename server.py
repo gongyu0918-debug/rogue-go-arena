@@ -80,7 +80,7 @@ from app.domain.game_state import GoGame
 from app.domain.sgf import generate_sgf
 from app.runtime.access_urls import get_access_urls as build_access_urls
 from app.runtime.engine_gateway import EngineRuntimeGateway
-from app.runtime.gpu_info import apply_runtime_gpu_overrides, detect_gpu_info
+from app.runtime.gpu_info import CachedGpuInfo, apply_runtime_gpu_overrides
 from app.runtime.request_json import read_json_body
 from app.runtime.static_files import serve_existing_file
 from app.runtime.status_payload import build_status_payload
@@ -594,16 +594,12 @@ async def get_status():
 
 
 # ─── GPU detection ───────────────────────────────────────────────────────────
-_gpu_cache: dict = {}
+_gpu_detector = CachedGpuInfo()
 
 
 def _detect_gpu() -> dict:
     """Detect NVIDIA GPU using nvidia-smi. Returns gpu info dict."""
-    if _gpu_cache:
-        return _gpu_cache
-    result = detect_gpu_info()
-    _gpu_cache.update(result)
-    return result
+    return _gpu_detector.detect()
 
 
 @app.get("/gpu")

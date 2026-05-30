@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 
 from app.runtime.gpu_info import (
+    CachedGpuInfo,
     apply_runtime_gpu_overrides,
     classify_gpu_tier,
     default_gpu_info,
@@ -40,6 +41,23 @@ def main() -> int:
 
     missing = detect_gpu_info(check_output_fn=failing_check_output)
     assert missing == default_gpu_info()
+
+    detect_calls = []
+
+    def fake_detect():
+        detect_calls.append("detect")
+        return {"name": "Cached GPU", "vram_mb": 4096}
+
+    cached = CachedGpuInfo(fake_detect)
+    first_cached = cached.detect()
+    second_cached = cached.detect()
+    assert first_cached is second_cached
+    assert second_cached["name"] == "Cached GPU"
+    assert detect_calls == ["detect"]
+
+    cached.clear()
+    assert cached.detect()["name"] == "Cached GPU"
+    assert detect_calls == ["detect", "detect"]
 
     assert classify_gpu_tier("NVIDIA GeForce GTX 1050", 2048) == 2
     assert classify_gpu_tier("Unknown Adapter", 2048) == 1
