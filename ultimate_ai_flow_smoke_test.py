@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+from types import SimpleNamespace
 
 from app.domain.game_state import GoGame
 from app.gameplay.ultimate_ai_flow import (
-    choose_ultimate_ai_move,
     apply_ultimate_ai_post_move_effects,
+    choose_ultimate_ai_move,
     finish_ultimate_ai_turn,
     opponent_color_value,
+    run_ultimate_ai_bonus_turn,
 )
 
 
@@ -725,6 +727,79 @@ def test_post_move_effects_skips_sync_when_unmodified() -> None:
     asyncio.run(_post_move_effects_skips_sync_when_unmodified())
 
 
+async def _run_ultimate_ai_bonus_turn_sends_state_and_recurses() -> None:
+    game = make_game()
+    game.ultimate_move_count = 19
+    bonus_turn = SimpleNamespace(message="连锁额外回合", next_allow_double_bonus=False)
+    calls = []
+    sent = []
+
+    async def send(payload):
+        sent.append(payload)
+
+    def start_bonus(game_arg, color):
+        calls.append(("start", game_arg is game, color))
+
+    async def run_next(game_arg, send_fn, next_allow_double_bonus):
+        calls.append(("next", game_arg is game, send_fn is send, next_allow_double_bonus))
+
+    recursed = await run_ultimate_ai_bonus_turn(
+        game,
+        send,
+        "W",
+        bonus_turn,
+        start_bonus_turn=start_bonus,
+        run_next_ai_move=run_next,
+    )
+
+    assert recursed is True
+    assert calls == [
+        ("start", True, "W"),
+        ("next", True, True, False),
+    ]
+    assert sent[0] == {"type": "rogue_event", "msg": "连锁额外回合"}
+    assert sent[1]["type"] == "game_state"
+
+
+def test_run_ultimate_ai_bonus_turn_sends_state_and_recurses() -> None:
+    asyncio.run(_run_ultimate_ai_bonus_turn_sends_state_and_recurses())
+
+
+async def _run_ultimate_ai_bonus_turn_stops_at_move_limit() -> None:
+    game = make_game()
+    game.ultimate_move_count = 20
+    bonus_turn = SimpleNamespace(message="额外回合", next_allow_double_bonus=True)
+    calls = []
+    sent = []
+
+    async def send(payload):
+        sent.append(payload)
+
+    def start_bonus(game_arg, color):
+        calls.append(("start", game_arg is game, color))
+
+    async def run_next(*_args):
+        calls.append("next")
+
+    recursed = await run_ultimate_ai_bonus_turn(
+        game,
+        send,
+        "B",
+        bonus_turn,
+        start_bonus_turn=start_bonus,
+        run_next_ai_move=run_next,
+    )
+
+    assert recursed is False
+    assert calls == [("start", True, "B")]
+    assert sent[0] == {"type": "rogue_event", "msg": "额外回合"}
+    assert sent[1]["type"] == "game_state"
+
+
+def test_run_ultimate_ai_bonus_turn_stops_at_move_limit() -> None:
+    asyncio.run(_run_ultimate_ai_bonus_turn_stops_at_move_limit())
+
+
 if __name__ == "__main__":
     test_opponent_color_value_matches_legacy_mapping()
     test_choose_ultimate_ai_move_replaces_resign()
@@ -739,4 +814,6 @@ if __name__ == "__main__":
     test_post_move_effects_resolves_pending_without_ai_card()
     test_post_move_effects_counts_pending_removed_stones()
     test_post_move_effects_skips_sync_when_unmodified()
+    test_run_ultimate_ai_bonus_turn_sends_state_and_recurses()
+    test_run_ultimate_ai_bonus_turn_stops_at_move_limit()
     print("ultimate_ai_flow_smoke_test passed")

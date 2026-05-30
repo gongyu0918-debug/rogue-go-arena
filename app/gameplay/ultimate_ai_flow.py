@@ -16,6 +16,8 @@ ChooseUltimateAiBonusTurnFn = Callable[..., Any]
 RunUltimateAiBonusTurnFn = Callable[[Any, AsyncSend, str, Any], Awaitable[bool]]
 FinishUltimateAiNormalTurnFn = Callable[..., None]
 ForceScoreFn = Callable[[Any, AsyncSend], Awaitable[None]]
+StartUltimateAiBonusTurnFn = Callable[[Any, str], None]
+RunNextUltimateAiMoveFn = Callable[[Any, AsyncSend, bool], Awaitable[None]]
 
 
 @dataclass(frozen=True)
@@ -116,6 +118,24 @@ async def apply_ultimate_ai_post_move_effects(
     if effect_removed > 0:
         await check_capture_foul(game, send_fn, color, effect_removed, ultimate=True)
     return True
+
+
+async def run_ultimate_ai_bonus_turn(
+    game: Any,
+    send_fn: AsyncSend,
+    color: str,
+    bonus_turn: Any,
+    *,
+    start_bonus_turn: StartUltimateAiBonusTurnFn,
+    run_next_ai_move: RunNextUltimateAiMoveFn,
+) -> bool:
+    start_bonus_turn(game, color)
+    await send_fn({"type": "rogue_event", "msg": bonus_turn.message})
+    await send_fn({"type": "game_state", **game.to_state()})
+    if game.ultimate_move_count < 20:
+        await run_next_ai_move(game, send_fn, bonus_turn.next_allow_double_bonus)
+        return True
+    return False
 
 
 async def finish_ultimate_ai_turn(

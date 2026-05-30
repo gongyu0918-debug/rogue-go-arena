@@ -330,6 +330,7 @@ from app.gameplay.ultimate_ai_flow import (
     apply_ultimate_ai_post_move_effects,
     choose_ultimate_ai_move,
     finish_ultimate_ai_turn,
+    run_ultimate_ai_bonus_turn,
 )
 from app.gameplay.ultimate_scoring import finalize_ultimate_score
 from app.runtime.engine import KataGoEngine
@@ -1205,17 +1206,21 @@ async def _pick_ranked_legal_move(
 
 
 async def _run_ultimate_ai_bonus_turn(game: GoGame, send_fn, color: str, bonus_turn) -> bool:
-    start_ultimate_ai_bonus_turn_state(game, color)
-    await send_fn({"type": "rogue_event", "msg": bonus_turn.message})
-    await send_fn({"type": "game_state", **game.to_state()})
-    if game.ultimate_move_count < 20:
+    async def run_next_ai_move(game_arg, send_arg, next_allow_double_bonus: bool) -> None:
         await _ultimate_ai_move(
-            game,
-            send_fn,
-            allow_double_bonus=bonus_turn.next_allow_double_bonus,
+            game_arg,
+            send_arg,
+            allow_double_bonus=next_allow_double_bonus,
         )
-        return True
-    return False
+
+    return await run_ultimate_ai_bonus_turn(
+        game,
+        send_fn,
+        color,
+        bonus_turn,
+        start_bonus_turn=start_ultimate_ai_bonus_turn_state,
+        run_next_ai_move=run_next_ai_move,
+    )
 
 
 async def _ultimate_ai_move(game: GoGame, send_fn,
