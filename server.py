@@ -167,6 +167,10 @@ from app.gameplay.forced_rogue_ai_turn_flow import (
     ForcedRogueAiTurnDeps,
     try_finish_forced_rogue_ai_turn_event,
 )
+from app.gameplay.restriction_rogue_ai_turn_flow import (
+    RestrictionRogueAiTurnDeps,
+    try_finish_restriction_rogue_ai_turn_event,
+)
 from app.gameplay.generated_ai_turn_flow import (
     GeneratedAiTurnDeps,
     try_finish_generated_ai_turn_event,
@@ -1382,29 +1386,28 @@ async def _try_finish_rogue_restriction_ai_turn(
     ai_plan: AiMovePlan,
     run_engine_command,
 ) -> bool:
-    return await try_finish_rogue_restriction_ai_move(
+    return await try_finish_restriction_rogue_ai_turn_event(
         game,
         send_fn,
-        color=turn.color,
-        card=turn.card,
-        rogue_cards=turn.rogue_cards,
-        ai_move_count=turn.ai_move_count,
-        visits=ai_plan.visits,
-        time_limit=ai_plan.time_limit,
-        choose_tengen_target=choose_tengen_target,
-        tengen_followup_points=tengen_followup_points,
-        gravity_allowed_points=gravity_allowed_points,
-        lowline_allowed_points=lowline_allowed_points,
-        sansan_opening_restriction=sansan_opening_restriction,
-        coord_to_gtp=coord_to_gtp,
-        finalize_forced_stone=try_finalize_forced_ai_stone,
-        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
         run_engine_command=run_engine_command,
-        choose_allowed_move=_ai_move_avoid_points_allow_only,
-        choose_avoid_move=_ai_move_avoid_points,
-        finish_ai_move=_finish_ai_move,
-        finish_allowed_restriction_move=try_finish_allowed_restriction_move,
-        finish_sansan_restriction_move=try_finish_sansan_restriction_move,
+        turn=turn,
+        ai_plan=ai_plan,
+        deps=RestrictionRogueAiTurnDeps(
+            try_finish_rogue_restriction_ai_move=try_finish_rogue_restriction_ai_move,
+            choose_tengen_target=choose_tengen_target,
+            tengen_followup_points=tengen_followup_points,
+            gravity_allowed_points=gravity_allowed_points,
+            lowline_allowed_points=lowline_allowed_points,
+            sansan_opening_restriction=sansan_opening_restriction,
+            coord_to_gtp=coord_to_gtp,
+            finalize_forced_stone=try_finalize_forced_ai_stone,
+            prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+            choose_allowed_move=_ai_move_avoid_points_allow_only,
+            choose_avoid_move=_ai_move_avoid_points,
+            finish_ai_move=_finish_ai_move,
+            finish_allowed_restriction_move=try_finish_allowed_restriction_move,
+            finish_sansan_restriction_move=try_finish_sansan_restriction_move,
+        ),
     )
 
 
