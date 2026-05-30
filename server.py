@@ -162,6 +162,7 @@ from app.gameplay.ai_move_flow import (
     try_finish_shadow_restriction_move,
     try_finish_suboptimal_rogue_move,
 )
+from app.gameplay.ai_finish_move_flow import AiFinishMoveDeps, finish_ai_move_event
 from app.gameplay.ai_turn_flow import AiTurnFlowDeps, run_ai_turn
 from app.gameplay.forced_rogue_ai_turn_flow import (
     ForcedRogueAiTurnDeps,
@@ -1594,20 +1595,23 @@ async def _ai_generate_move(color: str, visits: int, time_limit: float) -> str:
 
 async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
     """Finalize a rogue-forced AI move: update game state and send messages."""
-    await finalize_ai_move(
+    await finish_ai_move_event(
         game,
         send_fn,
         color=color,
         card=card,
         gtp_move=gtp_move,
         rogue_msg=rogue_msg,
-        gtp_to_coord=gtp_to_coord,
-        no_resign_move=_ai_move_no_resign,
-        retry_avoiding_ko=_ai_retry_avoiding_ko,
-        check_capture_foul=_check_capture_foul,
-        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
-        run_engine_command=_send_engine_command,
-        run_coach_turn_if_needed=_run_coach_turn_if_needed,
+        deps=AiFinishMoveDeps(
+            finalize_ai_move=finalize_ai_move,
+            gtp_to_coord=gtp_to_coord,
+            no_resign_move=_ai_move_no_resign,
+            retry_avoiding_ko=_ai_retry_avoiding_ko,
+            check_capture_foul=_check_capture_foul,
+            prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+            run_engine_command=_send_engine_command,
+            run_coach_turn_if_needed=_run_coach_turn_if_needed,
+        ),
     )
 
 
