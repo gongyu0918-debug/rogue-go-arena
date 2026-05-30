@@ -39,6 +39,24 @@ try {
   await page.locator("#board-canvas").waitFor({ state: "visible", timeout: 10000 });
 
   const state = await page.evaluate(() => {
+    const emptyBoard = (size) => Array.from({ length: size }, () => Array(size).fill(0));
+    const baseState = (overrides = {}) => ({
+      type: "game_state",
+      size: 9,
+      board: emptyBoard(9),
+      captures: { B: 0, W: 0 },
+      current_player: "B",
+      player_color: "B",
+      ai_color: "W",
+      level: "10k",
+      move_number: 0,
+      komi: 6.5,
+      game_over: false,
+      two_player: false,
+      ai_observer: false,
+      rogue_uses: {},
+      ...overrides,
+    });
     const timerText = () => ({
       blackText: document.querySelector("#timer-black-text")?.textContent || "",
       whiteText: document.querySelector("#timer-white-text")?.textContent || "",
@@ -60,6 +78,65 @@ try {
       typeof window.formatTime,
       typeof window.updateTimerDisplay,
     ];
+    const stateGlobals = [
+      typeof window.timerMode,
+      typeof window.mainTimeSetting,
+      typeof window.byoPeriodsSetting,
+      typeof window.byoTimeSetting,
+      typeof window.blackTimer,
+      typeof window.whiteTimer,
+      typeof window.timerInterval,
+      typeof window.lastTimerTick,
+    ];
+    const privateFns = [
+      typeof window.createTimer,
+      typeof window.timerPairs,
+      typeof window.timerForColor,
+      typeof window.setTimerWrapHidden,
+      typeof window.resetTimerState,
+      typeof window.setRunningColor,
+      typeof window.timerElapsedSeconds,
+      typeof window.maybePlayMainTimeWarning,
+      typeof window.maybePlayByoyomiWarning,
+      typeof window.expireTimer,
+      typeof window.tickMainTime,
+      typeof window.tickByoyomi,
+      typeof window.tickActiveTimer,
+      typeof window.formatTimer,
+      typeof window.syncTimerPanel,
+      typeof window.defineTimerGlobal,
+    ];
+
+    stopTimerTick();
+    timerMode = "absolute";
+    mainTimeSetting = 12;
+    byoPeriodsSetting = 3;
+    byoTimeSetting = 20;
+    handleMessage({ ...baseState(), type: "game_start", current_player: "B" });
+    const messageStartState = {
+      timerMode,
+      black: { ...blackTimer },
+      white: { ...whiteTimer },
+      timerIntervalIsSet: timerInterval !== null,
+      currentPlayer: gameState?.current_player || "",
+      ...timerText(),
+    };
+
+    handleMessage({
+      ...baseState({
+        board: emptyBoard(9),
+        current_player: "W",
+        move_number: 1,
+      }),
+      type: "game_state",
+    });
+    const messageSwitchState = {
+      black: { ...blackTimer },
+      white: { ...whiteTimer },
+      timerIntervalIsSet: timerInterval !== null,
+      currentPlayer: gameState?.current_player || "",
+      ...timerText(),
+    };
 
     stopTimerTick();
     timerMode = "none";
@@ -151,6 +228,10 @@ try {
 
     return {
       publicFns,
+      stateGlobals,
+      privateFns,
+      messageStartState,
+      messageSwitchState,
       formatted: [formatTime(0), formatTime(65), formatTime(599.9)],
       noneState,
       absoluteInit,
@@ -164,6 +245,14 @@ try {
   });
 
   assert(state.publicFns.every(type => type === "function"), `timer globals missing: ${state.publicFns.join(", ")}`);
+  assert(state.stateGlobals.join("|") === "string|number|number|number|object|object|object|number", `timer state globals changed: ${state.stateGlobals.join("|")}`);
+  assert(state.privateFns.every(type => type === "undefined"), `timer private helpers leaked globally: ${state.privateFns.join(", ")}`);
+  assert(state.messageStartState.black.running && !state.messageStartState.white.running, `game_start did not start black timer: ${JSON.stringify(state.messageStartState)}`);
+  assert(state.messageStartState.timerIntervalIsSet, "game_start did not create timer interval");
+  assert(state.messageStartState.black.main === 12 && state.messageStartState.white.main === 12, `game_start did not use absolute timer settings: ${JSON.stringify(state.messageStartState)}`);
+  assert(state.messageStartState.blackClass.includes("active") && !state.messageStartState.whiteClass.includes("active"), `game_start timer classes changed: ${JSON.stringify(state.messageStartState)}`);
+  assert(!state.messageSwitchState.black.running && state.messageSwitchState.white.running, `game_state did not switch running timer to white: ${JSON.stringify(state.messageSwitchState)}`);
+  assert(state.messageSwitchState.currentPlayer === "W", `game_state did not update current player: ${state.messageSwitchState.currentPlayer}`);
   assert(state.formatted.join("|") === "0:00|1:05|9:59", `formatTime changed: ${state.formatted.join("|")}`);
   assert(state.noneState.wrapClass.includes("timer-hidden"), `none mode should hide timer: ${state.noneState.wrapClass}`);
   assert(state.noneState.timerIntervalIsNull, "none mode did not stop timer interval");
