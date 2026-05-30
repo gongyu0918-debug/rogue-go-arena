@@ -113,6 +113,19 @@ from app.runtime.static_pages import (
     serve_root_page,
 )
 from app.runtime.status_endpoint import build_runtime_status_payload
+from app.runtime.turn_modifier_adapters import (
+    clear_player_turn_modifiers as clear_player_turn_modifiers_adapter,
+    finish_ultimate_quickthink_turn as finish_ultimate_quickthink_turn_adapter,
+    get_ai_rogue_forbidden_points as get_ai_rogue_forbidden_points_adapter,
+    get_player_bonus_forbidden_points as get_player_bonus_forbidden_points_adapter,
+    pick_fog_mask as pick_fog_mask_adapter,
+    pick_fog_point as pick_fog_point_adapter,
+    player_non_pass_coords as player_non_pass_coords_adapter,
+    prepare_player_turn_modifiers as prepare_player_turn_modifiers_adapter,
+    record_ultimate_player_action as record_ultimate_player_action_adapter,
+    record_ultimate_turn as record_ultimate_turn_adapter,
+    refresh_ai_rogue_player_turn as refresh_ai_rogue_player_turn_adapter,
+)
 from app.runtime.ws_context import (
     WebSocketContextDeps,
     build_websocket_action_context,
@@ -258,17 +271,7 @@ from app.gameplay.ultimate_effect_flow import (
 from app.gameplay.turn_modifiers import (
     apply_ultimate_ai_move_result as apply_ultimate_ai_move_result_state,
     choose_ultimate_ai_bonus_turn as choose_ultimate_ai_bonus_turn_state,
-    clear_player_turn_modifiers as clear_player_turn_modifiers_state,
-    finish_ultimate_quickthink_turn as finish_ultimate_quickthink_turn_state,
     finish_ultimate_ai_normal_turn as finish_ultimate_ai_normal_turn_state,
-    get_ai_rogue_forbidden_points as get_ai_rogue_forbidden_points_state,
-    get_player_bonus_forbidden_points as get_player_bonus_forbidden_points_state,
-    pick_fog_mask as pick_fog_mask_state,
-    pick_fog_point as pick_fog_point_state,
-    prepare_player_turn_modifiers as prepare_player_turn_modifiers_state,
-    record_ultimate_player_action as record_ultimate_player_action_state,
-    record_ultimate_turn as record_ultimate_turn_state,
-    refresh_ai_rogue_player_turn as refresh_ai_rogue_player_turn_state,
     start_ultimate_ai_bonus_turn as start_ultimate_ai_bonus_turn_state,
 )
 from app.gameplay.effect_utils import (
@@ -285,7 +288,6 @@ from app.gameplay.effect_utils import (
     line_key as _line_key,
     line_points_between as _line_points_between,
     mirror_coord as _mirror_coord,
-    player_non_pass_coords as player_non_pass_coords_state,
     pick_joseki_targets as _pick_joseki_targets,
     random_hidden_center as _random_hidden_center,
     set_points_to_color as _set_points_to_color,
@@ -736,18 +738,18 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
 
 
 def _record_ultimate_turn(game: GoGame) -> None:
-    record_ultimate_turn_state(game)
+    record_ultimate_turn_adapter(game)
 
 
 def _record_ultimate_player_action(game: GoGame) -> None:
-    record_ultimate_player_action_state(
+    record_ultimate_player_action_adapter(
         game,
         record_ultimate_turn_fn=_record_ultimate_turn,
     )
 
 
 def _finish_ultimate_quickthink_turn(game: GoGame) -> None:
-    finish_ultimate_quickthink_turn_state(game)
+    finish_ultimate_quickthink_turn_adapter(game)
 
 
 async def _check_capture_foul(game: GoGame, send_fn, offender: str, captured: int, *, ultimate: bool) -> None:
@@ -769,15 +771,15 @@ async def _check_capture_foul(game: GoGame, send_fn, offender: str, captured: in
 
 
 def _pick_fog_mask(size: int, rng: random.Random) -> list[tuple[int, int]]:
-    return pick_fog_mask_state(size, rng)
+    return pick_fog_mask_adapter(size, rng)
 
 
 def _pick_fog_point(game, rng: random.Random) -> list[tuple[int, int]]:
-    return pick_fog_point_state(game, rng)
+    return pick_fog_point_adapter(game, rng)
 
 
 def _get_player_bonus_forbidden_points(game: GoGame, color: str) -> set[tuple[int, int]]:
-    return get_player_bonus_forbidden_points_state(game, color)
+    return get_player_bonus_forbidden_points_adapter(game, color)
 
 
 async def _estimate_side_winrate(game: GoGame, color: str) -> float:
@@ -857,7 +859,7 @@ async def _trigger_ultimate_five_in_row(game: GoGame, send_fn, color: str):
 
 
 def _player_non_pass_coords(game: GoGame, color: str, limit: Optional[int] = None) -> list[tuple[int, int]]:
-    return player_non_pass_coords_state(game, color, gtp_to_coord, limit=limit)
+    return player_non_pass_coords_adapter(game, color, gtp_to_coord, limit=limit)
 
 
 async def _resolve_pending_ultimate_shadow_links(game: GoGame, send_fn) -> bool:
@@ -872,7 +874,7 @@ async def _resolve_pending_ultimate_shadow_links(game: GoGame, send_fn) -> bool:
 
 
 def _get_ai_rogue_forbidden_points(game: GoGame) -> list[tuple[int, int]]:
-    return get_ai_rogue_forbidden_points_state(game)
+    return get_ai_rogue_forbidden_points_adapter(game)
 
 
 def _challenge_flow_deps() -> ChallengeFlowDeps:
@@ -938,7 +940,7 @@ async def _challenge_emit_set_bonus_status(game: GoGame, send_fn) -> None:
 
 
 def _refresh_ai_rogue_player_turn(game: GoGame):
-    refresh_ai_rogue_player_turn_state(
+    refresh_ai_rogue_player_turn_adapter(
         game,
         pick_fog_mask_fn=_pick_fog_mask,
         pick_fog_point_fn=_pick_fog_point,
@@ -946,14 +948,14 @@ def _refresh_ai_rogue_player_turn(game: GoGame):
 
 
 def _prepare_player_turn_modifiers(game: GoGame):
-    prepare_player_turn_modifiers_state(
+    prepare_player_turn_modifiers_adapter(
         game,
         refresh_ai_rogue_player_turn_fn=_refresh_ai_rogue_player_turn,
     )
 
 
 def _clear_player_turn_modifiers(game: GoGame):
-    clear_player_turn_modifiers_state(
+    clear_player_turn_modifiers_adapter(
         game,
         finish_ultimate_quickthink_turn_fn=_finish_ultimate_quickthink_turn,
     )
