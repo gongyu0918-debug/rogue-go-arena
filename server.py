@@ -190,11 +190,9 @@ from app.runtime.service_bindings import (
     EngineGatewayBinding,
 )
 from app.runtime.sgf_export import build_sgf_export_response
-from app.runtime.static_pages import (
-    serve_balance_lab_page,
-    serve_card_editor_page,
-    serve_react_preview_page,
-    serve_root_page,
+from app.runtime.static_page_routes import (
+    StaticPageRoutesBinding,
+    build_static_page_router,
 )
 from app.runtime.status_endpoint import build_runtime_status_payload
 from app.runtime.turn_modifier_adapters import (
@@ -503,24 +501,11 @@ async def no_cache_html(request: Request, call_next):
     return apply_no_cache_headers_for_html(response)
 
 
-@app.get("/")
-async def root():
-    return serve_root_page(STATIC_DIR)
+def _static_page_routes_binding() -> StaticPageRoutesBinding:
+    return StaticPageRoutesBinding(static_dir=STATIC_DIR)
 
 
-@app.get("/react-preview")
-async def react_preview():
-    return serve_react_preview_page(STATIC_DIR)
-
-
-@app.get("/balance-lab")
-async def balance_lab():
-    return serve_balance_lab_page(STATIC_DIR)
-
-
-@app.get("/card-editor")
-async def card_editor():
-    return serve_card_editor_page(STATIC_DIR)
+app.include_router(build_static_page_router(_static_page_routes_binding))
 
 
 def _config_routes_binding() -> ConfigRoutesBinding:

@@ -221,6 +221,7 @@ Still in `static/index.html`:
    - Preserve the current `WebSocketActionContext` direction; expand it instead of passing many globals.
    - WebSocket context group and field inventories are derived from dependency dataclasses to avoid hand-maintained drift.
    - `/gpu` payload detection, caching, CPU-mode override, and model-file flag orchestration now live in `app/runtime/gpu_info.py`.
+   - Static page route registration now lives behind `app/runtime/static_page_routes.py`; `server.py` only supplies the current static directory binding.
 
 5. `app/services/card_config_service.py`
    - Move live card config reload/save/reset orchestration out of `server.py`.
