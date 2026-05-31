@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, fields
 from typing import Any, get_type_hints
 
-from app.runtime.ws_actions import WebSocketActionContext
+from app.runtime.ws_action_context import WebSocketActionContext
 
 
 @dataclass(frozen=True)

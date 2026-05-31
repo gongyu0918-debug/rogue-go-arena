@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    from app.runtime.ws_actions import WebSocketActionContext
+from app.runtime.ws_action_context import WebSocketActionContext
 
 
 async def handle_reconnect(ctx: WebSocketActionContext, data: dict) -> None:

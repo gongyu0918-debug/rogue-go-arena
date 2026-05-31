@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 import random
 import time
 from typing import Any, Awaitable, Callable, Optional
@@ -10,7 +9,6 @@ from app.config.gameplay import (
     AI_STYLE_OPTIONS,
     RANK_VISITS,
     ROGUE_COACH_BASE_TURNS,
-    ROGUE_HANDICAP_BONUS_INTERVAL,
     ROGUE_HANDICAP_REQUIRED_PASSES,
     ROGUE_SEAL_POINT_COUNT,
     ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
@@ -28,6 +26,7 @@ from app.data.cards import (
     ultimate_card_summary,
 )
 from app.gameplay.ultimate_effects import reset_ultimate_effect_state
+from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_session_actions import (
     handle_load_position,
     handle_reconnect,
@@ -37,62 +36,11 @@ from app.runtime.ws_session_actions import (
     handle_time_expired,
     wait_for_engine_ready,
 )
-
-
-@dataclass
-class WebSocketActionContext:
-    game_id: str
-    game: Optional[Any]
-    active_games: Any
-    engine: Any
-    send: Callable[[dict], Awaitable[None]]
-    send_error: Callable[[str], Awaitable[None]]
-    do_analysis: Callable[[Any], Awaitable[dict]]
-    do_analysis_bg: Callable[[Any], Awaitable[None]]
-    run_in_executor: Callable[..., Awaitable[Any]]
-    GoGame: type
-    coord_to_gtp: Callable[[int, int, int], Optional[str]]
-    gtp_to_coord: Callable[[str, int], Optional[tuple[int, int]]]
-    engine_state_snapshot: Callable[[], dict]
-    start_engine_background: Callable[[str], None]
-    get_game_visits: Callable[[str, int, str], int]
-    sync_board_to_katago: Callable[..., Awaitable[None]]
-    reload_live_card_config: Callable[[], list[str]]
-    pick_rogue_choices: Callable[..., list[str]]
-    pick_ultimate_choices: Callable[..., list[str]]
-    pick_challenge_beta_choices: Callable[..., list[str]]
-    pick_ai_rogue_card: Callable[..., str]
-    pick_ai_ultimate_card: Callable[..., str]
-    apply_challenge_rogue_loadout: Callable[..., Awaitable[None]]
-    activate_rogue_card: Callable[..., Awaitable[None]]
-    activate_ai_rogue_card: Callable[..., Awaitable[None]]
-    ai_move: Callable[..., Awaitable[None]]
-    ultimate_ai_move: Callable[..., Awaitable[None]]
-    ultimate_force_score: Callable[..., Awaitable[None]]
-    run_coach_turn_if_needed: Callable[..., Awaitable[None]]
-    run_ai_observer_loop: Callable[..., Awaitable[None]]
-    challenge_remaining: Callable[[Any, str], int]
-    challenge_zone_points: Callable[[Any, list[tuple[int, int]]], list[tuple[int, int]]]
-    rogue_has: Callable[[Any, str], bool]
-    get_ai_rogue_forbidden_points: Callable[[Any], set[tuple[int, int]]]
-    ultimate_get_territory_forbidden: Callable[[Any, int], set]
-    record_ultimate_player_action: Callable[[Any], None]
-    check_capture_foul: Callable[..., Awaitable[None]]
-    count_stones: Callable[[Any, int], int]
-    apply_ultimate_effect: Callable[..., Awaitable[bool]]
-    resolve_pending_ultimate_shadow_links: Callable[..., Awaitable[bool]]
-    apply_player_rogue_move_effects: Callable[..., Awaitable[None]]
-    apply_ai_rogue_response_effects: Callable[..., Awaitable[None]]
-    prepare_player_turn_modifiers: Callable[[Any], None]
-    finish_ultimate_quickthink_turn: Callable[[Any], None]
-    pick_joseki_targets: Callable[[int, int], list[tuple[int, int]]]
-    random_hidden_center: Callable[[int, int, random.Random], tuple[int, int]]
-    diamond_points: Callable[..., list[tuple[int, int]]]
-
-    def restore_game(self) -> Any:
-        if not self.game:
-            self.game = self.active_games.get(self.game_id, touch=True)
-        return self.game
+from app.runtime.ws_turn_actions import (
+    handle_pass,
+    handle_score,
+    handle_undo,
+)
 
 
 def _board_point_from_data(data: dict, size: int) -> Optional[tuple[int, int]]:
@@ -752,143 +700,6 @@ async def handle_ultimate_quickthink_end(ctx: WebSocketActionContext, data: dict
         await ctx.ultimate_ai_move(game, ctx.send)
     if not game.game_over and ctx.engine.ready:
         asyncio.create_task(ctx.do_analysis_bg(game))
-
-
-async def handle_pass(ctx: WebSocketActionContext, data: dict) -> None:
-    game = ctx.restore_game()
-    if not game or game.game_over:
-        return
-    if not game.two_player and game.rogue_card == "coach_mode" and game.rogue_coach_moves_left > 0:
-        await ctx.send_error("代练上号接管中，请等待强化 AI 完成代打")
-        return
-
-    if game.two_player:
-        color = game.current_player
-    else:
-        if game.current_player != game.player_color:
-            return
-        color = game.player_color
-
-    if game.ultimate and not game.two_player:
-        if game.ultimate_player_card == "quickthink" and game.ultimate_quickthink_active:
-            ctx.finish_ultimate_quickthink_turn(game)
-            game.current_player = game.ai_color
-            game.push_history()
-            await ctx.send({"type": "game_state", **game.to_state()})
-            if game.ultimate_move_count >= 20:
-                await ctx.ultimate_force_score(game, ctx.send)
-            elif ctx.engine.ready:
-                await ctx.ultimate_ai_move(game, ctx.send)
-            if not game.game_over and ctx.engine.ready:
-                asyncio.create_task(ctx.do_analysis_bg(game))
-            return
-        ctx.record_ultimate_player_action(game)
-        game.moves.append((color, "pass"))
-        game.passed[color] = True
-        game.current_player = "W" if color == "B" else "B"
-        game.ultimate_double_pending = False
-        ctx.finish_ultimate_quickthink_turn(game)
-        game.push_history()
-        await ctx.send({"type": "game_state", **game.to_state()})
-        if game.ultimate_move_count >= 20:
-            await ctx.ultimate_force_score(game, ctx.send)
-        elif ctx.engine.ready:
-            await ctx.ultimate_ai_move(game, ctx.send)
-        if not game.game_over and ctx.engine.ready:
-            asyncio.create_task(ctx.do_analysis_bg(game))
-        return
-
-    if ctx.engine.ready:
-        await ctx.run_in_executor(ctx.engine.send_command, f"play {color} pass")
-    game.moves.append((color, "pass"))
-    game.passed[color] = True
-    game.current_player = "W" if color == "B" else "B"
-    if game.rogue_card == "quickthink":
-        game.rogue_quickthink_stage = 0
-
-    if (
-        game.rogue_card == "handicap_quest"
-        and not game.two_player
-        and color == game.player_color
-        and not game.rogue_handicap_active
-    ):
-        game.rogue_handicap_passes += 1
-        if game.rogue_handicap_passes >= ROGUE_HANDICAP_REQUIRED_PASSES:
-            game.rogue_handicap_active = True
-            await ctx.send(
-                {
-                    "type": "rogue_event",
-                    "msg": "🏋️ 让子棋任务完成！"
-                    f"现在每 {ROGUE_HANDICAP_BONUS_INTERVAL} 手可多下一手",
-                }
-            )
-        else:
-            await ctx.send(
-                {
-                    "type": "rogue_event",
-                    "msg": f"🏋️ 虚手 {game.rogue_handicap_passes}/{ROGUE_HANDICAP_REQUIRED_PASSES}",
-                }
-            )
-
-    game.push_history()
-    await ctx.send({"type": "game_state", **game.to_state()})
-
-    if not game.two_player and ctx.engine.ready:
-        await ctx.ai_move(game, ctx.send)
-    if not game.game_over and ctx.engine.ready:
-        asyncio.create_task(ctx.do_analysis_bg(game))
-
-
-async def handle_undo(ctx: WebSocketActionContext, data: dict) -> None:
-    game = ctx.restore_game()
-    if not game or not game.moves:
-        return
-    if ctx.rogue_has(game, "no_regret") or ctx.rogue_has(game, "quickthink"):
-        await ctx.send_error("这张卡会禁用悔棋")
-        return
-
-    if game.challenge_beta:
-        if ctx.challenge_remaining(game, "undo") <= 0:
-            await ctx.send_error("测试版闯关：悔棋次数已用完")
-            return
-        game.challenge_usage["undo"] += 1
-
-    undo_count = 1 if game.two_player else (2 if len(game.moves) >= 2 else 1)
-    if not game.undo_history(undo_count):
-        return
-    game.game_over = False
-    game.winner = None
-    if ctx.engine.ready:
-        await ctx.sync_board_to_katago(game)
-    ctx.prepare_player_turn_modifiers(game)
-    await ctx.send({"type": "game_state", **game.to_state()})
-
-    if ctx.engine.ready:
-        analysis = await ctx.do_analysis(game)
-        await ctx.send({"type": "analysis", **analysis})
-
-
-async def handle_score(ctx: WebSocketActionContext, data: dict) -> None:
-    game = ctx.restore_game()
-    if not game:
-        return
-    if ctx.engine.ready:
-        await ctx.sync_board_to_katago(game)
-        resp = await ctx.run_in_executor(ctx.engine.send_command, "final_score")
-        score_str = resp.replace("=", "").strip()
-    else:
-        score_str = "?"
-    winner = "B" if score_str.startswith("B") else "W" if score_str.startswith("W") else "draw"
-    game.game_over = True
-    game.winner = winner
-    await ctx.send(
-        {
-            "type": "game_over",
-            "winner": winner,
-            "score": score_str,
-            "reason": "score",
-        }
-    )
 
 
 WS_ACTION_HANDLERS: dict[str, Callable[[WebSocketActionContext, dict], Awaitable[None]]] = {

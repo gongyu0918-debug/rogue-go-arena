@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, fields
 from typing import Any
 
-from app.runtime.ws_actions import WebSocketActionContext
+from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_context import (
     WebSocketContextDeps,
     WEBSOCKET_CONTEXT_GROUP_SPECS,

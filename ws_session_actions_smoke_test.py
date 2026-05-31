@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import asyncio
 from types import SimpleNamespace
+from typing import get_type_hints
 
 import app.runtime.ws_actions as ws_actions
 from app.domain.game_state import GoGame
+from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_session_actions import (
     handle_load_position,
     handle_reconnect,
@@ -12,6 +14,7 @@ from app.runtime.ws_session_actions import (
     handle_resign,
     handle_set_level,
     handle_time_expired,
+    wait_for_engine_ready,
 )
 
 
@@ -190,11 +193,26 @@ def smoke_ws_action_handlers_keep_public_action_names() -> None:
     assert ws_actions.WS_ACTION_HANDLERS["time_expired"] is handle_time_expired
 
 
+def smoke_session_action_annotations_resolve_runtime_context() -> None:
+    for handler in (
+        handle_reconnect,
+        handle_resign,
+        handle_request_hint,
+        handle_set_level,
+        handle_load_position,
+        handle_time_expired,
+        wait_for_engine_ready,
+    ):
+        hints = get_type_hints(handler)
+        assert hints["ctx"] is WebSocketActionContext
+
+
 async def main() -> None:
     await smoke_reconnect_resign_and_timeout_messages()
     await smoke_hint_challenge_usage_and_quickthink_guard()
     await smoke_set_level_and_load_position_use_runtime_dependencies()
     smoke_ws_action_handlers_keep_public_action_names()
+    smoke_session_action_annotations_resolve_runtime_context()
     print("ws session actions smoke test: OK")
 
 
