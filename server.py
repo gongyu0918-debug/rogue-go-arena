@@ -187,6 +187,18 @@ from app.runtime.generated_ai_runtime import (
     build_generated_move_preparation_binding,
 )
 from app.runtime.gpu_info import CachedGpuInfo
+from app.runtime.http_routes_runtime import (
+    AppShellDependencies,
+    ConfigRoutesDependencies,
+    RuntimeControlRoutesDependencies,
+    RuntimeInfoRoutesDependencies,
+    StaticPageRoutesDependencies,
+    build_app_shell_binding,
+    build_config_routes_binding,
+    build_runtime_control_routes_binding,
+    build_runtime_info_routes_binding,
+    build_static_page_routes_binding,
+)
 from app.runtime.info_routes import (
     RuntimeInfoRoutesBinding,
     build_runtime_info_router,
@@ -617,26 +629,34 @@ _engine_log = engine_runtime.log_event
 _engine_state_snapshot = engine_runtime.snapshot
 
 
-def _app_shell_binding() -> AppShellBinding:
-    return AppShellBinding(
+def _app_shell_dependencies() -> AppShellDependencies:
+    return AppShellDependencies(
         static_dir=STATIC_DIR,
         engine_runtime=engine_runtime,
         log_fn=log,
     )
 
 
+def _app_shell_binding() -> AppShellBinding:
+    return build_app_shell_binding(_app_shell_dependencies())
+
+
 configure_app_shell(app, _app_shell_binding)
 
 
+def _static_page_routes_dependencies() -> StaticPageRoutesDependencies:
+    return StaticPageRoutesDependencies(static_dir=STATIC_DIR)
+
+
 def _static_page_routes_binding() -> StaticPageRoutesBinding:
-    return StaticPageRoutesBinding(static_dir=STATIC_DIR)
+    return build_static_page_routes_binding(_static_page_routes_dependencies())
 
 
 app.include_router(build_static_page_router(_static_page_routes_binding))
 
 
-def _config_routes_binding() -> ConfigRoutesBinding:
-    return ConfigRoutesBinding(
+def _config_routes_dependencies() -> ConfigRoutesDependencies:
+    return ConfigRoutesDependencies(
         card_config_service=card_config_service,
         get_balance_editor_payload=get_balance_editor_payload,
         save_balance_overrides=save_balance_overrides,
@@ -644,15 +664,23 @@ def _config_routes_binding() -> ConfigRoutesBinding:
     )
 
 
+def _config_routes_binding() -> ConfigRoutesBinding:
+    return build_config_routes_binding(_config_routes_dependencies())
+
+
 app.include_router(build_config_router(_config_routes_binding))
 
 
-def _runtime_control_routes_binding() -> RuntimeControlRoutesBinding:
-    return RuntimeControlRoutesBinding(
+def _runtime_control_routes_dependencies() -> RuntimeControlRoutesDependencies:
+    return RuntimeControlRoutesDependencies(
         rank_labels=RANK_LABELS,
         engine_runtime=engine_runtime,
         run_in_executor=run_in_executor,
     )
+
+
+def _runtime_control_routes_binding() -> RuntimeControlRoutesBinding:
+    return build_runtime_control_routes_binding(_runtime_control_routes_dependencies())
 
 
 app.include_router(build_runtime_control_router(_runtime_control_routes_binding))
@@ -661,8 +689,8 @@ app.include_router(build_runtime_control_router(_runtime_control_routes_binding)
 _gpu_detector = CachedGpuInfo()
 
 
-def _runtime_info_routes_binding() -> RuntimeInfoRoutesBinding:
-    return RuntimeInfoRoutesBinding(
+def _runtime_info_routes_dependencies() -> RuntimeInfoRoutesDependencies:
+    return RuntimeInfoRoutesDependencies(
         server_rev=SERVER_REV,
         host=SERVER_HOST,
         port=SERVER_PORT,
@@ -679,6 +707,10 @@ def _runtime_info_routes_binding() -> RuntimeInfoRoutesBinding:
         active_games=active_games,
         generate_sgf=generate_sgf,
     )
+
+
+def _runtime_info_routes_binding() -> RuntimeInfoRoutesBinding:
+    return build_runtime_info_routes_binding(_runtime_info_routes_dependencies())
 
 
 app.include_router(build_runtime_info_router(_runtime_info_routes_binding))
