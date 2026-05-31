@@ -97,6 +97,12 @@ from app.runtime.ai_turn_adapters import (
     AiTurnBinding,
     run_ai_turn as run_ai_turn_adapter,
 )
+from app.runtime.ai_turn_runtime import (
+    AiTurnDependencies,
+    AiTurnRuntimeFns,
+    AiTurnStepFns,
+    build_ai_turn_binding,
+)
 from app.runtime.config_routes import (
     ConfigRoutesBinding,
     build_config_router,
@@ -1662,36 +1668,70 @@ async def _refresh_ai_turn_fog_restriction(
     )
 
 
-def _ai_turn_binding() -> AiTurnBinding:
-    return AiTurnBinding(
-        engine_ready=lambda: engine.ready,
-        sync_board_to_katago=_sync_board_to_katago,
-        snapshot_turn=lambda game: snapshot_ai_turn(game, _rogue_card_ids),
-        try_finish_forced=lambda game, send_fn, turn: _try_finish_forced_rogue_ai_turn(
+def _ai_turn_dependencies() -> AiTurnDependencies:
+    def snapshot_current_turn(game, _rogue_card_ids_fn):
+        return snapshot_ai_turn(game, _rogue_card_ids)
+
+    async def finish_forced_with_current_engine(game, send_fn, turn, _run_engine_command):
+        return await _try_finish_forced_rogue_ai_turn(
             game,
             send_fn,
             turn,
             _send_engine_command,
-        ),
-        plan_search=_plan_ai_turn_search,
-        refresh_fog_restriction=_refresh_ai_turn_fog_restriction,
-        try_finish_restriction=lambda game, send_fn, turn, plan: _try_finish_rogue_restriction_ai_turn(
+        )
+
+    async def finish_restriction_with_current_engine(
+        game,
+        send_fn,
+        turn,
+        plan,
+        _run_engine_command,
+    ):
+        return await _try_finish_rogue_restriction_ai_turn(
             game,
             send_fn,
             turn,
             plan,
             _send_engine_command,
-        ),
-        try_finish_shadow=_try_finish_shadow_rogue_ai_turn,
-        try_finish_suboptimal=_try_finish_suboptimal_rogue_ai_turn,
-        try_finish_generated=lambda game, send_fn, turn, plan: _try_finish_generated_ai_turn(
+        )
+
+    async def finish_generated_with_current_engine(
+        game,
+        send_fn,
+        turn,
+        plan,
+        _run_engine_command,
+    ):
+        return await _try_finish_generated_ai_turn(
             game,
             send_fn,
             turn,
             plan,
             _send_engine_command,
+        )
+
+    return AiTurnDependencies(
+        runtime=AiTurnRuntimeFns(
+            engine_ready=lambda: engine.ready,
+            sync_board_to_katago=_sync_board_to_katago,
+            snapshot_ai_turn=snapshot_current_turn,
+            rogue_card_ids=lambda: _rogue_card_ids(),
+            run_engine_command=lambda command: _send_engine_command(command),
+        ),
+        steps=AiTurnStepFns(
+            try_finish_forced=finish_forced_with_current_engine,
+            plan_search=_plan_ai_turn_search,
+            refresh_fog_restriction=_refresh_ai_turn_fog_restriction,
+            try_finish_restriction=finish_restriction_with_current_engine,
+            try_finish_shadow=_try_finish_shadow_rogue_ai_turn,
+            try_finish_suboptimal=_try_finish_suboptimal_rogue_ai_turn,
+            try_finish_generated=finish_generated_with_current_engine,
         ),
     )
+
+
+def _ai_turn_binding() -> AiTurnBinding:
+    return build_ai_turn_binding(_ai_turn_dependencies())
 
 
 async def _ai_move(game: GoGame, send_fn):

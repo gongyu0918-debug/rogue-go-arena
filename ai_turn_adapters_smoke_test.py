@@ -9,6 +9,12 @@ from app.runtime.ai_turn_adapters import (
     build_ai_turn_flow_deps,
     run_ai_turn,
 )
+from app.runtime.ai_turn_runtime import (
+    AiTurnDependencies,
+    AiTurnRuntimeFns,
+    AiTurnStepFns,
+    build_ai_turn_binding,
+)
 
 
 class DummyGame:
@@ -50,6 +56,111 @@ def smoke_binding_maps_every_field() -> None:
     assert deps.try_finish_shadow is fake_async
     assert deps.try_finish_suboptimal is fake_async
     assert deps.try_finish_generated is fake_async
+
+
+async def smoke_runtime_builder_groups_turn_dependencies() -> None:
+    game = DummyGame()
+    sent = []
+    calls = []
+    turn = SimpleNamespace(rogue_cards={"suboptimal"}, move_count=4, ai_move_count=2)
+    plan = SimpleNamespace(visits=456, time_limit=7.5)
+
+    async def send(payload):
+        sent.append(payload)
+
+    async def sync_board(game_arg):
+        calls.append(("sync", game_arg is game))
+
+    def rogue_ids():
+        calls.append(("rogue_ids",))
+        return ["runtime-card"]
+
+    def snapshot(game_arg, rogue_ids_fn):
+        calls.append(("snapshot", game_arg is game, rogue_ids_fn is rogue_ids, rogue_ids_fn()))
+        return turn
+
+    async def run_engine(command: str):
+        calls.append(("engine", command))
+        return "= ok"
+
+    async def forced(game_arg, send_fn, turn_arg, run_engine_command):
+        calls.append(("forced", game_arg is game, send_fn is send, turn_arg is turn))
+        await run_engine_command("forced")
+        return False
+
+    def plan_search(game_arg, turn_arg):
+        calls.append(("plan", game_arg is game, turn_arg is turn))
+        return plan
+
+    async def fog(game_arg, send_fn, turn_arg, plan_arg):
+        calls.append(("fog", game_arg is game, send_fn is send, turn_arg is turn, plan_arg is plan))
+
+    async def restriction(game_arg, send_fn, turn_arg, plan_arg, run_engine_command):
+        calls.append(("restriction", game_arg is game, send_fn is send, turn_arg is turn, plan_arg is plan))
+        await run_engine_command("restriction")
+        return False
+
+    async def shadow(game_arg, send_fn, turn_arg, plan_arg):
+        calls.append(("shadow", game_arg is game, send_fn is send, turn_arg is turn, plan_arg is plan))
+        return False
+
+    async def suboptimal(game_arg, send_fn, turn_arg, plan_arg):
+        calls.append(("suboptimal", game_arg is game, send_fn is send, turn_arg is turn, plan_arg is plan))
+        return False
+
+    async def generated(game_arg, send_fn, turn_arg, plan_arg, run_engine_command):
+        calls.append(("generated", game_arg is game, send_fn is send, turn_arg is turn, plan_arg is plan))
+        await run_engine_command("generated")
+        await send_fn({"type": "ai_move", "gtp": "D16"})
+        return True
+
+    binding = build_ai_turn_binding(
+        AiTurnDependencies(
+            runtime=AiTurnRuntimeFns(
+                engine_ready=lambda: True,
+                sync_board_to_katago=sync_board,
+                snapshot_ai_turn=snapshot,
+                rogue_card_ids=rogue_ids,
+                run_engine_command=run_engine,
+            ),
+            steps=AiTurnStepFns(
+                try_finish_forced=forced,
+                plan_search=plan_search,
+                refresh_fog_restriction=fog,
+                try_finish_restriction=restriction,
+                try_finish_shadow=shadow,
+                try_finish_suboptimal=suboptimal,
+                try_finish_generated=generated,
+            ),
+        )
+    )
+
+    deps = build_ai_turn_flow_deps(binding)
+    assert deps.engine_ready() is True
+    assert deps.sync_board_to_katago is sync_board
+    assert deps.plan_search is plan_search
+    assert deps.refresh_fog_restriction is fog
+    assert deps.try_finish_shadow is shadow
+    assert deps.try_finish_suboptimal is suboptimal
+
+    await run_ai_turn(game, send, binding)
+
+    assert calls == [
+        ("sync", True),
+        ("rogue_ids",),
+        ("snapshot", True, True, ["runtime-card"]),
+        ("forced", True, True, True),
+        ("engine", "forced"),
+        ("plan", True, True),
+        ("fog", True, True, True, True),
+        ("restriction", True, True, True, True),
+        ("engine", "restriction"),
+        ("shadow", True, True, True, True),
+        ("suboptimal", True, True, True, True),
+        ("generated", True, True, True, True),
+        ("engine", "generated"),
+    ]
+    assert sent == [{"type": "ai_move", "gtp": "D16"}]
 
 
 async def smoke_adapter_preserves_full_turn_order() -> None:
@@ -284,11 +395,141 @@ async def smoke_server_binding_resolves_current_runtime() -> None:
     assert sent == [{"type": "ai_move", "gtp": "Q16"}]
 
 
+async def smoke_server_binding_preserves_late_bound_wrappers() -> None:
+    game = DummyGame()
+    turn = SimpleNamespace(rogue_cards=set(), move_count=1, ai_move_count=0)
+    plan = SimpleNamespace(visits=50, time_limit=1.0)
+    calls = []
+
+    async def send(_payload):
+        return None
+
+    def old_rogue_ids():
+        calls.append(("old_rogue_ids",))
+        return ["old-card"]
+
+    def old_snapshot(_game, _rogue_ids_fn):
+        calls.append(("old_snapshot",))
+        return None
+
+    async def old_command(_command_text):
+        calls.append(("old_command",))
+        return "= old"
+
+    async def old_forced(*_args, **_kwargs):
+        calls.append(("old_forced",))
+        return False
+
+    async def old_restriction(*_args, **_kwargs):
+        calls.append(("old_restriction",))
+        return False
+
+    async def old_generated(*_args, **_kwargs):
+        calls.append(("old_generated",))
+        return False
+
+    originals = {
+        "snapshot_ai_turn": s.snapshot_ai_turn,
+        "_rogue_card_ids": s._rogue_card_ids,
+        "_try_finish_forced_rogue_ai_turn": s._try_finish_forced_rogue_ai_turn,
+        "_try_finish_rogue_restriction_ai_turn": s._try_finish_rogue_restriction_ai_turn,
+        "_try_finish_generated_ai_turn": s._try_finish_generated_ai_turn,
+        "_send_engine_command": s._send_engine_command,
+    }
+    try:
+        s.snapshot_ai_turn = old_snapshot
+        s._rogue_card_ids = old_rogue_ids
+        s._try_finish_forced_rogue_ai_turn = old_forced
+        s._try_finish_rogue_restriction_ai_turn = old_restriction
+        s._try_finish_generated_ai_turn = old_generated
+        s._send_engine_command = old_command
+        binding = s._ai_turn_binding()
+
+        def new_rogue_ids():
+            calls.append(("new_rogue_ids",))
+            return ["new-card"]
+
+        def new_snapshot(game_arg, rogue_ids_fn):
+            calls.append(("new_snapshot", game_arg is game, rogue_ids_fn is new_rogue_ids, rogue_ids_fn()))
+            return turn
+
+        async def new_command(command_text):
+            calls.append(("new_command", command_text))
+            return "= new"
+
+        async def new_forced(game_arg, send_fn, turn_arg, run_engine_command):
+            calls.append((
+                "new_forced",
+                game_arg is game,
+                send_fn is send,
+                turn_arg is turn,
+                run_engine_command is new_command,
+            ))
+            await run_engine_command("forced-after-binding")
+            return False
+
+        async def new_restriction(game_arg, send_fn, turn_arg, plan_arg, run_engine_command):
+            calls.append((
+                "new_restriction",
+                game_arg is game,
+                send_fn is send,
+                turn_arg is turn,
+                plan_arg is plan,
+                run_engine_command is new_command,
+            ))
+            await run_engine_command("restriction-after-binding")
+            return False
+
+        async def new_generated(game_arg, send_fn, turn_arg, plan_arg, run_engine_command):
+            calls.append((
+                "new_generated",
+                game_arg is game,
+                send_fn is send,
+                turn_arg is turn,
+                plan_arg is plan,
+                run_engine_command is new_command,
+            ))
+            await run_engine_command("generated-after-binding")
+            return True
+
+        s.snapshot_ai_turn = new_snapshot
+        s._rogue_card_ids = new_rogue_ids
+        s._try_finish_forced_rogue_ai_turn = new_forced
+        s._try_finish_rogue_restriction_ai_turn = new_restriction
+        s._try_finish_generated_ai_turn = new_generated
+        s._send_engine_command = new_command
+
+        assert binding.snapshot_turn(game) is turn
+        assert await binding.try_finish_forced(game, send, turn) is False
+        assert await binding.try_finish_restriction(game, send, turn, plan) is False
+        assert await binding.try_finish_generated(game, send, turn, plan) is True
+    finally:
+        s.snapshot_ai_turn = originals["snapshot_ai_turn"]
+        s._rogue_card_ids = originals["_rogue_card_ids"]
+        s._try_finish_forced_rogue_ai_turn = originals["_try_finish_forced_rogue_ai_turn"]
+        s._try_finish_rogue_restriction_ai_turn = originals["_try_finish_rogue_restriction_ai_turn"]
+        s._try_finish_generated_ai_turn = originals["_try_finish_generated_ai_turn"]
+        s._send_engine_command = originals["_send_engine_command"]
+
+    assert calls == [
+        ("new_rogue_ids",),
+        ("new_snapshot", True, True, ["new-card"]),
+        ("new_forced", True, True, True, True),
+        ("new_command", "forced-after-binding"),
+        ("new_restriction", True, True, True, True, True),
+        ("new_command", "restriction-after-binding"),
+        ("new_generated", True, True, True, True, True),
+        ("new_command", "generated-after-binding"),
+    ]
+
+
 async def main() -> None:
     smoke_binding_maps_every_field()
+    await smoke_runtime_builder_groups_turn_dependencies()
     await smoke_adapter_preserves_full_turn_order()
     await smoke_adapter_preserves_engine_guard()
     await smoke_server_binding_resolves_current_runtime()
+    await smoke_server_binding_preserves_late_bound_wrappers()
     print("ai turn adapters smoke test: OK")
 
 
