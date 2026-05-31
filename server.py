@@ -102,6 +102,10 @@ from app.runtime.config_routes import (
     ConfigRoutesBinding,
     build_config_router,
 )
+from app.runtime.control_routes import (
+    RuntimeControlRoutesBinding,
+    build_runtime_control_router,
+)
 from app.runtime.capture_foul_adapters import (
     CaptureFoulBinding,
     check_capture_foul_violation as check_capture_foul_violation_adapter,
@@ -122,7 +126,6 @@ from app.runtime.coach_adapters import (
     finish_ai_move as finish_ai_move_adapter,
     run_coach_turn_if_needed as run_coach_turn_if_needed_adapter,
 )
-from app.runtime.engine_control_api import restart_katago_request, stop_katago_request
 from app.runtime.engine_gateway_adapters import (
     EngineGatewayRuntime,
     bind_engine_gateway as bind_engine_gateway_adapter,
@@ -162,7 +165,6 @@ from app.runtime.observer_adapters import (
     finish_observer_double_pass as finish_observer_double_pass_adapter,
     run_ai_observer_loop as run_ai_observer_loop_adapter,
 )
-from app.runtime.rank_api import build_rank_options
 from app.runtime.rogue_activation_adapters import (
     AiRogueCardActivationBinding,
     RogueCardActivationBinding,
@@ -520,24 +522,15 @@ def _config_routes_binding() -> ConfigRoutesBinding:
 app.include_router(build_config_router(_config_routes_binding))
 
 
-@app.get("/ranks")
-async def get_ranks():
-    return build_rank_options(RANK_LABELS)
-
-
-@app.post("/stop_katago")
-async def stop_katago():
-    """Stop the KataGo engine while keeping the server running."""
-    return await stop_katago_request(
+def _runtime_control_routes_binding() -> RuntimeControlRoutesBinding:
+    return RuntimeControlRoutesBinding(
+        rank_labels=RANK_LABELS,
         engine_runtime=engine_runtime,
         run_in_executor=run_in_executor,
     )
 
 
-@app.post("/restart_katago")
-async def restart_katago():
-    """Restart the KataGo engine."""
-    return restart_katago_request(engine_runtime=engine_runtime)
+app.include_router(build_runtime_control_router(_runtime_control_routes_binding))
 
 
 @app.get("/status")
