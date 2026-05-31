@@ -23,9 +23,9 @@
 - Frontend: `npm run typecheck --prefix frontend`, `npm run build --prefix frontend`
 - React preview browser smoke: start `server.py --no-katago --port 8876`, then `npm run smoke:react-preview --prefix frontend -- --url=http://127.0.0.1:8876/react-preview`
 - Python syntax: prefer AST parse smoke when Windows pycache permissions block `compileall`
-- Card rules: `python card_smoke_test.py`
-- Card editor/effects: `python card_editor_effect_smoke.py`
-- Runtime/AI/WebSocket changes: real KataGo `python runtime_smoke_test.py --base-url http://127.0.0.1:<port>`
+- Card rules: `python tests/smoke/cards/card_smoke_test.py`
+- Card editor/effects: `python tests/smoke/cards/card_editor_effect_smoke.py`
+- Runtime/AI/WebSocket changes: real KataGo `python tests/smoke/runtime/runtime_smoke_test.py --base-url http://127.0.0.1:<port>`
 
 ## Release Guardrails
 

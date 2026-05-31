@@ -9,6 +9,7 @@ This plan keeps the current feature baseline stable while reducing the cost of f
 - Every 1-2 extraction steps must add or update a focused smoke test.
 - Every broader slice must get an independent subagent review before commit.
 - Commit only when the current baseline is cleaner and all relevant smoke tests pass.
+- Smoke scripts live under `tests/smoke`; use `python -m tests.smoke.run <script.py>` when a plan lists a script by filename.
 
 ## Current Split
 

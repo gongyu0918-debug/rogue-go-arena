@@ -244,13 +244,13 @@ Still in `static/index.html`:
 
 For frontend card/UI changes:
 
-- `python card_smoke_test.py`
-- `python card_editor_effect_smoke.py`
+- `python tests/smoke/cards/card_smoke_test.py`
+- `python tests/smoke/cards/card_editor_effect_smoke.py`
 - Browser/Playwright check for card editor and offer modal rendering.
 
 For gameplay or AI changes:
 
-- Real server runtime smoke: `python runtime_smoke_test.py --base-url http://127.0.0.1:<port>`
+- Real server runtime smoke: `python tests/smoke/runtime/runtime_smoke_test.py --base-url http://127.0.0.1:<port>`
 - Verify the server uses a real KataGo backend when the change touches AI flow.
 
 For releases:

@@ -41,7 +41,7 @@ python launcher.py --shell browser
 ## Smoke Checklist
 
 - `python -m compileall launcher.py server.py app`
-- `python card_smoke_test.py`
-- `python runtime_smoke_test.py --base-url http://127.0.0.1:8000`
+- `python tests/smoke/cards/card_smoke_test.py`
+- `python tests/smoke/runtime/runtime_smoke_test.py --base-url http://127.0.0.1:8000`
 - Open the installed `rogue-go-arena.exe` and confirm the WebView2 shell stays alive.
 - Browser-check `http://127.0.0.1:8000` for UI regressions and console errors.

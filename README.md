@@ -246,8 +246,7 @@ docs/assets/       README 展示图
 katago/            KataGo 配置和本地引擎文件位置
 server.py          FastAPI 后端
 launcher.py        WebView2 桌面启动入口
-card_smoke_test.py 卡牌与关键规则烟测
-runtime_smoke_test.py 运行时烟测
+tests/smoke/       按子系统分类的烟测脚本
 ```
 
 ## 卡牌系统
@@ -376,13 +375,19 @@ http://127.0.0.1:8000/card-editor
 运行卡牌烟测：
 
 ```bash
-python card_smoke_test.py
+python tests/smoke/cards/card_smoke_test.py
 ```
 
 运行运行时烟测：
 
 ```bash
-python runtime_smoke_test.py --base-url http://127.0.0.1:8000
+python tests/smoke/runtime/runtime_smoke_test.py --base-url http://127.0.0.1:8000
+```
+
+也可以用统一入口按文件名运行：
+
+```bash
+python -m tests.smoke.run card_smoke_test.py
 ```
 
 构建 WebView2 启动器：
