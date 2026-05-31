@@ -217,6 +217,7 @@ Still in `static/index.html`:
 
 4. `app/runtime/ws_handlers.py`
    - WebSocket session lifecycle and dispatch now live in `app/runtime/ws_session.py`.
+   - WebSocket route registration now lives behind `app/runtime/ws_routes.py`; `server.py` only supplies current session/runtime bindings.
    - Continue moving action dependencies out of `server.py` without changing wire payloads.
    - Preserve the current `WebSocketActionContext` direction; expand it instead of passing many globals.
    - WebSocket context group and field inventories are derived from dependency dataclasses to avoid hand-maintained drift.

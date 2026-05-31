@@ -11,9 +11,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import Response
 import uvicorn
 import app.config.gameplay as gameplay_config
 import app.runtime.ws_actions as ws_actions_module
@@ -226,8 +225,8 @@ from app.runtime.ultimate_ai_adapters import (
 )
 from app.runtime.ws_context_adapters import (
     WebSocketContextBinding,
-    build_websocket_action_context_from_binding,
 )
+from app.runtime.ws_routes import WebSocketRoutesBinding, build_websocket_router
 from app.gameplay.card_selection import (
     pick_ai_rogue_card,
     pick_ai_ultimate_card,
@@ -347,7 +346,6 @@ from app.gameplay.ultimate_scoring import finalize_ultimate_score
 from app.runtime.engine import KataGoEngine
 from app.runtime.game_store import ActiveGameStore
 from app.runtime.startup import EnginePaths, EngineStartupManager
-from app.runtime.ws_session import run_websocket_game_session
 from app.runtime.ws_actions import WS_ACTION_HANDLERS
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -680,27 +678,16 @@ def _ws_context_binding() -> WebSocketContextBinding:
     )
 
 
-@app.websocket("/ws/{game_id}")
-async def websocket_endpoint(websocket: WebSocket, game_id: str):
-    def make_context(game, send, send_error, do_analysis, do_analysis_bg):
-        return build_websocket_action_context_from_binding(
-            game_id=game_id,
-            game=game,
-            send=send,
-            send_error=send_error,
-            do_analysis=do_analysis,
-            do_analysis_bg=do_analysis_bg,
-            binding=_ws_context_binding(),
-        )
-
-    await run_websocket_game_session(
-        websocket,
-        game_id,
+def _websocket_routes_binding() -> WebSocketRoutesBinding:
+    return WebSocketRoutesBinding(
         active_games=active_games,
         action_handlers=WS_ACTION_HANDLERS,
         analyze_position=_analyze_current_position,
-        make_context=make_context,
+        websocket_context_binding=_ws_context_binding,
     )
+
+
+app.include_router(build_websocket_router(_websocket_routes_binding))
 
 
 def _record_ultimate_turn(game: GoGame) -> None:
