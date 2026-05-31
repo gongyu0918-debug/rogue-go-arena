@@ -11,6 +11,7 @@ from app.runtime.ws_actions import (
     handle_rogue_use_coach,
     handle_rogue_use_exchange,
     handle_rogue_use_puppet,
+    handle_ultimate_select_card,
 )
 
 s.gameplay_config.apply_balance_values(s.gameplay_config.BALANCE_DEFAULTS)
@@ -1567,6 +1568,28 @@ async def smoke_katago_gtp_compatibility():
         s.engine = old_engine
 
 
+async def smoke_ultimate_select_god_hand_initializes_hidden_zone():
+    game = make_game(size=9)
+    game.ultimate = True
+    sent = []
+    ctx = make_ws_context(game, sent)
+
+    await handle_ultimate_select_card(ctx, {"card_id": "god_hand"})
+
+    assert game.ultimate_player_card == "god_hand"
+    assert game.ultimate_ai_card == "chain"
+    assert game.ultimate_godhand_center is not None
+    assert game.ultimate_godhand_trigger == s._diamond_points(
+        game.ultimate_godhand_center[0],
+        game.ultimate_godhand_center[1],
+        2,
+        game.size,
+    )
+    assert sent[0]["type"] == "ultimate_cards_selected"
+    assert sent[0]["player_card"] == "god_hand"
+    assert sent[0]["ai_card"] == "chain"
+
+
 async def main():
     old_engine = s.engine
     try:
@@ -1590,6 +1613,7 @@ async def main():
         await smoke_challenge_beta_set_bonuses()
         await smoke_corner_helper_can_trigger_per_corner()
         await smoke_katago_gtp_compatibility()
+        await smoke_ultimate_select_god_hand_initializes_hidden_zone()
         await smoke_quickthink_flow()
         await smoke_featured_pools()
         await smoke_suboptimal_extended()

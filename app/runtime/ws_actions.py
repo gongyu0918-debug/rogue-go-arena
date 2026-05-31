@@ -28,6 +28,15 @@ from app.data.cards import (
     ultimate_card_summary,
 )
 from app.gameplay.ultimate_effects import reset_ultimate_effect_state
+from app.runtime.ws_session_actions import (
+    handle_load_position,
+    handle_reconnect,
+    handle_request_hint,
+    handle_resign,
+    handle_set_level,
+    handle_time_expired,
+    wait_for_engine_ready,
+)
 
 
 @dataclass
@@ -97,145 +106,6 @@ def _board_point_from_data(data: dict, size: int) -> Optional[tuple[int, int]]:
     return x, y
 
 
-async def handle_reconnect(ctx: WebSocketActionContext, data: dict) -> None:
-    saved = ctx.active_games.get(ctx.game_id, touch=True)
-    if saved:
-        ctx.game = saved
-        await ctx.send({"type": "reconnected", **ctx.game.to_state()})
-        if not ctx.game.game_over and ctx.engine.ready:
-            analysis = await ctx.do_analysis(ctx.game)
-            await ctx.send({"type": "analysis", **analysis})
-    else:
-        await ctx.send({"type": "reconnect_failed"})
-
-
-async def handle_resign(ctx: WebSocketActionContext, data: dict) -> None:
-    game = ctx.restore_game()
-    if not game:
-        return
-    game.game_over = True
-    game.winner = game.ai_color if not game.two_player else ("W" if game.current_player == "B" else "B")
-    await ctx.send(
-        {
-            "type": "game_over",
-            "winner": game.winner,
-            "score": None,
-            "reason": "resign",
-        }
-    )
-
-
-async def handle_request_hint(ctx: WebSocketActionContext, data: dict) -> None:
-    game = ctx.restore_game()
-    if not game or game.game_over or not ctx.engine.ready:
-        return
-    if ctx.rogue_has(game, "quickthink"):
-        await ctx.send_error("快速思考已禁用推荐点位，请自行判断局面")
-        return
-    if game.challenge_beta:
-        if ctx.challenge_remaining(game, "hint") <= 0:
-            await ctx.send_error("测试版闯关：推荐点次数已用完")
-            return
-        game.challenge_usage["hint"] += 1
-        await ctx.send({"type": "game_state", **game.to_state()})
-    analysis = await ctx.do_analysis(game)
-    await ctx.send({"type": "analysis", **analysis})
-
-
-async def handle_set_level(ctx: WebSocketActionContext, data: dict) -> None:
-    game = ctx.restore_game()
-    if not game:
-        return
-    level = data.get("level", "a3d")
-    game.level = level
-    if ctx.engine.ready:
-        mode = "ultimate" if game.ultimate else ("rogue" if game.rogue_card else "normal")
-        visits = ctx.get_game_visits(level, len(game.moves), mode=mode)
-        await ctx.run_in_executor(ctx.engine.set_visits, visits)
-    await ctx.send({"type": "level_set", "level": level})
-
-
-async def handle_load_position(ctx: WebSocketActionContext, data: dict) -> None:
-    size = int(data.get("size", 19))
-    komi = float(data.get("komi", 7.5))
-    moves_list = data.get("moves", [])
-
-    if ctx.engine.ready:
-        await ctx.run_in_executor(ctx.engine.send_command, f"boardsize {size}")
-        await ctx.run_in_executor(ctx.engine.send_command, "clear_board")
-        await ctx.run_in_executor(ctx.engine.send_command, f"komi {komi}")
-        for move in moves_list:
-            c, g = move[0], move[1]
-            await ctx.run_in_executor(ctx.engine.send_command, f"play {c} {g}")
-
-        next_color = "B" if len(moves_list) % 2 == 0 else "W"
-        temp = ctx.GoGame(size, komi, 0, "B", "a3d")
-        temp.current_player = next_color
-        for move in moves_list:
-            temp.moves.append((move[0], move[1]))
-        temp.rebuild_board()
-
-        result = await ctx.do_analysis(temp)
-        await ctx.send({"type": "analysis", **result})
-
-
-async def handle_time_expired(ctx: WebSocketActionContext, data: dict) -> None:
-    game = ctx.restore_game()
-    if not game or game.game_over:
-        return
-    loser = data.get("color", "B")
-    winner = "W" if loser == "B" else "B"
-    game.game_over = True
-    game.winner = winner
-    await ctx.send(
-        {
-            "type": "game_over",
-            "winner": winner,
-            "score": f"{winner}+T",
-            "reason": "timeout",
-        }
-    )
-
-
-async def _send_engine_not_ready(ctx: WebSocketActionContext, snapshot: dict, fallback: str) -> None:
-    await ctx.send(
-        {
-            "type": "engine_not_ready",
-            "phase": snapshot.get("phase"),
-            "message": snapshot.get("message") or fallback,
-            "last_error": snapshot.get("last_error"),
-            "log_tail": snapshot.get("log_tail"),
-        }
-    )
-
-
-async def _wait_for_engine_ready(ctx: WebSocketActionContext, reason: str) -> bool:
-    def fully_ready() -> bool:
-        snapshot = ctx.engine_state_snapshot()
-        return bool(ctx.engine.ready and snapshot.get("phase") == "ready")
-
-    snapshot = ctx.engine_state_snapshot()
-    if snapshot.get("phase") not in {"initializing", "ready"}:
-        ctx.start_engine_background(reason)
-        snapshot = ctx.engine_state_snapshot()
-    await _send_engine_not_ready(ctx, snapshot, "KataGo 正在随游戏启动")
-    deadline = time.time() + 120
-    while not fully_ready() and time.time() < deadline:
-        await asyncio.sleep(0.5)
-        snapshot = ctx.engine_state_snapshot()
-        if snapshot.get("phase") in {"failed", "disabled", "stopped"}:
-            break
-    if fully_ready():
-        return True
-    snapshot = ctx.engine_state_snapshot()
-    await _send_engine_not_ready(ctx, snapshot, "")
-    await ctx.send_error(
-        snapshot.get("message")
-        or "KataGo未就绪，请稍候重试，或先使用两人对局模式"
-    )
-    return False
-
-
 async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
     config_errors = ctx.reload_live_card_config()
     if config_errors:
@@ -243,7 +113,7 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
         return
 
     if not ctx.engine.ready and not data.get("two_player", False):
-        if not await _wait_for_engine_ready(ctx, "game_start"):
+        if not await wait_for_engine_ready(ctx, "game_start"):
             return
 
     ctx.active_games.prune()
