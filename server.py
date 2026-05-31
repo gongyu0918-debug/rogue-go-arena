@@ -192,6 +192,14 @@ from app.runtime.rogue_activation_adapters import (
     activate_ai_rogue_card as activate_ai_rogue_card_adapter,
     activate_rogue_card as activate_rogue_card_adapter,
 )
+from app.runtime.rogue_activation_runtime import (
+    RogueActivationDependencies,
+    RogueActivationEffectFns,
+    RogueActivationRuntimeFns,
+    RogueActivationTuning,
+    build_ai_rogue_card_activation_binding,
+    build_rogue_card_activation_binding,
+)
 from app.runtime.rogue_ai_turn_adapters import (
     ForcedRogueAiTurnBinding,
     RestrictionRogueAiTurnBinding,
@@ -1018,32 +1026,37 @@ async def _pick_best_point(game: GoGame, color: str) -> Optional[tuple[int, int]
     return await _pick_analysis_point(game, color, start_index=0)
 
 
-def _rogue_card_activation_binding() -> RogueCardActivationBinding:
-    return RogueCardActivationBinding(
-        get_card=get_rogue_card,
-        apply_activation=apply_rogue_card_activation,
-        coord_to_gtp=coord_to_gtp,
-        choose_corner=lambda: random.randint(0, 3),
-        make_rng=lambda: random.Random(time.time_ns()),
-        get_blackhole_points=_get_blackhole_points,
-        get_golden_corner_points=_get_golden_corner_points,
-        pick_joseki_targets=_pick_joseki_targets,
-        random_hidden_center=_random_hidden_center,
-        diamond_points=_diamond_points,
-        sync_engine_komi=_sync_engine_komi,
+def _rogue_activation_dependencies() -> RogueActivationDependencies:
+    return RogueActivationDependencies(
+        effects=RogueActivationEffectFns(
+            get_card=get_rogue_card,
+            apply_player_activation=apply_rogue_card_activation,
+            apply_ai_activation=apply_ai_rogue_card_activation,
+        ),
+        runtime=RogueActivationRuntimeFns(
+            coord_to_gtp=coord_to_gtp,
+            choose_corner=lambda: random.randint(0, 3),
+            make_rng=lambda: random.Random(time.time_ns()),
+            get_blackhole_points=_get_blackhole_points,
+            get_golden_corner_points=_get_golden_corner_points,
+            pick_joseki_targets=_pick_joseki_targets,
+            random_hidden_center=_random_hidden_center,
+            diamond_points=_diamond_points,
+            sync_engine_komi=_sync_engine_komi,
+            refresh_ai_rogue_player_turn=_refresh_ai_rogue_player_turn,
+        ),
+        tuning=RogueActivationTuning(
+            golden_corner_span=ROGUE_GOLDEN_CORNER_SPAN,
+        ),
     )
+
+
+def _rogue_card_activation_binding() -> RogueCardActivationBinding:
+    return build_rogue_card_activation_binding(_rogue_activation_dependencies())
 
 
 def _ai_rogue_card_activation_binding() -> AiRogueCardActivationBinding:
-    return AiRogueCardActivationBinding(
-        get_card=get_rogue_card,
-        apply_activation=apply_ai_rogue_card_activation,
-        choose_corner=lambda: random.randint(0, 3),
-        get_blackhole_points=_get_blackhole_points,
-        get_golden_corner_points=_get_golden_corner_points,
-        refresh_ai_rogue_player_turn=_refresh_ai_rogue_player_turn,
-        golden_corner_span=ROGUE_GOLDEN_CORNER_SPAN,
-    )
+    return build_ai_rogue_card_activation_binding(_rogue_activation_dependencies())
 
 
 async def _activate_rogue_card(game: GoGame, send_fn, card_id: str):
