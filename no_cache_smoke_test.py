@@ -4,7 +4,7 @@ import asyncio
 
 from fastapi.responses import JSONResponse, Response
 
-import server as s
+from app.runtime.app_shell import build_no_cache_html_middleware
 from app.runtime.no_cache import apply_no_cache_headers_for_html
 
 
@@ -25,7 +25,7 @@ def smoke_no_cache_helper_only_marks_html_responses() -> None:
     assert "Expires" not in json_response.headers
 
 
-async def smoke_server_middleware_uses_shared_helper() -> None:
+async def smoke_no_cache_middleware_uses_shared_helper() -> None:
     calls = []
 
     async def html_call_next(request):
@@ -36,8 +36,9 @@ async def smoke_server_middleware_uses_shared_helper() -> None:
         calls.append(("json", request))
         return JSONResponse({"ok": True})
 
-    html_response = await s.no_cache_html("request-html", html_call_next)
-    json_response = await s.no_cache_html("request-json", json_call_next)
+    middleware = build_no_cache_html_middleware()
+    html_response = await middleware("request-html", html_call_next)
+    json_response = await middleware("request-json", json_call_next)
 
     assert calls == [("html", "request-html"), ("json", "request-json")]
     assert html_response.headers["Cache-Control"] == "no-cache, no-store, must-revalidate"
@@ -46,7 +47,7 @@ async def smoke_server_middleware_uses_shared_helper() -> None:
 
 async def main() -> None:
     smoke_no_cache_helper_only_marks_html_responses()
-    await smoke_server_middleware_uses_shared_helper()
+    await smoke_no_cache_middleware_uses_shared_helper()
     print("no cache smoke test: OK")
 
 

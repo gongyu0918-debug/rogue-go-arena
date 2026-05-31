@@ -216,6 +216,7 @@ Still in `static/index.html`:
    - Continue moving AI turn branches behind the existing `AiMoveService` and engine gateway instead of adding direct `engine.*` calls in `server.py`.
 
 4. `app/runtime/ws_handlers.py`
+   - FastAPI app shell setup (startup/shutdown hooks, static mounts, HTML no-cache middleware) now lives in `app/runtime/app_shell.py`.
    - WebSocket session lifecycle and dispatch now live in `app/runtime/ws_session.py`.
    - WebSocket route registration now lives behind `app/runtime/ws_routes.py`; `server.py` only supplies current session/runtime bindings.
    - Continue moving action dependencies out of `server.py` without changing wire payloads.

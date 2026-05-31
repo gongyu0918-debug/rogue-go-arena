@@ -11,8 +11,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Request, WebSocketDisconnect
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, WebSocketDisconnect
 import uvicorn
 import app.config.gameplay as gameplay_config
 import app.runtime.ws_actions as ws_actions_module
@@ -93,6 +92,7 @@ from app.runtime.ai_move_service_adapters import (
     retry_avoiding_ko as ai_service_retry_avoiding_ko,
     suboptimal_move as ai_service_suboptimal_move,
 )
+from app.runtime.app_shell import AppShellBinding, configure_app_shell
 from app.runtime.ai_turn_adapters import (
     AiTurnBinding,
     run_ai_turn as run_ai_turn_adapter,
@@ -159,7 +159,6 @@ from app.runtime.line_trigger_adapters import (
     trigger_ultimate_five_in_row as trigger_ultimate_five_in_row_adapter,
     trigger_ultimate_last_stand as trigger_ultimate_last_stand_adapter,
 )
-from app.runtime.no_cache import apply_no_cache_headers_for_html
 from app.runtime.observer_adapters import (
     AiObserverLoopBinding,
     ObserverDoublePassBinding,
@@ -481,26 +480,15 @@ _engine_log = engine_runtime.log_event
 _engine_state_snapshot = engine_runtime.snapshot
 
 
-@app.on_event("startup")
-async def startup():
-    log("[Server] KataGo will start on first game request")
+def _app_shell_binding() -> AppShellBinding:
+    return AppShellBinding(
+        static_dir=STATIC_DIR,
+        engine_runtime=engine_runtime,
+        log_fn=log,
+    )
 
 
-@app.on_event("shutdown")
-async def shutdown():
-    engine_runtime.handle_app_shutdown()
-
-
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR), check_dir=False),
-          name="static")
-app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets"), check_dir=False),
-          name="assets")
-
-
-@app.middleware("http")
-async def no_cache_html(request: Request, call_next):
-    response = await call_next(request)
-    return apply_no_cache_headers_for_html(response)
+configure_app_shell(app, _app_shell_binding)
 
 
 def _static_page_routes_binding() -> StaticPageRoutesBinding:
