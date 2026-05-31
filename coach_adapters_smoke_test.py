@@ -15,6 +15,16 @@ from app.runtime.coach_adapters import (
     finish_ai_move,
     run_coach_turn_if_needed,
 )
+from app.runtime.coach_runtime import (
+    AiFinishMoveRuntimeFns,
+    CoachDependencies,
+    CoachMoveChoiceRuntimeFns,
+    CoachTuning,
+    CoachTurnRuntimeFns,
+    build_ai_finish_move_binding,
+    build_coach_move_choice_binding,
+    build_coach_turn_binding,
+)
 
 
 async def fake_async(*_args, **_kwargs):
@@ -94,6 +104,129 @@ def smoke_coach_bindings_map_every_field() -> None:
     assert turn_deps.ai_move is fake_async
     assert turn_deps.bonus_threshold == 0.5
     assert turn_deps.bonus_turns == 3
+
+
+def smoke_coach_runtime_builders_group_dependencies() -> None:
+    async def finalize_move(*_args, **_kwargs):
+        return None
+
+    def finish_gtp_to_coord(_move: str, _size: int):
+        return (2, 3)
+
+    async def no_resign(*_args, **_kwargs):
+        return "D4"
+
+    async def retry_ko(*_args, **_kwargs):
+        return "Q16"
+
+    async def finish_check_capture(*_args, **_kwargs):
+        return None
+
+    async def turn_check_capture(*_args, **_kwargs):
+        return None
+
+    def prepare_modifiers(_game):
+        return SimpleNamespace(prepared=True)
+
+    async def run_engine(*_args, **_kwargs):
+        return "= ok"
+
+    async def run_coach(*_args, **_kwargs):
+        return None
+
+    def get_visits(*_args, **_kwargs):
+        return 111
+
+    async def generate_style(*_args, **_kwargs):
+        return "C3"
+
+    def choice_gtp_to_coord(_move: str, _size: int):
+        return (4, 5)
+
+    async def choice_retry_ko(*_args, **_kwargs):
+        return "R4"
+
+    async def choose_coach(*_args, **_kwargs):
+        return ("F6", (5, 5))
+
+    def place_auxiliary(*_args, **_kwargs):
+        return SimpleNamespace(coord=(6, 6))
+
+    async def player_effects(*_args, **_kwargs):
+        return None
+
+    async def ai_effects(*_args, **_kwargs):
+        return None
+
+    async def estimate_winrate(*_args, **_kwargs):
+        return 0.7
+
+    async def ai_move(*_args, **_kwargs):
+        return None
+
+    dependencies = CoachDependencies(
+        finish=AiFinishMoveRuntimeFns(
+            finalize_ai_move=finalize_move,
+            gtp_to_coord=finish_gtp_to_coord,
+            no_resign_move=no_resign,
+            retry_avoiding_ko=retry_ko,
+            check_capture_foul=finish_check_capture,
+            prepare_player_turn_modifiers=prepare_modifiers,
+            run_engine_command=run_engine,
+            run_coach_turn_if_needed=run_coach,
+        ),
+        choice=CoachMoveChoiceRuntimeFns(
+            get_game_visits=get_visits,
+            generate_ai_style_move=generate_style,
+            gtp_to_coord=choice_gtp_to_coord,
+            retry_avoiding_ko=choice_retry_ko,
+        ),
+        turn=CoachTurnRuntimeFns(
+            engine_ready=lambda: True,
+            choose_coach_ai_move=choose_coach,
+            place_auxiliary_move=place_auxiliary,
+            check_capture_foul=turn_check_capture,
+            apply_player_rogue_move_effects=player_effects,
+            apply_ai_rogue_response_effects=ai_effects,
+            estimate_side_winrate=estimate_winrate,
+            ai_move=ai_move,
+        ),
+        tuning=CoachTuning(
+            coach_visits=222,
+            max_move_time=7.5,
+            bonus_threshold=0.45,
+            bonus_turns=4,
+        ),
+    )
+
+    finish = build_ai_finish_move_binding(dependencies)
+    choice = build_coach_move_choice_binding(dependencies)
+    turn = build_coach_turn_binding(dependencies)
+
+    assert finish.finalize_ai_move is finalize_move
+    assert finish.gtp_to_coord is finish_gtp_to_coord
+    assert finish.no_resign_move is no_resign
+    assert finish.retry_avoiding_ko is retry_ko
+    assert finish.check_capture_foul is finish_check_capture
+    assert finish.prepare_player_turn_modifiers is prepare_modifiers
+    assert finish.run_engine_command is run_engine
+    assert finish.run_coach_turn_if_needed is run_coach
+    assert choice.get_game_visits is get_visits
+    assert choice.generate_ai_style_move is generate_style
+    assert choice.gtp_to_coord is choice_gtp_to_coord
+    assert choice.retry_avoiding_ko is choice_retry_ko
+    assert choice.coach_visits == 222
+    assert choice.max_move_time == 7.5
+    assert turn.engine_ready() is True
+    assert turn.choose_coach_ai_move is choose_coach
+    assert turn.place_auxiliary_move is place_auxiliary
+    assert turn.check_capture_foul is turn_check_capture
+    assert turn.apply_player_rogue_move_effects is player_effects
+    assert turn.apply_ai_rogue_response_effects is ai_effects
+    assert turn.estimate_side_winrate is estimate_winrate
+    assert turn.ai_move is ai_move
+    assert turn.bonus_threshold == 0.45
+    assert turn.bonus_turns == 4
 
 
 async def smoke_finish_adapter_delegates_to_flow() -> None:
@@ -200,6 +333,54 @@ async def smoke_coach_adapters_delegate_to_flow() -> None:
 
 
 def smoke_server_bindings_resolve_current_runtime() -> None:
+    async def finalize_move(*_args, **_kwargs):
+        return None
+
+    def server_gtp_to_coord(_move: str, _size: int):
+        return (3, 4)
+
+    async def no_resign(*_args, **_kwargs):
+        return "D4"
+
+    async def retry_ko(*_args, **_kwargs):
+        return "Q16"
+
+    async def check_capture(*_args, **_kwargs):
+        return None
+
+    def prepare_modifiers(_game):
+        return SimpleNamespace(prepared=True)
+
+    async def run_engine(*_args, **_kwargs):
+        return "= ok"
+
+    async def run_coach(*_args, **_kwargs):
+        return None
+
+    def get_visits(*_args, **_kwargs):
+        return 123
+
+    async def generate_style(*_args, **_kwargs):
+        return "C3"
+
+    async def choose_coach(*_args, **_kwargs):
+        return ("E5", (4, 4))
+
+    def place_auxiliary(*_args, **_kwargs):
+        return SimpleNamespace(coord=(5, 5))
+
+    async def player_effects(*_args, **_kwargs):
+        return None
+
+    async def ai_effects(*_args, **_kwargs):
+        return None
+
+    async def estimate_winrate(*_args, **_kwargs):
+        return 0.6
+
+    async def ai_move(*_args, **_kwargs):
+        return None
+
     originals = {
         "finalize_ai_move": s.finalize_ai_move,
         "gtp_to_coord": s.gtp_to_coord,
@@ -224,22 +405,22 @@ def smoke_server_bindings_resolve_current_runtime() -> None:
         "engine_ready": s.engine.ready,
     }
     try:
-        s.finalize_ai_move = fake_async
-        s.gtp_to_coord = fake_gtp_to_coord
-        s._ai_move_no_resign = fake_async
-        s._ai_retry_avoiding_ko = fake_async
-        s._check_capture_foul = fake_async
-        s._prepare_player_turn_modifiers = fake_sync
-        s._send_engine_command = fake_async
-        s._run_coach_turn_if_needed = fake_async
-        s.get_game_visits = lambda *_args, **_kwargs: 123
-        s._generate_ai_style_move = fake_async
-        s._choose_coach_ai_move = fake_async
-        s._place_auxiliary_ai_move_on_board = fake_sync
-        s._apply_player_rogue_move_effects = fake_async
-        s._apply_ai_rogue_response_effects = fake_async
-        s._estimate_side_winrate = fake_async
-        s._ai_move = fake_async
+        s.finalize_ai_move = finalize_move
+        s.gtp_to_coord = server_gtp_to_coord
+        s._ai_move_no_resign = no_resign
+        s._ai_retry_avoiding_ko = retry_ko
+        s._check_capture_foul = check_capture
+        s._prepare_player_turn_modifiers = prepare_modifiers
+        s._send_engine_command = run_engine
+        s._run_coach_turn_if_needed = run_coach
+        s.get_game_visits = get_visits
+        s._generate_ai_style_move = generate_style
+        s._choose_coach_ai_move = choose_coach
+        s._place_auxiliary_ai_move_on_board = place_auxiliary
+        s._apply_player_rogue_move_effects = player_effects
+        s._apply_ai_rogue_response_effects = ai_effects
+        s._estimate_side_winrate = estimate_winrate
+        s._ai_move = ai_move
         s.ROGUE_COACH_VISITS = 345
         s.MAX_MOVE_TIME = 6.5
         s.ROGUE_COACH_BONUS_THRESHOLD = 0.4
@@ -250,20 +431,28 @@ def smoke_server_bindings_resolve_current_runtime() -> None:
         choice = s._coach_move_choice_binding()
         turn = s._coach_turn_binding()
 
-        assert finish.finalize_ai_move is fake_async
-        assert finish.gtp_to_coord is fake_gtp_to_coord
-        assert finish.no_resign_move is fake_async
-        assert finish.run_coach_turn_if_needed is fake_async
-        assert choice.get_game_visits is s.get_game_visits
-        assert choice.generate_ai_style_move is fake_async
-        assert choice.gtp_to_coord is fake_gtp_to_coord
+        assert finish.finalize_ai_move is finalize_move
+        assert finish.gtp_to_coord is server_gtp_to_coord
+        assert finish.no_resign_move is no_resign
+        assert finish.retry_avoiding_ko is retry_ko
+        assert finish.check_capture_foul is check_capture
+        assert finish.prepare_player_turn_modifiers is prepare_modifiers
+        assert finish.run_engine_command is run_engine
+        assert finish.run_coach_turn_if_needed is run_coach
+        assert choice.get_game_visits is get_visits
+        assert choice.generate_ai_style_move is generate_style
+        assert choice.gtp_to_coord is server_gtp_to_coord
+        assert choice.retry_avoiding_ko is retry_ko
         assert choice.coach_visits == 345
         assert choice.max_move_time == 6.5
         assert turn.engine_ready() is True
-        assert turn.choose_coach_ai_move is fake_async
-        assert turn.place_auxiliary_move is fake_sync
-        assert turn.apply_player_rogue_move_effects is fake_async
-        assert turn.ai_move is fake_async
+        assert turn.choose_coach_ai_move is choose_coach
+        assert turn.place_auxiliary_move is place_auxiliary
+        assert turn.check_capture_foul is check_capture
+        assert turn.apply_player_rogue_move_effects is player_effects
+        assert turn.apply_ai_rogue_response_effects is ai_effects
+        assert turn.estimate_side_winrate is estimate_winrate
+        assert turn.ai_move is ai_move
         assert turn.bonus_threshold == 0.4
         assert turn.bonus_turns == 2
     finally:
@@ -277,6 +466,7 @@ def smoke_server_bindings_resolve_current_runtime() -> None:
 def main() -> None:
     smoke_finish_binding_maps_every_field()
     smoke_coach_bindings_map_every_field()
+    smoke_coach_runtime_builders_group_dependencies()
     asyncio.run(smoke_finish_adapter_delegates_to_flow())
     asyncio.run(smoke_coach_adapters_delegate_to_flow())
     smoke_server_bindings_resolve_current_runtime()
