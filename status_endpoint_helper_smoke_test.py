@@ -98,6 +98,13 @@ def smoke_status_helper_collects_runtime_state_in_existing_order() -> None:
     assert payload["access_urls"] == {"local": ["http://127.0.0.1:8123"], "lan": []}
 
 
+def endpoint_for(path: str, method: str = "GET"):
+    for route in s.app.routes:
+        if getattr(route, "path", None) == path and method in getattr(route, "methods", set()):
+            return route.endpoint
+    raise AssertionError(f"missing route {method} {path}")
+
+
 async def smoke_server_status_wrapper_resolves_runtime_deps_late() -> None:
     calls = []
 
@@ -141,7 +148,12 @@ async def smoke_server_status_wrapper_resolves_runtime_deps_late() -> None:
             s.STATIC_DIR = static_dir
             s.NO_KATAGO = True
 
-            payload = await s.get_status()
+            binding = s._runtime_info_routes_binding()
+            assert binding.engine is s.engine
+            assert binding.engine_runtime is s.engine_runtime
+            assert binding.card_config_service is s.card_config_service
+            assert binding.static_dir == static_dir
+            payload = await endpoint_for("/status")()
     finally:
         s.engine = original_engine
         s.engine_runtime = original_runtime

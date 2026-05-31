@@ -140,7 +140,11 @@ from app.runtime.generated_ai_adapters import (
     GeneratedMovePreparationBinding,
     try_finish_generated_ai_turn as try_finish_generated_ai_turn_adapter,
 )
-from app.runtime.gpu_info import CachedGpuInfo, runtime_gpu_info_payload
+from app.runtime.gpu_info import CachedGpuInfo
+from app.runtime.info_routes import (
+    RuntimeInfoRoutesBinding,
+    build_runtime_info_router,
+)
 from app.runtime.katago_paths import (
     UserKataGoPaths,
     ensure_user_katago_dirs,
@@ -191,12 +195,10 @@ from app.runtime.service_bindings import (
     AiMoveServiceBinding,
     EngineGatewayBinding,
 )
-from app.runtime.sgf_export import build_sgf_export_response
 from app.runtime.static_page_routes import (
     StaticPageRoutesBinding,
     build_static_page_router,
 )
-from app.runtime.status_endpoint import build_runtime_status_payload
 from app.runtime.turn_modifier_adapters import (
     clear_player_turn_modifiers as clear_player_turn_modifiers_adapter,
     finish_ultimate_quickthink_turn as finish_ultimate_quickthink_turn_adapter,
@@ -533,9 +535,11 @@ def _runtime_control_routes_binding() -> RuntimeControlRoutesBinding:
 app.include_router(build_runtime_control_router(_runtime_control_routes_binding))
 
 
-@app.get("/status")
-async def get_status():
-    return build_runtime_status_payload(
+_gpu_detector = CachedGpuInfo()
+
+
+def _runtime_info_routes_binding() -> RuntimeInfoRoutesBinding:
+    return RuntimeInfoRoutesBinding(
         server_rev=SERVER_REV,
         host=SERVER_HOST,
         port=SERVER_PORT,
@@ -545,31 +549,16 @@ async def get_status():
         engine_state_snapshot=_engine_state_snapshot,
         card_config_service=card_config_service,
         no_katago=NO_KATAGO,
-        static_index_path=STATIC_DIR / "index.html",
-    )
-
-
-# ─── GPU detection ───────────────────────────────────────────────────────────
-_gpu_detector = CachedGpuInfo()
-
-
-@app.get("/gpu")
-async def get_gpu_info():
-    return await runtime_gpu_info_payload(
-        detector=_gpu_detector,
+        static_dir=STATIC_DIR,
+        gpu_detector=_gpu_detector,
         run_in_executor=run_in_executor,
-        cpu_mode_fn=lambda: engine_runtime.cpu_mode,
         large_model_path=KATAGO_MODEL_LARGE,
-    )
-
-
-@app.get("/sgf/{game_id}")
-async def export_sgf(game_id: str):
-    return build_sgf_export_response(
-        game_id=game_id,
         active_games=active_games,
         generate_sgf=generate_sgf,
     )
+
+
+app.include_router(build_runtime_info_router(_runtime_info_routes_binding))
 
 
 async def run_in_executor(func, *args):

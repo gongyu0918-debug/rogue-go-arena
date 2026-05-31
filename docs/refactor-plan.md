@@ -223,6 +223,7 @@ Still in `static/index.html`:
    - `/gpu` payload detection, caching, CPU-mode override, and model-file flag orchestration now live in `app/runtime/gpu_info.py`.
    - Static page route registration now lives behind `app/runtime/static_page_routes.py`; `server.py` only supplies the current static directory binding.
    - Rank and engine-control route registration now lives behind `app/runtime/control_routes.py`; `server.py` only supplies current runtime bindings.
+   - Status, GPU, and SGF export route registration now lives behind `app/runtime/info_routes.py`; `server.py` only supplies current runtime bindings.
 
 5. `app/services/card_config_service.py`
    - Move live card config reload/save/reset orchestration out of `server.py`.

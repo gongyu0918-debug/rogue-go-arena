@@ -23,6 +23,13 @@ def body_text(response) -> str:
     return response.body.decode("utf-8")
 
 
+def endpoint_for(path: str, method: str = "GET"):
+    for route in s.app.routes:
+        if getattr(route, "path", None) == path and method in getattr(route, "methods", set()):
+            return route.endpoint
+    raise AssertionError(f"missing route {method} {path}")
+
+
 def smoke_sgf_export_helper_preserves_found_response() -> None:
     game = object()
     store = FakeGameStore({"abc": game})
@@ -77,8 +84,12 @@ async def smoke_server_sgf_route_uses_shared_helper() -> None:
     try:
         s.active_games = store
         s.generate_sgf = generate
-        response = await s.export_sgf("server-game")
-        missing = await s.export_sgf("unknown")
+        binding = s._runtime_info_routes_binding()
+        assert binding.active_games is store
+        assert binding.generate_sgf is generate
+        export_sgf = endpoint_for("/sgf/{game_id}")
+        response = await export_sgf("server-game")
+        missing = await export_sgf("unknown")
     finally:
         s.active_games = original_store
         s.generate_sgf = original_generator

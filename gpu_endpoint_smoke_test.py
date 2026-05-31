@@ -13,6 +13,13 @@ class FakeEngineRuntime:
         self.cpu_mode = cpu_mode
 
 
+def endpoint_for(path: str, method: str = "GET"):
+    for route in s.app.routes:
+        if getattr(route, "path", None) == path and method in getattr(route, "methods", set()):
+            return route.endpoint
+    raise AssertionError(f"missing route {method} {path}")
+
+
 async def smoke_gpu_payload_helper_uses_detector_executor_and_runtime_overrides() -> None:
     calls = []
     executor_calls = []
@@ -79,7 +86,7 @@ async def smoke_gpu_endpoint_uses_cached_detector_and_runtime_overrides() -> Non
     async def inline_executor(func, *args):
         executor_calls.append((func, args))
         result = func(*args)
-        runtime.cpu_mode = True
+        s.engine_runtime = runtime_after
         return result
 
     original_detector = s._gpu_detector
@@ -87,19 +94,24 @@ async def smoke_gpu_endpoint_uses_cached_detector_and_runtime_overrides() -> Non
     original_engine_runtime = s.engine_runtime
     original_large_model = s.KATAGO_MODEL_LARGE
     endpoint_detector = CachedGpuInfo(detect_gpu)
-    runtime = FakeEngineRuntime(cpu_mode=False)
+    runtime_before = FakeEngineRuntime(cpu_mode=False)
+    runtime_after = FakeEngineRuntime(cpu_mode=True)
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
             large_model = Path(temp_dir) / "model_large.bin.gz"
 
             s._gpu_detector = endpoint_detector
             s.run_in_executor = inline_executor
-            s.engine_runtime = runtime
+            s.engine_runtime = runtime_before
             s.KATAGO_MODEL_LARGE = large_model
 
-            first = await s.get_gpu_info()
+            binding = s._runtime_info_routes_binding()
+            assert binding.gpu_detector is endpoint_detector
+            assert binding.engine_runtime is runtime_before
+            assert binding.large_model_path == large_model
+            first = await endpoint_for("/gpu")()
             large_model.write_text("", encoding="utf-8")
-            second = await s.get_gpu_info()
+            second = await endpoint_for("/gpu")()
     finally:
         s._gpu_detector = original_detector
         s.run_in_executor = original_run_in_executor
