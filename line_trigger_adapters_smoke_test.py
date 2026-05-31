@@ -18,6 +18,16 @@ from app.runtime.line_trigger_adapters import (
     trigger_ultimate_five_in_row,
     trigger_ultimate_last_stand,
 )
+from app.runtime.line_trigger_runtime import (
+    LineTriggerDependencies,
+    LineTriggerEffectFns,
+    LineTriggerRuntimeFns,
+    LineTriggerTuning,
+    build_rogue_five_in_row_binding,
+    build_rogue_last_stand_binding,
+    build_ultimate_five_in_row_binding,
+    build_ultimate_last_stand_binding,
+)
 
 
 def result(modified: bool, messages: list[str]):
@@ -90,6 +100,68 @@ def smoke_bindings_map_every_field() -> None:
     ultimate_five_deps = build_ultimate_five_in_row_deps(ultimate_five)
     assert ultimate_five_deps.apply_five_in_row is fake_sync
     assert ultimate_five_deps.make_rng() == "five-rng"
+
+
+def smoke_line_trigger_runtime_builders_group_dependencies() -> None:
+    async def estimate(_game, _color):
+        return 0.2
+
+    async def sync_board(_game):
+        return None
+
+    runtime = LineTriggerRuntimeFns(
+        shuffle_points=fake_sync,
+        should_bonus_derivative=lambda _game: True,
+        engine_ready=lambda: False,
+        sync_board=sync_board,
+        estimate_side_winrate=estimate,
+        make_rng=lambda: "runtime-rng",
+        get_forbidden_points=lambda _game, _color: {(3, 3)},
+    )
+    effects = LineTriggerEffectFns(
+        apply_rogue_five_in_row=fake_sync,
+        apply_rogue_last_stand=lambda *_args, **_kwargs: None,
+        apply_ultimate_last_stand=lambda *_args, **_kwargs: None,
+        apply_ultimate_five_in_row=lambda *_args, **_kwargs: None,
+    )
+    tuning = LineTriggerTuning(
+        rogue_five_in_row_support_stones=6,
+        rogue_last_stand_clear_count=7,
+        rogue_last_stand_spawn_count=8,
+        rogue_last_stand_threshold=0.35,
+        ultimate_last_stand_threshold=0.45,
+    )
+    deps = LineTriggerDependencies(effects=effects, runtime=runtime, tuning=tuning)
+
+    rogue_five = build_rogue_five_in_row_binding(deps)
+    rogue_last = build_rogue_last_stand_binding(deps)
+    ultimate_last = build_ultimate_last_stand_binding(deps)
+    ultimate_five = build_ultimate_five_in_row_binding(deps)
+
+    assert rogue_five.apply_five_in_row is effects.apply_rogue_five_in_row
+    assert rogue_five.shuffle_points is runtime.shuffle_points
+    assert rogue_five.should_bonus_derivative is runtime.should_bonus_derivative
+    assert rogue_five.support_stones == 6
+    assert rogue_five.engine_ready is runtime.engine_ready
+    assert rogue_five.sync_board is runtime.sync_board
+
+    assert rogue_last.apply_last_stand is effects.apply_rogue_last_stand
+    assert rogue_last.estimate_side_winrate is runtime.estimate_side_winrate
+    assert rogue_last.make_rng is runtime.make_rng
+    assert rogue_last.get_forbidden_points is runtime.get_forbidden_points
+    assert rogue_last.clear_count == 7
+    assert rogue_last.spawn_count == 8
+    assert rogue_last.threshold == 0.35
+    assert rogue_last.engine_ready is runtime.engine_ready
+    assert rogue_last.sync_board is runtime.sync_board
+
+    assert ultimate_last.apply_last_stand is effects.apply_ultimate_last_stand
+    assert ultimate_last.estimate_side_winrate is runtime.estimate_side_winrate
+    assert ultimate_last.make_rng is runtime.make_rng
+    assert ultimate_last.threshold == 0.45
+
+    assert ultimate_five.apply_five_in_row is effects.apply_ultimate_five_in_row
+    assert ultimate_five.make_rng is runtime.make_rng
 
 
 async def smoke_adapters_delegate_and_return() -> None:
@@ -397,6 +469,7 @@ async def smoke_server_bindings_resolve_current_runtime() -> None:
 
 async def main() -> None:
     smoke_bindings_map_every_field()
+    smoke_line_trigger_runtime_builders_group_dependencies()
     await smoke_adapters_delegate_and_return()
     await smoke_server_bindings_resolve_current_runtime()
     print("line trigger adapters smoke test: OK")
