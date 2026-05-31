@@ -15,6 +15,15 @@ from app.runtime.observer_adapters import (
     finish_observer_double_pass,
     run_ai_observer_loop,
 )
+from app.runtime.observer_runtime import (
+    ObserverDependencies,
+    ObserverMoveFns,
+    ObserverRuntimeFns,
+    ObserverTuning,
+    build_ai_observer_loop_binding,
+    build_observer_double_pass_binding,
+    build_observer_move_placement_binding,
+)
 
 
 async def fake_async(*_args, **_kwargs):
@@ -27,6 +36,10 @@ def fake_sync(*_args, **_kwargs):
 
 def fake_gtp_to_coord(_move: str, _size: int):
     return (1, 2)
+
+
+def fake_other_gtp_to_coord(_move: str, _size: int):
+    return (3, 4)
 
 
 class FakeGame:
@@ -75,6 +88,76 @@ def smoke_loop_binding_maps_every_field() -> None:
     assert deps.finish_double_pass is fake_async
     assert deps.sleep is fake_async
     assert deps.opening_move_threshold == 30
+
+
+def smoke_observer_runtime_builders_group_dependencies() -> None:
+    async def run_engine_command(command: str) -> str:
+        return f"engine:{command}"
+
+    async def sync_board(*_args, **_kwargs):
+        return None
+
+    async def sleep(_delay: float):
+        return None
+
+    def get_visits(_level: str, _move_count: int) -> int:
+        return 222
+
+    async def generate_style(*_args, **_kwargs):
+        return "D4"
+
+    def is_suspicious(*_args, **_kwargs) -> bool:
+        return True
+
+    async def pick_fallback(*_args, **_kwargs):
+        return "E5"
+
+    def place_auxiliary(*_args, **_kwargs):
+        return SimpleNamespace(coord=(4, 4))
+
+    def place_observer(*_args, **_kwargs):
+        return SimpleNamespace(coord=(5, 5))
+
+    async def finish_double_pass(*_args, **_kwargs):
+        return False
+
+    dependencies = ObserverDependencies(
+        runtime=ObserverRuntimeFns(
+            engine_ready=lambda: True,
+            sync_board=sync_board,
+            run_engine_command=run_engine_command,
+            gtp_to_coord=fake_other_gtp_to_coord,
+            sleep=sleep,
+        ),
+        moves=ObserverMoveFns(
+            get_game_visits=get_visits,
+            generate_ai_style_move=generate_style,
+            is_suspicious_ai_pass=is_suspicious,
+            pick_nonpass_fallback_move=pick_fallback,
+            place_auxiliary_move=place_auxiliary,
+            place_ai_move_on_board=place_observer,
+            finish_double_pass=finish_double_pass,
+        ),
+        tuning=ObserverTuning(opening_move_threshold=44),
+    )
+
+    double_pass = build_observer_double_pass_binding(dependencies)
+    placement = build_observer_move_placement_binding(dependencies)
+    loop = build_ai_observer_loop_binding(dependencies)
+
+    assert double_pass.run_engine_command is run_engine_command
+    assert placement.gtp_to_coord is fake_other_gtp_to_coord
+    assert placement.place_auxiliary_move is place_auxiliary
+    assert loop.engine_ready() is True
+    assert loop.sync_board is sync_board
+    assert loop.get_game_visits is get_visits
+    assert loop.generate_ai_style_move is generate_style
+    assert loop.is_suspicious_ai_pass is is_suspicious
+    assert loop.pick_nonpass_fallback_move is pick_fallback
+    assert loop.place_ai_move_on_board is place_observer
+    assert loop.finish_double_pass is finish_double_pass
+    assert loop.sleep is sleep
+    assert loop.opening_move_threshold == 44
 
 
 async def smoke_double_pass_adapter_delegates() -> None:
@@ -234,6 +317,12 @@ async def smoke_adapter_propagates_disconnect_and_server_wrapper_swallows_it() -
 
 
 def smoke_server_bindings_resolve_current_runtime() -> None:
+    def place_auxiliary(*_args, **_kwargs):
+        return SimpleNamespace(source="auxiliary")
+
+    def place_observer(*_args, **_kwargs):
+        return SimpleNamespace(source="observer")
+
     originals = {
         "_send_engine_command": s._send_engine_command,
         "gtp_to_coord": s.gtp_to_coord,
@@ -251,14 +340,14 @@ def smoke_server_bindings_resolve_current_runtime() -> None:
     try:
         s._send_engine_command = fake_async
         s.gtp_to_coord = fake_gtp_to_coord
-        s._place_auxiliary_ai_move_on_board = fake_sync
+        s._place_auxiliary_ai_move_on_board = place_auxiliary
         s.engine.ready = True
         s._sync_board_to_katago = fake_async
         s.get_game_visits = lambda _level, _move_count: 123
         s._generate_ai_style_move = fake_async
         s._is_suspicious_ai_pass = lambda *_args: False
         s._pick_nonpass_fallback_move = fake_async
-        s._apply_observer_ai_move_to_board = fake_sync
+        s._apply_observer_ai_move_to_board = place_observer
         s._finish_observer_double_pass = fake_async
         s.OPENING_MOVE_THRESHOLD = 45
 
@@ -268,14 +357,14 @@ def smoke_server_bindings_resolve_current_runtime() -> None:
 
         assert double_pass.run_engine_command is fake_async
         assert placement.gtp_to_coord is fake_gtp_to_coord
-        assert placement.place_auxiliary_move is fake_sync
+        assert placement.place_auxiliary_move is place_auxiliary
         assert loop.engine_ready() is True
         assert loop.sync_board is fake_async
         assert loop.get_game_visits("5k", 0) == 123
         assert loop.generate_ai_style_move is fake_async
         assert loop.is_suspicious_ai_pass(None, "D4", "B") is False
         assert loop.pick_nonpass_fallback_move is fake_async
-        assert loop.place_ai_move_on_board is fake_sync
+        assert loop.place_ai_move_on_board is place_observer
         assert loop.finish_double_pass is fake_async
         assert loop.sleep is s.asyncio.sleep
         assert loop.opening_move_threshold == 45
@@ -289,6 +378,7 @@ def smoke_server_bindings_resolve_current_runtime() -> None:
 
 def main() -> None:
     smoke_loop_binding_maps_every_field()
+    smoke_observer_runtime_builders_group_dependencies()
     asyncio.run(smoke_double_pass_adapter_delegates())
     smoke_move_placement_adapter_delegates()
     asyncio.run(smoke_loop_adapter_delegates())

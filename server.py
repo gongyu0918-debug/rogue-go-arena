@@ -204,6 +204,15 @@ from app.runtime.observer_adapters import (
     finish_observer_double_pass as finish_observer_double_pass_adapter,
     run_ai_observer_loop as run_ai_observer_loop_adapter,
 )
+from app.runtime.observer_runtime import (
+    ObserverDependencies,
+    ObserverMoveFns,
+    ObserverRuntimeFns,
+    ObserverTuning,
+    build_ai_observer_loop_binding,
+    build_observer_double_pass_binding,
+    build_observer_move_placement_binding,
+)
 from app.runtime.rogue_activation_adapters import (
     AiRogueCardActivationBinding,
     RogueCardActivationBinding,
@@ -1884,10 +1893,32 @@ async def _run_coach_turn_if_needed(game: GoGame, send_fn):
     )
 
 
-def _observer_double_pass_binding() -> ObserverDoublePassBinding:
-    return ObserverDoublePassBinding(
-        run_engine_command=_send_engine_command,
+def _observer_dependencies() -> ObserverDependencies:
+    return ObserverDependencies(
+        runtime=ObserverRuntimeFns(
+            engine_ready=lambda: engine.ready,
+            sync_board=_sync_board_to_katago,
+            run_engine_command=_send_engine_command,
+            gtp_to_coord=gtp_to_coord,
+            sleep=asyncio.sleep,
+        ),
+        moves=ObserverMoveFns(
+            get_game_visits=get_game_visits,
+            generate_ai_style_move=_generate_ai_style_move,
+            is_suspicious_ai_pass=_is_suspicious_ai_pass,
+            pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
+            place_auxiliary_move=_place_auxiliary_ai_move_on_board,
+            place_ai_move_on_board=_apply_observer_ai_move_to_board,
+            finish_double_pass=_finish_observer_double_pass,
+        ),
+        tuning=ObserverTuning(
+            opening_move_threshold=OPENING_MOVE_THRESHOLD,
+        ),
     )
+
+
+def _observer_double_pass_binding() -> ObserverDoublePassBinding:
+    return build_observer_double_pass_binding(_observer_dependencies())
 
 
 async def _finish_observer_double_pass(game: GoGame, send_fn) -> bool:
@@ -1899,10 +1930,7 @@ async def _finish_observer_double_pass(game: GoGame, send_fn) -> bool:
 
 
 def _observer_move_placement_binding() -> ObserverMovePlacementBinding:
-    return ObserverMovePlacementBinding(
-        gtp_to_coord=gtp_to_coord,
-        place_auxiliary_move=_place_auxiliary_ai_move_on_board,
-    )
+    return build_observer_move_placement_binding(_observer_dependencies())
 
 
 def _apply_observer_ai_move_to_board(game: GoGame, color: str, gtp_move: str) -> AiMovePlacement:
@@ -1915,18 +1943,7 @@ def _apply_observer_ai_move_to_board(game: GoGame, color: str, gtp_move: str) ->
 
 
 def _ai_observer_loop_binding() -> AiObserverLoopBinding:
-    return AiObserverLoopBinding(
-        engine_ready=lambda: engine.ready,
-        sync_board=_sync_board_to_katago,
-        get_game_visits=get_game_visits,
-        generate_ai_style_move=_generate_ai_style_move,
-        is_suspicious_ai_pass=_is_suspicious_ai_pass,
-        pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
-        place_ai_move_on_board=_apply_observer_ai_move_to_board,
-        finish_double_pass=_finish_observer_double_pass,
-        sleep=asyncio.sleep,
-        opening_move_threshold=OPENING_MOVE_THRESHOLD,
-    )
+    return build_ai_observer_loop_binding(_observer_dependencies())
 
 
 async def _run_ai_observer_loop(game: GoGame, send_fn):
