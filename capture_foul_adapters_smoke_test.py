@@ -10,6 +10,11 @@ from app.runtime.capture_foul_adapters import (
     CaptureFoulBinding,
     check_capture_foul_violation,
 )
+from app.runtime.capture_foul_runtime import (
+    CaptureFoulDependencies,
+    CaptureFoulRuntimeFns,
+    build_capture_foul_binding,
+)
 
 
 @dataclass(frozen=True)
@@ -22,6 +27,21 @@ def make_game() -> GoGame:
     game = GoGame(size=9, komi=7.5, player_color="B", level="5k")
     game.ai_color = "W"
     return game
+
+
+def smoke_runtime_builder_maps_sync_komi() -> None:
+    async def sync_komi(_game):
+        return None
+
+    binding = build_capture_foul_binding(
+        CaptureFoulDependencies(
+            runtime=CaptureFoulRuntimeFns(
+                sync_komi=sync_komi,
+            ),
+        )
+    )
+
+    assert binding.sync_komi is sync_komi
 
 
 async def smoke_adapter_skips_when_not_triggered() -> None:
@@ -129,6 +149,7 @@ async def smoke_server_wrapper_resolves_current_sync_binding() -> None:
 
 
 async def main() -> None:
+    smoke_runtime_builder_maps_sync_komi()
     await smoke_adapter_skips_when_not_triggered()
     await smoke_adapter_sends_event_then_syncs_komi()
     await smoke_server_wrapper_resolves_current_sync_binding()

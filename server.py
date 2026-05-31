@@ -120,6 +120,11 @@ from app.runtime.capture_foul_adapters import (
     CaptureFoulBinding,
     check_capture_foul_violation as check_capture_foul_violation_adapter,
 )
+from app.runtime.capture_foul_runtime import (
+    CaptureFoulDependencies,
+    CaptureFoulRuntimeFns,
+    build_capture_foul_binding,
+)
 from app.runtime.challenge_adapters import (
     ChallengeFlowBinding,
     ChallengeLoadoutBinding,
@@ -852,8 +857,16 @@ def _finish_ultimate_quickthink_turn(game: GoGame) -> None:
     finish_ultimate_quickthink_turn_adapter(game)
 
 
+def _capture_foul_dependencies() -> CaptureFoulDependencies:
+    return CaptureFoulDependencies(
+        runtime=CaptureFoulRuntimeFns(
+            sync_komi=_sync_engine_komi,
+        ),
+    )
+
+
 def _capture_foul_binding() -> CaptureFoulBinding:
-    return CaptureFoulBinding(sync_komi=_sync_engine_komi)
+    return build_capture_foul_binding(_capture_foul_dependencies())
 
 
 async def _check_capture_foul(game: GoGame, send_fn, offender: str, captured: int, *, ultimate: bool) -> None:
