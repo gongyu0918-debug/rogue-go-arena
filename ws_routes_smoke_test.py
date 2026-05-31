@@ -11,6 +11,11 @@ import server as s
 from app.runtime.ws_context import WEBSOCKET_CONTEXT_FIELD_NAMES
 from app.runtime.ws_context_adapters import WebSocketContextBinding
 from app.runtime.ws_routes import WebSocketRoutesBinding, build_websocket_router
+from app.runtime.ws_routes_runtime import (
+    WebSocketRoutesDependencies,
+    WebSocketRoutesRuntimeFns,
+    build_websocket_routes_binding,
+)
 
 
 class FakeGame:
@@ -73,6 +78,33 @@ def make_ws_binding(active_games_marker) -> WebSocketContextBinding:
     return WebSocketContextBinding(**values)
 
 
+def smoke_websocket_routes_runtime_builder_maps_every_field() -> None:
+    active_games = object()
+    handlers = {"ping": object()}
+
+    async def analyze_position(_game):
+        return {"score": 0}
+
+    def websocket_context_binding():
+        return make_ws_binding(active_games)
+
+    binding = build_websocket_routes_binding(
+        WebSocketRoutesDependencies(
+            runtime=WebSocketRoutesRuntimeFns(
+                active_games=active_games,
+                action_handlers=handlers,
+                analyze_position=analyze_position,
+                websocket_context_binding=websocket_context_binding,
+            ),
+        )
+    )
+
+    assert binding.active_games is active_games
+    assert binding.action_handlers is handlers
+    assert binding.analyze_position is analyze_position
+    assert binding.websocket_context_binding is websocket_context_binding
+
+
 async def smoke_websocket_router_preserves_session_and_context_late_binding() -> None:
     game = FakeGame()
     before_context = object()
@@ -133,6 +165,7 @@ def smoke_server_websocket_route_maps_current_runtime_objects() -> None:
 
 
 async def main() -> None:
+    smoke_websocket_routes_runtime_builder_maps_every_field()
     await smoke_websocket_router_preserves_session_and_context_late_binding()
     smoke_server_websocket_route_maps_current_runtime_objects()
     print("ws routes smoke test: OK")

@@ -358,6 +358,11 @@ from app.runtime.ws_context import (
     WebSocketRuntimeDeps,
 )
 from app.runtime.ws_routes import WebSocketRoutesBinding, build_websocket_router
+from app.runtime.ws_routes_runtime import (
+    WebSocketRoutesDependencies,
+    WebSocketRoutesRuntimeFns,
+    build_websocket_routes_binding,
+)
 from app.gameplay.card_selection import (
     pick_ai_rogue_card,
     pick_ai_ultimate_card,
@@ -830,13 +835,19 @@ def _ws_context_binding() -> WebSocketContextBinding:
     return build_websocket_context_binding(_ws_context_deps())
 
 
-def _websocket_routes_binding() -> WebSocketRoutesBinding:
-    return WebSocketRoutesBinding(
-        active_games=active_games,
-        action_handlers=WS_ACTION_HANDLERS,
-        analyze_position=_analyze_current_position,
-        websocket_context_binding=_ws_context_binding,
+def _websocket_routes_dependencies() -> WebSocketRoutesDependencies:
+    return WebSocketRoutesDependencies(
+        runtime=WebSocketRoutesRuntimeFns(
+            active_games=active_games,
+            action_handlers=WS_ACTION_HANDLERS,
+            analyze_position=_analyze_current_position,
+            websocket_context_binding=_ws_context_binding,
+        ),
     )
+
+
+def _websocket_routes_binding() -> WebSocketRoutesBinding:
+    return build_websocket_routes_binding(_websocket_routes_dependencies())
 
 
 app.include_router(build_websocket_router(_websocket_routes_binding))
