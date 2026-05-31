@@ -329,6 +329,17 @@ from app.runtime.ultimate_ai_adapters import (
     run_ultimate_ai_bonus_turn_adapter,
     select_ultimate_ai_move,
 )
+from app.runtime.ultimate_ai_runtime import (
+    UltimateAiBonusFns,
+    UltimateAiDependencies,
+    UltimateAiFinishFns,
+    UltimateAiSelectionMoveFns,
+    UltimateAiSelectionRuntimeFns,
+    UltimateAiTuning,
+    build_ultimate_ai_bonus_turn_binding,
+    build_ultimate_ai_move_selection_binding,
+    build_ultimate_ai_turn_finish_binding,
+)
 from app.runtime.ws_context_adapters import (
     WebSocketContextBinding,
     build_websocket_context_binding,
@@ -1340,68 +1351,89 @@ async def _pick_ranked_legal_move(
     )
 
 
-async def _run_ultimate_ai_bonus_turn(game: GoGame, send_fn, color: str, bonus_turn) -> bool:
-    async def run_next_ai_move(game_arg, send_arg, next_allow_double_bonus: bool) -> None:
-        await _ultimate_ai_move(
-            game_arg,
-            send_arg,
-            allow_double_bonus=next_allow_double_bonus,
-        )
+def _plan_ultimate_ai_search(game: GoGame):
+    return plan_ultimate_ai_search(
+        game,
+        get_territory_forbidden=_ultimate_get_territory_forbidden,
+        get_game_visits=get_game_visits,
+    )
 
+
+async def _run_next_ultimate_ai_move(game: GoGame, send_fn, next_allow_double_bonus: bool) -> None:
+    await _ultimate_ai_move(
+        game,
+        send_fn,
+        allow_double_bonus=next_allow_double_bonus,
+    )
+
+
+def _ultimate_ai_dependencies() -> UltimateAiDependencies:
+    return UltimateAiDependencies(
+        selection_runtime=UltimateAiSelectionRuntimeFns(
+            engine_ready=lambda: engine.ready,
+            sync_board_to_katago=_sync_board_to_katago,
+            plan_search=_plan_ultimate_ai_search,
+            engine=engine,
+            run_in_executor=run_in_executor,
+            get_game_visits=get_game_visits,
+            log_fn=_engine_log,
+        ),
+        selection_moves=UltimateAiSelectionMoveFns(
+            no_resign_move=_ai_move_no_resign,
+            pick_ranked_legal_move=_pick_ranked_legal_move,
+            pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
+            retry_avoiding_ko=_ai_retry_avoiding_ko,
+            is_suspicious_ai_pass=_is_suspicious_ai_pass,
+            resolve_occupied_ai_move=resolve_occupied_ai_move,
+            gtp_to_coord=gtp_to_coord,
+            coord_to_gtp=coord_to_gtp,
+        ),
+        finish=UltimateAiFinishFns(
+            apply_ai_move_result=apply_ultimate_ai_move_result_state,
+            record_ultimate_turn=_record_ultimate_turn,
+            check_capture_foul=_check_capture_foul,
+            post_move_effects=apply_ultimate_ai_post_move_effects,
+            count_stones=_count_stones,
+            apply_ultimate_effect=_apply_ultimate_effect,
+            resolve_pending_ultimate_shadow_links=_resolve_pending_ultimate_shadow_links,
+            sync_board_to_katago=_sync_board_to_katago,
+            choose_bonus_turn=choose_ultimate_ai_bonus_turn_state,
+            run_bonus_turn=_run_ultimate_ai_bonus_turn,
+            finish_normal_turn=finish_ultimate_ai_normal_turn_state,
+            prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+            force_score=_ultimate_force_score,
+        ),
+        bonus=UltimateAiBonusFns(
+            start_bonus_turn=start_ultimate_ai_bonus_turn_state,
+            run_next_ai_move=_run_next_ultimate_ai_move,
+        ),
+        tuning=UltimateAiTuning(
+            chain_chance=ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
+            chain_random=random.random,
+        ),
+    )
+
+
+def _ultimate_ai_bonus_turn_binding() -> UltimateAiBonusTurnBinding:
+    return build_ultimate_ai_bonus_turn_binding(_ultimate_ai_dependencies())
+
+
+async def _run_ultimate_ai_bonus_turn(game: GoGame, send_fn, color: str, bonus_turn) -> bool:
     return await run_ultimate_ai_bonus_turn_adapter(
         game,
         send_fn,
         color,
         bonus_turn,
-        UltimateAiBonusTurnBinding(
-            start_bonus_turn=start_ultimate_ai_bonus_turn_state,
-            run_next_ai_move=run_next_ai_move,
-        ),
+        _ultimate_ai_bonus_turn_binding(),
     )
 
 
 def _ultimate_ai_move_selection_binding() -> UltimateAiMoveSelectionBinding:
-    return UltimateAiMoveSelectionBinding(
-        engine_ready=lambda: engine.ready,
-        sync_board_to_katago=_sync_board_to_katago,
-        plan_search=lambda game: plan_ultimate_ai_search(
-            game,
-            get_territory_forbidden=_ultimate_get_territory_forbidden,
-            get_game_visits=get_game_visits,
-        ),
-        engine=engine,
-        run_in_executor=run_in_executor,
-        get_game_visits=get_game_visits,
-        no_resign_move=_ai_move_no_resign,
-        pick_ranked_legal_move=_pick_ranked_legal_move,
-        pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
-        retry_avoiding_ko=_ai_retry_avoiding_ko,
-        is_suspicious_ai_pass=_is_suspicious_ai_pass,
-        resolve_occupied_ai_move=resolve_occupied_ai_move,
-        gtp_to_coord=gtp_to_coord,
-        coord_to_gtp=coord_to_gtp,
-        log_fn=_engine_log,
-    )
+    return build_ultimate_ai_move_selection_binding(_ultimate_ai_dependencies())
 
 
 def _ultimate_ai_turn_finish_binding() -> UltimateAiTurnFinishBinding:
-    return UltimateAiTurnFinishBinding(
-        chain_chance=ULTIMATE_CHAIN_EXTRA_TURN_CHANCE,
-        chain_random=random.random,
-        apply_ai_move_result=apply_ultimate_ai_move_result_state,
-        record_ultimate_turn=_record_ultimate_turn,
-        check_capture_foul=_check_capture_foul,
-        post_move_effects=apply_ultimate_ai_post_move_effects,
-        count_stones=_count_stones,
-        apply_ultimate_effect=_apply_ultimate_effect,
-        resolve_pending_ultimate_shadow_links=_resolve_pending_ultimate_shadow_links,
-        sync_board_to_katago=_sync_board_to_katago,
-        choose_bonus_turn=choose_ultimate_ai_bonus_turn_state,
-        run_bonus_turn=_run_ultimate_ai_bonus_turn,
-        finish_normal_turn=finish_ultimate_ai_normal_turn_state,
-        prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
-        force_score=_ultimate_force_score,
-    )
+    return build_ultimate_ai_turn_finish_binding(_ultimate_ai_dependencies())
 
 
 async def _ultimate_ai_move(game: GoGame, send_fn,
