@@ -162,8 +162,15 @@ from app.runtime.coach_runtime import (
 )
 from app.runtime.engine_gateway_adapters import (
     EngineGatewayRuntime,
+    analyze_current_position as engine_gateway_analyze_current_position,
     bind_engine_gateway as bind_engine_gateway_adapter,
+    empty_analysis_result as engine_gateway_empty_analysis_result,
+    estimate_side_winrate as engine_gateway_estimate_side_winrate,
+    gtp_safe_sync_sgf_path as engine_gateway_gtp_safe_sync_sgf_path,
+    pick_analysis_point as engine_gateway_pick_analysis_point,
     send_engine_command as send_engine_command_adapter,
+    sync_board as engine_gateway_sync_board,
+    sync_board_locked as engine_gateway_sync_board_locked,
     sync_engine_komi as sync_engine_komi_adapter,
 )
 from app.runtime.engine_gateway import EngineRuntimeGateway
@@ -943,8 +950,8 @@ def _get_player_bonus_forbidden_points(game: GoGame, color: str) -> set[tuple[in
 
 
 async def _estimate_side_winrate(game: GoGame, color: str) -> float:
-    _bind_engine_gateway_runtime()
-    return await engine_gateway.estimate_side_winrate(
+    return await engine_gateway_estimate_side_winrate(
+        _engine_gateway_runtime(),
         game,
         color,
         sync_board=_sync_board_to_katago,
@@ -1151,8 +1158,12 @@ def _clear_player_turn_modifiers(game: GoGame):
 
 
 async def _pick_analysis_point(game: GoGame, color: str, *, start_index: int = 0) -> Optional[tuple[int, int]]:
-    _bind_engine_gateway_runtime()
-    return await engine_gateway.pick_analysis_point(game, color, start_index=start_index)
+    return await engine_gateway_pick_analysis_point(
+        _engine_gateway_runtime(),
+        game,
+        color,
+        start_index=start_index,
+    )
 
 
 async def _pick_second_best_point(game: GoGame, color: str) -> Optional[tuple[int, int]]:
@@ -1287,8 +1298,7 @@ async def _apply_ai_rogue_response_effects(game: GoGame, send_fn,
 def _sync_board_to_katago_locked(game: GoGame):
     """Reset KataGo board to match game.board using SGF loadsgf.
     Must be called while holding engine.command_lock."""
-    _bind_engine_gateway_runtime()
-    engine_gateway.sync_board_locked(game)
+    engine_gateway_sync_board_locked(_engine_gateway_runtime(), game)
 
 
 def _has_gtp_unsafe_whitespace(path: str) -> bool:
@@ -1297,23 +1307,21 @@ def _has_gtp_unsafe_whitespace(path: str) -> bool:
 
 def _gtp_safe_sync_sgf_path(game: GoGame) -> str:
     """Return a writable SGF path that KataGo GTP will not split on spaces."""
-    _bind_engine_gateway_runtime()
-    return engine_gateway.gtp_safe_sync_sgf_path(game)
+    return engine_gateway_gtp_safe_sync_sgf_path(_engine_gateway_runtime(), game)
 
 
 async def _sync_board_to_katago(game: GoGame):
     """Reset KataGo board to match game.board (async wrapper)."""
-    _bind_engine_gateway_runtime()
-    await engine_gateway.sync_board(game)
+    await engine_gateway_sync_board(_engine_gateway_runtime(), game)
 
 
 def _empty_analysis_result() -> dict:
-    return EngineRuntimeGateway.empty_analysis_result()
+    return engine_gateway_empty_analysis_result(_engine_gateway_runtime())
 
 
 async def _analyze_current_position(game: GoGame, color: Optional[str] = None) -> dict:
-    _bind_engine_gateway_runtime()
-    return await engine_gateway.analyze_current_position(
+    return await engine_gateway_analyze_current_position(
+        _engine_gateway_runtime(),
         game,
         color=color,
         sync_board=_sync_board_to_katago,
