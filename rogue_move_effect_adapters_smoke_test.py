@@ -13,6 +13,14 @@ from app.runtime.rogue_move_effect_adapters import (
     build_ai_rogue_response_effect_deps,
     build_player_rogue_move_effect_deps,
 )
+from app.runtime.rogue_move_effect_runtime import (
+    RogueMoveEffectDependencies,
+    RogueMoveEffectFns,
+    RogueMoveEffectRuntimeFns,
+    RogueMoveEffectTuning,
+    build_ai_rogue_response_effect_binding,
+    build_player_rogue_move_effect_binding,
+)
 
 
 async def fake_async(*_args, **_kwargs):
@@ -20,6 +28,18 @@ async def fake_async(*_args, **_kwargs):
 
 
 def fake_sync(*_args, **_kwargs):
+    return None
+
+
+def fake_coord_to_gtp(*_args, **_kwargs):
+    return "D4"
+
+
+def fake_gtp_to_coord(*_args, **_kwargs):
+    return (3, 3)
+
+
+def fake_shuffle(*_args, **_kwargs):
     return None
 
 
@@ -72,6 +92,66 @@ def smoke_ai_binding_maps_every_field() -> None:
     assert deps.shuffle_points is fake_sync
     assert deps.engine_ready() is False
     assert deps.sync_board_to_katago is fake_async
+
+
+def smoke_rogue_move_effect_runtime_builders_group_dependencies() -> None:
+    has_rogue = lambda _game, card: card == "erosion"
+    player_board = lambda *_args, **_kwargs: None
+    ai_board = lambda *_args, **_kwargs: None
+    trap = fake_async
+    five = fake_async
+    last = fake_async
+    reduce = fake_async
+
+    dependencies = RogueMoveEffectDependencies(
+        effects=RogueMoveEffectFns(
+            has_rogue=has_rogue,
+            apply_player_board_effects=player_board,
+            apply_ai_response_board_effects=ai_board,
+        ),
+        runtime=RogueMoveEffectRuntimeFns(
+            sync_engine_komi=fake_async,
+            coord_to_gtp=fake_coord_to_gtp,
+            gtp_to_coord=fake_gtp_to_coord,
+            engine_ready=lambda: True,
+            sync_board_to_katago=fake_async,
+            challenge_apply_trap_bonus=trap,
+            trigger_five_in_row=five,
+            trigger_last_stand=last,
+            challenge_maybe_reduce_ai_level=reduce,
+            shuffle_points=fake_shuffle,
+        ),
+        tuning=RogueMoveEffectTuning(erosion_shift=0.65),
+    )
+
+    player = build_player_rogue_move_effect_binding(dependencies)
+    player_deps = build_player_rogue_move_effect_deps(player)
+    ai = build_ai_rogue_response_effect_binding(dependencies)
+    ai_deps = build_ai_rogue_response_effect_deps(ai)
+
+    assert player.has_rogue is has_rogue
+    assert player.erosion_shift == 0.65
+    assert player.sync_engine_komi is fake_async
+    assert player.apply_board_effects is player_board
+    assert player.coord_to_gtp is fake_coord_to_gtp
+    assert player.gtp_to_coord is fake_gtp_to_coord
+    assert player.engine_ready() is True
+    assert player.sync_board_to_katago is fake_async
+    assert player.challenge_apply_trap_bonus is trap
+    assert player.trigger_five_in_row is five
+    assert player.trigger_last_stand is last
+    assert player.challenge_maybe_reduce_ai_level is reduce
+    assert player_deps.coord_to_gtp is fake_coord_to_gtp
+    assert player_deps.gtp_to_coord is fake_gtp_to_coord
+
+    assert ai.apply_board_effects is ai_board
+    assert ai.coord_to_gtp is fake_coord_to_gtp
+    assert ai.shuffle_points is fake_shuffle
+    assert ai.engine_ready() is True
+    assert ai.sync_board_to_katago is fake_async
+    assert ai_deps.apply_board_effects is ai_board
+    assert ai_deps.coord_to_gtp is fake_coord_to_gtp
+    assert ai_deps.shuffle_points is fake_shuffle
 
 
 async def smoke_player_adapter_uses_binding_and_sends_events() -> None:
@@ -222,8 +302,8 @@ async def smoke_server_wrappers_resolve_current_runtime() -> None:
         calls.append((
             "player_board",
             game_arg is game,
-            kwargs["coord_to_gtp"] is fake_sync,
-            kwargs["gtp_to_coord"] is fake_sync,
+            kwargs["coord_to_gtp"] is fake_coord_to_gtp,
+            kwargs["gtp_to_coord"] is fake_gtp_to_coord,
         ))
         return RogueBoardEffectResult(False, ["player board"], [])
 
@@ -231,8 +311,8 @@ async def smoke_server_wrappers_resolve_current_runtime() -> None:
         calls.append((
             "ai_board",
             game_arg is game,
-            kwargs["coord_to_gtp"] is fake_sync,
-            kwargs["shuffle_points"] is fake_sync,
+            kwargs["coord_to_gtp"] is fake_coord_to_gtp,
+            kwargs["shuffle_points"] is fake_shuffle,
         ))
         return RogueBoardEffectResult(True, ["ai board"], [])
 
@@ -274,15 +354,15 @@ async def smoke_server_wrappers_resolve_current_runtime() -> None:
         s._sync_engine_komi = sync_komi
         s.apply_player_rogue_board_effects = player_board
         s.apply_ai_rogue_response_board_effects = ai_board
-        s.coord_to_gtp = fake_sync
-        s.gtp_to_coord = fake_sync
+        s.coord_to_gtp = fake_coord_to_gtp
+        s.gtp_to_coord = fake_gtp_to_coord
         s.engine.ready = True
         s._sync_board_to_katago = sync_board
         s._challenge_apply_trap_bonus = trap
         s._trigger_rogue_five_in_row = five
         s._trigger_rogue_last_stand = last
         s._challenge_maybe_reduce_ai_level = reduce
-        s.random.shuffle = fake_sync
+        s.random.shuffle = fake_shuffle
 
         player_binding = s._player_rogue_move_effect_binding()
         player_deps = build_player_rogue_move_effect_deps(player_binding)
@@ -293,8 +373,8 @@ async def smoke_server_wrappers_resolve_current_runtime() -> None:
         assert player_binding.erosion_shift == 0.25
         assert player_binding.sync_engine_komi is sync_komi
         assert player_deps.apply_board_effects is player_board
-        assert player_deps.coord_to_gtp is fake_sync
-        assert player_deps.gtp_to_coord is fake_sync
+        assert player_deps.coord_to_gtp is fake_coord_to_gtp
+        assert player_deps.gtp_to_coord is fake_gtp_to_coord
         assert player_deps.engine_ready() is True
         assert player_deps.sync_board_to_katago is sync_board
         assert player_deps.challenge_apply_trap_bonus is trap
@@ -302,8 +382,8 @@ async def smoke_server_wrappers_resolve_current_runtime() -> None:
         assert player_deps.trigger_last_stand is last
         assert player_deps.challenge_maybe_reduce_ai_level is reduce
         assert ai_binding.apply_board_effects is ai_board
-        assert ai_deps.coord_to_gtp is fake_sync
-        assert ai_deps.shuffle_points is fake_sync
+        assert ai_deps.coord_to_gtp is fake_coord_to_gtp
+        assert ai_deps.shuffle_points is fake_shuffle
         assert ai_deps.engine_ready() is True
         assert ai_deps.sync_board_to_katago is sync_board
 
@@ -346,6 +426,7 @@ async def smoke_server_wrappers_resolve_current_runtime() -> None:
 async def main() -> None:
     smoke_player_binding_maps_every_field()
     smoke_ai_binding_maps_every_field()
+    smoke_rogue_move_effect_runtime_builders_group_dependencies()
     await smoke_player_adapter_uses_binding_and_sends_events()
     await smoke_ai_adapter_uses_binding_and_sends_events()
     await smoke_server_wrappers_resolve_current_runtime()

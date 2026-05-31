@@ -216,6 +216,14 @@ from app.runtime.rogue_move_effect_adapters import (
     apply_ai_rogue_response_effects as apply_ai_rogue_response_effects_adapter,
     apply_player_rogue_move_effects as apply_player_rogue_move_effects_adapter,
 )
+from app.runtime.rogue_move_effect_runtime import (
+    RogueMoveEffectDependencies,
+    RogueMoveEffectFns,
+    RogueMoveEffectRuntimeFns,
+    RogueMoveEffectTuning,
+    build_ai_rogue_response_effect_binding,
+    build_player_rogue_move_effect_binding,
+)
 from app.runtime.service_bindings import (
     AiMoveServiceBinding,
     EngineGatewayBinding,
@@ -1086,21 +1094,33 @@ async def _apply_challenge_rogue_loadout(game: GoGame, send_fn):
     )
 
 
-def _player_rogue_move_effect_binding() -> PlayerRogueMoveEffectBinding:
-    return PlayerRogueMoveEffectBinding(
-        has_rogue=_rogue_has,
-        erosion_shift=ROGUE_EROSION_SHIFT,
-        sync_engine_komi=_sync_engine_komi,
-        apply_board_effects=apply_player_rogue_board_effects,
-        coord_to_gtp=coord_to_gtp,
-        gtp_to_coord=gtp_to_coord,
-        engine_ready=lambda: engine.ready,
-        sync_board_to_katago=_sync_board_to_katago,
-        challenge_apply_trap_bonus=_challenge_apply_trap_bonus,
-        trigger_five_in_row=_trigger_rogue_five_in_row,
-        trigger_last_stand=_trigger_rogue_last_stand,
-        challenge_maybe_reduce_ai_level=_challenge_maybe_reduce_ai_level,
+def _rogue_move_effect_dependencies() -> RogueMoveEffectDependencies:
+    return RogueMoveEffectDependencies(
+        effects=RogueMoveEffectFns(
+            has_rogue=_rogue_has,
+            apply_player_board_effects=apply_player_rogue_board_effects,
+            apply_ai_response_board_effects=apply_ai_rogue_response_board_effects,
+        ),
+        runtime=RogueMoveEffectRuntimeFns(
+            sync_engine_komi=_sync_engine_komi,
+            coord_to_gtp=coord_to_gtp,
+            gtp_to_coord=gtp_to_coord,
+            engine_ready=lambda: engine.ready,
+            sync_board_to_katago=_sync_board_to_katago,
+            challenge_apply_trap_bonus=_challenge_apply_trap_bonus,
+            trigger_five_in_row=_trigger_rogue_five_in_row,
+            trigger_last_stand=_trigger_rogue_last_stand,
+            challenge_maybe_reduce_ai_level=_challenge_maybe_reduce_ai_level,
+            shuffle_points=random.shuffle,
+        ),
+        tuning=RogueMoveEffectTuning(
+            erosion_shift=ROGUE_EROSION_SHIFT,
+        ),
     )
+
+
+def _player_rogue_move_effect_binding() -> PlayerRogueMoveEffectBinding:
+    return build_player_rogue_move_effect_binding(_rogue_move_effect_dependencies())
 
 
 async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
@@ -1119,13 +1139,7 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
 
 
 def _ai_rogue_response_effect_binding() -> AiRogueResponseEffectBinding:
-    return AiRogueResponseEffectBinding(
-        apply_board_effects=apply_ai_rogue_response_board_effects,
-        coord_to_gtp=coord_to_gtp,
-        shuffle_points=random.shuffle,
-        engine_ready=lambda: engine.ready,
-        sync_board_to_katago=_sync_board_to_katago,
-    )
+    return build_ai_rogue_response_effect_binding(_rogue_move_effect_dependencies())
 
 
 async def _apply_ai_rogue_response_effects(game: GoGame, send_fn,
