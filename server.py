@@ -117,6 +117,15 @@ from app.runtime.challenge_adapters import (
     emit_challenge_set_status,
     maybe_reduce_challenge_level,
 )
+from app.runtime.challenge_runtime import (
+    ChallengeFlowRuntimeFns,
+    ChallengeFlowTuning,
+    ChallengeLoadoutRuntimeFns,
+    ChallengeLoadoutTuning,
+    ChallengeRuntimeDependencies,
+    build_challenge_flow_binding,
+    build_challenge_loadout_binding,
+)
 from app.runtime.coach_adapters import (
     AiFinishMoveBinding,
     CoachMoveChoiceBinding,
@@ -901,41 +910,52 @@ def _get_ai_rogue_forbidden_points(game: GoGame) -> list[tuple[int, int]]:
     return get_ai_rogue_forbidden_points_adapter(game)
 
 
-def _challenge_flow_binding() -> ChallengeFlowBinding:
-    return ChallengeFlowBinding(
-        roll_random=random.random,
-        trap_extra_turn_chance=CHALLENGE_TRAP_EXTRA_TURN_CHANCE,
-        restriction_decay_chance=CHALLENGE_RESTRICTION_DECAY_CHANCE,
-        weaken_rank_one_step=weaken_rank_one_step,
-        rank_labels=RANK_LABELS,
-        challenge_set_min_count=CHALLENGE_SET_MIN_COUNT,
-        engine_ready=lambda: engine.ready,
-        get_game_visits=get_game_visits,
-        run_in_executor=run_in_executor,
-        set_engine_visits=engine.set_visits,
+def _challenge_runtime_dependencies() -> ChallengeRuntimeDependencies:
+    return ChallengeRuntimeDependencies(
+        flow_runtime=ChallengeFlowRuntimeFns(
+            roll_random=random.random,
+            weaken_rank_one_step=weaken_rank_one_step,
+            engine_ready=lambda: engine.ready,
+            get_game_visits=get_game_visits,
+            run_in_executor=run_in_executor,
+            set_engine_visits=engine.set_visits,
+        ),
+        flow_tuning=ChallengeFlowTuning(
+            trap_extra_turn_chance=CHALLENGE_TRAP_EXTRA_TURN_CHANCE,
+            restriction_decay_chance=CHALLENGE_RESTRICTION_DECAY_CHANCE,
+            rank_labels=RANK_LABELS,
+            challenge_set_min_count=CHALLENGE_SET_MIN_COUNT,
+        ),
+        loadout_runtime=ChallengeLoadoutRuntimeFns(
+            apply_loadout=apply_challenge_rogue_loadout_state,
+            card_ids_fn=rogue_card_ids,
+            get_rogue_card_fn=get_rogue_card,
+            active_use_bonus_fn=_challenge_active_use_bonus,
+            challenge_zone_points_fn=_challenge_zone_points,
+            choose_corner=lambda: random.randint(0, 3),
+            make_rng=lambda: random.Random(time.time_ns()),
+            get_blackhole_points_fn=_get_blackhole_points,
+            get_golden_corner_points_fn=_get_golden_corner_points,
+            pick_joseki_targets_fn=_pick_joseki_targets,
+            random_hidden_center_fn=_random_hidden_center,
+            diamond_points_fn=_diamond_points,
+            sync_engine_komi=_sync_engine_komi,
+            emit_set_bonus_status=_challenge_emit_set_bonus_status,
+        ),
+        loadout_tuning=ChallengeLoadoutTuning(
+            golden_corner_span=ROGUE_GOLDEN_CORNER_SPAN,
+            joseki_target_count=ROGUE_JOSEKI_TARGET_COUNT,
+            godhand_radius=ROGUE_GODHAND_RADIUS,
+        ),
     )
+
+
+def _challenge_flow_binding() -> ChallengeFlowBinding:
+    return build_challenge_flow_binding(_challenge_runtime_dependencies())
 
 
 def _challenge_loadout_binding() -> ChallengeLoadoutBinding:
-    return ChallengeLoadoutBinding(
-        apply_loadout=apply_challenge_rogue_loadout_state,
-        card_ids_fn=rogue_card_ids,
-        get_rogue_card_fn=get_rogue_card,
-        active_use_bonus_fn=_challenge_active_use_bonus,
-        challenge_zone_points_fn=_challenge_zone_points,
-        choose_corner=lambda: random.randint(0, 3),
-        make_rng=lambda: random.Random(time.time_ns()),
-        get_blackhole_points_fn=_get_blackhole_points,
-        get_golden_corner_points_fn=_get_golden_corner_points,
-        pick_joseki_targets_fn=_pick_joseki_targets,
-        random_hidden_center_fn=_random_hidden_center,
-        diamond_points_fn=_diamond_points,
-        golden_corner_span=ROGUE_GOLDEN_CORNER_SPAN,
-        joseki_target_count=ROGUE_JOSEKI_TARGET_COUNT,
-        godhand_radius=ROGUE_GODHAND_RADIUS,
-        sync_engine_komi=_sync_engine_komi,
-        emit_set_bonus_status=_challenge_emit_set_bonus_status,
-    )
+    return build_challenge_loadout_binding(_challenge_runtime_dependencies())
 
 
 async def _challenge_apply_trap_bonus(game: GoGame, send_fn, source_name: str) -> None:
