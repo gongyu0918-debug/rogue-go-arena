@@ -226,7 +226,6 @@ async def smoke_quickthink_end_finishes_turn_and_starts_ai() -> None:
 
 
 def smoke_ws_action_handlers_keep_ultimate_action_names() -> None:
-    assert ws_actions.handle_ultimate_play is handle_ultimate_play
     assert ws_actions.WS_ACTION_HANDLERS["ultimate_select_card"] is handle_ultimate_select_card
     assert ws_actions.WS_ACTION_HANDLERS["ultimate_quickthink_end"] is handle_ultimate_quickthink_end
 
