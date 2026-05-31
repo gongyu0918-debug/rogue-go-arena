@@ -193,6 +193,16 @@ from app.runtime.service_bindings import (
     AiMoveServiceBinding,
     EngineGatewayBinding,
 )
+from app.runtime.service_runtime import (
+    AiMoveServiceDependencies,
+    EngineGatewayDependencies,
+    build_ai_move_service,
+    build_ai_move_service_binding,
+    build_ai_move_service_runtime,
+    build_engine_gateway,
+    build_engine_gateway_binding,
+    build_engine_gateway_runtime,
+)
 from app.runtime.static_page_routes import (
     StaticPageRoutesBinding,
     build_static_page_router,
@@ -552,20 +562,10 @@ async def run_in_executor(func, *args):
     return await loop.run_in_executor(None, func, *args)
 
 
-engine_gateway = EngineRuntimeGateway(
-    engine=engine,
-    base_dir=BASE_DIR,
-    get_game_visits=get_game_visits,
-    gtp_to_coord=gtp_to_coord,
-    run_in_executor=run_in_executor,
-    log_fn=print,
-    traceback_fn=traceback.print_exc,
-)
-
-
-def _engine_gateway_binding() -> EngineGatewayBinding:
-    return EngineGatewayBinding(
+def _engine_gateway_dependencies() -> EngineGatewayDependencies:
+    return EngineGatewayDependencies(
         engine=engine,
+        base_dir=BASE_DIR,
         get_game_visits=get_game_visits,
         gtp_to_coord=gtp_to_coord,
         run_in_executor=run_in_executor,
@@ -574,11 +574,18 @@ def _engine_gateway_binding() -> EngineGatewayBinding:
     )
 
 
+engine_gateway = build_engine_gateway(
+    _engine_gateway_dependencies(),
+    EngineRuntimeGateway,
+)
+
+
+def _engine_gateway_binding() -> EngineGatewayBinding:
+    return build_engine_gateway_binding(_engine_gateway_dependencies())
+
+
 def _engine_gateway_runtime() -> EngineGatewayRuntime:
-    return EngineGatewayRuntime(
-        gateway=engine_gateway,
-        binding=_engine_gateway_binding(),
-    )
+    return build_engine_gateway_runtime(engine_gateway, _engine_gateway_dependencies())
 
 
 def _bind_engine_gateway_runtime() -> None:
@@ -593,27 +600,28 @@ async def _sync_engine_komi(game: GoGame) -> None:
     await sync_engine_komi_adapter(_engine_gateway_runtime(), game)
 
 
-ai_move_service = AiMoveService(
-    engine=engine,
-    run_in_executor=run_in_executor,
-    engine_log=_engine_log,
-    coord_to_gtp=coord_to_gtp,
-    gtp_to_coord=gtp_to_coord,
+def _ai_move_service_dependencies() -> AiMoveServiceDependencies:
+    return AiMoveServiceDependencies(
+        engine=engine,
+        run_in_executor=run_in_executor,
+        engine_log=_engine_log,
+        coord_to_gtp=coord_to_gtp,
+        gtp_to_coord=gtp_to_coord,
+    )
+
+
+ai_move_service = build_ai_move_service(
+    _ai_move_service_dependencies(),
+    AiMoveService,
 )
 
 
 def _ai_move_service_binding() -> AiMoveServiceBinding:
-    return AiMoveServiceBinding(
-        engine=engine,
-        run_in_executor=run_in_executor,
-    )
+    return build_ai_move_service_binding(_ai_move_service_dependencies())
 
 
 def _ai_move_service_runtime() -> AiMoveServiceRuntime:
-    return AiMoveServiceRuntime(
-        service=ai_move_service,
-        binding=_ai_move_service_binding(),
-    )
+    return build_ai_move_service_runtime(ai_move_service, _ai_move_service_dependencies())
 
 
 def _bind_ai_move_service_runtime():
