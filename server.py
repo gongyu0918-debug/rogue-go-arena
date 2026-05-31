@@ -80,6 +80,11 @@ from app.runtime.ai_style_adapters import (
     AiStyleMoveBinding,
     generate_ai_style_move as generate_ai_style_move_adapter,
 )
+from app.runtime.ai_style_runtime import (
+    AiStyleMoveDependencies,
+    AiStyleMoveRuntimeFns,
+    build_ai_style_move_binding,
+)
 from app.runtime.ai_move_service_adapters import (
     AiMoveServiceRuntime,
     allow_only_points as ai_service_allow_only_points,
@@ -1858,16 +1863,22 @@ async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
     )
 
 
-def _ai_style_move_binding() -> AiStyleMoveBinding:
-    return AiStyleMoveBinding(
-        sync_board_to_katago=_sync_board_to_katago,
-        choose_or_generate_style_move=choose_or_generate_ai_style_move,
-        analyze_position=_analyze_current_position,
-        choose_style_move=choose_ai_style_move,
-        generate_move=_ai_generate_move,
-        gtp_to_coord=gtp_to_coord,
-        play_chosen_move=_send_engine_command,
+def _ai_style_move_dependencies() -> AiStyleMoveDependencies:
+    return AiStyleMoveDependencies(
+        runtime=AiStyleMoveRuntimeFns(
+            sync_board_to_katago=_sync_board_to_katago,
+            choose_or_generate_style_move=choose_or_generate_ai_style_move,
+            analyze_position=_analyze_current_position,
+            choose_style_move=choose_ai_style_move,
+            generate_move=_ai_generate_move,
+            gtp_to_coord=gtp_to_coord,
+            play_chosen_move=_send_engine_command,
+        ),
     )
+
+
+def _ai_style_move_binding() -> AiStyleMoveBinding:
+    return build_ai_style_move_binding(_ai_style_move_dependencies())
 
 
 async def _generate_ai_style_move(game: GoGame, color: str, visits: int, time_limit: float) -> str:

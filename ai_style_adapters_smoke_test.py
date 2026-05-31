@@ -8,6 +8,11 @@ from app.runtime.ai_style_adapters import (
     build_ai_style_move_deps,
     generate_ai_style_move,
 )
+from app.runtime.ai_style_runtime import (
+    AiStyleMoveDependencies,
+    AiStyleMoveRuntimeFns,
+    build_ai_style_move_binding,
+)
 
 
 class DummyGame:
@@ -46,6 +51,51 @@ def smoke_binding_maps_every_field() -> None:
     assert deps.generate_move is fake_async
     assert deps.gtp_to_coord is fake_sync
     assert deps.play_chosen_move is fake_async
+
+
+def smoke_runtime_builder_maps_every_field() -> None:
+    async def sync_board(*_args, **_kwargs):
+        return None
+
+    async def choose_or_generate(*_args, **_kwargs):
+        return "D4"
+
+    async def analyze(*_args, **_kwargs):
+        return {"moves": []}
+
+    def choose_style(*_args, **_kwargs):
+        return "Q16"
+
+    async def generate(*_args, **_kwargs):
+        return "C3"
+
+    def gtp_to_coord(*_args, **_kwargs):
+        return (2, 3)
+
+    async def play(*_args, **_kwargs):
+        return "= ok"
+
+    dependencies = AiStyleMoveDependencies(
+        runtime=AiStyleMoveRuntimeFns(
+            sync_board_to_katago=sync_board,
+            choose_or_generate_style_move=choose_or_generate,
+            analyze_position=analyze,
+            choose_style_move=choose_style,
+            generate_move=generate,
+            gtp_to_coord=gtp_to_coord,
+            play_chosen_move=play,
+        ),
+    )
+
+    binding = build_ai_style_move_binding(dependencies)
+
+    assert binding.sync_board_to_katago is sync_board
+    assert binding.choose_or_generate_style_move is choose_or_generate
+    assert binding.analyze_position is analyze
+    assert binding.choose_style_move is choose_style
+    assert binding.generate_move is generate
+    assert binding.gtp_to_coord is gtp_to_coord
+    assert binding.play_chosen_move is play
 
 
 async def smoke_adapter_delegates_with_resolved_style() -> None:
@@ -236,6 +286,7 @@ async def smoke_server_binding_resolves_current_runtime() -> None:
 
 async def main() -> None:
     smoke_binding_maps_every_field()
+    smoke_runtime_builder_maps_every_field()
     await smoke_adapter_delegates_with_resolved_style()
     await smoke_server_binding_resolves_current_runtime()
     print("ai style adapters smoke test: OK")
