@@ -13,6 +13,7 @@ from app.runtime.config_api import (
     save_balance_request,
     save_card_config_request,
 )
+from app.runtime.config_routes import ConfigRoutesBinding, build_config_router
 
 
 class FakeRequest:
@@ -51,6 +52,13 @@ class FakeCardConfigService:
 
 def response_payload(response) -> dict:
     return json.loads(response.body.decode("utf-8"))
+
+
+def endpoint_for(routes, path: str, method: str):
+    for route in routes:
+        if getattr(route, "path", None) == path and method in getattr(route, "methods", set()):
+            return route.endpoint
+    raise AssertionError(f"missing route {method} {path}")
 
 
 async def smoke_card_config_api_helpers_preserve_payloads_and_errors() -> None:
@@ -142,7 +150,7 @@ async def smoke_balance_api_helpers_preserve_values_and_errors() -> None:
     assert reset_calls == ["reset"]
 
 
-async def smoke_server_config_wrappers_resolve_runtime_deps_late() -> None:
+async def smoke_config_router_preserves_paths_and_resolves_deps_late() -> None:
     service = FakeCardConfigService()
     balance_calls = []
 
@@ -158,6 +166,61 @@ async def smoke_server_config_wrappers_resolve_runtime_deps_late() -> None:
         balance_calls.append("reset")
         return {"ok": True, "reset": "server"}
 
+    current = {"service": service, "get_payload": get_balance_payload}
+
+    def binding_provider():
+        return ConfigRoutesBinding(
+            card_config_service=current["service"],
+            get_balance_editor_payload=current["get_payload"],
+            save_balance_overrides=save_balance,
+            reset_balance_overrides=reset_balance,
+        )
+
+    router = build_config_router(binding_provider)
+
+    assert await endpoint_for(router.routes, "/api/card-config", "GET")() == {"payload": True}
+    assert await endpoint_for(router.routes, "/api/card-config/schema", "GET")() == {"schema": True}
+    assert await endpoint_for(router.routes, "/api/card-config", "POST")(
+        FakeRequest({"config": {"cards": {}}})
+    ) == {"ok": True, "saved": True}
+    assert await endpoint_for(router.routes, "/api/card-config/reset", "POST")() == {
+        "ok": True,
+        "reset": True,
+    }
+    assert await endpoint_for(router.routes, "/api/balance", "GET")() == {"balance": "server"}
+    assert await endpoint_for(router.routes, "/api/balance", "POST")(
+        FakeRequest({"values": {"x": 2}})
+    ) == {"ok": True, "values": {"x": 2}}
+    assert await endpoint_for(router.routes, "/api/balance/reset", "POST")() == {
+        "ok": True,
+        "reset": "server",
+    }
+
+    assert service.calls == [
+        ("get_payload",),
+        ("get_schema",),
+        ("save", {"cards": {}}),
+        ("reset",),
+    ]
+    assert balance_calls == ["get", ("save", {"x": 2}), "reset"]
+
+
+async def smoke_server_config_router_resolves_runtime_deps_late() -> None:
+    service = FakeCardConfigService()
+    balance_calls = []
+
+    def get_balance_payload():
+        balance_calls.append("get")
+        return {"balance": "patched"}
+
+    def save_balance(values):
+        balance_calls.append(("save", values))
+        return {"ok": True, "values": values}
+
+    def reset_balance():
+        balance_calls.append("reset")
+        return {"ok": True, "reset": "patched"}
+
     originals = {
         "card_config_service": s.card_config_service,
         "get_balance_editor_payload": s.get_balance_editor_payload,
@@ -170,19 +233,24 @@ async def smoke_server_config_wrappers_resolve_runtime_deps_late() -> None:
         s.save_balance_overrides = save_balance
         s.reset_balance_overrides = reset_balance
 
-        assert await s.get_card_config_payload() == {"payload": True}
-        assert await s.get_card_config_schema() == {"schema": True}
-        assert await s.save_card_config_payload(FakeRequest({"config": {"cards": {}}})) == {
+        assert s._config_routes_binding().card_config_service is service
+        assert await endpoint_for(s.app.routes, "/api/card-config", "GET")() == {"payload": True}
+        assert await endpoint_for(s.app.routes, "/api/card-config/schema", "GET")() == {"schema": True}
+        assert await endpoint_for(s.app.routes, "/api/card-config", "POST")(
+            FakeRequest({"config": {"cards": {}}})
+        ) == {"ok": True, "saved": True}
+        assert await endpoint_for(s.app.routes, "/api/card-config/reset", "POST")() == {
             "ok": True,
-            "saved": True,
+            "reset": True,
         }
-        assert await s.reset_card_config_payload() == {"ok": True, "reset": True}
-        assert await s.get_balance_lab_payload() == {"balance": "server"}
-        assert await s.save_balance_lab_payload(FakeRequest({"values": {"x": 2}})) == {
+        assert await endpoint_for(s.app.routes, "/api/balance", "GET")() == {"balance": "patched"}
+        assert await endpoint_for(s.app.routes, "/api/balance", "POST")(
+            FakeRequest({"values": {"y": 3}})
+        ) == {"ok": True, "values": {"y": 3}}
+        assert await endpoint_for(s.app.routes, "/api/balance/reset", "POST")() == {
             "ok": True,
-            "values": {"x": 2},
+            "reset": "patched",
         }
-        assert await s.reset_balance_lab_payload() == {"ok": True, "reset": "server"}
     finally:
         for name, value in originals.items():
             setattr(s, name, value)
@@ -193,13 +261,14 @@ async def smoke_server_config_wrappers_resolve_runtime_deps_late() -> None:
         ("save", {"cards": {}}),
         ("reset",),
     ]
-    assert balance_calls == ["get", ("save", {"x": 2}), "reset"]
+    assert balance_calls == ["get", ("save", {"y": 3}), "reset"]
 
 
 async def main() -> None:
     await smoke_card_config_api_helpers_preserve_payloads_and_errors()
     await smoke_balance_api_helpers_preserve_values_and_errors()
-    await smoke_server_config_wrappers_resolve_runtime_deps_late()
+    await smoke_config_router_preserves_paths_and_resolves_deps_late()
+    await smoke_server_config_router_resolves_runtime_deps_late()
     print("config api smoke test: OK")
 
 

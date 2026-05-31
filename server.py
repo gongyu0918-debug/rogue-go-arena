@@ -98,14 +98,9 @@ from app.runtime.ai_turn_adapters import (
     AiTurnBinding,
     run_ai_turn as run_ai_turn_adapter,
 )
-from app.runtime.config_api import (
-    balance_payload,
-    card_config_payload as build_card_config_payload,
-    card_config_schema as build_card_config_schema,
-    reset_balance_request,
-    reset_card_config_request,
-    save_balance_request,
-    save_card_config_request,
+from app.runtime.config_routes import (
+    ConfigRoutesBinding,
+    build_config_router,
 )
 from app.runtime.capture_foul_adapters import (
     CaptureFoulBinding,
@@ -528,42 +523,16 @@ async def card_editor():
     return serve_card_editor_page(STATIC_DIR)
 
 
-@app.get("/api/card-config")
-async def get_card_config_payload():
-    return build_card_config_payload(card_config_service)
-
-
-@app.get("/api/card-config/schema")
-async def get_card_config_schema():
-    return build_card_config_schema(card_config_service)
-
-
-@app.post("/api/card-config")
-async def save_card_config_payload(request: Request):
-    return await save_card_config_request(request, card_config_service=card_config_service)
-
-
-@app.post("/api/card-config/reset")
-async def reset_card_config_payload():
-    return reset_card_config_request(card_config_service)
-
-
-@app.get("/api/balance")
-async def get_balance_lab_payload():
-    return balance_payload(get_balance_editor_payload)
-
-
-@app.post("/api/balance")
-async def save_balance_lab_payload(request: Request):
-    return await save_balance_request(
-        request,
+def _config_routes_binding() -> ConfigRoutesBinding:
+    return ConfigRoutesBinding(
+        card_config_service=card_config_service,
+        get_balance_editor_payload=get_balance_editor_payload,
         save_balance_overrides=save_balance_overrides,
+        reset_balance_overrides=reset_balance_overrides,
     )
 
 
-@app.post("/api/balance/reset")
-async def reset_balance_lab_payload():
-    return reset_balance_request(reset_balance_overrides)
+app.include_router(build_config_router(_config_routes_binding))
 
 
 @app.get("/ranks")

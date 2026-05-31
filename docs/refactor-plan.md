@@ -224,6 +224,7 @@ Still in `static/index.html`:
 
 5. `app/services/card_config_service.py`
    - Move live card config reload/save/reset orchestration out of `server.py`.
+   - Card config and balance API routes now live behind `app/runtime/config_routes.py`; `server.py` only supplies the current binding.
    - Introduce per-game config snapshots so editing cards affects new games, not active games.
 
 ## Anti-Sprawl Rules
