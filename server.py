@@ -259,6 +259,13 @@ from app.runtime.ultimate_effect_adapters import (
     UltimateEffectBinding,
     apply_ultimate_effect as apply_ultimate_effect_adapter,
 )
+from app.runtime.ultimate_effect_runtime import (
+    UltimateEffectDependencies,
+    UltimateEffectFns,
+    UltimateEffectRuntimeFns,
+    UltimateEffectTuning,
+    build_ultimate_effect_binding,
+)
 from app.runtime.ultimate_ai_adapters import (
     UltimateAiBonusTurnBinding,
     UltimateAiMoveSelectionBinding,
@@ -1197,18 +1204,28 @@ def _ultimate_get_territory_forbidden(game: GoGame, for_color_val: int) -> set:
     return get_ultimate_territory_forbidden_points(game, for_color_val)
 
 
-def _ultimate_effect_binding() -> UltimateEffectBinding:
-    return UltimateEffectBinding(
-        apply_effect=apply_ultimate_card_effect_state,
-        coord_to_gtp=coord_to_gtp,
-        gtp_to_coord=gtp_to_coord,
-        trigger_five_in_row=_trigger_ultimate_five_in_row,
-        trigger_last_stand=_trigger_ultimate_last_stand,
-        apply_foolish_wisdom_wave=apply_ultimate_foolish_wisdom_wave,
-        make_rng=lambda: random.Random(time.time_ns()),
-        sleep=asyncio.sleep,
-        foolish_chain_delay=ULTIMATE_FOOLISH_CHAIN_DELAY,
+def _ultimate_effect_dependencies() -> UltimateEffectDependencies:
+    return UltimateEffectDependencies(
+        effects=UltimateEffectFns(
+            apply_effect=apply_ultimate_card_effect_state,
+            apply_foolish_wisdom_wave=apply_ultimate_foolish_wisdom_wave,
+        ),
+        runtime=UltimateEffectRuntimeFns(
+            coord_to_gtp=coord_to_gtp,
+            gtp_to_coord=gtp_to_coord,
+            trigger_five_in_row=_trigger_ultimate_five_in_row,
+            trigger_last_stand=_trigger_ultimate_last_stand,
+            make_rng=lambda: random.Random(time.time_ns()),
+            sleep=asyncio.sleep,
+        ),
+        tuning=UltimateEffectTuning(
+            foolish_chain_delay=ULTIMATE_FOOLISH_CHAIN_DELAY,
+        ),
     )
+
+
+def _ultimate_effect_binding() -> UltimateEffectBinding:
+    return build_ultimate_effect_binding(_ultimate_effect_dependencies())
 
 
 async def _apply_ultimate_effect(game: GoGame, send_fn, x: int, y: int,

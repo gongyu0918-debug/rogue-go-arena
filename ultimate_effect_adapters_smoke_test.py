@@ -8,10 +8,25 @@ from app.runtime.ultimate_effect_adapters import (
     apply_ultimate_effect,
     build_ultimate_effect_flow_deps,
 )
+from app.runtime.ultimate_effect_runtime import (
+    UltimateEffectDependencies,
+    UltimateEffectFns,
+    UltimateEffectRuntimeFns,
+    UltimateEffectTuning,
+    build_ultimate_effect_binding,
+)
 
 
 async def fake_async(*_args, **_kwargs):
     return True
+
+
+async def fake_trigger_five(*_args, **_kwargs):
+    return True
+
+
+async def fake_trigger_last(*_args, **_kwargs):
+    return False
 
 
 def fake_sync(*_args, **_kwargs):
@@ -50,6 +65,54 @@ def smoke_binding_maps_every_field() -> None:
     assert deps.make_rng is fake_sync
     assert deps.sleep is fake_async
     assert deps.foolish_chain_delay == 0.25
+
+
+def smoke_ultimate_effect_runtime_builder_groups_dependencies() -> None:
+    async def trigger_five(_game, _send, _color):
+        return True
+
+    async def trigger_last(_game, _send, _color):
+        return False
+
+    dependencies = UltimateEffectDependencies(
+        effects=UltimateEffectFns(
+            apply_effect=fake_async,
+            apply_foolish_wisdom_wave=fake_sync,
+        ),
+        runtime=UltimateEffectRuntimeFns(
+            coord_to_gtp=fake_coord_to_gtp,
+            gtp_to_coord=fake_gtp_to_coord,
+            trigger_five_in_row=trigger_five,
+            trigger_last_stand=trigger_last,
+            make_rng=lambda: "rng",
+            sleep=fake_async,
+        ),
+        tuning=UltimateEffectTuning(
+            foolish_chain_delay=0.35,
+        ),
+    )
+
+    binding = build_ultimate_effect_binding(dependencies)
+    deps = build_ultimate_effect_flow_deps(binding)
+
+    assert binding.apply_effect is fake_async
+    assert binding.coord_to_gtp is fake_coord_to_gtp
+    assert binding.gtp_to_coord is fake_gtp_to_coord
+    assert binding.trigger_five_in_row is trigger_five
+    assert binding.trigger_last_stand is trigger_last
+    assert binding.apply_foolish_wisdom_wave is fake_sync
+    assert binding.make_rng() == "rng"
+    assert binding.sleep is fake_async
+    assert binding.foolish_chain_delay == 0.35
+    assert deps.apply_effect is fake_async
+    assert deps.coord_to_gtp is fake_coord_to_gtp
+    assert deps.gtp_to_coord is fake_gtp_to_coord
+    assert deps.trigger_five_in_row is trigger_five
+    assert deps.trigger_last_stand is trigger_last
+    assert deps.apply_foolish_wisdom_wave is fake_sync
+    assert deps.make_rng() == "rng"
+    assert deps.sleep is fake_async
+    assert deps.foolish_chain_delay == 0.35
 
 
 async def smoke_adapter_delegates_to_effect_flow() -> None:
@@ -169,8 +232,8 @@ def smoke_server_binding_resolves_current_runtime() -> None:
         s.apply_ultimate_card_effect_state = fake_async
         s.coord_to_gtp = fake_coord_to_gtp
         s.gtp_to_coord = fake_gtp_to_coord
-        s._trigger_ultimate_five_in_row = fake_async
-        s._trigger_ultimate_last_stand = fake_async
+        s._trigger_ultimate_five_in_row = fake_trigger_five
+        s._trigger_ultimate_last_stand = fake_trigger_last
         s.apply_ultimate_foolish_wisdom_wave = fake_sync
         s.ULTIMATE_FOOLISH_CHAIN_DELAY = 0.7
         s.random.Random = FakeRandom
@@ -182,14 +245,20 @@ def smoke_server_binding_resolves_current_runtime() -> None:
         assert binding.apply_effect is fake_async
         assert binding.coord_to_gtp is fake_coord_to_gtp
         assert binding.gtp_to_coord is fake_gtp_to_coord
-        assert binding.trigger_five_in_row is fake_async
-        assert binding.trigger_last_stand is fake_async
+        assert binding.trigger_five_in_row is fake_trigger_five
+        assert binding.trigger_last_stand is fake_trigger_last
         assert binding.apply_foolish_wisdom_wave is fake_sync
         assert binding.make_rng().seed == 12345
         assert binding.sleep is s.asyncio.sleep
         assert binding.foolish_chain_delay == 0.7
         assert deps.apply_effect is fake_async
         assert deps.coord_to_gtp is fake_coord_to_gtp
+        assert deps.gtp_to_coord is fake_gtp_to_coord
+        assert deps.trigger_five_in_row is fake_trigger_five
+        assert deps.trigger_last_stand is fake_trigger_last
+        assert deps.apply_foolish_wisdom_wave is fake_sync
+        assert deps.make_rng().seed == 12345
+        assert deps.sleep is s.asyncio.sleep
         assert deps.foolish_chain_delay == 0.7
     finally:
         for name, value in originals.items():
@@ -203,6 +272,7 @@ def smoke_server_binding_resolves_current_runtime() -> None:
 
 def main() -> None:
     smoke_binding_maps_every_field()
+    smoke_ultimate_effect_runtime_builder_groups_dependencies()
     asyncio.run(smoke_adapter_delegates_to_effect_flow())
     smoke_server_binding_resolves_current_runtime()
     print("ultimate effect adapters smoke test: OK")
