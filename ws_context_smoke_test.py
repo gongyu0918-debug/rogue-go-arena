@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+from dataclasses import fields
 from types import SimpleNamespace
 
 import server as s
 from app.runtime.ws_context import (
     WEBSOCKET_CONTEXT_FIELD_NAMES,
+    WEBSOCKET_CONTEXT_GROUP_SPECS,
     WebSocketContextDeps,
     build_websocket_action_context,
     flatten_websocket_context_deps,
 )
-from app.runtime.ws_context_adapters import WebSocketContextBinding, build_websocket_context_deps
+from app.runtime.ws_context_adapters import (
+    WebSocketContextBinding,
+    build_websocket_context_binding,
+    build_websocket_context_deps,
+)
 
 
 class FakeActiveGames:
@@ -61,6 +67,27 @@ def smoke_context_factory_maps_runtime_deps() -> None:
         assert getattr(ctx, name) is flattened[name], name
     assert deps.active_games is active_games
     assert deps.ai_move is flattened["ai_move"]
+
+
+def smoke_grouped_deps_round_trip_to_flat_binding() -> None:
+    expected = {}
+    group_values = {}
+    for group_name, group_type in WEBSOCKET_CONTEXT_GROUP_SPECS:
+        values = {}
+        for field in fields(group_type):
+            marker = SimpleNamespace(name=f"{group_name}.{field.name}")
+            expected[field.name] = marker
+            values[field.name] = marker
+        group_values[group_name] = group_type(**values)
+
+    deps = WebSocketContextDeps(**group_values)
+    binding = build_websocket_context_binding(deps)
+    rebuilt_deps = build_websocket_context_deps(binding)
+    flattened = flatten_websocket_context_deps(rebuilt_deps)
+
+    for name, marker in expected.items():
+        assert getattr(binding, name) is marker, name
+        assert flattened[name] is marker, name
 
 
 def smoke_context_restore_uses_active_game_store() -> None:
@@ -141,6 +168,7 @@ def smoke_server_ws_context_deps_maps_current_runtime_objects() -> None:
 
 def main() -> None:
     smoke_context_factory_maps_runtime_deps()
+    smoke_grouped_deps_round_trip_to_flat_binding()
     smoke_context_restore_uses_active_game_store()
     smoke_server_ws_context_deps_maps_current_runtime_objects()
     print("ws context smoke test: OK")

@@ -234,6 +234,15 @@ from app.runtime.ultimate_ai_adapters import (
 )
 from app.runtime.ws_context_adapters import (
     WebSocketContextBinding,
+    build_websocket_context_binding,
+)
+from app.runtime.ws_context import (
+    WebSocketCardSelectionDeps,
+    WebSocketContextDeps,
+    WebSocketEngineDeps,
+    WebSocketModeFlowDeps,
+    WebSocketRuleEffectDeps,
+    WebSocketRuntimeDeps,
 )
 from app.runtime.ws_routes import WebSocketRoutesBinding, build_websocket_router
 from app.gameplay.card_selection import (
@@ -628,24 +637,39 @@ def _bind_ai_move_service_runtime():
     bind_ai_move_service_adapter(_ai_move_service_runtime())
 
 
-def _ws_context_binding() -> WebSocketContextBinding:
-    return WebSocketContextBinding(
+def _ws_runtime_deps() -> WebSocketRuntimeDeps:
+    return WebSocketRuntimeDeps(
         active_games=active_games,
         engine=engine,
         run_in_executor=run_in_executor,
         GoGame=GoGame,
         coord_to_gtp=coord_to_gtp,
         gtp_to_coord=gtp_to_coord,
+    )
+
+
+def _ws_engine_deps() -> WebSocketEngineDeps:
+    return WebSocketEngineDeps(
         engine_state_snapshot=_engine_state_snapshot,
         start_engine_background=engine_runtime.start_background,
         get_game_visits=get_game_visits,
         sync_board_to_katago=_sync_board_to_katago,
+    )
+
+
+def _ws_card_selection_deps() -> WebSocketCardSelectionDeps:
+    return WebSocketCardSelectionDeps(
         reload_live_card_config=reload_live_card_config,
         pick_rogue_choices=pick_rogue_choices,
         pick_ultimate_choices=pick_ultimate_choices,
         pick_challenge_beta_choices=pick_challenge_beta_choices,
         pick_ai_rogue_card=pick_ai_rogue_card,
         pick_ai_ultimate_card=pick_ai_ultimate_card,
+    )
+
+
+def _ws_mode_flow_deps() -> WebSocketModeFlowDeps:
+    return WebSocketModeFlowDeps(
         apply_challenge_rogue_loadout=_apply_challenge_rogue_loadout,
         activate_rogue_card=_activate_rogue_card,
         activate_ai_rogue_card=_activate_ai_rogue_card,
@@ -654,6 +678,11 @@ def _ws_context_binding() -> WebSocketContextBinding:
         ultimate_force_score=_ultimate_force_score,
         run_coach_turn_if_needed=_run_coach_turn_if_needed,
         run_ai_observer_loop=_run_ai_observer_loop,
+    )
+
+
+def _ws_rule_effect_deps() -> WebSocketRuleEffectDeps:
+    return WebSocketRuleEffectDeps(
         challenge_remaining=_challenge_remaining,
         challenge_zone_points=_challenge_zone_points,
         rogue_has=_rogue_has,
@@ -672,6 +701,20 @@ def _ws_context_binding() -> WebSocketContextBinding:
         random_hidden_center=_random_hidden_center,
         diamond_points=_diamond_points,
     )
+
+
+def _ws_context_deps() -> WebSocketContextDeps:
+    return WebSocketContextDeps(
+        runtime=_ws_runtime_deps(),
+        engine_control=_ws_engine_deps(),
+        card_selection=_ws_card_selection_deps(),
+        mode_flow=_ws_mode_flow_deps(),
+        rule_effects=_ws_rule_effect_deps(),
+    )
+
+
+def _ws_context_binding() -> WebSocketContextBinding:
+    return build_websocket_context_binding(_ws_context_deps())
 
 
 def _websocket_routes_binding() -> WebSocketRoutesBinding:

@@ -8,6 +8,7 @@ from app.runtime.ws_context import (
     WebSocketContextDeps,
     WEBSOCKET_CONTEXT_GROUP_SPECS,
     build_websocket_action_context,
+    flatten_websocket_context_deps,
 )
 
 
@@ -65,6 +66,10 @@ def build_websocket_context_deps(binding: WebSocketContextBinding) -> WebSocketC
         group_name: _build_group(binding, group_type)
         for group_name, group_type in WEBSOCKET_CONTEXT_GROUP_SPECS
     })
+
+
+def build_websocket_context_binding(deps: WebSocketContextDeps) -> WebSocketContextBinding:
+    return WebSocketContextBinding(**flatten_websocket_context_deps(deps))
 
 
 def build_websocket_action_context_from_binding(
