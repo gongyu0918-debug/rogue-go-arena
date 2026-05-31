@@ -16,6 +16,7 @@ import uvicorn
 import app.config.gameplay as gameplay_config
 import app.runtime.ws_actions as ws_actions_module
 import app.runtime.ws_rogue_actions as ws_rogue_actions_module
+import app.runtime.ws_ultimate_actions as ws_ultimate_actions_module
 from app.config.gameplay import (
     CHALLENGE_RESTRICTION_DECAY_CHANCE,
     CHALLENGE_SET_MIN_COUNT,
@@ -559,7 +560,7 @@ def _sync_balance_globals() -> None:
         target_globals=globals(),
         gameplay_config=gameplay_config,
         ws_actions_module=ws_actions_module,
-        ws_action_modules=(ws_rogue_actions_module,),
+        ws_action_modules=(ws_rogue_actions_module, ws_ultimate_actions_module),
     )
 
 
