@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
-from typing import Any
+from typing import Any, get_type_hints
 
 from app.runtime.ws_actions import WebSocketActionContext
 
@@ -86,62 +86,33 @@ class WebSocketContextDeps:
         raise AttributeError(name)
 
 
-WEBSOCKET_CONTEXT_FIELD_NAMES = (
-    "active_games",
-    "engine",
-    "run_in_executor",
-    "GoGame",
-    "coord_to_gtp",
-    "gtp_to_coord",
-    "engine_state_snapshot",
-    "start_engine_background",
-    "reload_live_card_config",
-    "get_game_visits",
-    "pick_rogue_choices",
-    "pick_ultimate_choices",
-    "pick_challenge_beta_choices",
-    "pick_ai_rogue_card",
-    "pick_ai_ultimate_card",
-    "apply_challenge_rogue_loadout",
-    "activate_rogue_card",
-    "activate_ai_rogue_card",
-    "ai_move",
-    "ultimate_ai_move",
-    "ultimate_force_score",
-    "run_coach_turn_if_needed",
-    "run_ai_observer_loop",
-    "sync_board_to_katago",
-    "challenge_remaining",
-    "challenge_zone_points",
-    "rogue_has",
-    "get_ai_rogue_forbidden_points",
-    "ultimate_get_territory_forbidden",
-    "record_ultimate_player_action",
-    "check_capture_foul",
-    "count_stones",
-    "apply_ultimate_effect",
-    "resolve_pending_ultimate_shadow_links",
-    "apply_player_rogue_move_effects",
-    "apply_ai_rogue_response_effects",
-    "prepare_player_turn_modifiers",
-    "finish_ultimate_quickthink_turn",
-    "pick_joseki_targets",
-    "random_hidden_center",
-    "diamond_points",
+WEBSOCKET_CONTEXT_GROUP_NAMES = tuple(
+    field.name for field in fields(WebSocketContextDeps)
+)
+_WEBSOCKET_CONTEXT_TYPE_HINTS = get_type_hints(WebSocketContextDeps)
+WEBSOCKET_CONTEXT_GROUP_SPECS = tuple(
+    (field.name, _WEBSOCKET_CONTEXT_TYPE_HINTS[field.name])
+    for field in fields(WebSocketContextDeps)
+)
+WEBSOCKET_CONTEXT_GROUP_TYPES = tuple(
+    group_type for _group_name, group_type in WEBSOCKET_CONTEXT_GROUP_SPECS
 )
 
-WEBSOCKET_CONTEXT_GROUP_NAMES = (
-    "runtime",
-    "engine_control",
-    "card_selection",
-    "mode_flow",
-    "rule_effects",
-)
+
+def _websocket_context_field_names() -> tuple[str, ...]:
+    return tuple(
+        field.name
+        for group_type in WEBSOCKET_CONTEXT_GROUP_TYPES
+        for field in fields(group_type)
+    )
+
+
+WEBSOCKET_CONTEXT_FIELD_NAMES = _websocket_context_field_names()
 
 
 def _websocket_context_groups(deps: WebSocketContextDeps) -> tuple[Any, ...]:
     groups = []
-    for name in WEBSOCKET_CONTEXT_GROUP_NAMES:
+    for name, _group_type in WEBSOCKET_CONTEXT_GROUP_SPECS:
         try:
             groups.append(object.__getattribute__(deps, name))
         except AttributeError:

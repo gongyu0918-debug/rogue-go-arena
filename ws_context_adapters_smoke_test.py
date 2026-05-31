@@ -4,10 +4,14 @@ import copy
 import pickle
 from dataclasses import fields
 from types import SimpleNamespace
+from typing import get_type_hints
 
 import server as s
 from app.runtime.ws_context import (
     WEBSOCKET_CONTEXT_FIELD_NAMES,
+    WEBSOCKET_CONTEXT_GROUP_NAMES,
+    WEBSOCKET_CONTEXT_GROUP_SPECS,
+    WebSocketContextDeps,
     WebSocketCardSelectionDeps,
     WebSocketEngineDeps,
     WebSocketModeFlowDeps,
@@ -51,18 +55,28 @@ def smoke_binding_maps_every_field() -> None:
 def smoke_context_groups_have_unique_flat_fields() -> None:
     names = [
         field.name
-        for group_type in (
-            WebSocketRuntimeDeps,
-            WebSocketEngineDeps,
-            WebSocketCardSelectionDeps,
-            WebSocketModeFlowDeps,
-            WebSocketRuleEffectDeps,
-        )
+        for _group_name, group_type in WEBSOCKET_CONTEXT_GROUP_SPECS
         for field in fields(group_type)
     ]
 
     assert len(names) == len(set(names))
     assert set(names) == set(WEBSOCKET_CONTEXT_FIELD_NAMES)
+
+
+def smoke_context_group_specs_match_context_dataclass() -> None:
+    context_fields = fields(WebSocketContextDeps)
+    context_types = get_type_hints(WebSocketContextDeps)
+    assert WEBSOCKET_CONTEXT_GROUP_NAMES == tuple(field.name for field in context_fields)
+    assert WEBSOCKET_CONTEXT_GROUP_SPECS == tuple(
+        (field.name, context_types[field.name]) for field in context_fields
+    )
+    assert tuple(group_type for _group_name, group_type in WEBSOCKET_CONTEXT_GROUP_SPECS) == (
+        WebSocketRuntimeDeps,
+        WebSocketEngineDeps,
+        WebSocketCardSelectionDeps,
+        WebSocketModeFlowDeps,
+        WebSocketRuleEffectDeps,
+    )
 
 
 def smoke_context_deps_copy_and_special_lookup_are_safe() -> None:
@@ -201,6 +215,7 @@ def smoke_server_binding_resolves_patched_runtime_objects() -> None:
 def main() -> None:
     smoke_binding_maps_every_field()
     smoke_context_groups_have_unique_flat_fields()
+    smoke_context_group_specs_match_context_dataclass()
     smoke_context_deps_copy_and_special_lookup_are_safe()
     smoke_action_context_builder_uses_binding()
     smoke_server_binding_maps_current_runtime_objects()

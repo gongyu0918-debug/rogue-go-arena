@@ -5,12 +5,8 @@ from typing import Any
 
 from app.runtime.ws_actions import WebSocketActionContext
 from app.runtime.ws_context import (
-    WebSocketCardSelectionDeps,
     WebSocketContextDeps,
-    WebSocketEngineDeps,
-    WebSocketModeFlowDeps,
-    WebSocketRuleEffectDeps,
-    WebSocketRuntimeDeps,
+    WEBSOCKET_CONTEXT_GROUP_SPECS,
     build_websocket_action_context,
 )
 
@@ -25,8 +21,9 @@ class WebSocketContextBinding:
     gtp_to_coord: Any
     engine_state_snapshot: Any
     start_engine_background: Any
-    reload_live_card_config: Any
     get_game_visits: Any
+    sync_board_to_katago: Any
+    reload_live_card_config: Any
     pick_rogue_choices: Any
     pick_ultimate_choices: Any
     pick_challenge_beta_choices: Any
@@ -40,7 +37,6 @@ class WebSocketContextBinding:
     ultimate_force_score: Any
     run_coach_turn_if_needed: Any
     run_ai_observer_loop: Any
-    sync_board_to_katago: Any
     challenge_remaining: Any
     challenge_zone_points: Any
     rogue_has: Any
@@ -65,13 +61,10 @@ def _build_group(binding: WebSocketContextBinding, group_type: type) -> Any:
 
 
 def build_websocket_context_deps(binding: WebSocketContextBinding) -> WebSocketContextDeps:
-    return WebSocketContextDeps(
-        runtime=_build_group(binding, WebSocketRuntimeDeps),
-        engine_control=_build_group(binding, WebSocketEngineDeps),
-        card_selection=_build_group(binding, WebSocketCardSelectionDeps),
-        mode_flow=_build_group(binding, WebSocketModeFlowDeps),
-        rule_effects=_build_group(binding, WebSocketRuleEffectDeps),
-    )
+    return WebSocketContextDeps(**{
+        group_name: _build_group(binding, group_type)
+        for group_name, group_type in WEBSOCKET_CONTEXT_GROUP_SPECS
+    })
 
 
 def build_websocket_action_context_from_binding(
