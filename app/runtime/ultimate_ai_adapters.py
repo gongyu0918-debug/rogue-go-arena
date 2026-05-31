@@ -89,6 +89,12 @@ async def select_ultimate_ai_move(
         with binding.engine.command_lock:
             binding.engine._send_command_locked("undo")
 
+    async def restore_engine_pass() -> str:
+        return await binding.run_in_executor(binding.engine.send_command, f"play {color} pass")
+
+    async def play_engine_move(gtp_move: str) -> str:
+        return await binding.run_in_executor(binding.engine.send_command, f"play {color} {gtp_move}")
+
     choice = await choose_ultimate_ai_move(
         game,
         color=color,
@@ -97,6 +103,8 @@ async def select_ultimate_ai_move(
         generate_move=lambda: binding.run_in_executor(generate_locked),
         no_resign_move=binding.no_resign_move,
         undo_engine_move=undo_engine_move,
+        restore_engine_pass=restore_engine_pass,
+        play_engine_move=play_engine_move,
         pick_ranked_legal_move=binding.pick_ranked_legal_move,
         pick_nonpass_fallback_move=binding.pick_nonpass_fallback_move,
         retry_avoiding_ko=binding.retry_avoiding_ko,
@@ -117,6 +125,10 @@ async def finish_selected_ultimate_ai_move(
     allow_double_bonus: bool,
     binding: UltimateAiTurnFinishBinding,
 ) -> bool:
+    if selection.choice.error_message:
+        await send_fn({"type": "error", "message": selection.choice.error_message})
+        return True
+
     return await finish_ultimate_ai_turn(
         game,
         send_fn,

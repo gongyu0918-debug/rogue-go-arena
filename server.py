@@ -535,7 +535,7 @@ USER_KATAGO_PATHS = UserKataGoPaths(
     home_dir=USER_KATAGO_HOME,
     runtime_config_dir=USER_RUNTIME_CONFIG_DIR,
 )
-SERVER_REV = "20260430-card-editor-shell"
+SERVER_REV = "20260601-runtime-hardening"
 KATAGO_EXE = BASE_DIR / "katago" / "katago.exe"             # CUDA build (legacy/optional)
 KATAGO_CUDA_EXE = BASE_DIR / "katago" / "katago_cuda.exe"   # CUDA (downloaded upgrade)
 KATAGO_OPENCL_EXE = BASE_DIR / "katago" / "katago_opencl.exe"  # OpenCL (any GPU)
@@ -763,6 +763,11 @@ def _bind_engine_gateway_runtime() -> None:
 
 async def _send_engine_command(command: str) -> str:
     return await send_engine_command_adapter(_engine_gateway_runtime(), command)
+
+
+def _undo_engine_move_locked() -> None:
+    with engine.command_lock:
+        engine._send_command_locked("undo")
 
 
 async def _sync_engine_komi(game: GoGame) -> None:
@@ -1538,6 +1543,8 @@ def _generated_ai_runtime_dependencies() -> GeneratedAiRuntimeDependencies:
             apply_suspicious_pass_fallback_fn=apply_suspicious_pass_fallback,
             is_suspicious_pass=_is_suspicious_ai_pass,
             pick_nonpass_fallback_move=_pick_nonpass_fallback_move,
+            undo_engine_move=_undo_engine_move_locked,
+            run_engine_command=_send_engine_command,
             log_event=_engine_log,
             resolve_resign_move=resolve_ai_resign_move,
             no_resign_move=_ai_move_no_resign,

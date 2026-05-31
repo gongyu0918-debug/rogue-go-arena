@@ -18,6 +18,7 @@ crash.log
 gtp_logs/
 *.sgf
 *.tmp
+.tmp/
 katago_test_*.txt
 board_visibility_*.png
 board_*_check*.png

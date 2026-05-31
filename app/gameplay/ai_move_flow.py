@@ -7,6 +7,7 @@ from typing import Any
 import app.config.gameplay as gameplay_config
 
 from app.callback_types import EngineCommandFn, SendFn as AsyncSend
+from app.gameplay.engine_errors import engine_error_message, is_engine_error_response
 from app.gameplay.move_placement import AiMovePlacement
 
 
@@ -87,6 +88,7 @@ class AiMoveResolution:
 class AiMoveCandidate:
     gtp_move: str | None
     completed: bool = False
+    error_message: str | None = None
 
 
 @dataclass(frozen=True)
@@ -114,6 +116,8 @@ class GeneratedMovePreparationDeps:
     apply_suspicious_pass_fallback_fn: Callable[..., Awaitable[str]]
     is_suspicious_pass: SuspiciousPassFn
     pick_nonpass_fallback_move: FallbackMoveFn
+    undo_engine_move: Callable[[], None] | None
+    run_engine_command: EngineCommandFn | None
     log_event: LogFn
     resolve_resign_move: Callable[..., Awaitable[AiMoveResolution]]
     no_resign_move: NoResignMoveFn
@@ -432,7 +436,6 @@ async def try_finish_rogue_restriction_ai_move(
                     message=target_plan.message,
                     prepare_player_turn_modifiers=prepare_player_turn_modifiers,
                     run_engine_command=run_engine_command,
-                    push_history=False,
                 ):
                     return True
         restriction = tengen_followup_points(game, ai_move_count)
@@ -629,14 +632,31 @@ async def apply_suspicious_pass_fallback(
     pick_fallback_move: FallbackMoveFn,
     log_event: LogFn,
     log_prefix: str,
+    undo_engine_move: Callable[[], None] | None = None,
+    run_engine_command: EngineCommandFn | None = None,
 ) -> str:
     if not is_suspicious_pass(game, gtp_move, color):
         return gtp_move
 
+    undid_engine_pass = False
+    if gtp_move.upper() == "PASS" and undo_engine_move is not None:
+        try:
+            undo_engine_move()
+            undid_engine_pass = True
+        except Exception as exc:
+            log_event(f"{log_prefix}, engine undo before fallback failed: {exc}")
+            return gtp_move
+
     fallback_move = await pick_fallback_move(game, color, visits)
     if fallback_move:
+        if undid_engine_pass and run_engine_command is not None:
+            await run_engine_command(f"play {color} {fallback_move}")
         log_event(f"{log_prefix}, replaced with {fallback_move}")
         return fallback_move
+    if undid_engine_pass and run_engine_command is not None:
+        restore_resp = await run_engine_command(f"play {color} pass")
+        if restore_resp.startswith("?"):
+            log_event(f"{log_prefix}, failed to restore PASS after fallback miss: {restore_resp}")
     return gtp_move
 
 
@@ -837,7 +857,9 @@ async def choose_or_generate_ai_style_move(
     )
 
     if chosen:
-        await play_chosen_move(f"play {color} {chosen}")
+        resp = await play_chosen_move(f"play {color} {chosen}")
+        if is_engine_error_response(resp):
+            return resp.strip()
         return chosen
 
     resp = await generate_move(color, visits, time_limit)
@@ -904,9 +926,9 @@ async def choose_ai_move_candidate(
     resp = await generate_move(color, visits, time_limit)
     if game.game_over:
         return AiMoveCandidate(None, completed=True)
-    if "?" in resp:
+    if is_engine_error_response(resp):
         log_error(f"[AI] genmove returned error: {resp}")
-        return AiMoveCandidate(None, completed=True)
+        return AiMoveCandidate(None, completed=True, error_message=engine_error_message(resp))
     return AiMoveCandidate(resp.replace("=", "").strip())
 
 
@@ -932,6 +954,8 @@ async def prepare_generated_ai_move(
     adjacent_points: AdjacentPointsFn,
     retry_ko_move: Callable[..., Awaitable[AiMoveAdjustment]],
     retry_avoiding_ko: RetryAvoidingKoFn,
+    undo_engine_move: Callable[[], None] | None = None,
+    run_engine_command: EngineCommandFn | None = None,
     log_prefix: str = "Suspicious early PASS in rogue/normal mode",
 ) -> AiMovePreparation:
     gtp_move = await apply_suspicious_pass_fallback_fn(
@@ -941,6 +965,8 @@ async def prepare_generated_ai_move(
         visits=visits,
         is_suspicious_pass=is_suspicious_pass,
         pick_fallback_move=pick_nonpass_fallback_move,
+        undo_engine_move=undo_engine_move,
+        run_engine_command=run_engine_command,
         log_event=log_event,
         log_prefix=log_prefix,
     )
@@ -1168,6 +1194,8 @@ async def try_finish_generated_ai_move(
         log_error=candidate_deps.log_error,
     )
     if candidate.completed:
+        if candidate.error_message:
+            await send_fn({"type": "error", "message": candidate.error_message})
         return True
 
     prepared_move = await preparation_deps.prepare_move(
@@ -1191,6 +1219,8 @@ async def try_finish_generated_ai_move(
         adjacent_points=preparation_deps.adjacent_points,
         retry_ko_move=preparation_deps.retry_ko_move,
         retry_avoiding_ko=preparation_deps.retry_avoiding_ko,
+        undo_engine_move=preparation_deps.undo_engine_move,
+        run_engine_command=preparation_deps.run_engine_command,
     )
 
     return await finish_deps.finish_move(
@@ -1471,6 +1501,9 @@ async def finalize_ai_move(
     if gtp_move.upper() == "RESIGN":
         if card:
             gtp_move = await no_resign_move(game, color)
+            if is_engine_error_response(gtp_move):
+                await send_fn({"type": "error", "message": engine_error_message(gtp_move)})
+                return
         else:
             game.game_over = True
             game.winner = game.player_color
@@ -1482,9 +1515,16 @@ async def finalize_ai_move(
             })
             return
 
+    if is_engine_error_response(gtp_move):
+        await send_fn({"type": "error", "message": engine_error_message(gtp_move)})
+        return
+
     coord = gtp_to_coord(gtp_move, game.size)
     if coord and gtp_move.upper() != "PASS" and game.is_ko(coord[0], coord[1], color):
         gtp_move = await retry_avoiding_ko(game, color)
+        if is_engine_error_response(gtp_move):
+            await send_fn({"type": "error", "message": engine_error_message(gtp_move)})
+            return
         coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
 
     placement = apply_ai_move_to_board(

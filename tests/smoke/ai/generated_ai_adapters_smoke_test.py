@@ -77,6 +77,8 @@ def smoke_preparation_binding_maps_every_field() -> None:
         apply_suspicious_pass_fallback_fn=fake_async,
         is_suspicious_pass=fake_sync,
         pick_nonpass_fallback_move=fake_async,
+        undo_engine_move=fake_sync,
+        run_engine_command=fake_async,
         log_event=fake_sync,
         resolve_resign_move=fake_async,
         no_resign_move=fake_async,
@@ -96,6 +98,8 @@ def smoke_preparation_binding_maps_every_field() -> None:
     assert deps.apply_suspicious_pass_fallback_fn is fake_async
     assert deps.is_suspicious_pass is fake_sync
     assert deps.pick_nonpass_fallback_move is fake_async
+    assert deps.undo_engine_move is fake_sync
+    assert deps.run_engine_command is fake_async
     assert deps.log_event is fake_sync
     assert deps.resolve_resign_move is fake_async
     assert deps.no_resign_move is fake_async
@@ -202,6 +206,8 @@ def smoke_generated_ai_runtime_builders_group_dependencies() -> None:
         apply_suspicious_pass_fallback_fn=fake_async,
         is_suspicious_pass=lambda *_args, **_kwargs: False,
         pick_nonpass_fallback_move=fake_async,
+        undo_engine_move=fake_sync,
+        run_engine_command=fake_async,
         log_event=fake_sync,
         resolve_resign_move=fake_async,
         no_resign_move=fake_async,
@@ -341,6 +347,8 @@ async def smoke_generated_turn_binding_delegates_with_factories() -> None:
             apply_suspicious_pass_fallback_fn=fake_async,
             is_suspicious_pass=fake_sync,
             pick_nonpass_fallback_move=fake_async,
+            undo_engine_move=fake_sync,
+            run_engine_command=fake_async,
             log_event=fake_sync,
             resolve_resign_move=fake_async,
             no_resign_move=fake_async,
@@ -541,6 +549,7 @@ def smoke_server_generated_bindings_resolve_current_runtime() -> None:
         "apply_suspicious_pass_fallback": s.apply_suspicious_pass_fallback,
         "_is_suspicious_ai_pass": s._is_suspicious_ai_pass,
         "_pick_nonpass_fallback_move": s._pick_nonpass_fallback_move,
+        "_undo_engine_move_locked": s._undo_engine_move_locked,
         "_engine_log": s._engine_log,
         "resolve_ai_resign_move": s.resolve_ai_resign_move,
         "_ai_move_no_resign": s._ai_move_no_resign,
@@ -590,6 +599,7 @@ def smoke_server_generated_bindings_resolve_current_runtime() -> None:
         s.apply_suspicious_pass_fallback = suspicious_fallback
         s._is_suspicious_ai_pass = is_suspicious
         s._pick_nonpass_fallback_move = nonpass
+        s._undo_engine_move_locked = fake_sync
         s._engine_log = log_event
         s.resolve_ai_resign_move = resolve_resign
         s._ai_move_no_resign = no_resign
@@ -653,6 +663,8 @@ def smoke_server_generated_bindings_resolve_current_runtime() -> None:
         assert preparation.apply_suspicious_pass_fallback_fn is suspicious_fallback
         assert preparation.is_suspicious_pass is is_suspicious
         assert preparation.pick_nonpass_fallback_move is nonpass
+        assert preparation.undo_engine_move is fake_sync
+        assert preparation.run_engine_command is erosion_command
         assert preparation.log_event is log_event
         assert preparation.resolve_resign_move is resolve_resign
         assert preparation.no_resign_move is no_resign

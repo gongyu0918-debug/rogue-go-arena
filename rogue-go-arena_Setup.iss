@@ -150,7 +150,7 @@ Source: "{#DistDir}\rogue-go-arena.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#DistDir}\rogue-go-arena-server\*"; DestDir: "{app}\rogue-go-arena-server"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#RepoRoot}\app\*"; DestDir: "{app}\app"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
 Source: "{#RepoRoot}\static\*"; DestDir: "{app}\static"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "assets\icons\cards-tech-featured\*,assets\icons\cards-tech\*-sheet.png,assets\icons\cards-tech\featured-card-sheet-tech-v1.png,assets\icons\toolbar-tech\toolbar-sheet-tech-*.png,assets\textures\board-tech-classic-v1.png,assets\textures\stone-materials-tech-v2.png"
-Source: "{#RepoRoot}\katago\*"; DestDir: "{app}\katago"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "katago.exe.new,model.bin.gz,kata_log.txt"
+Source: "{#RepoRoot}\katago\*"; DestDir: "{app}\katago"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "katago.exe.new,kata_log.txt"
 Source: "{#RepoRoot}\server.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\rogue-go-arena.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\rogue-go-arena.png"; DestDir: "{app}"; Flags: ignoreversion

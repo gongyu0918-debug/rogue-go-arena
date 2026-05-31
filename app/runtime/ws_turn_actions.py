@@ -13,6 +13,9 @@ async def handle_pass(ctx: WebSocketActionContext, data: dict) -> None:
     game = ctx.restore_game()
     if not game or game.game_over:
         return
+    if game.ai_observer:
+        await ctx.send_error("AI 学习模式不接受人工操作")
+        return
     if not game.two_player and game.rogue_card == "coach_mode" and game.rogue_coach_moves_left > 0:
         await ctx.send_error("代练上号接管中，请等待强化 AI 完成代打")
         return
@@ -98,6 +101,9 @@ async def handle_undo(ctx: WebSocketActionContext, data: dict) -> None:
     game = ctx.restore_game()
     if not game or not game.moves:
         return
+    if game.ai_observer:
+        await ctx.send_error("AI 学习模式不接受人工操作")
+        return
     if ctx.rogue_has(game, "no_regret") or ctx.rogue_has(game, "quickthink"):
         await ctx.send_error("这张卡会禁用悔棋")
         return
@@ -126,6 +132,9 @@ async def handle_undo(ctx: WebSocketActionContext, data: dict) -> None:
 async def handle_score(ctx: WebSocketActionContext, data: dict) -> None:
     game = ctx.restore_game()
     if not game:
+        return
+    if game.ai_observer:
+        await ctx.send_error("AI 学习模式不接受人工操作")
         return
     if ctx.engine.ready:
         await ctx.sync_board_to_katago(game)

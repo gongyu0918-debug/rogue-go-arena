@@ -49,11 +49,33 @@ if hasattr(platform, "_wmi_query"):
     }
 }
 
+function Test-ReleaseKataGoAssets {
+    $katagoDir = Join-Path $RepoRoot "katago"
+    $engineNames = @("katago_cuda.exe", "katago.exe", "katago_opencl.exe", "katago_cpu.exe")
+    $modelNames = @("model_large.bin.gz", "model.bin.gz", "model_b18.bin.gz")
+    $engines = @($engineNames | Where-Object { Test-Path (Join-Path $katagoDir $_) })
+    $models = @($modelNames | Where-Object { Test-Path (Join-Path $katagoDir $_) })
+
+    if ($engines.Count -eq 0 -or $models.Count -eq 0) {
+        $engineList = if ($engines.Count) { $engines -join ", " } else { "<none>" }
+        $modelList = if ($models.Count) { $models -join ", " } else { "<none>" }
+        throw (
+            "KataGo release assets are incomplete. " +
+            "Engines: $engineList; models: $modelList. " +
+            "Run 'python setup.py' or place one supported engine and one supported model under '$katagoDir' before building."
+        )
+    }
+
+    Write-Host "==> KataGo assets: engines=$($engines -join ', ') models=$($models -join ', ')"
+}
+
 Write-Host "==> Repo root: $RepoRoot"
 Write-Host "==> Build version: $Version"
 Write-Host "==> Build dir: $BuildDir"
 Write-Host "==> Dist dir: $DistDir"
 Write-Host "==> Release dir: $ReleaseDir"
+
+Test-ReleaseKataGoAssets
 
 if (Test-Path $DistDir) {
     Remove-Item -LiteralPath $DistDir -Recurse -Force

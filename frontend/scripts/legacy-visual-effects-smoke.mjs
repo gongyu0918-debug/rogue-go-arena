@@ -168,6 +168,16 @@ try {
     };
 
     clearFx();
+    window.__cardFxXssProbe = 0;
+    showCardEffectVisual("<img src=x onerror='window.__cardFxXssProbe=1'>", "rogue");
+    await new Promise(resolve => setTimeout(resolve, 20));
+    const cardFxXssState = {
+      probe: window.__cardFxXssProbe,
+      desc: document.querySelector("#board-fx-layer .fx-banner-desc")?.textContent || "",
+      images: document.querySelectorAll("#board-fx-layer .fx-banner-desc img").length,
+    };
+
+    clearFx();
     playGodHandFlash();
     const godHandState = {
       flashes: document.querySelectorAll("#global-fx-layer .fx-godflash").length,
@@ -224,6 +234,7 @@ try {
       allThemeKeys,
       englishThemeTitle,
       cardFxState,
+      cardFxXssState,
       godHandState,
       fogState,
       starState,
@@ -258,6 +269,7 @@ try {
   assert(state.cardFxState.firstParticleCore === "rgba(196,170,255,.95)", `puppet particle core changed: ${state.cardFxState.firstParticleCore}`);
   assert(state.cardFxState.firstParticleGlow === "rgba(112,78,255,.85)", `puppet particle glow changed: ${state.cardFxState.firstParticleGlow}`);
   assert(state.cardFxState.ringColor === "rgba(196,170,255,.95)", `puppet ring color changed: ${state.cardFxState.ringColor}`);
+  assert(state.cardFxXssState.probe === 0 && state.cardFxXssState.images === 0, `card effect banner executed markup: ${JSON.stringify(state.cardFxXssState)}`);
   assert(state.godHandState.flashes === 1, `god hand flash did not spawn: ${state.godHandState.flashes}`);
   assert(state.fogState.veils === 1 && state.fogState.clouds === 3, `fog effect changed: ${JSON.stringify(state.fogState)}`);
   assert(state.starState.pulses >= 5 && state.starState.links >= 4, `star constellation changed: ${JSON.stringify(state.starState)}`);

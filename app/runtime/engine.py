@@ -196,6 +196,20 @@ class KataGoEngine:
                 break
         return drained
 
+    def _terminate_process(self) -> None:
+        if not self.process:
+            return
+        try:
+            self.process.terminate()
+            self.process.wait(timeout=5)
+        except Exception:
+            try:
+                self.process.kill()
+            except Exception:
+                pass
+        self.process = None
+        self.ready = False
+
     def _send_command_locked(self, cmd: str, timeout: float = 60.0) -> str:
         if not self.process:
             return "? not started"
@@ -215,6 +229,8 @@ class KataGoEngine:
         try:
             return self.response_queue.get(timeout=timeout)
         except queue.Empty:
+            self.log(f"[KataGo] Command timed out after {timeout}s: {cmd}, disabling engine")
+            self._terminate_process()
             return "? timeout"
 
     def send_command(self, cmd: str, timeout: float = 60.0) -> str:
@@ -424,15 +440,7 @@ class KataGoEngine:
                 self.send_command("quit", timeout=3)
             except Exception:
                 pass
-            try:
-                self.process.terminate()
-                self.process.wait(timeout=5)
-            except Exception:
-                try:
-                    self.process.kill()
-                except Exception:
-                    pass
-            self.process = None
+            self._terminate_process()
         self.ready = False
         self.stderr_callback = None
 

@@ -7,6 +7,7 @@ ensure_repo_root(__file__)
 import asyncio
 import contextlib
 import copy
+import importlib.util
 import json
 import os
 import socket
@@ -77,6 +78,16 @@ BASE_SMOKE_NAMES = [
 ]
 
 
+def load_base_card_smoke_module():
+    module_path = Path(__file__).with_name("card_smoke_test.py")
+    spec = importlib.util.spec_from_file_location("base_card_smoke_test", module_path)
+    if not spec or not spec.loader:
+        raise RuntimeError(f"Cannot load base card smoke module: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def marker(mode: str, card_id: str) -> str:
     return f"E2E-{mode}-{card_id}"
 
@@ -129,7 +140,10 @@ async def edit_all_cards_with_form(base_url: str, screenshot_path: Path) -> dict
     config = payload["config"]
 
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch(headless=True)
+        try:
+            browser = await pw.chromium.launch(channel="msedge", headless=True)
+        except Exception:
+            browser = await pw.chromium.launch(headless=True)
         page = await browser.new_page(viewport={"width": 1440, "height": 1050})
         await page.goto(base_url + "/card-editor")
         await page.evaluate("localStorage.setItem('card_editor_lang', 'zh')")
@@ -241,7 +255,7 @@ async def verify_every_rogue_offer(base_url: str, ws_base_url: str, config: dict
 
 
 async def verify_direct_configured_effects() -> dict[str, Any]:
-    import card_smoke_test as base_smoke
+    base_smoke = load_base_card_smoke_module()
     import server as s
     from app.data import cards as card_data
     from app.runtime.ws_actions import (

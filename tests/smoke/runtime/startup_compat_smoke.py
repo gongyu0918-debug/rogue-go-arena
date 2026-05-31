@@ -23,6 +23,7 @@ class OpenClFailsCpuWorksEngine:
 
     def __init__(self) -> None:
         self.attempts: list[tuple[str, str]] = []
+        self.commands: list[str] = []
         self.stopped = 0
         self.alive = False
 
@@ -41,7 +42,8 @@ class OpenClFailsCpuWorksEngine:
         self.alive = True
         self.ready = True
 
-    def send_command(self, _command: str, timeout: float = 60.0) -> str:
+    def send_command(self, command: str, timeout: float = 60.0) -> str:
+        self.commands.append(command)
         return "="
 
     def is_alive(self) -> bool:
@@ -83,7 +85,10 @@ def make_manager(root: Path, engine=None) -> tuple[EngineStartupManager, EngineP
 
 
 def main() -> int:
-    with tempfile.TemporaryDirectory() as tmp:
+    tmp_parent = Path.cwd() / ".tmp" / "startup_compat_smoke"
+    tmp_parent.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.TemporaryDirectory(dir=tmp_parent) as tmp:
         manager, paths = make_manager(Path(tmp))
         models = manager.available_models()
 
@@ -126,7 +131,7 @@ def main() -> int:
             ("CPU", "model.bin.gz"),
         ]
 
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(dir=tmp_parent) as tmp:
         engine = OpenClFailsCpuWorksEngine()
         manager, _paths = make_manager(Path(tmp), engine)
         manager.has_nvidia_gpu = lambda: False
@@ -141,6 +146,8 @@ def main() -> int:
         assert snapshot["phase"] == "ready"
         assert snapshot["active_backend"] == "CPU"
         assert manager.cpu_mode is True
+        assert "genmove B" in engine.commands
+        assert "genmove W" in engine.commands
 
         print(json.dumps({
             "status": "passed",
@@ -149,6 +156,7 @@ def main() -> int:
             "cuda_order": [path.name for path in cuda_order],
             "candidate_labels_without_nvidia": labels,
             "fallback_attempts": actual_attempts,
+            "probe_commands": engine.commands,
         }, ensure_ascii=False, indent=2))
     return 0
 

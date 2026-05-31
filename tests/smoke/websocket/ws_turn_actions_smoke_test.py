@@ -286,6 +286,35 @@ async def smoke_undo_respects_no_regret_guard() -> None:
     assert ctx.synced_games == []
 
 
+async def smoke_observer_rejects_user_turn_mutations() -> None:
+    pass_game = make_game()
+    pass_game.ai_observer = True
+    pass_ctx = FakeContext(pass_game)
+    await handle_pass(pass_ctx, {})
+
+    undo_game = make_game()
+    undo_game.ai_observer = True
+    add_move(undo_game, "B", 4, 4)
+    undo_ctx = FakeContext(undo_game)
+    await handle_undo(undo_ctx, {})
+
+    score_game = make_game()
+    score_game.ai_observer = True
+    score_ctx = FakeContext(score_game)
+    await handle_score(score_ctx, {})
+
+    expected_error = "AI 学习模式不接受人工操作"
+    assert pass_ctx.errors == [expected_error]
+    assert pass_game.moves == []
+    assert pass_ctx.engine.commands == []
+    assert undo_ctx.errors == [expected_error]
+    assert len(undo_game.moves) == 1
+    assert undo_ctx.synced_games == []
+    assert score_ctx.errors == [expected_error]
+    assert score_game.game_over is False
+    assert score_ctx.engine.commands == []
+
+
 async def smoke_score_syncs_engine_and_marks_winner() -> None:
     game = make_game()
     ctx = FakeContext(game, engine=FakeEngine(final_score="= W+2.5"))
@@ -344,6 +373,7 @@ async def main() -> None:
     await smoke_undo_restores_history_syncs_and_analyzes()
     await smoke_challenge_undo_checks_usage_gate_and_respects_limit()
     await smoke_undo_respects_no_regret_guard()
+    await smoke_observer_rejects_user_turn_mutations()
     await smoke_score_syncs_engine_and_marks_winner()
     await smoke_score_parses_black_and_draw_results()
     smoke_ws_action_handlers_keep_turn_action_names()

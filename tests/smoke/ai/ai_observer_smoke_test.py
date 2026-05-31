@@ -87,6 +87,7 @@ async def smoke_single_observer_turn() -> None:
             generate_ai_style_move=generate_ai_style_move,
             is_suspicious_ai_pass=lambda *_args: False,
             pick_nonpass_fallback_move=pick_fallback,
+            run_engine_command=lambda _command: asyncio.sleep(0, result="="),
             place_ai_move_on_board=place_move,
             finish_double_pass=finish_double_pass,
             sleep=sleep,
@@ -118,6 +119,7 @@ async def smoke_single_observer_turn() -> None:
 async def smoke_suspicious_pass_uses_fallback() -> None:
     game = FakeGame()
     placed = []
+    engine_commands = []
 
     async def send_fn(_payload):
         pass
@@ -129,7 +131,12 @@ async def smoke_suspicious_pass_uses_fallback() -> None:
         assert game_arg is game
         assert color == "B"
         assert visits == 80
+        assert engine_commands == ["undo"]
         return "E5"
+
+    async def run_engine_command(command):
+        engine_commands.append(command)
+        return "="
 
     def place_move(_game, color, gtp_move):
         placed.append((color, gtp_move))
@@ -151,6 +158,7 @@ async def smoke_suspicious_pass_uses_fallback() -> None:
             generate_ai_style_move=generate_ai_style_move,
             is_suspicious_ai_pass=lambda _game, move, _color: move == "PASS",
             pick_nonpass_fallback_move=pick_fallback,
+            run_engine_command=run_engine_command,
             place_ai_move_on_board=place_move,
             finish_double_pass=finish_double_pass,
             sleep=sleep,
@@ -159,11 +167,51 @@ async def smoke_suspicious_pass_uses_fallback() -> None:
     )
 
     assert placed == [("B", "E5")]
+    assert engine_commands == ["undo", "play B E5"]
+
+
+async def smoke_engine_error_does_not_place_observer_move() -> None:
+    game = FakeGame()
+    placed = []
+    sent = []
+
+    async def send_fn(payload):
+        sent.append(payload)
+
+    async def generate_ai_style_move(*_args):
+        return "? timeout"
+
+    def place_move(_game, color, gtp_move):
+        placed.append((color, gtp_move))
+        return SimpleNamespace(coord=None)
+
+    await run_ai_observer_loop(
+        game,
+        send_fn,
+        AiObserverLoopDeps(
+            engine_ready=lambda: True,
+            sync_board=lambda _game: asyncio.sleep(0),
+            get_game_visits=lambda _level, _move_count: 80,
+            generate_ai_style_move=generate_ai_style_move,
+            is_suspicious_ai_pass=lambda *_args: False,
+            pick_nonpass_fallback_move=lambda *_args: asyncio.sleep(0, result=None),
+            run_engine_command=lambda _command: asyncio.sleep(0, result="="),
+            place_ai_move_on_board=place_move,
+            finish_double_pass=lambda _game, _send: asyncio.sleep(0, result=False),
+            sleep=lambda _delay: asyncio.sleep(0),
+            opening_move_threshold=30,
+        ),
+    )
+
+    assert placed == []
+    assert game.moves == []
+    assert sent == [{"type": "error", "message": "AI 引擎落子失败：? timeout"}]
 
 
 async def smoke_suspicious_pass_without_fallback_keeps_pass() -> None:
     game = FakeGame()
     placed = []
+    engine_commands = []
 
     async def send_fn(_payload):
         pass
@@ -173,6 +221,10 @@ async def smoke_suspicious_pass_without_fallback_keeps_pass() -> None:
 
     async def pick_fallback(*_args):
         return None
+
+    async def run_engine_command(command):
+        engine_commands.append(command)
+        return "="
 
     def place_move(_game, color, gtp_move):
         placed.append((color, gtp_move))
@@ -194,6 +246,7 @@ async def smoke_suspicious_pass_without_fallback_keeps_pass() -> None:
             generate_ai_style_move=generate_ai_style_move,
             is_suspicious_ai_pass=lambda _game, move, _color: move == "PASS",
             pick_nonpass_fallback_move=pick_fallback,
+            run_engine_command=run_engine_command,
             place_ai_move_on_board=place_move,
             finish_double_pass=finish_double_pass,
             sleep=sleep,
@@ -202,6 +255,7 @@ async def smoke_suspicious_pass_without_fallback_keeps_pass() -> None:
     )
 
     assert placed == [("B", "PASS")]
+    assert engine_commands == ["undo", "play B pass"]
 
 
 async def smoke_disconnect_propagates_to_server_wrapper() -> None:
@@ -230,6 +284,7 @@ async def smoke_disconnect_propagates_to_server_wrapper() -> None:
                 generate_ai_style_move=generate_ai_style_move,
                 is_suspicious_ai_pass=lambda *_args: False,
                 pick_nonpass_fallback_move=pick_fallback,
+                run_engine_command=lambda _command: asyncio.sleep(0, result="="),
                 place_ai_move_on_board=place_move,
                 finish_double_pass=lambda _game, _send: asyncio.sleep(0, result=False),
                 sleep=lambda _delay: asyncio.sleep(0),
@@ -289,6 +344,7 @@ def smoke_apply_observer_ai_move_to_board() -> None:
 async def main() -> None:
     await smoke_single_observer_turn()
     await smoke_suspicious_pass_uses_fallback()
+    await smoke_engine_error_does_not_place_observer_move()
     await smoke_suspicious_pass_without_fallback_keeps_pass()
     await smoke_disconnect_propagates_to_server_wrapper()
     await smoke_finish_observer_double_pass()

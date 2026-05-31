@@ -64,6 +64,8 @@ async def _choose_ultimate_ai_move_replaces_resign() -> None:
         generate_move=generate_move,
         no_resign_move=no_resign,
         undo_engine_move=lambda: calls.append("undo"),
+        restore_engine_pass=lambda: unused_async(),
+        play_engine_move=lambda _move: unused_async(),
         pick_ranked_legal_move=unused_async,
         pick_nonpass_fallback_move=unused_async,
         retry_avoiding_ko=lambda *_args: unused_async(),
@@ -102,6 +104,8 @@ async def _choose_ultimate_ai_move_avoids_forbidden_and_suspicious_pass() -> Non
         generate_move=forbidden_generate,
         no_resign_move=lambda *_args: None,
         undo_engine_move=lambda: calls.append("undo"),
+        restore_engine_pass=lambda: ranked(game, "W", 321, set(), time_limit=0),
+        play_engine_move=lambda _move: ranked(game, "W", 321, set(), time_limit=0),
         pick_ranked_legal_move=ranked,
         pick_nonpass_fallback_move=lambda *_args: None,
         retry_avoiding_ko=lambda *_args: None,
@@ -127,6 +131,10 @@ async def _choose_ultimate_ai_move_avoids_forbidden_and_suspicious_pass() -> Non
         calls.append(("fallback", game_arg is game, color, visits, forbidden))
         return "E5"
 
+    async def play_engine_move(move):
+        calls.append(("play", move))
+        return "="
+
     fallback_choice = await choose_ultimate_ai_move(
         game,
         color="W",
@@ -135,6 +143,8 @@ async def _choose_ultimate_ai_move_avoids_forbidden_and_suspicious_pass() -> Non
         generate_move=pass_generate,
         no_resign_move=lambda *_args: None,
         undo_engine_move=lambda: calls.append("undo"),
+        restore_engine_pass=lambda: fallback(game, "W", 111, set()),
+        play_engine_move=play_engine_move,
         pick_ranked_legal_move=lambda *_args, **_kwargs: None,
         pick_nonpass_fallback_move=fallback,
         retry_avoiding_ko=lambda *_args: None,
@@ -148,7 +158,9 @@ async def _choose_ultimate_ai_move_avoids_forbidden_and_suspicious_pass() -> Non
     assert fallback_choice.gtp_move == "E5"
     assert fallback_choice.coord == (4, 4)
     assert calls == [
+        "undo",
         ("fallback", True, "W", 111, {(1, 1)}),
+        ("play", "E5"),
         ("log", "Suspicious early PASS in ultimate mode, replaced with E5"),
     ]
 
@@ -188,6 +200,8 @@ async def _choose_ultimate_ai_move_resolves_occupied_and_ko() -> None:
         generate_move=generate_move,
         no_resign_move=lambda *_args: None,
         undo_engine_move=lambda: calls.append("undo"),
+        restore_engine_pass=lambda: retry(game, "W"),
+        play_engine_move=lambda _move: retry(game, "W"),
         pick_ranked_legal_move=lambda *_args, **_kwargs: None,
         pick_nonpass_fallback_move=lambda *_args: None,
         retry_avoiding_ko=retry,

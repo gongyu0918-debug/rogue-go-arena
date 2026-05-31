@@ -74,6 +74,7 @@ def smoke_loop_binding_maps_every_field() -> None:
         generate_ai_style_move=fake_async,
         is_suspicious_ai_pass=lambda *_args: False,
         pick_nonpass_fallback_move=fake_async,
+        run_engine_command=fake_async,
         place_ai_move_on_board=fake_sync,
         finish_double_pass=fake_async,
         sleep=fake_async,
@@ -88,6 +89,7 @@ def smoke_loop_binding_maps_every_field() -> None:
     assert deps.generate_ai_style_move is fake_async
     assert deps.is_suspicious_ai_pass(None, "D4", "B") is False
     assert deps.pick_nonpass_fallback_move is fake_async
+    assert deps.run_engine_command is fake_async
     assert deps.place_ai_move_on_board is fake_sync
     assert deps.finish_double_pass is fake_async
     assert deps.sleep is fake_async
@@ -158,6 +160,7 @@ def smoke_observer_runtime_builders_group_dependencies() -> None:
     assert loop.generate_ai_style_move is generate_style
     assert loop.is_suspicious_ai_pass is is_suspicious
     assert loop.pick_nonpass_fallback_move is pick_fallback
+    assert loop.run_engine_command is run_engine_command
     assert loop.place_ai_move_on_board is place_observer
     assert loop.finish_double_pass is finish_double_pass
     assert loop.sleep is sleep
@@ -254,6 +257,7 @@ async def smoke_loop_adapter_delegates() -> None:
             generate_ai_style_move=generate,
             is_suspicious_ai_pass=lambda *_args: False,
             pick_nonpass_fallback_move=fake_async,
+            run_engine_command=lambda _command: asyncio.sleep(0, result="="),
             place_ai_move_on_board=place,
             finish_double_pass=finish,
             sleep=sleep,
@@ -294,6 +298,7 @@ async def smoke_adapter_propagates_disconnect_and_server_wrapper_swallows_it() -
         generate_ai_style_move=generate,
         is_suspicious_ai_pass=lambda *_args: False,
         pick_nonpass_fallback_move=fake_async,
+        run_engine_command=lambda _command: asyncio.sleep(0, result="="),
         place_ai_move_on_board=place,
         finish_double_pass=fake_async,
         sleep=fake_async,
@@ -368,6 +373,7 @@ def smoke_server_bindings_resolve_current_runtime() -> None:
         assert loop.generate_ai_style_move is fake_async
         assert loop.is_suspicious_ai_pass(None, "D4", "B") is False
         assert loop.pick_nonpass_fallback_move is fake_async
+        assert loop.run_engine_command is fake_async
         assert loop.place_ai_move_on_board is place_observer
         assert loop.finish_double_pass is fake_async
         assert loop.sleep is s.asyncio.sleep

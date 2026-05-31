@@ -420,6 +420,51 @@ async def smoke_finish_adapter_maps_selection_and_binding() -> None:
     assert sent[0] == {"type": "ai_move", "gtp": "D4", "color": "W", "x": 3, "y": 3}
 
 
+async def smoke_finish_adapter_sends_engine_error_without_placing() -> None:
+    game = DummyGame()
+    sent = []
+    calls = []
+    selection = UltimateAiMoveSelection(
+        search_plan=SimpleNamespace(color="W", ai_card="meteor"),
+        choice=UltimateAiMoveChoice(
+            gtp_move="pass",
+            coord=None,
+            error_message="AI 引擎落子失败：? timeout",
+        ),
+    )
+
+    async def send(payload):
+        sent.append(payload)
+
+    recursed = await finish_selected_ultimate_ai_move(
+        game,
+        send,
+        selection,
+        allow_double_bonus=False,
+        binding=UltimateAiTurnFinishBinding(
+            chain_chance=0.25,
+            chain_random=lambda: 0.5,
+            apply_ai_move_result=lambda *_args, **_kwargs: calls.append("apply"),
+            record_ultimate_turn=lambda _game: calls.append("record"),
+            check_capture_foul=lambda *_args, **_kwargs: calls.append("capture"),
+            post_move_effects=lambda *_args, **_kwargs: calls.append("post"),
+            count_stones=lambda *_args: 0,
+            apply_ultimate_effect=lambda *_args: None,
+            resolve_pending_ultimate_shadow_links=lambda *_args: None,
+            sync_board_to_katago=lambda *_args: None,
+            choose_bonus_turn=lambda *_args, **_kwargs: None,
+            run_bonus_turn=lambda *_args: None,
+            finish_normal_turn=lambda *_args, **_kwargs: calls.append("normal"),
+            prepare_player_turn_modifiers=lambda _game: None,
+            force_score=lambda *_args: None,
+        ),
+    )
+
+    assert recursed is True
+    assert calls == []
+    assert sent == [{"type": "error", "message": "AI 引擎落子失败：? timeout"}]
+
+
 async def smoke_bonus_adapter_delegates_runtime_edges() -> None:
     game = DummyGame()
     bonus = SimpleNamespace(message="bonus", next_allow_double_bonus=False)
@@ -568,6 +613,7 @@ async def main() -> None:
     await smoke_selection_guard_skips_before_sync()
     await smoke_selection_binds_engine_generation_and_returns_choice()
     await smoke_finish_adapter_maps_selection_and_binding()
+    await smoke_finish_adapter_sends_engine_error_without_placing()
     await smoke_bonus_adapter_delegates_runtime_edges()
     await smoke_server_ultimate_ai_wrapper_uses_current_adapters()
     print("ultimate ai adapters smoke test: OK")

@@ -4,6 +4,8 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
+from app.gameplay.engine_errors import engine_error_message, is_engine_error_response
+
 
 AsyncSend = Callable[[dict], Awaitable[None]]
 CountStonesFn = Callable[[Any, int], int]
@@ -24,6 +26,7 @@ RunNextUltimateAiMoveFn = Callable[[Any, AsyncSend, bool], Awaitable[None]]
 class UltimateAiMoveChoice:
     gtp_move: str
     coord: tuple[int, int] | None
+    error_message: str | None = None
 
 
 def opponent_color_value(color: str) -> int:
@@ -39,6 +42,8 @@ async def choose_ultimate_ai_move(
     generate_move: Callable[[], Awaitable[str]],
     no_resign_move: Callable[[Any, str], Awaitable[str]],
     undo_engine_move: Callable[[], None],
+    restore_engine_pass: Callable[[], Awaitable[str]] | None,
+    play_engine_move: Callable[[str], Awaitable[str]] | None,
     pick_ranked_legal_move: Callable[..., Awaitable[str | None]],
     pick_nonpass_fallback_move: Callable[..., Awaitable[str | None]],
     retry_avoiding_ko: Callable[[Any, str], Awaitable[str]],
@@ -49,8 +54,22 @@ async def choose_ultimate_ai_move(
     log_fn: Callable[[str], None],
 ) -> UltimateAiMoveChoice:
     gtp_move = await generate_move()
+    if is_engine_error_response(gtp_move):
+        log_fn(f"[AI] ultimate genmove returned error: {gtp_move}")
+        return UltimateAiMoveChoice(
+            gtp_move="pass",
+            coord=None,
+            error_message=engine_error_message(gtp_move),
+        )
     if gtp_move.upper() == "RESIGN":
         gtp_move = await no_resign_move(game, color)
+        if is_engine_error_response(gtp_move):
+            log_fn(f"[AI] ultimate no-resign move returned error: {gtp_move}")
+            return UltimateAiMoveChoice(
+                gtp_move="pass",
+                coord=None,
+                error_message=engine_error_message(gtp_move),
+            )
 
     if forbidden and gtp_move.upper() not in ("PASS", "RESIGN"):
         coord = gtp_to_coord(gtp_move, game.size)
@@ -60,10 +79,18 @@ async def choose_ultimate_ai_move(
             gtp_move = ranked or "pass"
 
     if is_suspicious_ai_pass(game, gtp_move, color):
+        undid_engine_pass = False
+        if gtp_move.upper() == "PASS":
+            undo_engine_move()
+            undid_engine_pass = True
         fallback_move = await pick_nonpass_fallback_move(game, color, visits, forbidden)
         if fallback_move:
+            if undid_engine_pass and play_engine_move is not None:
+                await play_engine_move(fallback_move)
             log_fn(f"Suspicious early PASS in ultimate mode, replaced with {fallback_move}")
             gtp_move = fallback_move
+        elif undid_engine_pass and restore_engine_pass is not None:
+            await restore_engine_pass()
 
     coord = gtp_to_coord(gtp_move, game.size)
     gtp_move, coord = resolve_occupied_ai_move(

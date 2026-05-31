@@ -4,6 +4,8 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
+from app.gameplay.engine_errors import engine_error_message, is_engine_error_response
+
 from app.callback_types import EngineCommandFn as RunEngineCommandFn, SendFn
 
 SyncBoardFn = Callable[[Any], Awaitable[None]]
@@ -26,6 +28,7 @@ class AiObserverLoopDeps:
     generate_ai_style_move: GenerateMoveFn
     is_suspicious_ai_pass: SuspiciousPassFn
     pick_nonpass_fallback_move: FallbackMoveFn
+    run_engine_command: RunEngineCommandFn
     place_ai_move_on_board: PlaceMoveFn
     finish_double_pass: FinishDoublePassFn
     sleep: SleepFn
@@ -81,10 +84,21 @@ async def run_ai_observer_loop(
         visits = deps.get_game_visits(level, len(game.moves))
         time_limit = 4.0 if len(game.moves) < deps.opening_move_threshold else 8.0
         gtp_move = await deps.generate_ai_style_move(game, color, visits, time_limit)
+        if is_engine_error_response(gtp_move):
+            await send_fn({"type": "error", "message": engine_error_message(gtp_move)})
+            break
         if deps.is_suspicious_ai_pass(game, gtp_move, color):
+            undid_engine_pass = False
+            if gtp_move.upper() == "PASS":
+                undo_resp = await deps.run_engine_command("undo")
+                undid_engine_pass = not undo_resp.startswith("?")
             fallback_move = await deps.pick_nonpass_fallback_move(game, color, visits)
             if fallback_move:
+                if undid_engine_pass:
+                    await deps.run_engine_command(f"play {color} {fallback_move}")
                 gtp_move = fallback_move
+            elif undid_engine_pass:
+                await deps.run_engine_command(f"play {color} pass")
 
         placement = deps.place_ai_move_on_board(game, color, gtp_move)
         coord = placement.coord

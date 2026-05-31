@@ -71,6 +71,7 @@ def build_ai_observer_loop_binding(
         generate_ai_style_move=dependencies.moves.generate_ai_style_move,
         is_suspicious_ai_pass=dependencies.moves.is_suspicious_ai_pass,
         pick_nonpass_fallback_move=dependencies.moves.pick_nonpass_fallback_move,
+        run_engine_command=dependencies.runtime.run_engine_command,
         place_ai_move_on_board=dependencies.moves.place_ai_move_on_board,
         finish_double_pass=dependencies.moves.finish_double_pass,
         sleep=dependencies.runtime.sleep,

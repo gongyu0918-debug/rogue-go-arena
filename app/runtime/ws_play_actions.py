@@ -16,6 +16,9 @@ async def handle_play(ctx: WebSocketActionContext, data: dict) -> None:
     if not game.two_player and game.rogue_card == "coach_mode" and game.rogue_coach_moves_left > 0:
         await ctx.send_error("代练上号接管中，请等待强化 AI 完成代打")
         return
+    if game.ai_observer:
+        await ctx.send_error("AI 学习模式不接受人工落子")
+        return
 
     if game.two_player:
         color = game.current_player

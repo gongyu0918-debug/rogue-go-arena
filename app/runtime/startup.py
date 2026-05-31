@@ -364,8 +364,19 @@ class EngineStartupManager:
             return
 
     def _validate_ready_engine(self, label: str, model: Path) -> None:
-        """Reject engines that start but crash when the game changes board size."""
-        for command in ("boardsize 9", "clear_board", "komi 7.5"):
+        """Reject engines that start but fail on a tiny real search."""
+        probe_commands = (
+            "boardsize 9",
+            "clear_board",
+            "komi 7.5",
+            "kata-set-param maxVisits 4",
+            "kata-set-param maxTime 2",
+            "genmove B",
+            "genmove W",
+            "clear_board",
+            "kata-set-param maxTime 1e20",
+        )
+        for command in probe_commands:
             response = self.engine.send_command(command, timeout=12.0)
             if response.startswith("?"):
                 raise RuntimeError(

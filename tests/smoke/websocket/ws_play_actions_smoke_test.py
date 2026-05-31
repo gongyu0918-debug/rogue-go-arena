@@ -139,6 +139,19 @@ async def smoke_ai_game_waits_for_ready_engine() -> None:
     assert ctx.sent == []
 
 
+async def smoke_ai_observer_rejects_manual_play() -> None:
+    game = make_game()
+    game.ai_observer = True
+    ctx = FakeContext(game)
+
+    await handle_play(ctx, {"x": 4, "y": 4})
+
+    assert ctx.errors == ["AI 学习模式不接受人工落子"]
+    assert game.moves == []
+    assert ctx.engine.commands == []
+    assert ctx.sent == []
+
+
 async def smoke_rogue_handicap_requires_passes_before_play() -> None:
     game = make_game()
     game.rogue_card = "handicap_quest"
@@ -265,6 +278,7 @@ def smoke_play_action_annotations_resolve_runtime_context() -> None:
 async def main() -> None:
     await smoke_two_player_play_places_current_color_without_ai_turn()
     await smoke_ai_game_waits_for_ready_engine()
+    await smoke_ai_observer_rejects_manual_play()
     await smoke_rogue_handicap_requires_passes_before_play()
     await smoke_occupied_point_is_rejected_before_engine_play()
     await smoke_ai_rogue_forbidden_point_is_rejected()

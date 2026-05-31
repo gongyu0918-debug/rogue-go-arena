@@ -32,6 +32,7 @@ class AiObserverLoopBinding:
     generate_ai_style_move: Callable[[Any, str, int, float], Awaitable[str]]
     is_suspicious_ai_pass: Callable[[Any, str, str], bool]
     pick_nonpass_fallback_move: Callable[[Any, str, int], Awaitable[str | None]]
+    run_engine_command: EngineCommandFn
     place_ai_move_on_board: Callable[[Any, str, str], Any]
     finish_double_pass: Callable[[Any, SendFn], Awaitable[bool]]
     sleep: Callable[[float], Awaitable[None]]
@@ -46,6 +47,7 @@ def build_ai_observer_loop_deps(binding: AiObserverLoopBinding) -> AiObserverLoo
         generate_ai_style_move=binding.generate_ai_style_move,
         is_suspicious_ai_pass=binding.is_suspicious_ai_pass,
         pick_nonpass_fallback_move=binding.pick_nonpass_fallback_move,
+        run_engine_command=binding.run_engine_command,
         place_ai_move_on_board=binding.place_ai_move_on_board,
         finish_double_pass=binding.finish_double_pass,
         sleep=binding.sleep,

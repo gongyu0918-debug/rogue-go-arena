@@ -216,14 +216,22 @@ function showCardEffectVisual(message, mode = "rogue") {
   const theme = inferEffectTheme(message);
   const banner = document.createElement("div");
   banner.className = `fx-banner ${theme.cls} ${mode === "ultimate" ? "fx-ultimate" : "fx-rogue"}`;
-  banner.innerHTML = `
-    <div class="fx-banner-inner">
-      <div class="fx-banner-icon">${theme.icon}</div>
-      <div class="fx-banner-copy">
-        <div class="fx-banner-title">${theme.title}</div>
-        <div class="fx-banner-desc">${translateServerEventMessage(message)}</div>
-      </div>
-    </div>`;
+  const inner = document.createElement("div");
+  inner.className = "fx-banner-inner";
+  const icon = document.createElement("div");
+  icon.className = "fx-banner-icon";
+  icon.textContent = theme.icon;
+  const copy = document.createElement("div");
+  copy.className = "fx-banner-copy";
+  const title = document.createElement("div");
+  title.className = "fx-banner-title";
+  title.textContent = theme.title;
+  const desc = document.createElement("div");
+  desc.className = "fx-banner-desc";
+  desc.textContent = translateServerEventMessage(message);
+  copy.append(title, desc);
+  inner.append(icon, copy);
+  banner.appendChild(inner);
 
   clearTimeout(fxBannerTimer);
   layer.innerHTML = "";

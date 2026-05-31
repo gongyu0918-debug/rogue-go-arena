@@ -33,6 +33,8 @@ class GeneratedMovePreparationBinding:
     apply_suspicious_pass_fallback_fn: Callable[..., Awaitable[str]]
     is_suspicious_pass: Callable[..., bool]
     pick_nonpass_fallback_move: Callable[..., Awaitable[str | None]]
+    undo_engine_move: Callable[[], None] | None
+    run_engine_command: EngineCommandFn | None
     log_event: Callable[[str], None]
     resolve_resign_move: Callable[..., Awaitable[Any]]
     no_resign_move: Callable[..., Awaitable[str]]
@@ -107,6 +109,8 @@ def build_generated_move_preparation_deps(binding: GeneratedMovePreparationBindi
         apply_suspicious_pass_fallback_fn=binding.apply_suspicious_pass_fallback_fn,
         is_suspicious_pass=binding.is_suspicious_pass,
         pick_nonpass_fallback_move=binding.pick_nonpass_fallback_move,
+        undo_engine_move=binding.undo_engine_move,
+        run_engine_command=binding.run_engine_command,
         log_event=binding.log_event,
         resolve_resign_move=binding.resolve_resign_move,
         no_resign_move=binding.no_resign_move,

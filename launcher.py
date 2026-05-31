@@ -24,7 +24,7 @@ from urllib.parse import urlencode
 SERVER_PORT = 8000
 LOOPBACK_HOST = "127.0.0.1"
 SERVER_URL = f"http://{LOOPBACK_HOST}:{SERVER_PORT}"
-EXPECTED_SERVER_REV = "20260430-card-editor-shell"
+EXPECTED_SERVER_REV = "20260601-runtime-hardening"
 NATIVE_WINDOW_SIZE = "1500,1000"
 EDGE_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "rogue-go-arena" / "edge-app-profile"
 WEBVIEW_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "rogue-go-arena" / "webview-profile"
@@ -146,12 +146,42 @@ def _pid_image_name(pid: int) -> str:
     return out.split(",", 1)[0].strip('"').lower()
 
 
+def _pid_command_line(pid: int) -> str:
+    try:
+        out = subprocess.check_output(
+            ["wmic", "process", "where", f"ProcessId={pid}", "get", "CommandLine", "/value"],
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            creationflags=_creationflags_no_window(),
+        )
+    except Exception:
+        return ""
+    for line in out.splitlines():
+        if line.lower().startswith("commandline="):
+            return line.split("=", 1)[1].strip().lower()
+    return ""
+
+
+def _is_project_python_server(pid: int) -> bool:
+    cmdline = _pid_command_line(pid)
+    if not cmdline:
+        return False
+    base = str(BASE_DIR).lower()
+    return "server.py" in cmdline and base in cmdline
+
+
 def _stop_stale_server_on_port(port=SERVER_PORT) -> None:
     for pid in _listener_pids(port):
         image_name = _pid_image_name(pid)
         legacy_prefix = "go" + "ai"
         legacy_names = {f"{legacy_prefix}.exe", f"{legacy_prefix}_server.exe"}
-        if not (image_name.startswith("python") or image_name in {"rogue-go-arena.exe", "rogue-go-arena-server.exe"} or image_name in legacy_names):
+        owned_server = (
+            image_name in {"rogue-go-arena.exe", "rogue-go-arena-server.exe"}
+            or image_name in legacy_names
+            or (image_name.startswith("python") and _is_project_python_server(pid))
+        )
+        if not owned_server:
             continue
         try:
             subprocess.check_call(
@@ -244,6 +274,16 @@ def _open_edge_app_window(url: str) -> bool:
 def _open_system_browser(url: str) -> bool:
     try:
         os.startfile(url)
+        try:
+            try:
+                messagebox.showinfo(
+                    "rogue-go-arena",
+                    "已在浏览器中打开 rogue-go-arena。结束游玩后关闭此提示，将自动停止后台 KataGo。",
+                )
+            except Exception:
+                pass
+        finally:
+            _stop_katago_runtime()
         return True
     except Exception:
         return False

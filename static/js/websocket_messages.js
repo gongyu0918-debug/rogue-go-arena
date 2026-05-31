@@ -72,7 +72,7 @@ function handleGameStateMessage(msg) {
   const oldBoard = previousBoard || (gameState ? gameState.board : null);
   gameState = msg;
   syncChallengeSessionFromState(msg);
-  isMyTurn = twoPlayerMode ? !msg.game_over : (msg.current_player === myColor);
+  isMyTurn = msg.ai_observer ? false : (twoPlayerMode ? !msg.game_over : (msg.current_player === myColor));
   activeAiRogueCard = msg.ai_rogue_card || activeAiRogueCard || null;
   aiRogueSeals = msg.ai_rogue_seal_points || [];
   if (msg.rogue_seal_points) rogueSeals = msg.rogue_seal_points;
@@ -242,7 +242,7 @@ function handleReconnectedMessage(msg) {
   lastAiMove = null;
   previousBoard = msg.board ? msg.board.map(row => [...row]) : null;
   resetWinrateHistory();
-  isMyTurn = twoPlayerMode ? !msg.game_over : (msg.current_player === myColor);
+  isMyTurn = msg.ai_observer ? false : (twoPlayerMode ? !msg.game_over : (msg.current_player === myColor));
   activeRogueCard = msg.rogue_card || null;
   rogueUses = msg.rogue_uses || {};
   rogueSeals = msg.rogue_seal_points || [];

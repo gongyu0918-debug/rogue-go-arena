@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.callback_types import SendFn
+from app.gameplay.engine_errors import engine_error_message, is_engine_error_response
 
 GameVisitsFn = Callable[..., int]
 GenerateMoveFn = Callable[[Any, str, int, float], Awaitable[str]]
@@ -86,6 +87,9 @@ async def run_coach_turn_if_needed(
 
     color = game.player_color
     gtp_move, coord = await deps.choose_coach_ai_move(game, color)
+    if is_engine_error_response(gtp_move):
+        await send_fn({"type": "error", "message": engine_error_message(gtp_move)})
+        return
     placement = deps.place_auxiliary_move(game, color, gtp_move, coord)
     coord = placement.coord
     captured = placement.captured

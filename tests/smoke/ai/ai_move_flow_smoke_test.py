@@ -652,6 +652,8 @@ def _try_finish_generated_ai_move_deps(**overrides):
         "apply_suspicious_pass_fallback_fn": suspicious_fallback,
         "is_suspicious_pass": lambda _game, _gtp, _color: False,
         "pick_nonpass_fallback_move": fallback_move,
+        "undo_engine_move": lambda: None,
+        "run_engine_command": lambda _command: None,
         "log_event": lambda _msg: None,
         "resolve_resign_move": resign_move,
         "no_resign_move": no_resign,
@@ -705,6 +707,8 @@ def _try_finish_generated_ai_move_deps(**overrides):
             apply_suspicious_pass_fallback_fn=refs["apply_suspicious_pass_fallback_fn"],
             is_suspicious_pass=refs["is_suspicious_pass"],
             pick_nonpass_fallback_move=refs["pick_nonpass_fallback_move"],
+            undo_engine_move=refs["undo_engine_move"],
+            run_engine_command=refs["run_engine_command"],
             log_event=refs["log_event"],
             resolve_resign_move=refs["resolve_resign_move"],
             no_resign_move=refs["no_resign_move"],
@@ -2327,7 +2331,7 @@ async def _choose_ai_move_candidate_genmove_error_completes_and_logs() -> None:
         log_error=log_error,
     )
 
-    assert result == AiMoveCandidate(None, completed=True)
+    assert result == AiMoveCandidate(None, completed=True, error_message="AI 引擎落子失败：? illegal move")
     assert calls == [
         ("generate", "W", 77, 4.0),
         ("log", "[AI] genmove returned error: ? illegal move"),
@@ -2673,6 +2677,45 @@ async def _finalize_ai_move_resign_with_card_uses_no_resign_move() -> None:
 
 def test_finalize_ai_move_resign_with_card_uses_no_resign_move() -> None:
     asyncio.run(_finalize_ai_move_resign_with_card_uses_no_resign_move())
+
+
+async def _finalize_ai_move_engine_error_sends_error_without_mutating_board() -> None:
+    game = GoGame(size=5, player_color="B")
+    sent = []
+    calls = []
+
+    async def send(payload):
+        sent.append(payload)
+
+    async def check_capture_foul(*_args, **_kwargs):
+        calls.append("capture")
+
+    def prepare_player_turn(_game):
+        calls.append("prepare")
+
+    await finalize_ai_move(
+        game,
+        send,
+        color="W",
+        card=None,
+        gtp_move="? timeout",
+        gtp_to_coord=gtp_to_coord,
+        no_resign_move=_unused_no_resign,
+        retry_avoiding_ko=_unused_retry_ko,
+        check_capture_foul=check_capture_foul,
+        prepare_player_turn_modifiers=prepare_player_turn,
+        run_engine_command=lambda _command: asyncio.sleep(0, result="="),
+        run_coach_turn_if_needed=lambda *_args: asyncio.sleep(0),
+    )
+
+    assert game.moves == []
+    assert game.board == [[0 for _ in range(5)] for _ in range(5)]
+    assert calls == []
+    assert sent == [{"type": "error", "message": "AI 引擎落子失败：? timeout"}]
+
+
+def test_finalize_ai_move_engine_error_sends_error_without_mutating_board() -> None:
+    asyncio.run(_finalize_ai_move_engine_error_sends_error_without_mutating_board())
 
 
 async def _finalize_ai_move_retries_ko_move() -> None:
@@ -3822,7 +3865,7 @@ def test_server_ai_move_mirror_helper_false_falls_back_to_normal_move() -> None:
     asyncio.run(_server_ai_move_mirror_helper_false_falls_back_to_normal_move())
 
 
-async def _server_ai_move_tengen_delegates_to_forced_stone_without_history() -> None:
+async def _server_ai_move_tengen_delegates_to_forced_stone_with_history() -> None:
     class TargetPlan:
         coord = (2, 2)
         message = "天元压迫触发"
@@ -3850,7 +3893,7 @@ async def _server_ai_move_tengen_delegates_to_forced_stone_without_history() -> 
             kwargs["gtp_move"],
             kwargs["coord"],
             kwargs["message"],
-            kwargs["push_history"],
+            kwargs.get("push_history", True),
             kwargs["prepare_player_turn_modifiers"] is s._prepare_player_turn_modifiers,
             callable(kwargs["run_engine_command"]),
         ))
@@ -3883,15 +3926,15 @@ async def _server_ai_move_tengen_delegates_to_forced_stone_without_history() -> 
             "C3",
             (2, 2),
             "天元压迫触发",
-            False,
+            True,
             True,
             True,
         ),
     ]
 
 
-def test_server_ai_move_tengen_delegates_to_forced_stone_without_history() -> None:
-    asyncio.run(_server_ai_move_tengen_delegates_to_forced_stone_without_history())
+def test_server_ai_move_tengen_delegates_to_forced_stone_with_history() -> None:
+    asyncio.run(_server_ai_move_tengen_delegates_to_forced_stone_with_history())
 
 
 async def _server_ai_move_tengen_helper_false_falls_back_to_followup() -> None:
@@ -3923,7 +3966,7 @@ async def _server_ai_move_tengen_helper_false_falls_back_to_followup() -> None:
             game_arg is game,
             send_fn is send,
             kwargs["gtp_move"],
-            kwargs["push_history"],
+            kwargs.get("push_history", True),
         ))
         return False
 
@@ -3974,7 +4017,7 @@ async def _server_ai_move_tengen_helper_false_falls_back_to_followup() -> None:
     assert calls == [
         ("sync", True),
         ("target", True, 0),
-        ("forced_stone", True, True, "C3", False),
+        ("forced_stone", True, True, "C3", True),
         ("followup", True, 0),
         ("allow_only", True, "W", [(0, 0)]),
         ("finish", True, True, "W", "tengen", "C3", "天元后续限制"),
@@ -4011,7 +4054,7 @@ async def _try_finish_rogue_restriction_ai_move_tengen_target_preempts_followup(
             kwargs["gtp_move"],
             kwargs["coord"],
             kwargs["message"],
-            kwargs["push_history"],
+            kwargs.get("push_history", True),
         ))
         return True
 
@@ -4052,7 +4095,7 @@ async def _try_finish_rogue_restriction_ai_move_tengen_target_preempts_followup(
     assert handled is True
     assert calls == [
         ("tengen_target", True, 0),
-        ("forced_stone", True, True, "W", "C3", (2, 2), "天元强制", False),
+        ("forced_stone", True, True, "W", "C3", (2, 2), "天元强制", True),
     ]
 
 
@@ -5471,6 +5514,13 @@ async def _apply_suspicious_pass_fallback_uses_fallback_and_logs() -> None:
         calls.append(("fallback", game_arg is game, color, visits))
         return "D3"
 
+    def undo_engine_move():
+        calls.append(("undo",))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "="
+
     def log_event(message):
         calls.append(("log", message))
 
@@ -5481,6 +5531,8 @@ async def _apply_suspicious_pass_fallback_uses_fallback_and_logs() -> None:
         visits=48,
         is_suspicious_pass=is_suspicious_pass,
         pick_fallback_move=pick_fallback_move,
+        undo_engine_move=undo_engine_move,
+        run_engine_command=run_engine_command,
         log_event=log_event,
         log_prefix="Suspicious early PASS in rogue/normal mode",
     )
@@ -5488,7 +5540,9 @@ async def _apply_suspicious_pass_fallback_uses_fallback_and_logs() -> None:
     assert result == "D3"
     assert calls == [
         ("suspicious", True, "pass", "W"),
+        ("undo",),
         ("fallback", True, "W", 48),
+        ("engine", "play W D3"),
         ("log", "Suspicious early PASS in rogue/normal mode, replaced with D3"),
     ]
 
@@ -5509,6 +5563,13 @@ async def _apply_suspicious_pass_fallback_keeps_pass_without_fallback() -> None:
         calls.append(("fallback", game_arg is game, color, visits))
         return None
 
+    def undo_engine_move():
+        calls.append(("undo",))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "="
+
     def log_event(message):
         calls.append(("log", message))
 
@@ -5519,6 +5580,8 @@ async def _apply_suspicious_pass_fallback_keeps_pass_without_fallback() -> None:
         visits=12,
         is_suspicious_pass=is_suspicious_pass,
         pick_fallback_move=pick_fallback_move,
+        undo_engine_move=undo_engine_move,
+        run_engine_command=run_engine_command,
         log_event=log_event,
         log_prefix="Suspicious early PASS in rogue/normal mode",
     )
@@ -5526,7 +5589,9 @@ async def _apply_suspicious_pass_fallback_keeps_pass_without_fallback() -> None:
     assert result == "pass"
     assert calls == [
         ("suspicious", True, "pass", "W"),
+        ("undo",),
         ("fallback", True, "W", 12),
+        ("engine", "play W pass"),
     ]
 
 
@@ -6639,6 +6704,7 @@ async def _server_ai_move_genmove_error_returns_before_finalizing() -> None:
         ("sync", True),
         ("generate", "W", True, True),
         ("print", "[AI] genmove returned error: ? illegal move"),
+        ("send", "error"),
     ]
 
 
@@ -6761,6 +6827,13 @@ async def _server_ai_move_suspicious_pass_without_fallback_keeps_pass() -> None:
         calls.append(("pick_fallback", game_arg is game, color, isinstance(visits, int)))
         return None
 
+    def fake_undo():
+        calls.append(("undo",))
+
+    async def fake_send_engine(command):
+        calls.append(("engine", command))
+        return "="
+
     def fake_engine_log(message):
         calls.append(("engine_log", message))
 
@@ -6783,6 +6856,8 @@ async def _server_ai_move_suspicious_pass_without_fallback_keeps_pass() -> None:
     original_generate = s._ai_generate_move
     original_is_suspicious = s._is_suspicious_ai_pass
     original_pick_fallback = s._pick_nonpass_fallback_move
+    original_undo = s._undo_engine_move_locked
+    original_send_engine = s._send_engine_command
     original_engine_log = s._engine_log
     original_resign = s.resolve_ai_resign_move
     original_slip = s.apply_slip_ai_move
@@ -6793,6 +6868,8 @@ async def _server_ai_move_suspicious_pass_without_fallback_keeps_pass() -> None:
     s._ai_generate_move = fake_generate
     s._is_suspicious_ai_pass = fake_is_suspicious
     s._pick_nonpass_fallback_move = fake_pick_fallback
+    s._undo_engine_move_locked = fake_undo
+    s._send_engine_command = fake_send_engine
     s._engine_log = fake_engine_log
     s.resolve_ai_resign_move = fake_resign
     s.apply_slip_ai_move = fake_slip
@@ -6806,6 +6883,8 @@ async def _server_ai_move_suspicious_pass_without_fallback_keeps_pass() -> None:
         s._ai_generate_move = original_generate
         s._is_suspicious_ai_pass = original_is_suspicious
         s._pick_nonpass_fallback_move = original_pick_fallback
+        s._undo_engine_move_locked = original_undo
+        s._send_engine_command = original_send_engine
         s._engine_log = original_engine_log
         s.resolve_ai_resign_move = original_resign
         s.apply_slip_ai_move = original_slip
@@ -6817,7 +6896,9 @@ async def _server_ai_move_suspicious_pass_without_fallback_keeps_pass() -> None:
         ("sync", True),
         ("generate", "W", True, True),
         ("is_suspicious", True, "pass", "W"),
+        ("undo",),
         ("pick_fallback", True, "W", True),
+        ("engine", "play W pass"),
         ("resign", True, True, "pass"),
         ("slip", True, "pass"),
         ("prepare", True),
@@ -8737,6 +8818,7 @@ if __name__ == "__main__":
     test_finalize_ai_move_places_stone_and_sends_message()
     test_finalize_ai_move_resign_without_card_ends_game()
     test_finalize_ai_move_resign_with_card_uses_no_resign_move()
+    test_finalize_ai_move_engine_error_sends_error_without_mutating_board()
     test_finalize_ai_move_retries_ko_move()
     test_finalize_ai_move_delegates_non_terminal_finish_response()
     test_finalize_ai_move_double_pass_scores_without_coach_turn()
@@ -8756,7 +8838,7 @@ if __name__ == "__main__":
     test_server_ai_move_exchange_clears_skip_and_delegates_to_forced_pass()
     test_server_ai_move_mirror_delegates_to_forced_stone()
     test_server_ai_move_mirror_helper_false_falls_back_to_normal_move()
-    test_server_ai_move_tengen_delegates_to_forced_stone_without_history()
+    test_server_ai_move_tengen_delegates_to_forced_stone_with_history()
     test_server_ai_move_tengen_helper_false_falls_back_to_followup()
     test_try_finish_rogue_restriction_ai_move_tengen_target_preempts_followup()
     test_try_finish_rogue_restriction_ai_move_tengen_false_falls_back()

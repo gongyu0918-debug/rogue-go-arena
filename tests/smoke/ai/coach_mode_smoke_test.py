@@ -261,12 +261,48 @@ async def smoke_bonus_turns_trigger_when_still_losing() -> None:
     }
 
 
+async def smoke_engine_error_does_not_place_coach_move() -> None:
+    game = FakeGame()
+    sent = []
+    calls = []
+
+    async def send_fn(payload):
+        sent.append(payload)
+
+    async def choose(_game, _color):
+        calls.append("choose")
+        return "? process dead", None
+
+    await run_coach_turn_if_needed(
+        game,
+        send_fn,
+        CoachTurnDeps(
+            engine_ready=lambda: True,
+            choose_coach_ai_move=choose,
+            place_auxiliary_move=lambda *_args: calls.append("place"),
+            check_capture_foul=lambda *_args, **_kwargs: asyncio.sleep(0),
+            apply_player_rogue_move_effects=lambda *_args: asyncio.sleep(0),
+            apply_ai_rogue_response_effects=lambda *_args: asyncio.sleep(0),
+            estimate_side_winrate=lambda *_args: asyncio.sleep(0, result=0.5),
+            ai_move=lambda *_args: asyncio.sleep(0),
+            bonus_threshold=0.5,
+            bonus_turns=3,
+        ),
+    )
+
+    assert calls == ["choose"]
+    assert game.moves == []
+    assert game.history_pushes == 0
+    assert sent == [{"type": "error", "message": "AI 引擎落子失败：? process dead"}]
+
+
 async def main() -> None:
     await smoke_choose_resign_becomes_pass()
     await smoke_choose_ko_retries()
     await smoke_guard_skips_ineligible_turn()
     await smoke_run_coach_turn_full_flow()
     await smoke_bonus_turns_trigger_when_still_losing()
+    await smoke_engine_error_does_not_place_coach_move()
     print("coach mode smoke test: OK")
 
 
