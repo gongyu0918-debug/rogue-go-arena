@@ -380,6 +380,13 @@ def _empty_points_around_stones(
     return candidates
 
 
+def _supremacy_window_reuses_trigger_moves(
+    window_entries: list[tuple[int, tuple[int, int]]],
+    last_trigger_index: int,
+) -> bool:
+    return any(index <= last_trigger_index for index, _coord in window_entries)
+
+
 def _apply_supremacy_card(
     game: Any,
     color: str,
@@ -400,7 +407,7 @@ def _apply_supremacy_card(
 
     window_entries = recent_entries[-gameplay_config.ROGUE_SUPREMACY_TRIGGER_WINDOW:]
     last_trigger_index = last_trigger_indices.get(color, 0)
-    if any(index <= last_trigger_index for index, _coord in window_entries):
+    if _supremacy_window_reuses_trigger_moves(window_entries, last_trigger_index):
         return RogueBoardEffectResult(False, [], [])
 
     candidates = _empty_points_around_stones(game, spawn_anchor_value, spawn_radius)
