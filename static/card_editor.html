@@ -471,8 +471,8 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const localeMap = { zh: "zh-CN", en: "en-US", ja: "ja-JP", ko: "ko-KR" };
-    const langLabels = { zh: "中文", en: "English", ja: "日本語", ko: "한국어" };
+    const localeMap = { zh: "zh-CN", zht: "zh-TW", en: "en-US", ja: "ja-JP", ko: "ko-KR", fr: "fr-FR", de: "de-DE" };
+    const langLabels = { zh: "中文", zht: "繁體中文", en: "English", ja: "日本語", ko: "한국어", fr: "Français", de: "Deutsch" };
     const dict = {
       zh: {
         save: "保存配置", reset: "恢复基准", reload: "重新加载", export: "导出 JSON", applyJson: "应用 JSON", advancedJson: "高级：明文 JSON",
@@ -521,6 +521,42 @@
         saved: "저장 후 다시 불러왔습니다", resetDone: "기준 설정을 복원했습니다", jsonApplied: "JSON을 폼에 적용했습니다", loadFailed: "불러오기 실패",
         saveFailed: "저장 실패", noMatch: "일치 항목 없음", dirty: "변경됨", base: "기준", user: "로컬", active: "현재", schema: "Schema",
         cardsSub: "카드 문구, 아이콘, 풀, 메타 정보를 편집", tuningSub: "카드 강도에 영향을 주는 숫자 편집", jsonSub: "명시적 설정 보기. 완전한 JSON 붙여넣기 가능"
+      },
+      zht: {
+        save: "儲存配置", reset: "恢復基準", reload: "重新載入", export: "匯出 JSON", applyJson: "套用 JSON", advancedJson: "進階：明文 JSON",
+        rogue: "Rogue 卡", ultimate: "Ultimate 卡", tuning: "數值參數", json: "原始 JSON",
+        search: "搜尋 ID、名稱、說明、參數", changedOnly: "只看已修改", sourceBase: "目前使用基準配置",
+        sourceUser: "目前使用本機配置", rogueCount: "Rogue", ultimateCount: "Ultimate", tuningCount: "參數", changedCount: "改動",
+        name: "名稱", desc: "說明", icon: "圖示", uses: "使用次數", tier: "強度", category: "類別", complexity: "理解成本",
+        featured: "精選池", challenge: "闖關池", twoPlayer: "雙人池", aiPool: "AI 池", challengeCategory: "闖關分類",
+        value: "數值", min: "最小", max: "最大", step: "步進", group: "分組", card: "卡牌", key: "鍵名",
+        saved: "已儲存並重新載入", resetDone: "已恢復基準配置", jsonApplied: "JSON 已套用到表單", loadFailed: "載入失敗",
+        saveFailed: "儲存失敗", noMatch: "沒有符合項目", dirty: "已修改", base: "基準", user: "本機", active: "目前", schema: "Schema",
+        cardsSub: "編輯卡牌文本、圖示、卡池和 meta 資訊", tuningSub: "編輯實際影響強度的數值參數", jsonSub: "明文配置視圖，可直接貼上完整 JSON"
+      },
+      fr: {
+        save: "Enregistrer", reset: "Restaurer la base", reload: "Recharger", export: "Exporter JSON", applyJson: "Appliquer JSON", advancedJson: "Avancé : JSON brut",
+        rogue: "Cartes Rogue", ultimate: "Cartes ultimes", tuning: "Paramètres", json: "JSON brut",
+        search: "Rechercher ID, nom, description ou paramètre", changedOnly: "Modifiés seulement", sourceBase: "Configuration de base active",
+        sourceUser: "Configuration locale active", rogueCount: "Rogue", ultimateCount: "Ultimate", tuningCount: "Paramètres", changedCount: "Modifiés",
+        name: "Nom", desc: "Description", icon: "Icône", uses: "Usages", tier: "Puissance", category: "Catégorie", complexity: "Complexité",
+        featured: "Pool vedette", challenge: "Pool défi", twoPlayer: "Pool deux joueurs", aiPool: "Pool IA", challengeCategory: "Catégorie défi",
+        value: "Valeur", min: "Min", max: "Max", step: "Pas", group: "Groupe", card: "Carte", key: "Clé",
+        saved: "Enregistré puis rechargé", resetDone: "Base restaurée", jsonApplied: "JSON appliqué au formulaire", loadFailed: "Chargement impossible",
+        saveFailed: "Enregistrement impossible", noMatch: "Aucun résultat", dirty: "Modifié", base: "Base", user: "Local", active: "Actif", schema: "Schema",
+        cardsSub: "Modifier textes, icônes, pools et meta des cartes", tuningSub: "Modifier les valeurs qui règlent la force des cartes", jsonSub: "Voir la configuration brute ou coller un JSON complet"
+      },
+      de: {
+        save: "Speichern", reset: "Basis wiederherstellen", reload: "Neu laden", export: "JSON exportieren", applyJson: "JSON anwenden", advancedJson: "Erweitert: Rohes JSON",
+        rogue: "Rogue-Karten", ultimate: "Ultimative Karten", tuning: "Parameter", json: "Rohes JSON",
+        search: "ID, Name, Beschreibung oder Parameter suchen", changedOnly: "Nur Änderungen", sourceBase: "Aktive Basiskonfiguration",
+        sourceUser: "Aktive lokale Konfiguration", rogueCount: "Rogue", ultimateCount: "Ultimate", tuningCount: "Parameter", changedCount: "Änderungen",
+        name: "Name", desc: "Beschreibung", icon: "Icon", uses: "Nutzungen", tier: "Stärke", category: "Kategorie", complexity: "Komplexität",
+        featured: "Empfohlener Pool", challenge: "Herausforderungs-Pool", twoPlayer: "Zwei-Spieler-Pool", aiPool: "KI-Pool", challengeCategory: "Herausforderungskategorie",
+        value: "Wert", min: "Min", max: "Max", step: "Schritt", group: "Gruppe", card: "Karte", key: "Schlüssel",
+        saved: "Gespeichert und neu geladen", resetDone: "Basis wiederhergestellt", jsonApplied: "JSON auf Formular angewendet", loadFailed: "Laden fehlgeschlagen",
+        saveFailed: "Speichern fehlgeschlagen", noMatch: "Keine Treffer", dirty: "Geändert", base: "Basis", user: "Lokal", active: "Aktiv", schema: "Schema",
+        cardsSub: "Kartentexte, Icons, Pools und Meta bearbeiten", tuningSub: "Zahlenwerte bearbeiten, die Kartenstärke beeinflussen", jsonSub: "Rohe Konfiguration ansehen oder vollständiges JSON einfügen"
       }
     };
 
@@ -569,9 +605,12 @@
     function t(key) { return dict[state.lang]?.[key] || dict.zh[key] || key; }
     function normalizeLang(value) {
       const raw = String(value || "").toLowerCase();
+      if (raw.startsWith("zh-tw") || raw.startsWith("zh-hk") || raw.startsWith("zh-mo") || raw.startsWith("zh-hant") || raw === "zht") return "zht";
       if (raw.startsWith("en")) return "en";
       if (raw.startsWith("ja")) return "ja";
       if (raw.startsWith("ko") || raw.startsWith("kr")) return "ko";
+      if (raw.startsWith("fr")) return "fr";
+      if (raw.startsWith("de")) return "de";
       return "zh";
     }
     function locale() { return localeMap[state.lang] || "zh-CN"; }

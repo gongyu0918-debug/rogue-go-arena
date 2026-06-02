@@ -1,0 +1,535 @@
+{
+  "locale": "de-DE",
+  "name": "Deutsch",
+  "phrases": {
+    "(推理较慢)": "(langsamer)",
+    "⚠ 胜率未达80%，暂不可计算胜负": "⚠ Die Gewinnrate liegt unter 80 %, Zählen ist nicht verfügbar",
+    "⚠ AI 响应超时，尝试重新请求…": "⚠ KI-Antwort zu langsam. Neuer Versuch...",
+    "⚡ 快速思考超时，自动虚手": "⚡ Schnelles Denken abgelaufen. Automatischer Pass.",
+    "⚡ 快速思考已禁用推荐点位": "⚡ Schnelles Denken deaktiviert Empfehlungen.",
+    "⚡ 自由落子时间结束，AI 开始读盘": "⚡ Freies Setzen beendet. Die KI liest das Goban.",
+    "🎓 代练上号接管中，请等待强化 AI 完成代打。": "🎓 Der Coach spielt diese Phase. Warte, bis die verstärkte KI fertig ist.",
+    "🎓 代练上号接管中，暂时不能指定傀儡点。": "🎓 Der Coach spielt diese Phase. Marionetten-Ziele sind pausiert.",
+    "🎭 傀儡术：先点出 AI 的下一手落点；你随后正常落子": "🎭 Marionette: Wähle zuerst den erzwungenen nächsten Punkt der KI, dann spiele deinen Zug.",
+    "🎭 这个点已被傀儡术预留给 AI": "🎭 Dieser Punkt ist durch Marionette für die KI reserviert.",
+    "🚫 四道封印已设定！": "🚫 Vier Siegel sind gesetzt!",
+    "1080p": "1080p",
+    "1440p": "1440p",
+    "20 手决胜开始！": "Das Duell über 20 Züge beginnt!",
+    "20手决胜": "20-Zug-Duell",
+    "4K": "4K",
+    "白": "Weiß",
+    "白（我）": "Weiß (du)",
+    "白（AI）": "Weiß (KI)",
+    "白吃子": "Gefangene von Weiß",
+    "白方胜率": "Gewinnrate Weiß",
+    "白棋": "Weiß",
+    "白棋（后手）": "Weiß (Nachziehend)",
+    "白棋等级": "Rang Weiß",
+    "白棋风格": "Stil Weiß",
+    "白棋落子": "Weiß am Zug",
+    "包干+读秒": "Hauptzeit + Byo-yomi",
+    "包干用时": "Absolute Zeit",
+    "保存棋谱": "SGF speichern",
+    "比分": "Punkte",
+    "超时": "Zeit abgelaufen",
+    "持平": "Ausgeglichen",
+    "闯关": "Herausforderung",
+    "闯关：测试版默认执白，按当前关卡自动套用让子与卡组限制。": "Herausforderung: In der Beta spielst du standardmäßig Weiß; Vorgabe und Kartenregeln werden pro Stufe automatisch gesetzt.",
+    "闯关进度": "Herausforderung",
+    "闯关前两关已通关。": "Herausforderung geschafft.",
+    "打开功能": "Einstellungen",
+    "大招对战": "Ultimatives Duell",
+    "大招卡牌效果": "Effekte der ultimativen Karten",
+    "大招模式": "Ultimativmodus",
+    "代练上号": "Coach",
+    "待开始": "Bereit",
+    "待选大招": "Ultimative Karte wählen",
+    "单人抽卡": "Solo-Draft",
+    "当前卡牌禁用悔棋": "Rücknahme durch aktuelle Karte deaktiviert",
+    "当前卡牌效果禁用了悔棋": "Die aktuelle Karte deaktiviert Rücknahme",
+    "当前手数": "Zug",
+    "当前玩法：大招对战。固定 19×19，用普通规则开局，你与 AI 各自带一张大招卡，20 手决胜。": "Aktuelle Variante: Ultimatives Duell. Fest 19x19, Standardregeln, je eine ultimative Karte und ein 20-Zug-Duell.",
+    "当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡，保留颜色、贴目、等级、棋风与用时设置。": "Aktuelle Variante: Solo-Draft. Fest 19x19. Nur du nutzt eine Rogue-Karte; Farbe, Komi, Rang, Stil und Zeit bleiben einstellbar.",
+    "当前玩法：双人抽卡。固定 19×19，你先选 1 张 Rogue 卡，AI 也会从受限卡池获得 1 张。": "Aktuelle Variante: Dual-Draft. Fest 19x19. Du wählst 1 Rogue-Karte, die KI erhält ebenfalls 1 Karte aus dem eingeschränkten Pool.",
+    "导入棋谱": "SGF laden",
+    "地盘差": "Gebietsdifferenz",
+    "等级": "Rang",
+    "第一手": "Erster Zug",
+    "读秒": "Byo-yomi",
+    "对局": "Partie",
+    "对局：可手选黑白或随机猜先；选择让子时会自动把贴目设为 0，仍可手动改回 6.5 或 7.5。": "Partie: Wähle Schwarz, Weiß oder Zufall; Vorgabe setzt Komi automatisch auf 0, du kannst es wieder auf 6,5 oder 7,5 stellen.",
+    "对局进行中…": "Partie läuft...",
+    "对局开始后显示胜率曲线": "Die Gewinnkurve erscheint nach Beginn der Analyse.",
+    "对局信息": "Partieinfo",
+    "对局已结束": "Die Partie ist bereits beendet",
+    "对手级别": "Gegner",
+    "封印术成型": "Siegel gesetzt",
+    "辅助分析": "Analyse",
+    "复盘": "Review",
+    "复盘/棋谱": "Review / SGF",
+    "共享规则卡": "Gemeinsame Regelkarte",
+    "关闭": "Schließen",
+    "韩语": "Koreanisch",
+    "黑": "Schwarz",
+    "黑（我）": "Schwarz (du)",
+    "黑（AI）": "Schwarz (KI)",
+    "黑吃子": "Gefangene von Schwarz",
+    "黑方胜率": "Gewinnrate Schwarz",
+    "黑棋": "Schwarz",
+    "黑棋（先手）": "Schwarz (Anziehend)",
+    "黑棋等级": "Rang Schwarz",
+    "黑棋风格": "Stil Schwarz",
+    "黑棋落子": "Schwarz am Zug",
+    "画面尺寸": "Anzeigegröße",
+    "回合窃取": "Zug gestohlen",
+    "悔棋": "Rücknahme",
+    "计数": "Zählen",
+    "计算": "Punkte",
+    "计算胜负": "Punkte",
+    "检测中…": "Prüfe...",
+    "角部强化": "Ecke verstärkt",
+    "界面选项": "Oberfläche",
+    "精准落子(支持微调)": "Präzises Setzen",
+    "镜像偏折": "Spiegelimpuls",
+    "均势": "Ausgewogen",
+    "开始": "Start",
+    "开始对弈": "Partie starten",
+    "快棋": "Schnell",
+    "快速思考结束，轮到 AI 读盘": "Schnelles Denken beendet. Die KI liest das Goban.",
+    "傀儡术": "Marionette",
+    "傀儡术发动": "Marionette aktiviert",
+    "理解": "Lesen",
+    "连击": "Combo",
+    "连击加速": "Combo-Schub",
+    "连接": "Verbindung",
+    "连接错误": "Verbindungsfehler",
+    "连接断开，重连中…": "Getrennt, verbinde neu...",
+    "连接中…": "Verbinde...",
+    "轮到你": "Du bist am Zug",
+    "落子模式": "Setzen",
+    "模式": "Modus",
+    "模型就绪": "Modell bereit",
+    "目差": "Punkteführung",
+    "你: ": "Du: ",
+    "你认输了": "Du hast aufgegeben",
+    "你赢了！": "Du gewinnst!",
+    "您确定要认输吗？": "Möchtest du wirklich aufgeben?",
+    "挪移": "Tausch",
+    "平局": "Jigo",
+    "普通对局": "Klassische Partie",
+    "棋盘": "Goban",
+    "棋谱记录": "Partielog",
+    "棋谱解析失败: ": "SGF konnte nicht gelesen werden: ",
+    "棋谱已保存": "SGF gespeichert",
+    "棋谱中未找到有效着法": "Keine gültigen Züge im SGF gefunden",
+    "起死回生": "Letztes Aufbäumen",
+    "强度": "Stärke",
+    "请求悔棋": "Rücknahme angefragt",
+    "请求终局计分…": "Endzählung wird angefragt...",
+    "取消": "Abbrechen",
+    "全局设定": "Einstellungen",
+    "全屏": "Vollbild",
+    "确定": "Bestätigen",
+    "确认开始": "Start",
+    "确认落子": "Zug bestätigen",
+    "确认执行此操作？": "Aktion bestätigen?",
+    "让子": "Vorgabe",
+    "认输": "Aufgabe",
+    "日语": "Japanisch",
+    "上一手": "Voriger Zug",
+    "上移": "Hoch",
+    "设置": "Einstellungen",
+    "神之一手": "Hand Gottes",
+    "胜！": " gewinnt!",
+    "胜方": "Gewinner",
+    "胜率曲线": "Gewinnkurve",
+    "胜率需≥80%才可计算胜负": "Die Gewinnrate muss 80 % erreichen, um zu zählen",
+    "剩余": "Ladungen",
+    "是否进行形势计算并申请终局？": "Zählen starten und Partieende anfragen?",
+    "手滑偏移": "Ausrutscher",
+    "手数": "Zug",
+    "双方（人）": "Mensch gegen Mensch",
+    "双方虚手": "Doppelpass",
+    "双人": "Zwei Spieler",
+    "双人：黑白双方均由玩家落子，可调整棋盘、贴目、让子与用时。": "Zwei Spieler: Beide Seiten sind Menschen, mit Einstellungen für Goban-Größe, Komi, Vorgabe und Zeit.",
+    "双人抽卡": "Dual-Draft",
+    "双人对局": "Zwei Spieler",
+    "双人对局开始 — 黑棋先行": "Zwei-Spieler-Partie gestartet — Schwarz beginnt",
+    "随机（猜先）": "Zufall (Nigiri)",
+    "贴目": "Komi",
+    "退出复盘": "Review verlassen",
+    "玩法": "Variante",
+    "玩法总览": "Modusübersicht",
+    "围棋对弈场": "Rogue Go Arena",
+    "我执": "Farbe",
+    "无卡牌": "Keine Karte",
+    "无玩家卡": "Keine Spielerkarte",
+    "无限制": "Ohne Limit",
+    "五子连珠": "Fünf in Folge",
+    "下一手": "Nächster Zug",
+    "下移": "Runter",
+    "显示手数": "Zugnummern anzeigen",
+    "显示推荐落点": "Empfohlene Züge anzeigen",
+    "星位共鸣": "Hoshi-Zündung",
+    "行棋方": "Am Zug",
+    "形势": "Gebiet",
+    "形势估算": "Punktschätzung",
+    "形势判断": "Gebietsschätzung",
+    "虚手": "Passen",
+    "选择大招卡": "Ultimative Karte wählen",
+    "选择界面语言": "Sprache wählen",
+    "选择一张卡": "Karte wählen",
+    "学习": "Studium",
+    "学习：黑白双方都由 AI 对弈，可分别调整黑棋与白棋的等级和棋风。": "Studium: Beide Seiten sind KI, mit getrennten Rang- und Stilreglern für Schwarz und Weiß.",
+    "已连接": "Verbunden",
+    "已通过第 1 关，进入第 2 关。你将执白并按让 2 子开局，同时再选 1 张卡。": "Stufe 1 geschafft. Stufe 2 als Weiß mit 2 Vorgabesteinen und einer weiteren Karte starten?",
+    "已终局": "Beendet",
+    "音效开关": "Ton",
+    "引擎": "Engine",
+    "用时": "Zeit",
+    "右移": "Rechts",
+    "愚形连锁": "Kette schlechter Formen",
+    "语言": "Sprache",
+    "再来一局": "Noch einmal",
+    "暂无进行中的对局，请点击「开始对弈」开始": "Keine aktive Partie gefunden. Klicke auf Partie starten.",
+    "战争迷雾刷新": "Nebel des Krieges",
+    "这里汇总 Rogue AI 的三种主玩法、闯关路线，以及所有 Rogue 强化卡与大招卡的效果说明。": "Dieser Index deckt Rogue-AI-Varianten, Herausforderungen und alle Effekte der Rogue- und ultimativen Karten ab.",
+    "直接落子": "Direkt",
+    "中文": "Vereinfachtes Chinesisch",
+    "主动技能": "Aktive Fähigkeit",
+    "主动技能：代练上号": "Aktive Fähigkeit: Coach",
+    "主动技能：傀儡术": "Aktive Fähigkeit: Marionette",
+    "主动技能：连击": "Aktive Fähigkeit: Combo",
+    "主动技能：乾坤挪移": "Aktive Fähigkeit: Zugdiebstahl",
+    "主时": "Hauptzeit",
+    "自适应": "Auto",
+    "自由落子": "Frei",
+    "最后一手": "Letzter Zug",
+    "左移": "Links",
+    "AI 待命": "KI bereit",
+    "AI 胜利": "KI gewinnt",
+    "AI 思考": "KI denkt",
+    "AI 思考中…": "KI denkt...",
+    "AI 虚手": "KI passt",
+    "AI 学习": "KI-Studium",
+    "AI 在线": "KI online",
+    "AI认输": "KI hat aufgegeben",
+    "AI行为": "KI-Verhalten",
+    "English": "Englisch",
+    "rogue-go-arena": "rogue-go-arena",
+    "rogue-go-arena | 围棋对弈场": "rogue-go-arena",
+    "Rogue": "Rogue",
+    "ROGUE": "ROGUE",
+    "Rogue · 大招对战": "Rogue · Ultimatives Duell",
+    "Rogue · 单人抽卡": "Rogue · Solo-Draft",
+    "Rogue · 双人抽卡": "Rogue · Dual-Draft",
+    "Rogue 规则生效": "Rogue-Effekt",
+    "Rogue 卡牌效果": "Rogue-Karteneffekte",
+    "Rogue 模式": "Rogue-Modus",
+    "ROGUE AI WIKI": "ROGUE AI WIKI",
+    "Wiki": "Wiki",
+    "繁體中文": "Traditionelles Chinesisch",
+    "法语": "Französisch",
+    "德语": "Deutsch"
+  },
+  "rankGroups": {
+    "kyu": "── Kyu ──",
+    "amateur": "── Amateur-Dan ──",
+    "pro": "── Profi-Dan ──"
+  },
+  "cardMeta": {
+    "主动": "Aktiv",
+    "AI干扰": "KI-Störung",
+    "爆发": "Ausbruch",
+    "陷阱": "Falle",
+    "开局构筑": "Fuseki-Aufbau",
+    "任务": "Quest",
+    "风险收益": "Risiko / Gewinn",
+    "节奏": "Tempo",
+    "连线构筑": "Linienaufbau",
+    "规则改写": "Regelverschiebung",
+    "连动": "Kette",
+    "任务爆发": "Quest-Ausbruch",
+    "大招": "Ultimativ",
+    "低": "Niedrig",
+    "中": "Mittel",
+    "高": "Hoch"
+  },
+  "wikiModes": [
+    {
+      "key": "solo",
+      "title": "Solo-Draft",
+      "desc": "Du draftest 1 Rogue-Karte aus 3 Optionen. Die KI spielt Standardregeln ohne eigene Rogue-Karte."
+    },
+    {
+      "key": "dual",
+      "title": "Dual-Draft",
+      "desc": "Du wählst 1 Rogue-Karte aus 3 Optionen; die KI erhält ebenfalls 1 Karte aus dem eingeschränkten Rogue-Pool."
+    },
+    {
+      "key": "ultimate",
+      "title": "Ultimatives Duell",
+      "desc": "Du und die KI wählen je 1 ultimative Karte aus 3 Optionen. Die Partie endet in einem 20-Zug-Duell."
+    },
+    {
+      "key": "challenge",
+      "title": "Herausforderung",
+      "desc": "Der Herausforderungsmodus kombiniert Pool-Beschränkungen, Vorgabe und Auffrischungen für gestufte Runs."
+    }
+  ],
+  "cards": {
+    "rogue": {
+      "tengen": {
+        "name": "Tengen",
+        "desc": "Die KI muss am Tengen eröffnen; ihr nächster Zug ist auf den 5x5-Diamanten um Tengen beschränkt."
+      },
+      "dice": {
+        "name": "Würfelwurf",
+        "desc": "Jeder KI-Zug hat eine Chance von 6 %, zu einem Pass zu werden."
+      },
+      "erosion": {
+        "name": "Erosion",
+        "desc": "Jede Gefangennahme verschiebt das Komi um 4 Punkte zugunsten des Fängers."
+      },
+      "puppet": {
+        "name": "Marionette",
+        "desc": "Markiere zuerst den erzwungenen nächsten Punkt der KI. Du spielst deinen Zug, dann muss die KI dort antworten, einmal pro Partie."
+      },
+      "seal": {
+        "name": "Siegel",
+        "desc": "Markiere 4 verbotene Punkte, die die KI die ganze Partie nicht spielen darf."
+      },
+      "twin": {
+        "name": "Combo",
+        "desc": "Spiele einmal pro Partie zwei Steine in einem Zug für eine lokale Fortsetzung."
+      },
+      "nerf": {
+        "name": "Nerf",
+        "desc": "Senkt die KI um etwa 8 Ränge, reduziert ihre Suche auf ungefähr 5 % und lässt sie in den ersten 12 Zügen häufiger schwache Ersatzoptionen wählen."
+      },
+      "komi_relief": {
+        "name": "Komi-Schnitt",
+        "desc": "Das Komi verschiebt sich um 7 Punkte zu deinen Gunsten."
+      },
+      "time_press": {
+        "name": "Zeitdruck",
+        "desc": "Senkt die KI um etwa 5 Ränge, begrenzt jeden Zug auf 0,10 Sekunden und macht die ersten 12 Züge anfälliger für übereilte Lesefehler."
+      },
+      "lowline": {
+        "name": "Tiefe Linie",
+        "desc": "In den ersten 5 Zügen bevorzugt die KI niedrige Punkte auf der 2. und 3. Linie."
+      },
+      "suboptimal": {
+        "name": "Zweite Wahl",
+        "desc": "In den ersten 8 Zügen wählt die KI deutlich häufiger schwächere Ersatzoptionen."
+      },
+      "mirror": {
+        "name": "Spiegel",
+        "desc": "16 % Chance, dass die KI deinen letzten Zug über das Goban spiegelt."
+      },
+      "slip": {
+        "name": "Ausrutscher",
+        "desc": "Die KI hat 12 % Chance, auf einen benachbarten Punkt abzurutschen."
+      },
+      "blackhole": {
+        "name": "Schwarzes Loch",
+        "desc": "Die zentrale Schwarzes-Loch-Zone ist der KI die ganze Partie verboten."
+      },
+      "exchange": {
+        "name": "Zugdiebstahl",
+        "desc": "Aktiv, einmal pro Partie: Bewege einen gegnerischen Stein auf einen leeren Punkt deiner Wahl, ohne deinen Zug zu verbrauchen."
+      },
+      "fog": {
+        "name": "Nebel des Krieges",
+        "desc": "Für die ersten 11 KI-Züge wird eine 3x3-Sperrzone erneuert. Danach wird pro Runde 1 KI-verbotener Punkt im 3x3-Diamanten um den vorigen KI-Zug blockiert."
+      },
+      "gravity": {
+        "name": "Gravitationsfeld",
+        "desc": "Hoshi-Gravitation: Die KI muss ihre ersten 6 Züge auf Sternpunkte spielen."
+      },
+      "golden_corner": {
+        "name": "Goldene Ecke",
+        "desc": "Sperrt zufällig eine 4x4-Eckzone; die KI darf dort die ganze Partie nicht spielen."
+      },
+      "sansan": {
+        "name": "San-san-Sturm",
+        "desc": "Die KI muss ihre ersten 3 Züge in den 3x3-Eckzonen spielen."
+      },
+      "shadow": {
+        "name": "Schatten",
+        "desc": "Während der ganzen Partie hat jeder KI-Zug 18 % Chance, direkt neben ihrem vorigen Stein zu folgen."
+      },
+      "sprout": {
+        "name": "Spross",
+        "desc": "Nach jeder deiner Gefangennahmen entsteht zufällig 1 freundlicher Stein in einer 3x3-Zone um den gefangenen Punkt."
+      },
+      "joseki_ocd": {
+        "name": "Joseki-Zwang",
+        "desc": "7 Zielpunkte erscheinen. Triff 4 davon, um die übrigen 3 automatisch mit deinen Steinen zu füllen."
+      },
+      "handicap_quest": {
+        "name": "Vorgabe-Quest",
+        "desc": "Passe einmal zum Start; danach erzwingst du alle 8 Züge einen KI-Pass, bis zu 3-mal."
+      },
+      "god_hand": {
+        "name": "Hand Gottes",
+        "desc": "Triff den versteckten Diamanten, um 3 deiner Steine auf leeren Punkten im umliegenden 5x5 entstehen zu lassen."
+      },
+      "sansan_trap": {
+        "name": "San-san-Falle",
+        "desc": "Wenn die KI einen der vier 3-3-Punkte spielt, erscheint 1 deiner Steine auf einem Nachbarpunkt, ohne deinen Zug zu verbrauchen."
+      },
+      "corner_helper": {
+        "name": "Eckwache",
+        "desc": "Jede Ecke kann einmal auslösen. Hat eine 5x5-Eckzone 4 deiner Steine, erhält die Ecke 1 Verstärkung."
+      },
+      "sanrensei": {
+        "name": "Sanrensei",
+        "desc": "Wenn deine ersten 3 Züge alle auf Hoshi liegen, erhalten 2 weitere leere Hoshi deine Steine."
+      },
+      "no_regret": {
+        "name": "Keine Reue",
+        "desc": "Rücknahme ist deaktiviert; nach dem gegnerischen Zug gibt es 8 % Chance, einen Stein auf deinem besten nächsten Punkt zu schenken, ohne deinen Zug zu verbrauchen."
+      },
+      "quickthink": {
+        "name": "Schnelles Denken",
+        "desc": "Spiele innerhalb von 1 Sekunde, um ein 0,5-Sekunden-Combofenster zu öffnen. Timeout wird Pass; Empfehlungen und Rücknahme sind deaktiviert."
+      },
+      "foolish_wisdom": {
+        "name": "Schwere Weisheit",
+        "desc": "Bilde eine schlechte Form, damit 1 Bonusstein in der nahen 5x5-Zone entsteht."
+      },
+      "five_in_row": {
+        "name": "Fünf in Folge",
+        "desc": "Wenn du exakt 5 Steine in Folge bildest, entsteht je 1 freundlicher Stein in den 3x3-Zonen an beiden Enden."
+      },
+      "coach_mode": {
+        "name": "Coach-Login",
+        "desc": "Aktiv: Eine stärkere KI spielt die nächsten 30 Runden für dich. Bleibt deine Winrate danach unter 50 %, spielt sie 10 weitere Runden."
+      },
+      "capture_foul": {
+        "name": "Fangfoul",
+        "desc": "Wenn der Gegner in einem Zug oder kumulativ 4 Steine fängt, erhältst du 1 freundlichen Stein auf deinem nächsten empfohlenen Punkt; danach wird der Zähler zurückgesetzt."
+      },
+      "last_stand": {
+        "name": "Letztes Aufbäumen",
+        "desc": "Einmal pro Partie: Fällt deine Winrate unter 26 %, entferne 1 gegnerischen Stein und füge 1 freundlichen Stein im 3x3 des letzten Zuges hinzu, ohne verbotene Punkte zu treffen."
+      },
+      "defense_first": {
+        "name": "Verteidigung zuerst",
+        "desc": "Ab deinem 3. Zug: Wenn deine letzten 3 Züge jeweils keinen gegnerischen Stein in ihrer 5x5-Zone haben, entsteht 1 freundlicher Stein in einer 5x5-Zone um einen deiner Steine. Bis zu zweimal pro Partie."
+      },
+      "attack_first": {
+        "name": "Angriff zuerst",
+        "desc": "Wenn deine letzten 3 Züge jeweils in einer 3x3-Zone um gegnerische Steine liegen, entsteht 1 freundlicher Stein in einer 3x3-Zone um einen gegnerischen Stein. Bis zu zweimal pro Partie."
+      },
+      "methodical": {
+        "name": "Methodisch",
+        "desc": "Jeder deiner Züge endet erst nach 2 nacheinander gesetzten Steinen; jeder 10. Spielerzug gewährt 1 Zusatzstein für einen 3-Stein-Zug."
+      }
+    },
+    "ultimate": {
+      "chain": {
+        "name": "Kettenschlag",
+        "desc": "Jeder Zug hat 80 % Chance, einen Extrazug zu geben."
+      },
+      "proliferate": {
+        "name": "Endlose Blüte",
+        "desc": "Nach deinem Zug blühen 5 gleichfarbige Steine in einer 5x5-Zone."
+      },
+      "double": {
+        "name": "Doppelklinge",
+        "desc": "Jede Runde wird zu einer 2-Zug-Combo, aber der ganze Ausbruch zählt nur als 1 Zug."
+      },
+      "wildgrow": {
+        "name": "Wildwuchs",
+        "desc": "4 deiner Steine breiten sich nach außen in leeren Raum aus."
+      },
+      "rejection": {
+        "name": "Abstoßung",
+        "desc": "Gegnerische Steine in der 5x5-Zone werden weggedrückt oder zerstört."
+      },
+      "territory": {
+        "name": "Absolute Zone",
+        "desc": "Errichtet eine verbotene Barriere mit 4 Schritten um deinen Zug."
+      },
+      "shadow_clone": {
+        "name": "Schattenklon",
+        "desc": "Erzeugt sofort einen Spiegelstein. Einen Zug später werden Original- und Spiegelpunkt zu einer vollen Linie gezwungen, selbst wenn ein Endpunkt entfernt wurde."
+      },
+      "plague": {
+        "name": "Seuche",
+        "desc": "Wandelt alle gegnerischen Steine in der 5x5-Zone in deine Farbe um."
+      },
+      "meteor": {
+        "name": "Meteorschlag",
+        "desc": "Vernichtet zufällig 5 gegnerische Steine irgendwo auf dem Goban."
+      },
+      "quantum": {
+        "name": "Quantenschub",
+        "desc": "5 gleichfarbige Steine materialisieren an zufälligen Punkten."
+      },
+      "devour": {
+        "name": "Verschlingen",
+        "desc": "Löscht alle gegnerischen Steine in der umliegenden 5x5-Zone."
+      },
+      "timewarp": {
+        "name": "Zeitriss",
+        "desc": "85 % Chance, die letzten 2 gegnerischen Züge aus der Existenz zu löschen."
+      },
+      "blackout": {
+        "name": "Kataklysmus",
+        "desc": "Räumt alle gegnerischen Steine in einem Kreuzmuster von deinem Zug aus."
+      },
+      "magnet": {
+        "name": "Magnetzug",
+        "desc": "Deine Steine stürmen zum Punkt und zerquetschen Gegner auf ihrem Weg."
+      },
+      "necro": {
+        "name": "Nekromantie",
+        "desc": "Beschwört 3 freundliche Steine und wandelt 2 gegnerische Steine um."
+      },
+      "wall": {
+        "name": "Große Mauer",
+        "desc": "60 % Auslösechance. Füllt eine ganze Reihe oder Spalte mit einer unpassierbaren Steinmauer."
+      },
+      "joseki_burst": {
+        "name": "Joseki-Ausbruch",
+        "desc": "Vervollständige die Joseki-Punkte und zünde danach 50 Bonussteine."
+      },
+      "god_hand": {
+        "name": "Hand Gottes",
+        "desc": "Triff den versteckten Diamanten, um 3 deiner Steine auf leeren Punkten im umliegenden 5x5 entstehen zu lassen."
+      },
+      "corner_helper": {
+        "name": "Eckfestung",
+        "desc": "Jede Ecke kann einmal auslösen. Hat eine 5x5-Eckzone 2 deiner Steine, wird ihre 8x8-Grenze gefüllt und Gegner darin werden entfernt."
+      },
+      "sanrensei": {
+        "name": "Sanrensei-Zündung",
+        "desc": "Spiele deine ersten 3 Züge auf Hoshi, um Sternpunkt-Einfluss über das ganze Goban zu entfachen."
+      },
+      "quickthink": {
+        "name": "Geschwindigkeitssturm",
+        "desc": "Setze 5 Sekunden lang unbegrenzt Steine; danach liest die KI das Goban. Der ganze Ausbruch zählt als 1 Zug."
+      },
+      "foolish_wisdom": {
+        "name": "Kette schlechter Formen",
+        "desc": "Eine Reaktion schlechter Formen erzeugt bis zu 20 Steine, bis sie stoppt."
+      },
+      "five_in_row": {
+        "name": "Fünfer-Ausbruch",
+        "desc": "Das ist Gomoku, nicht Go. Wenn deine Steine exakt 5 in Folge bilden, entferne 30 gegnerische Steine und verteile 30 freundliche Steine auf dem Goban. Der Effekt kann ketten."
+      },
+      "capture_foul": {
+        "name": "Fangfoul",
+        "desc": "Wenn der Gegner mehr als 5 Steine fängt oder entfernt, Karteneffekte eingeschlossen, löst das Foul sicher aus. Der Täter verliert sofort 50 Punkte; danach startet der Zähler neu."
+      },
+      "last_stand": {
+        "name": "Letztes Aufbäumen",
+        "desc": "Fällt deine Winrate unter 30 %, räumt es 30 gegnerische Steine ab und fügt 30 freundliche Steine auf dem ganzen Goban hinzu."
+      }
+    }
+  }
+}

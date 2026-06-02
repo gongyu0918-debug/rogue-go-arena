@@ -1,0 +1,535 @@
+{
+  "locale": "fr-FR",
+  "name": "Français",
+  "phrases": {
+    "(推理较慢)": "(plus lent)",
+    "⚠ 胜率未达80%，暂不可计算胜负": "⚠ Le taux de victoire est sous 80 %, le décompte est indisponible",
+    "⚠ AI 响应超时，尝试重新请求…": "⚠ Réponse de l'IA trop lente. Nouvelle tentative...",
+    "⚡ 快速思考超时，自动虚手": "⚡ Réflexe rapide expiré. Passe automatique.",
+    "⚡ 快速思考已禁用推荐点位": "⚡ Réflexe rapide désactive les suggestions.",
+    "⚡ 自由落子时间结束，AI 开始读盘": "⚡ Placement libre terminé. L'IA lit le goban.",
+    "🎓 代练上号接管中，请等待强化 AI 完成代打。": "🎓 Le coach joue cette séquence. Attendez la fin de l'IA renforcée.",
+    "🎓 代练上号接管中，暂时不能指定傀儡点。": "🎓 Le coach joue cette séquence. Le ciblage Marionnette est en pause.",
+    "🎭 傀儡术：先点出 AI 的下一手落点；你随后正常落子": "🎭 Marionnette : choisissez d'abord le prochain point forcé de l'IA, puis jouez votre coup.",
+    "🎭 这个点已被傀儡术预留给 AI": "🎭 Ce point est réservé à l'IA par Marionnette.",
+    "🚫 四道封印已设定！": "🚫 Les quatre sceaux sont en place !",
+    "1080p": "1080p",
+    "1440p": "1440p",
+    "20 手决胜开始！": "Le duel en 20 coups commence !",
+    "20手决胜": "Duel en 20 coups",
+    "4K": "4K",
+    "白": "Blanc",
+    "白（我）": "Blanc (vous)",
+    "白（AI）": "Blanc (IA)",
+    "白吃子": "Prises blanches",
+    "白方胜率": "Taux de victoire blanc",
+    "白棋": "Blanc",
+    "白棋（后手）": "Blanc (second)",
+    "白棋等级": "Niveau blanc",
+    "白棋风格": "Style blanc",
+    "白棋落子": "Blanc au trait",
+    "包干+读秒": "Temps principal + byo-yomi",
+    "包干用时": "Temps absolu",
+    "保存棋谱": "Enregistrer le SGF",
+    "比分": "Score",
+    "超时": "Temps écoulé",
+    "持平": "Égal",
+    "闯关": "Défi",
+    "闯关：测试版默认执白，按当前关卡自动套用让子与卡组限制。": "Défi : en bêta vous jouez Blanc par défaut, avec handicap et règles de cartes appliqués par étape.",
+    "闯关进度": "Défi",
+    "闯关前两关已通关。": "Défi validé.",
+    "打开功能": "Réglages",
+    "大招对战": "Duel ultime",
+    "大招卡牌效果": "Effets des cartes ultimes",
+    "大招模式": "Mode ultime",
+    "代练上号": "Coach",
+    "待开始": "Prêt",
+    "待选大招": "Choisir l'ultime",
+    "单人抽卡": "Draft solo",
+    "当前卡牌禁用悔棋": "Annulation désactivée par la carte actuelle",
+    "当前卡牌效果禁用了悔棋": "L'annulation est désactivée par la carte actuelle",
+    "当前手数": "Coup",
+    "当前玩法：大招对战。固定 19×19，用普通规则开局，你与 AI 各自带一张大招卡，20 手决胜。": "Variante actuelle : Duel ultime. 19x19 fixe, règles standards, une carte ultime par camp et duel en 20 coups.",
+    "当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡，保留颜色、贴目、等级、棋风与用时设置。": "Variante actuelle : Draft solo. 19x19 fixe. Vous seul avez une carte Rogue ; couleur, komi, niveau, style et temps restent réglables.",
+    "当前玩法：双人抽卡。固定 19×19，你先选 1 张 Rogue 卡，AI 也会从受限卡池获得 1 张。": "Variante actuelle : Draft duel. 19x19 fixe. Vous choisissez 1 carte Rogue ; l'IA reçoit aussi 1 carte du pool restreint.",
+    "导入棋谱": "Charger un SGF",
+    "地盘差": "Écart de territoire",
+    "等级": "Niveau",
+    "第一手": "Premier coup",
+    "读秒": "Byo-yomi",
+    "对局": "Partie",
+    "对局：可手选黑白或随机猜先；选择让子时会自动把贴目设为 0，仍可手动改回 6.5 或 7.5。": "Partie : choisissez Noir, Blanc ou couleur aléatoire ; le handicap met le komi à 0, mais vous pouvez revenir à 6,5 ou 7,5.",
+    "对局进行中…": "Partie en cours...",
+    "对局开始后显示胜率曲线": "La courbe de victoire apparaît après le lancement de l'analyse.",
+    "对局信息": "Infos de partie",
+    "对局已结束": "La partie est déjà terminée",
+    "对手级别": "Adversaire",
+    "封印术成型": "Sceau verrouillé",
+    "辅助分析": "Analyse",
+    "复盘": "Revue",
+    "复盘/棋谱": "Revue / SGF",
+    "共享规则卡": "Carte de règle partagée",
+    "关闭": "Fermer",
+    "韩语": "Coréen",
+    "黑": "Noir",
+    "黑（我）": "Noir (vous)",
+    "黑（AI）": "Noir (IA)",
+    "黑吃子": "Prises noires",
+    "黑方胜率": "Taux de victoire noir",
+    "黑棋": "Noir",
+    "黑棋（先手）": "Noir (premier)",
+    "黑棋等级": "Niveau noir",
+    "黑棋风格": "Style noir",
+    "黑棋落子": "Noir au trait",
+    "画面尺寸": "Taille d'affichage",
+    "回合窃取": "Tour volé",
+    "悔棋": "Annuler",
+    "计数": "Décompte",
+    "计算": "Score",
+    "计算胜负": "Score",
+    "检测中…": "Vérification...",
+    "角部强化": "Coin renforcé",
+    "界面选项": "Interface",
+    "精准落子(支持微调)": "Placement précis",
+    "镜像偏折": "Impulsion miroir",
+    "均势": "Équilibré",
+    "开始": "Démarrer",
+    "开始对弈": "Commencer la partie",
+    "快棋": "Rapide",
+    "快速思考结束，轮到 AI 读盘": "Réflexe rapide terminé. L'IA lit le goban.",
+    "傀儡术": "Marionnette",
+    "傀儡术发动": "Marionnette lancée",
+    "理解": "Lecture",
+    "连击": "Combo",
+    "连击加速": "Poussée combo",
+    "连接": "Connexion",
+    "连接错误": "Erreur de connexion",
+    "连接断开，重连中…": "Déconnecté, reconnexion...",
+    "连接中…": "Connexion...",
+    "轮到你": "À vous",
+    "落子模式": "Placement",
+    "模式": "Mode",
+    "模型就绪": "Modèle prêt",
+    "目差": "Avance au score",
+    "你: ": "Vous : ",
+    "你认输了": "Vous avez abandonné",
+    "你赢了！": "Vous gagnez !",
+    "您确定要认输吗？": "Voulez-vous vraiment abandonner ?",
+    "挪移": "Permutation",
+    "平局": "Jigo",
+    "普通对局": "Partie classique",
+    "棋盘": "Goban",
+    "棋谱记录": "Journal de partie",
+    "棋谱解析失败: ": "Échec d'analyse du SGF : ",
+    "棋谱已保存": "SGF enregistré",
+    "棋谱中未找到有效着法": "Aucun coup valide trouvé dans le SGF",
+    "起死回生": "Baroud final",
+    "强度": "Puissance",
+    "请求悔棋": "Annulation demandée",
+    "请求终局计分…": "Demande de décompte final...",
+    "取消": "Annuler",
+    "全局设定": "Réglages",
+    "全屏": "Plein écran",
+    "确定": "Confirmer",
+    "确认开始": "Démarrer",
+    "确认落子": "Confirmer le coup",
+    "确认执行此操作？": "Confirmer cette action ?",
+    "让子": "Handicap",
+    "认输": "Abandon",
+    "日语": "Japonais",
+    "上一手": "Coup précédent",
+    "上移": "Haut",
+    "设置": "Réglages",
+    "神之一手": "Main de Dieu",
+    "胜！": " gagne !",
+    "胜方": "Vainqueur",
+    "胜率曲线": "Courbe de victoire",
+    "胜率需≥80%才可计算胜负": "Le taux de victoire doit atteindre 80 % pour compter",
+    "剩余": "Charges",
+    "是否进行形势计算并申请终局？": "Lancer le décompte et demander la fin ?",
+    "手滑偏移": "Main glissante",
+    "手数": "Coup",
+    "双方（人）": "Humain contre humain",
+    "双方虚手": "Double passe",
+    "双人": "Deux joueurs",
+    "双人：黑白双方均由玩家落子，可调整棋盘、贴目、让子与用时。": "Deux joueurs : les deux camps sont humains, avec réglages du goban, du komi, du handicap et du temps.",
+    "双人抽卡": "Draft duel",
+    "双人对局": "Deux joueurs",
+    "双人对局开始 — 黑棋先行": "Partie à deux joueurs lancée — Noir joue en premier",
+    "随机（猜先）": "Aléatoire (nigiri)",
+    "贴目": "Komi",
+    "退出复盘": "Quitter la revue",
+    "玩法": "Variante",
+    "玩法总览": "Vue des modes",
+    "围棋对弈场": "Arène de go Rogue",
+    "我执": "Couleur",
+    "无卡牌": "Aucune carte",
+    "无玩家卡": "Aucune carte joueur",
+    "无限制": "Sans limite",
+    "五子连珠": "Cinq d'affilée",
+    "下一手": "Coup suivant",
+    "下移": "Bas",
+    "显示手数": "Afficher les numéros",
+    "显示推荐落点": "Afficher les suggestions",
+    "星位共鸣": "Allumage des hoshi",
+    "行棋方": "Trait",
+    "形势": "Territoire",
+    "形势估算": "Estimation du score",
+    "形势判断": "Estimation de territoire",
+    "虚手": "Passer",
+    "选择大招卡": "Choisir une carte ultime",
+    "选择界面语言": "Choisir la langue",
+    "选择一张卡": "Choisir une carte",
+    "学习": "Étude",
+    "学习：黑白双方都由 AI 对弈，可分别调整黑棋与白棋的等级和棋风。": "Étude : les deux camps sont IA, avec niveau et style séparés pour Noir et Blanc.",
+    "已连接": "Connecté",
+    "已通过第 1 关，进入第 2 关。你将执白并按让 2 子开局，同时再选 1 张卡。": "Étape 1 validée. Commencer l'étape 2 avec Blanc, 2 pierres de handicap et une carte de plus ?",
+    "已终局": "Terminée",
+    "音效开关": "Son",
+    "引擎": "Moteur",
+    "用时": "Temps",
+    "右移": "Droite",
+    "愚形连锁": "Chaîne de formes lourdes",
+    "语言": "Langue",
+    "再来一局": "Rejouer",
+    "暂无进行中的对局，请点击「开始对弈」开始": "Aucune partie active. Cliquez sur Commencer la partie.",
+    "战争迷雾刷新": "Brouillard de guerre",
+    "这里汇总 Rogue AI 的三种主玩法、闯关路线，以及所有 Rogue 强化卡与大招卡的效果说明。": "Cet index couvre les variantes Rogue AI, les défis et tous les effets des cartes Rogue et ultimes.",
+    "直接落子": "Direct",
+    "中文": "Chinois simplifié",
+    "主动技能": "Compétence active",
+    "主动技能：代练上号": "Compétence active : Coach",
+    "主动技能：傀儡术": "Compétence active : Marionnette",
+    "主动技能：连击": "Compétence active : Combo",
+    "主动技能：乾坤挪移": "Compétence active : Vol de tour",
+    "主时": "Temps principal",
+    "自适应": "Auto",
+    "自由落子": "Libre",
+    "最后一手": "Dernier coup",
+    "左移": "Gauche",
+    "AI 待命": "IA en attente",
+    "AI 胜利": "Victoire de l'IA",
+    "AI 思考": "IA en réflexion",
+    "AI 思考中…": "L'IA réfléchit...",
+    "AI 虚手": "L'IA passe",
+    "AI 学习": "Étude IA",
+    "AI 在线": "IA en ligne",
+    "AI认输": "L'IA abandonne",
+    "AI行为": "Comportement IA",
+    "English": "Anglais",
+    "rogue-go-arena": "rogue-go-arena",
+    "rogue-go-arena | 围棋对弈场": "rogue-go-arena",
+    "Rogue": "Rogue",
+    "ROGUE": "ROGUE",
+    "Rogue · 大招对战": "Rogue · Duel ultime",
+    "Rogue · 单人抽卡": "Rogue · Draft solo",
+    "Rogue · 双人抽卡": "Rogue · Draft duel",
+    "Rogue 规则生效": "Effet Rogue",
+    "Rogue 卡牌效果": "Effets des cartes Rogue",
+    "Rogue 模式": "Mode Rogue",
+    "ROGUE AI WIKI": "ROGUE AI WIKI",
+    "Wiki": "Wiki",
+    "繁體中文": "Chinois traditionnel",
+    "法语": "Français",
+    "德语": "Allemand"
+  },
+  "rankGroups": {
+    "kyu": "── Kyu ──",
+    "amateur": "── Dan amateur ──",
+    "pro": "── Dan professionnel ──"
+  },
+  "cardMeta": {
+    "主动": "Actif",
+    "AI干扰": "Perturbation IA",
+    "爆发": "Explosion",
+    "陷阱": "Piège",
+    "开局构筑": "Fuseki",
+    "任务": "Quête",
+    "风险收益": "Risque / gain",
+    "节奏": "Tempo",
+    "连线构筑": "Construction de ligne",
+    "规则改写": "Règle modifiée",
+    "连动": "Chaîne",
+    "任务爆发": "Quête explosive",
+    "大招": "Ultime",
+    "低": "Faible",
+    "中": "Moyen",
+    "高": "Élevé"
+  },
+  "wikiModes": [
+    {
+      "key": "solo",
+      "title": "Draft solo",
+      "desc": "Vous draftez 1 carte Rogue parmi 3 choix. L'IA joue selon les règles standards sans carte Rogue."
+    },
+    {
+      "key": "dual",
+      "title": "Draft duel",
+      "desc": "Vous choisissez 1 carte Rogue parmi 3 choix ; l'IA reçoit aussi 1 carte du pool Rogue restreint."
+    },
+    {
+      "key": "ultimate",
+      "title": "Duel ultime",
+      "desc": "Vous et l'IA choisissez chacun 1 carte ultime parmi 3 choix. La partie se résout en duel de 20 coups."
+    },
+    {
+      "key": "challenge",
+      "title": "Défi",
+      "desc": "Le mode Défi superpose restrictions de pool, handicap et rafraîchissements pour des runs par étapes."
+    }
+  ],
+  "cards": {
+    "rogue": {
+      "tengen": {
+        "name": "Tengen",
+        "desc": "L'IA doit ouvrir au tengen ; son coup suivant est limité au diamant 5x5 autour du tengen."
+      },
+      "dice": {
+        "name": "Jet de dé",
+        "desc": "Chaque coup de l'IA a 6 % de chances de devenir une passe."
+      },
+      "erosion": {
+        "name": "Érosion",
+        "desc": "Chaque capture déplace le komi de 4 points en faveur du preneur."
+      },
+      "puppet": {
+        "name": "Marionnette",
+        "desc": "Marquez d'abord le prochain point forcé de l'IA. Vous jouez votre coup, puis l'IA doit répondre là-bas, une fois par partie."
+      },
+      "seal": {
+        "name": "Sceau",
+        "desc": "Marquez 4 points interdits que l'IA ne pourra jamais jouer pendant la partie."
+      },
+      "twin": {
+        "name": "Combo",
+        "desc": "Jouez deux pierres dans le même tour, une fois par partie, pour un suivi local."
+      },
+      "nerf": {
+        "name": "Nerf",
+        "desc": "Abaisse l'IA d'environ 8 rangs, réduit sa recherche à environ 5 %, et rend ses 12 premiers coups plus sujets aux mauvais choix de réserve."
+      },
+      "komi_relief": {
+        "name": "Komi réduit",
+        "desc": "Le komi se décale de 7 points en votre faveur."
+      },
+      "time_press": {
+        "name": "Pression au temps",
+        "desc": "Abaisse l'IA d'environ 5 rangs, limite chaque coup à 0,10 seconde, et rend ses 12 premiers coups plus vulnérables aux lectures hâtives."
+      },
+      "lowline": {
+        "name": "Jeu bas",
+        "desc": "Pendant ses 5 premiers coups, l'IA préfère les points bas de 2e et 3e lignes."
+      },
+      "suboptimal": {
+        "name": "Second choix",
+        "desc": "Pendant ses 8 premiers coups, l'IA choisit plus souvent des options de réserve plus faibles."
+      },
+      "mirror": {
+        "name": "Miroir",
+        "desc": "16 % de chances que l'IA copie votre dernier coup par symétrie sur le goban."
+      },
+      "slip": {
+        "name": "Main glissante",
+        "desc": "L'IA a 12 % de chances de glisser vers un point adjacent."
+      },
+      "blackhole": {
+        "name": "Trou noir",
+        "desc": "La zone centrale de trou noir est interdite à l'IA pendant toute la partie."
+      },
+      "exchange": {
+        "name": "Vol de tour",
+        "desc": "Actif, une fois par partie : déplacez une pierre adverse vers un point vide de votre choix sans consommer votre coup."
+      },
+      "fog": {
+        "name": "Brouillard de guerre",
+        "desc": "Pendant les 11 premiers coups de l'IA, renouvelle une zone interdite 3x3. Ensuite, bloque chaque tour 1 point interdit dans le diamant 3x3 autour du coup précédent de l'IA."
+      },
+      "gravity": {
+        "name": "Puits de gravité",
+        "desc": "Gravité des hoshi : l'IA doit jouer ses 6 premiers coups sur des points étoile."
+      },
+      "golden_corner": {
+        "name": "Coin doré",
+        "desc": "Verrouille au hasard une zone de coin 4x4 ; l'IA ne peut plus y jouer de toute la partie."
+      },
+      "sansan": {
+        "name": "Ruée san-san",
+        "desc": "L'IA doit jouer ses 3 premiers coups dans les zones 3x3 des quatre coins."
+      },
+      "shadow": {
+        "name": "Ombre",
+        "desc": "Pendant toute la partie, chaque coup de l'IA a 18 % de chances de coller à sa pierre précédente."
+      },
+      "sprout": {
+        "name": "Pousse",
+        "desc": "Après chacune de vos captures, fait naître 1 pierre amie au hasard dans une zone 3x3 autour du point capturé."
+      },
+      "joseki_ocd": {
+        "name": "Joseki compulsif",
+        "desc": "7 points cibles apparaissent. Touchez-en 4 pour remplir automatiquement les 3 restants avec vos pierres."
+      },
+      "handicap_quest": {
+        "name": "Quête de handicap",
+        "desc": "Passez une fois pour démarrer ; tous les 8 coups, vous forcez une passe de l'IA, jusqu'à 3 fois."
+      },
+      "god_hand": {
+        "name": "Main de Dieu",
+        "desc": "Touchez le diamant caché pour faire apparaître 3 de vos pierres dans la zone 5x5 autour, sur des points vides."
+      },
+      "sansan_trap": {
+        "name": "Piège san-san",
+        "desc": "Quand l'IA joue un des quatre points 3-3, 1 de vos pierres apparaît sur un point adjacent sans consommer votre coup."
+      },
+      "corner_helper": {
+        "name": "Garde du coin",
+        "desc": "Chaque coin peut déclencher une fois. Si la zone 5x5 d'un coin contient 4 de vos pierres, ce coin reçoit 1 renfort."
+      },
+      "sanrensei": {
+        "name": "Sanrensei",
+        "desc": "Si vos 3 premiers coups sont tous sur des hoshi, 2 autres hoshi vides reçoivent vos pierres."
+      },
+      "no_regret": {
+        "name": "Sans regret",
+        "desc": "L'annulation est désactivée ; après le coup adverse, 8 % de chances d'offrir une pierre sur votre meilleur prochain point sans consommer votre coup."
+      },
+      "quickthink": {
+        "name": "Réflexe rapide",
+        "desc": "Jouez en 1 seconde pour ouvrir une fenêtre combo de 0,5 seconde. En cas d'expiration : passe ; suggestions et annulation sont désactivées."
+      },
+      "foolish_wisdom": {
+        "name": "Sagesse lourde",
+        "desc": "Formez une mauvaise forme pour faire pousser 1 pierre bonus dans la zone 5x5 voisine."
+      },
+      "five_in_row": {
+        "name": "Cinq d'affilée",
+        "desc": "Quand vous formez exactement 5 pierres d'affilée, ajoutez 1 pierre amie dans chaque zone 3x3 aux deux extrémités."
+      },
+      "coach_mode": {
+        "name": "Connexion coach",
+        "desc": "Actif : une IA plus forte joue les 30 prochains tours pour vous. Si votre winrate reste sous 50 %, elle joue 10 tours de plus."
+      },
+      "capture_foul": {
+        "name": "Faute de capture",
+        "desc": "Quand l'adversaire capture 4 pierres en un coup ou au cumul, offre 1 pierre amie sur votre prochain point recommandé, puis remet le compteur à zéro."
+      },
+      "last_stand": {
+        "name": "Baroud final",
+        "desc": "Une fois par partie, si votre winrate passe sous 26 %, retire 1 pierre ennemie et ajoute 1 pierre amie dans le 3x3 du dernier coup, hors points interdits."
+      },
+      "defense_first": {
+        "name": "Défense d'abord",
+        "desc": "À partir de votre 3e coup, si vos 3 derniers coups n'ont chacun aucune pierre ennemie dans leur zone 5x5, fait apparaître 1 pierre amie dans un 5x5 autour d'une de vos pierres. Jusqu'à deux fois par partie."
+      },
+      "attack_first": {
+        "name": "Attaque d'abord",
+        "desc": "Si vos 3 derniers coups sont chacun dans une zone 3x3 autour de pierres ennemies, fait apparaître 1 pierre amie dans un 3x3 autour d'une pierre ennemie. Jusqu'à deux fois par partie."
+      },
+      "methodical": {
+        "name": "Méthodique",
+        "desc": "Chacun de vos tours se résout après 2 pierres jouées en séquence ; tous les 10 tours joueur, 1 pierre supplémentaire permet un tour à 3 pierres."
+      }
+    },
+    "ultimate": {
+      "chain": {
+        "name": "Frappe en chaîne",
+        "desc": "Chaque coup a 80 % de chances d'accorder un tour supplémentaire."
+      },
+      "proliferate": {
+        "name": "Floraison infinie",
+        "desc": "Après votre coup, 5 pierres de même couleur fleurissent dans une zone 5x5."
+      },
+      "double": {
+        "name": "Deux lames",
+        "desc": "Chaque tour devient un combo de 2 coups, mais toute la rafale ne compte que pour 1 coup."
+      },
+      "wildgrow": {
+        "name": "Croissance sauvage",
+        "desc": "4 de vos pierres se propagent vers les libertés vides."
+      },
+      "rejection": {
+        "name": "Répulsion",
+        "desc": "Les pierres ennemies dans la zone 5x5 sont repoussées ou détruites."
+      },
+      "territory": {
+        "name": "Zone absolue",
+        "desc": "Crée une barrière interdite de 4 pas autour de votre coup."
+      },
+      "shadow_clone": {
+        "name": "Clone d'ombre",
+        "desc": "Crée maintenant une pierre miroir. Un tour plus tard, le point original et le miroir forment une ligne complète même si une extrémité a été retirée."
+      },
+      "plague": {
+        "name": "Peste",
+        "desc": "Convertit toutes les pierres ennemies de la zone 5x5 à votre couleur."
+      },
+      "meteor": {
+        "name": "Impact météore",
+        "desc": "Oblitère au hasard 5 pierres ennemies n'importe où sur le goban."
+      },
+      "quantum": {
+        "name": "Poussée quantique",
+        "desc": "5 pierres de même couleur se matérialisent sur des positions aléatoires."
+      },
+      "devour": {
+        "name": "Dévoration",
+        "desc": "Efface toutes les pierres ennemies dans la zone 5x5 environnante."
+      },
+      "timewarp": {
+        "name": "Faille temporelle",
+        "desc": "85 % de chances d'effacer de l'existence les 2 derniers coups adverses."
+      },
+      "blackout": {
+        "name": "Cataclysme",
+        "desc": "Balaye toutes les pierres ennemies sur la croix partant de votre coup."
+      },
+      "magnet": {
+        "name": "Attraction magnétique",
+        "desc": "Vos pierres foncent vers le point et écrasent les ennemies sur leur chemin."
+      },
+      "necro": {
+        "name": "Nécromancie",
+        "desc": "Invoque 3 pierres amies et convertit 2 pierres ennemies."
+      },
+      "wall": {
+        "name": "Grande muraille",
+        "desc": "60 % de chances de déclencher. Remplit une ligne ou une colonne entière d'un mur de pierres infranchissable."
+      },
+      "joseki_burst": {
+        "name": "Explosion joseki",
+        "desc": "Complétez les points de joseki, puis faites exploser 50 pierres bonus."
+      },
+      "god_hand": {
+        "name": "Main de Dieu",
+        "desc": "Touchez le diamant caché pour faire apparaître 3 de vos pierres dans la zone 5x5 autour, sur des points vides."
+      },
+      "corner_helper": {
+        "name": "Forteresse de coin",
+        "desc": "Chaque coin peut déclencher une fois. Si le 5x5 d'un coin contient 2 de vos pierres, sa bordure 8x8 est remplie et les ennemies à l'intérieur sont nettoyées."
+      },
+      "sanrensei": {
+        "name": "Ignition sanrensei",
+        "desc": "Jouez vos 3 premiers coups sur des hoshi pour embraser l'influence des points étoile sur tout le goban."
+      },
+      "quickthink": {
+        "name": "Tempête de vitesse",
+        "desc": "Placez des pierres sans limite pendant 5 secondes ; ensuite l'IA lit le goban. Toute la rafale compte pour 1 coup."
+      },
+      "foolish_wisdom": {
+        "name": "Chaîne de formes lourdes",
+        "desc": "Une réaction en chaîne de mauvaises formes génère jusqu'à 20 pierres avant de s'arrêter."
+      },
+      "five_in_row": {
+        "name": "Explosion cinq d'affilée",
+        "desc": "C'est du gomoku, pas du go. Quand vos pierres forment exactement 5 d'affilée, retire 30 pierres ennemies et dépose 30 pierres amies sur le goban. L'effet peut enchaîner."
+      },
+      "capture_foul": {
+        "name": "Faute de capture",
+        "desc": "Quand l'adversaire capture ou retire plus de 5 pierres, effets de cartes inclus, la faute se déclenche à coup sûr. Le fautif perd immédiatement 50 points, puis le compteur repart."
+      },
+      "last_stand": {
+        "name": "Baroud final",
+        "desc": "Si votre winrate passe sous 30 %, nettoie 30 pierres ennemies et ajoute 30 pierres amies sur tout le goban."
+      }
+    }
+  }
+}

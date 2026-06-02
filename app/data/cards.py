@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-SUPPORTED_LOCALES = ("zh-CN", "en-US", "ja-JP", "ko-KR")
+SUPPORTED_LOCALES = ("zh-CN", "en-US", "ja-JP", "ko-KR", "zh-TW", "fr-FR", "de-DE")
 CARD_REQUIRED_FIELDS = ("name", "desc", "icon")
 CHALLENGE_CATEGORIES = ("derivative", "trap", "zone", "restriction", "active")
 
@@ -86,7 +86,7 @@ def _localized_value(value: Any, locale: str = "zh-CN") -> str:
         return value
     if not isinstance(value, dict):
         return ""
-    for key in (locale, "zh-CN", "en-US", "ja-JP", "ko-KR"):
+    for key in (locale, "zh-CN", "zh-TW", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE"):
         item = value.get(key)
         if isinstance(item, str) and item:
             return item

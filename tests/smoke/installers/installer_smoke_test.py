@@ -10,7 +10,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "rogue-go-arena_Setup.iss"
-LANGUAGES = ("chinesesimplified", "english", "japanese", "korean")
+LANGUAGES = (
+    "chinesesimplified",
+    "chinesetraditional",
+    "english",
+    "japanese",
+    "korean",
+    "french",
+    "german",
+)
 
 
 def read_script() -> str:

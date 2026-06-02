@@ -161,7 +161,52 @@ try {
     reviewNextTitle: "次の手",
   });
 
-  await chooseWoodOption(page, "settings-language-select", "中国語");
+  await chooseWoodOption(page, "settings-language-select", "繁体字中国語");
+  await assertLanguageState(page, {
+    value: "zht",
+    htmlLang: "zh-TW",
+    buttonText: "繁體中文",
+    setupButton: "確認開始",
+    settingsLabel: "語言",
+    headerTitle: "圍棋對弈場",
+    passTitle: "虛手",
+    passLabel: "虛手",
+    scoreLabel: "計算",
+    settingsTitle: "設定",
+    reviewNextTitle: "下一手",
+  });
+
+  await chooseWoodOption(page, "settings-language-select", "法語");
+  await assertLanguageState(page, {
+    value: "fr",
+    htmlLang: "fr",
+    buttonText: "Français",
+    setupButton: "Démarrer",
+    settingsLabel: "Langue",
+    headerTitle: "Arène de go Rogue",
+    passTitle: "Passer",
+    passLabel: "Passer",
+    scoreLabel: "Score",
+    settingsTitle: "Réglages",
+    reviewNextTitle: "Coup suivant",
+  });
+
+  await chooseWoodOption(page, "settings-language-select", "Allemand");
+  await assertLanguageState(page, {
+    value: "de",
+    htmlLang: "de",
+    buttonText: "Deutsch",
+    setupButton: "Start",
+    settingsLabel: "Sprache",
+    headerTitle: "Rogue Go Arena",
+    passTitle: "Passen",
+    passLabel: "Passen",
+    scoreLabel: "Punkte",
+    settingsTitle: "Einstellungen",
+    reviewNextTitle: "Nächster Zug",
+  });
+
+  await chooseWoodOption(page, "settings-language-select", "Vereinfachtes Chinesisch");
   await assertLanguageState(page, {
     value: "zh",
     htmlLang: "zh-CN",
@@ -177,7 +222,7 @@ try {
   });
 
   assert(errors.length === 0, `browser errors: ${errors.join("; ")}`);
-  console.log(JSON.stringify({ ok: true, checkedLanguages: ["zh", "en", "ko", "ja", "zh"] }, null, 2));
+  console.log(JSON.stringify({ ok: true, checkedLanguages: ["zh", "en", "ko", "ja", "zht", "fr", "de", "zh"] }, null, 2));
 } finally {
   await browser.close();
 }

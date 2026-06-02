@@ -36,9 +36,12 @@ PrivilegesRequiredOverridesAllowed=dialog
 
 [Languages]
 Name: "chinesesimplified"; MessagesFile: "{#RepoRoot}\ChineseSimplified.isl"
+Name: "chinesetraditional"; MessagesFile: "compiler:Languages\ChineseTraditional.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
+Name: "french"; MessagesFile: "compiler:Languages\French.isl"
+Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
@@ -92,14 +95,14 @@ chinesesimplified.ContinueInstall=是否继续安装？
 english.ContinueInstall=Continue installation?
 japanese.ContinueInstall=インストールを続行しますか？
 korean.ContinueInstall=설치를 계속할까요?
-chinesesimplified.GpuLabel=✓ 显卡: 
-english.GpuLabel=✓ GPU: 
-japanese.GpuLabel=✓ GPU: 
-korean.GpuLabel=✓ GPU: 
-chinesesimplified.DriverOld=✗ 驱动: 
-english.DriverOld=✗ Driver: 
-japanese.DriverOld=✗ ドライバー: 
-korean.DriverOld=✗ 드라이버: 
+chinesesimplified.GpuLabel=✓ 显卡:
+english.GpuLabel=✓ GPU:
+japanese.GpuLabel=✓ GPU:
+korean.GpuLabel=✓ GPU:
+chinesesimplified.DriverOld=✗ 驱动:
+english.DriverOld=✗ Driver:
+japanese.DriverOld=✗ ドライバー:
+korean.DriverOld=✗ 드라이버:
 chinesesimplified.DriverOldNote=  (版本过旧!)
 english.DriverOldNote=  (too old!)
 japanese.DriverOldNote=  (古すぎます)
@@ -116,10 +119,10 @@ chinesesimplified.CpuStillWorks=即使不更新，仍可使用内置 CPU 引擎�
 english.CpuStillWorks=You can still play with the built-in CPU engine.
 japanese.CpuStillWorks=更新しなくても内蔵 CPU エンジンで対局できます。
 korean.CpuStillWorks=업데이트하지 않아도 내장 CPU 엔진으로 대국할 수 있습니다.
-chinesesimplified.DriverWarn=⚠ 驱动: 
-english.DriverWarn=⚠ Driver: 
-japanese.DriverWarn=⚠ ドライバー: 
-korean.DriverWarn=⚠ 드라이버: 
+chinesesimplified.DriverWarn=⚠ 驱动:
+english.DriverWarn=⚠ Driver:
+japanese.DriverWarn=⚠ ドライバー:
+korean.DriverWarn=⚠ 드라이버:
 chinesesimplified.DriverWarnNote=  (建议更新)
 english.DriverWarnNote=  (update recommended)
 japanese.DriverWarnNote=  (更新推奨)
@@ -128,10 +131,10 @@ chinesesimplified.DriverRecommend=建议更新至 ≥ 528.00 以获得最佳 CUD
 english.DriverRecommend=Driver 528.00 or newer is recommended for best CUDA 12 support
 japanese.DriverRecommend=CUDA 12 を安定して使うには 528.00 以上を推奨します
 korean.DriverRecommend=CUDA 12 지원을 위해 528.00 이상을 권장합니다
-chinesesimplified.DriverOk=✓ 驱动: 
-english.DriverOk=✓ Driver: 
-japanese.DriverOk=✓ ドライバー: 
-korean.DriverOk=✓ 드라이버: 
+chinesesimplified.DriverOk=✓ 驱动:
+english.DriverOk=✓ Driver:
+japanese.DriverOk=✓ ドライバー:
+korean.DriverOk=✓ 드라이버:
 chinesesimplified.CudaOk=✓ CUDA 支持: 正常
 english.CudaOk=✓ CUDA support: ready
 japanese.CudaOk=✓ CUDA サポート: 正常
@@ -144,6 +147,81 @@ chinesesimplified.RemoveUserDataPrompt=是否同时删除本机用户数据？%n
 english.RemoveUserDataPrompt=Remove local user data too?%n%nThis removes WebView/Edge profiles, local KataGo cache, downloaded models, logs, and card editor settings.%n%nChoose No to uninstall program files only and keep user data.
 japanese.RemoveUserDataPrompt=ローカルユーザーデータも削除しますか？%n%nWebView/Edge プロファイル、ローカル KataGo キャッシュ、ダウンロード済みモデル、ログ、カードエディター設定が削除されます。%n%n「いいえ」を選ぶと、プログラムファイルのみを削除してユーザーデータは保持します。
 korean.RemoveUserDataPrompt=로컬 사용자 데이터도 삭제할까요?%n%nWebView/Edge 프로필, 로컬 KataGo 캐시, 다운로드한 모델, 로그, 카드 편집기 설정이 삭제됩니다.%n%n아니요를 선택하면 프로그램 파일만 제거하고 사용자 데이터는 보관합니다.
+chinesetraditional.ReadmeIcon=使用說明
+chinesetraditional.RunReadme=查看使用說明
+chinesetraditional.RunApp=啟動 rogue-go-arena
+chinesetraditional.GpuHeader=rogue-go-arena 環境檢測
+chinesetraditional.GpuMissing=⚠ 未偵測到 NVIDIA 顯示卡
+chinesetraditional.CpuFallback=不用擔心，內建 CPU 引擎仍可執行：
+chinesetraditional.KyuPlayable=✓ 級位對局 (18級~1級) — 流暢
+chinesetraditional.RoguePlayable=✓ Rogue 模式 — 流暢
+chinesetraditional.UltimatePlayable=✓ Ultimate 模式 — 流暢
+chinesetraditional.DanSlow=⚠ 段位對局 — 分析較慢
+chinesetraditional.CheckDriver=如有 NVIDIA 顯示卡，請確認已安裝驅動程式。
+chinesetraditional.ContinueInstall=是否繼續安裝？
+chinesetraditional.GpuLabel=✓ 顯示卡:
+chinesetraditional.DriverOld=✗ 驅動程式:
+chinesetraditional.DriverOldNote=  (版本過舊!)
+chinesetraditional.DriverNeed=GPU 加速需要驅動程式版本 ≥ 527.41
+chinesetraditional.DriverUpdate=請前往 https://www.nvidia.com/drivers 更新驅動程式
+chinesetraditional.CpuStillWorks=即使不更新，仍可使用內建 CPU 引擎對局。
+chinesetraditional.DriverWarn=⚠ 驅動程式:
+chinesetraditional.DriverWarnNote=  (建議更新)
+chinesetraditional.DriverRecommend=建議更新至 ≥ 528.00，以取得最佳 CUDA 12 支援
+chinesetraditional.DriverOk=✓ 驅動程式:
+chinesetraditional.CudaOk=✓ CUDA 支援: 正常
+chinesetraditional.SystemReady=您的系統符合執行需求!
+chinesetraditional.RemoveUserDataPrompt=是否同時刪除本機使用者資料？%n%n這會移除 WebView/Edge 設定檔、本機 KataGo 快取、已下載模型、日誌和卡牌編輯器設定。%n%n選擇「否」將只解除安裝程式檔案並保留使用者資料。
+french.ReadmeIcon=README
+french.RunReadme=Voir le README
+french.RunApp=Lancer rogue-go-arena
+french.GpuHeader=Vérification de l'environnement rogue-go-arena
+french.GpuMissing=⚠ Aucun GPU NVIDIA détecté
+french.CpuFallback=Le moteur CPU intégré peut quand même fonctionner :
+french.KyuPlayable=✓ Parties kyu (18k à 1k) — fluide
+french.RoguePlayable=✓ Mode Rogue — fluide
+french.UltimatePlayable=✓ Mode Ultimate — fluide
+french.DanSlow=⚠ Parties dan — analyse plus lente
+french.CheckDriver=Si cette machine possède un GPU NVIDIA, vérifiez que le pilote est installé.
+french.ContinueInstall=Continuer l'installation ?
+french.GpuLabel=✓ GPU :
+french.DriverOld=✗ Pilote :
+french.DriverOldNote=  (trop ancien !)
+french.DriverNeed=L'accélération GPU nécessite le pilote 527.41 ou plus récent
+french.DriverUpdate=Mettez le pilote à jour sur https://www.nvidia.com/drivers
+french.CpuStillWorks=Vous pouvez toujours jouer avec le moteur CPU intégré.
+french.DriverWarn=⚠ Pilote :
+french.DriverWarnNote=  (mise à jour recommandée)
+french.DriverRecommend=Le pilote 528.00 ou plus récent est recommandé pour CUDA 12
+french.DriverOk=✓ Pilote :
+french.CudaOk=✓ CUDA : prêt
+french.SystemReady=Votre système répond aux prérequis.
+french.RemoveUserDataPrompt=Supprimer aussi les données utilisateur locales ?%n%nCela supprime les profils WebView/Edge, le cache KataGo local, les modèles téléchargés, les journaux et les réglages de l'éditeur de cartes.%n%nChoisissez Non pour ne désinstaller que les fichiers du programme et conserver les données utilisateur.
+german.ReadmeIcon=README
+german.RunReadme=README anzeigen
+german.RunApp=rogue-go-arena starten
+german.GpuHeader=rogue-go-arena Umgebungsprüfung
+german.GpuMissing=⚠ Kein NVIDIA-GPU erkannt
+german.CpuFallback=Die integrierte CPU-Engine kann trotzdem laufen:
+german.KyuPlayable=✓ Kyu-Partien (18k bis 1k) — flüssig
+german.RoguePlayable=✓ Rogue-Modus — flüssig
+german.UltimatePlayable=✓ Ultimate-Modus — flüssig
+german.DanSlow=⚠ Dan-Partien — langsamere Analyse
+german.CheckDriver=Falls dieser Rechner einen NVIDIA-GPU hat, prüfen Sie bitte den installierten Treiber.
+german.ContinueInstall=Installation fortsetzen?
+german.GpuLabel=✓ GPU:
+german.DriverOld=✗ Treiber:
+german.DriverOldNote=  (zu alt!)
+german.DriverNeed=GPU-Beschleunigung benötigt Treiberversion 527.41 oder neuer
+german.DriverUpdate=Aktualisieren Sie den Treiber unter https://www.nvidia.com/drivers
+german.CpuStillWorks=Sie können weiterhin mit der integrierten CPU-Engine spielen.
+german.DriverWarn=⚠ Treiber:
+german.DriverWarnNote=  (Update empfohlen)
+german.DriverRecommend=Für die beste CUDA-12-Unterstützung wird Treiber 528.00 oder neuer empfohlen
+german.DriverOk=✓ Treiber:
+german.CudaOk=✓ CUDA-Unterstützung: bereit
+german.SystemReady=Ihr System erfüllt die Laufzeitanforderungen.
+german.RemoveUserDataPrompt=Auch lokale Benutzerdaten löschen?%n%nDies entfernt WebView/Edge-Profile, lokalen KataGo-Cache, heruntergeladene Modelle, Logs und Einstellungen des Karteneditors.%n%nWählen Sie Nein, um nur die Programmdateien zu deinstallieren und Benutzerdaten zu behalten.
 
 [Files]
 Source: "{#DistDir}\rogue-go-arena.exe"; DestDir: "{app}"; Flags: ignoreversion
@@ -390,8 +468,8 @@ begin
     if DriverMajor < 520 then
     begin
       Msg := GpuHeaderBox() + #13#10#13#10 +
-             T('GpuLabel') + GpuName + #13#10 +
-             T('DriverOld') + DriverVersion + T('DriverOldNote') + #13#10#13#10 +
+             T('GpuLabel') + ' ' + GpuName + #13#10 +
+             T('DriverOld') + ' ' + DriverVersion + T('DriverOldNote') + #13#10#13#10 +
              T('DriverNeed') + #13#10 +
              T('DriverUpdate') + #13#10#13#10 +
              T('CpuStillWorks') + #13#10#13#10 +
@@ -400,16 +478,16 @@ begin
     end else if DriverMajor < 528 then
     begin
       Msg := GpuHeaderBox() + #13#10#13#10 +
-             T('GpuLabel') + GpuName + #13#10 +
-             T('DriverWarn') + DriverVersion + T('DriverWarnNote') + #13#10#13#10 +
+             T('GpuLabel') + ' ' + GpuName + #13#10 +
+             T('DriverWarn') + ' ' + DriverVersion + T('DriverWarnNote') + #13#10#13#10 +
              T('DriverRecommend') + #13#10#13#10 +
              T('ContinueInstall');
       Result := (MsgBox(Msg, mbConfirmation, MB_YESNO) = IDYES);
     end else
     begin
       MsgBox(GpuHeaderBox() + #13#10#13#10 +
-             T('GpuLabel') + GpuName + #13#10 +
-             T('DriverOk') + DriverVersion + #13#10 +
+             T('GpuLabel') + ' ' + GpuName + #13#10 +
+             T('DriverOk') + ' ' + DriverVersion + #13#10 +
              T('CudaOk') + #13#10#13#10 +
              T('SystemReady'),
              mbInformation, MB_OK);

@@ -61,7 +61,7 @@ function getCardMeta(cardId, mode) {
 }
 
 function getTranslatedCard(card, mode) {
-  const localeCode = { zh: "zh-CN", en: "en-US", ja: "ja-JP", ko: "ko-KR" }[currentLang] || "zh-CN";
+  const localeCode = { zh: "zh-CN", zht: "zh-TW", en: "en-US", ja: "ja-JP", ko: "ko-KR", fr: "fr-FR", de: "de-DE" }[currentLang] || "zh-CN";
   if (card?.i18n) {
     const name = card.i18n.name?.[localeCode] || card.i18n.name?.["zh-CN"] || card.name;
     const desc = card.i18n.desc?.[localeCode] || card.i18n.desc?.["zh-CN"] || card.desc;

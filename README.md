@@ -20,6 +20,8 @@
   ·
   <a href="#korean--한국어">한국어</a>
   ·
+  <a href="#supported-languages">Languages</a>
+  ·
   <a href="#quick-start">Quick Start</a>
   ·
   <a href="#game-modes">Modes</a>
@@ -63,11 +65,11 @@ The Windows build wraps the same HTML/WebSocket game core in a WebView2 desktop 
 | Hook | What it means |
 | --- | --- |
 | Real Go engine | KataGo remains the reading core, so the game still feels like Go instead of a skin over random moves. |
-| Roguelike draft | 34 Rogue cards can reshape a match before the first stone lands. |
+| Roguelike draft | 37 Rogue cards can reshape a match before the first stone lands. |
 | Ultimate burst | 25 ultimate cards create short, dramatic games with high-impact turns. |
 | AI counterplay | The AI can also receive Rogue rules, turning a normal match into a response game. |
 | Wood-board focus | Clean top-down board, restrained dark wood UI, stone bowls, and readable tool icons. |
-| Four languages | Chinese, English, Japanese, and Korean are available through external locale packs. |
+| Seven languages | Simplified Chinese, Traditional Chinese, English, Japanese, Korean, French, and German are available through external locale packs. |
 
 ## Game Modes
 
@@ -90,6 +92,22 @@ Watch AI-vs-AI games to study opening shape, pace, tradeoffs, and engine prefere
 ### Local Two Player
 
 Play on one PC with a shared board. Rogue rules can also turn it into a party-style Go variant.
+
+## Supported Languages
+
+The app UI, card catalog, card editor, installer, and uninstaller currently ship these locale packs:
+
+| Locale | Display |
+| --- | --- |
+| `zh-CN` | 简体中文 |
+| `zh-TW` | 繁體中文 |
+| `en-US` | English |
+| `ja-JP` | 日本語 |
+| `ko-KR` | 한국어 |
+| `fr-FR` | Français |
+| `de-DE` | Deutsch |
+
+French and German card text keeps common Go-community terms such as goban, komi, byo-yomi, joseki, handicap, kyu, and dan instead of translating them into awkward generic wording.
 
 ## Quick Start
 
@@ -120,14 +138,14 @@ Rogue Go Arena 把围棋从“引擎分析界面”推进到“可反复开局�
 | 能力 | 说明 |
 | --- | --- |
 | WebView2 桌面壳 | `rogue-go-arena.exe` 默认以 WebView2 打开本地游戏窗口 |
-| Rogue 构筑 | 开局抽卡，34 张 Rogue 卡改变整局规则 |
+| Rogue 构筑 | 开局抽卡，37 张 Rogue 卡改变整局规则 |
 | Ultimate 爆发 | 25 张大招卡，短局也能打出高冲击局势 |
 | AI Rogue | AI 也能获得卡牌，普通对弈变成反制博弈 |
 | 正常围棋 | 标准 AI 对局、AI 自战学习、本地双人对局 |
 | 暗色木纹棋桌 | 正俯视棋盘、木质 UI、棋盒背景、沉浸式桌面体验 |
 | 自适应布局 | 窗口化、1080p、2K、4K 视图都能保持棋盘和按钮可用 |
 | 引擎回退 | 优先 CUDA，随后 OpenCL，再到 CPU |
-| 四语界面 | 中文 / English / 日本語 / 한국어 可切换 |
+| 七语界面 | 简体中文 / 繁體中文 / English / 日本語 / 한국어 / Français / Deutsch 可切换 |
 | 浏览器后备 | WebView2 不可用时可回退 Edge app-window 或系统浏览器 |
 
 ## 玩法模式
@@ -253,7 +271,7 @@ tests/smoke/       按子系统分类的烟测脚本
 
 当前卡牌池：
 
-- 34 张 Rogue 卡
+- 37 张 Rogue 卡
 - 25 张 Ultimate 卡
 - Rogue 精选池、AI Rogue 池、双人 Rogue 池、闯关 Beta 池
 - Ultimate 精选池和 AI Ultimate 池
@@ -301,11 +319,11 @@ Windows 版は WebView2 デスクトップアプリとして起動します。�
 | Feature | 内容 |
 | --- | --- |
 | KataGo powered | 本格的な囲碁エンジンをローカルで起動 |
-| Rogue Draft | 34枚の Rogue カードで対局ルールを改変 |
+| Rogue Draft | 37枚の Rogue カードで対局ルールを改変 |
 | Ultimate Burst | 25枚の大技カードで短局でも大きな山場を作る |
 | AI Rogue | AI 側もカードを持ち、通常対局が読み合いと対策のゲームになる |
 | Dark Wood Board | 古典木目の棋盤、棋盒風 UI、視認性重視のデスクトップ画面 |
-| Four Languages | 中文 / English / 日本語 / 한국어 をアプリ内で切替 |
+| Seven Languages | 簡体中文 / 繁體中文 / English / 日本語 / 한국어 / Français / Deutsch をアプリ内で切替 |
 
 ### Download
 
@@ -336,11 +354,11 @@ Windows 버전은 WebView2 데스크톱 앱으로 실행됩니다. 로컬 FastAP
 | Feature | 설명 |
 | --- | --- |
 | KataGo powered | 강력한 바둑 엔진을 로컬에서 실행 |
-| Rogue Draft | 34장의 Rogue 카드가 한 판의 규칙을 바꿈 |
+| Rogue Draft | 37장의 Rogue 카드가 한 판의 규칙을 바꿈 |
 | Ultimate Burst | 25장의 궁극기 카드로 짧은 대국에도 큰 변곡점을 만듦 |
 | AI Rogue | AI도 카드를 얻어 일반 대국이 대응전으로 바뀜 |
 | Dark Wood Board | 고전 목재 바둑판, 바둑통 느낌의 UI, 집중하기 좋은 화면 |
-| Four Languages | 中文 / English / 日本語 / 한국어 앱 내 전환 지원 |
+| Seven Languages | 简体中文 / 繁體中文 / English / 日本語 / 한국어 / Français / Deutsch 앱 내 전환 지원 |
 
 ### Download
 

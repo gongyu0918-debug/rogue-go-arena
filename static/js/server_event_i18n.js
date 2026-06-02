@@ -18,11 +18,36 @@ const SERVER_EVENT_CORNER_LABELS = {
     "左下角": "좌하귀",
     "右下角": "우하귀",
   },
+  fr: {
+    "左上角": "coin supérieur gauche",
+    "右上角": "coin supérieur droit",
+    "左下角": "coin inférieur gauche",
+    "右下角": "coin inférieur droit",
+  },
+  de: {
+    "左上角": "oberen linken Eck",
+    "右上角": "oberen rechten Eck",
+    "左下角": "unteren linken Eck",
+    "右下角": "unteren rechten Eck",
+  },
+};
+
+const SERVER_EVENT_COLOR_LABELS = {
+  en: { "黑棋": "Black", "白棋": "White", "黑": "Black", "白": "White" },
+  ja: { "黑棋": "黒", "白棋": "白", "黑": "黒", "白": "白" },
+  ko: { "黑棋": "흑", "白棋": "백", "黑": "흑", "白": "백" },
+  fr: { "黑棋": "Noir", "白棋": "Blanc", "黑": "Noir", "白": "Blanc" },
+  de: { "黑棋": "Schwarz", "白棋": "Weiss", "黑": "Schwarz", "白": "Weiss" },
 };
 
 function translateServerEventCorner(corner, lang) {
-  const fallbackLang = lang === "en" || lang === "ja" ? lang : "ko";
+  const fallbackLang = SERVER_EVENT_CORNER_LABELS[lang] ? lang : "en";
   return SERVER_EVENT_CORNER_LABELS[fallbackLang]?.[corner] || corner;
+}
+
+function translateServerEventColor(color, lang) {
+  const fallbackLang = SERVER_EVENT_COLOR_LABELS[lang] ? lang : "en";
+  return SERVER_EVENT_COLOR_LABELS[fallbackLang]?.[color] || color;
 }
 
 function translateServerEventByPatterns(source, patterns) {
@@ -33,9 +58,10 @@ function translateServerEventByPatterns(source, patterns) {
   return null;
 }
 
-function translateServerEventMessageLegacy(message) {
-  if (currentLang !== "en" || !message) return message || "";
+function translateServerEventMessageLegacy(message, force = false) {
+  if ((!force && currentLang !== "en") || !message) return message || "";
   const translateCorner = (corner) => translateServerEventCorner(corner, "en");
+  const translateColor = (color) => translateServerEventColor(color, "en");
   const patterns = [
     [/^🎭 傀儡术待命：你先正常落子，随后 AI 会被迫下在 (.+)$/, (gtp) => `🎭 Puppet ready: play normally first, then the AI will be forced to ${gtp}.`],
     [/^⚡ 双子星辰！你可以继续落子$/, () => "⚡ Combo: you may play again."],
@@ -47,12 +73,14 @@ function translateServerEventMessageLegacy(message) {
     [/^⚡ 快速思考：0\.5 秒追加手已开启$/, () => "⚡ Quick Thinking: the 0.5-second bonus move is now active"],
     [/^⚡ 快速思考：2 秒追加手已开启$/, () => "⚡ Quick Thinking: the 2-second bonus move is now active"],
     [/^📏 一板一眼：本回合还可继续落 (\d+) 子$/, (n) => `📏 Methodical: you may still play ${n} more stone(s) this turn.`],
+    [/^🏋️ 让子棋任务完成！$/, () => "🏋️ Handicap Quest complete."],
     [/^🏋️ 让子棋任务完成！现在每 (\d+) 手可多下一手$/, (n) => `🏋️ Handicap Quest complete. You now gain 1 extra move every ${n} moves.`],
     [/^🏋️ 虚手 (\d+)\/(\d+)$/, (a, b) => `🏋️ Passes: ${a}/${b}`],
     [/^🎭 傀儡术！你替 AI 落子于 (.+)$/, (gtp) => `🎭 Puppet Move: you played ${gtp} for the AI.`],
     [/^⚡ 双子星辰激活！下一手后可连续落子（剩余 (\d+) 次）$/, (n) => `⚡ Combo activated. After your next move, you may play again. (${n} left)`],
     [/^🔄 乾坤挪移激活！AI 下次将被迫虚手$/, () => "🔄 Swap Turn activated. The AI will be forced to pass next turn."],
     [/^黄金角已封锁 (.+) 的 4x4 区域$/, (corner) => `Golden Corner sealed the 4x4 area in the ${translateCorner(corner)}.`],
+    [/^黑洞已锁定中央区域，整局都会限制 AI 进入$/, () => "Black Hole locked the center. The AI is restricted from entering it for the whole game."],
     [/^定式强迫症已点亮 (\d+) 个目标点：(.*)。命中其中 (\d+) 个后会自动补满剩余点位$/, (count, pts, hits) => `Joseki helper marked ${count} target points: ${pts}. Play on any ${hits} of them to auto-fill the other points.`],
     [/^让子任务开始：你需要先虚手 (\d+) 次，之后每下满 (\d+) 手可再让 AI 虚手一次$/, (passes, interval) => `Handicap Quest started. Pass ${passes} times first, then every ${interval} moves grants another AI pass.`],
     [/^蚕食触发：提掉 (\d+) 子，当前贴目变为 (.+)$/, (captured, komi) => `Erosion triggered: captured ${captured} stones, komi is now ${komi}.`],
@@ -67,11 +95,19 @@ function translateServerEventMessageLegacy(message) {
     [/^🎯 五子连珠发动，正好连成 5 子，首尾额外补下 (\d+) 颗棋子$/, (n) => `🎯 Five in a Row triggered: an exact line of 5 added ${n} bonus stones at both ends.`],
     [/^🫀 起死回生发动，在上一手周围扭转局面：清掉 (\d+) 颗敌子，补下 (\d+) 颗己棋$/, (cleared, changed) => `🫀 Last Stand triggered near the last move: cleared ${cleared} enemy stones and added ${changed} friendly stones.`],
     [/^🚫 永不悔棋发动，在 (.+) 补了一手$/, (gtp) => `🚫 No Regrets triggered: a bonus stone was added at ${gtp}.`],
+    [/^🚫 永不悔棋发动，AI 落子后在 (.+) 赠送一子$/, (gtp) => `🚫 No Regrets triggered after the AI move: gifted 1 friendly stone at ${gtp}.`],
     [/^🪤 大智若愚发动，识别到 (\d+) 个愚形，额外长出 (\d+) 颗己方棋子$/, (shapes, stones) => `🪤 Wise Fool triggered: found ${shapes} awkward shapes and spawned ${stones} extra friendly stones.`],
     [/^🛡 防御至上触发：在 (.+) 赠送 1 颗己棋，本局剩余 (\d+) 次$/, (gtp, n) => `🛡 Defense First triggered: gifted 1 friendly stone at ${gtp}. ${n} trigger(s) remain.`],
     [/^⚔ 进攻至上触发：在 (.+) 赠送 1 颗己棋，本局剩余 (\d+) 次$/, (gtp, n) => `⚔ Attack First triggered: gifted 1 friendly stone at ${gtp}. ${n} trigger(s) remain.`],
-    [/^🧺 提子犯规触发！(.+) 提子达到 (\d+) 颗，在我方推荐点 (.+) 赠送 1 颗己棋$/, (color, n, gtp) => `🧺 Capture Foul triggered: ${color} reached ${n} captures, gifting 1 friendly stone at recommended point ${gtp}.`],
+    [/^🧺 提子犯规触发！(.+) 提子达到 (\d+) 颗，在我方推荐点 (.+) 赠送 1 颗己棋$/, (color, n, gtp) => `🧺 Capture Foul triggered: ${translateColor(color)} reached ${n} captures, gifting 1 friendly stone at recommended point ${gtp}.`],
+    [/^🧺 提子犯规触发！(.+) 提子达到 (\d+) 颗，但当前没有可用推荐点$/, (color, n) => `🧺 Capture Foul triggered: ${translateColor(color)} reached ${n} captures, but no recommended point is available.`],
+    [/^🧺 提子犯规触发！(.+) 被罚 (.+) 目$/, (color, penalty) => `🧺 Capture Foul triggered: ${translateColor(color)} was penalized ${penalty} points.`],
     [/^让子任务奖励触发：每满 (\d+) 手获得一次奖励，本回合 AI 虚手$/, (n) => `Handicap Quest bonus triggered: every ${n} moves grants a reward, and the AI passes this turn.`],
+    [/^让子任务奖励触发：每满 (\d+) 手获得一次奖励，当前进度 (\d+)\/(\d+)，AI 将虚手一次$/, (n, current, total) => `Handicap Quest bonus triggered: every ${n} moves grants a reward. Progress ${current}/${total}; the AI will pass once.`],
+    [/^🔄 乾坤挪移：已将对方 (.+) 的棋子摆动到 (.+)$/, (from, to) => `🔄 Swap Turn moved the enemy stone from ${from} to ${to}.`],
+    [/^🎓 代练上号启动：接下来 (\d+) 手将由更强 AI 代打$/, (n) => `🎓 Coach mode started: a stronger AI will play the next ${n} move(s).`],
+    [/^🎓 代练上号：强化 AI 接管了一手，剩余 (\d+) 手$/, (n) => `🎓 Coach mode: the stronger AI played one move. ${n} move(s) remain.`],
+    [/^🎓 代练上号追加触发：胜率仍低于 50%，额外再代打 (\d+) 手$/, (n) => `🎓 Coach mode extended: winrate is still below 50%, adding ${n} assisted move(s).`],
     [/^🦠 无限增生！生成 (\d+) 颗棋子$/, (n) => `🦠 Infinite Bloom generated ${n} stones.`],
     [/^🌿 狂野生长！(\d+) 颗棋子生长出新子$/, (n) => `🌿 Wild Growth spread from ${n} stones.`],
     [/^👥 影分身！在 (.+) 出现分身，下一回合会连成镜像线$/, (gtp) => `👥 Shadow Clone created a copy at ${gtp}. The mirror line will form next turn.`],
@@ -103,10 +139,13 @@ function translateServerEventMessageLegacy(message) {
     [/^掷骰触发，AI 这手选择虚手$/, () => "Dice Roll triggered. The AI chose to pass this turn."],
     [/^镜像触发，AI 在对称点 (.+) 落子$/, (gtp) => `Mirror triggered. The AI played at the mirrored point ${gtp}.`],
     [/^乾坤挪移生效，AI 本回合虚手并把回合交还给你$/, () => "Swap Turn took effect. The AI passed and handed the turn back to you."],
+    [/^请选择对方棋子和目标空点$/, () => "Select an enemy stone and an empty target point."],
+    [/^乾坤挪移只能移动对方棋子$/, () => "Swap Turn can only move enemy stones."],
+    [/^目标位置必须是空点$/, () => "The target point must be empty."],
     [/^🌫 战争迷雾刷新：3×3 禁区本回合对 AI 禁止落子$/, () => "🌫 Fog refreshed: the 3x3 no-go zone is forbidden to the AI this turn."],
     [/^🌫 战争迷雾刷新：高亮 3x3 区域本回合对 AI 禁止落子$/, () => "🌫 Fog refreshed: the highlighted 3x3 zone is forbidden to the AI this turn."],
     [/^手滑了触发，AI 原本想下 (.+)，结果滑到 (.+)$/, (from, to) => `Butter Fingers triggered. The AI wanted ${from}, but slipped to ${to}.`],
-    [/^△ 三三陷阱发动，在 (.+) 周围反打 (\d+) 子$/, (gtp, n) => `△ 3-3 Is a Trap triggered near ${gtp}, spawning ${n} counter stones.`],
+    [/^△? ?三三陷阱发动，在 (.+) (?:周围|相邻点)反打 (\d+) 子$/, (gtp, n) => `△ 3-3 Is a Trap triggered near ${gtp}, spawning ${n} counter stones.`],
     [/^蚕食反制：AI 提掉了 (\d+) 子，当前贴目变为 (.+)$/, (captured, komi) => `Erosion countered: the AI captured ${captured} stones, komi is now ${komi}.`],
     [/^🐛 蚕食！AI 提 (\d+) 子，贴目变为 (.+)$/, (captured, komi) => `🐛 Erosion! The AI captured ${captured} stones, komi is now ${komi}.`],
     [/^打劫禁着：不能立即提回$/, () => "Ko rule: you cannot immediately recapture."],
@@ -115,13 +154,206 @@ function translateServerEventMessageLegacy(message) {
   return translated === null ? message : translated;
 }
 
+function translateServerEventMessageWestern(message, lang) {
+  if (!message) return "";
+  const pick = (fr, de) => lang === "fr" ? fr : de;
+  const translateCorner = (corner) => translateServerEventCorner(corner, lang);
+  const translateColor = (color) => translateServerEventColor(color, lang);
+  const patterns = [
+    [/^暂无进行中的对局$/, () => pick("Aucune partie en cours", "Keine laufende Partie")],
+    [/^KataGo尚未就绪，当前不能进行 AI 对局$/, () => pick("KataGo n'est pas encore pret ; la partie contre l'IA ne peut pas demarrer.", "KataGo ist noch nicht bereit; eine KI-Partie kann noch nicht gestartet werden.")],
+    [/^还没轮到你$/, () => pick("Ce n'est pas encore votre tour.", "Du bist noch nicht am Zug.")],
+    [/^落点超出棋盘范围$/, () => pick("Le point de jeu est hors du goban.", "Der Zugpunkt liegt ausserhalb des Gobans.")],
+    [/^目标点超出棋盘范围$/, () => pick("Le point cible est hors du goban.", "Der Zielpunkt liegt ausserhalb des Gobans.")],
+    [/^该位置已有棋子:? ?(.+)?$/, (gtp = "") => pick(`Ce point est deja occupe${gtp ? ` : ${gtp}` : ""}.`, `Dieser Punkt ist bereits besetzt${gtp ? `: ${gtp}` : ""}.`)],
+    [/^打劫禁着：不能立即提回$/, () => pick("Regle du ko : reprise immediate interdite.", "Ko-Regel: Sofortiges Zurueckschlagen ist verboten.")],
+    [/^这手属于自杀禁着，不能这样下$/, () => pick("Ce coup est suicidaire et donc interdit.", "Dieser Zug ist ein verbotener Selbstmordzug.")],
+    [/^这里已被绝对领地封锁，不能在 AI 的禁区内落子$/, () => pick("Ce point est verrouille par le territoire absolu de l'IA.", "Dieser Punkt ist durch das absolute KI-Gebiet gesperrt.")],
+    [/^这里已被 AI 的 Rogue 卡限制，当前不能落子$/, () => pick("Ce point est restreint par une carte Rogue de l'IA.", "Dieser Punkt ist durch eine Rogue-Karte der KI gesperrt.")],
+    [/^该点已被傀儡术预留给 AI$/, () => pick("Ce point est reserve a l'IA par Marionnette.", "Dieser Punkt ist durch Marionette fuer die KI reserviert.")],
+    [/^无效落子: (.+)$/, (gtp) => pick(`Coup invalide : ${gtp}`, `Ungueltiger Zug: ${gtp}`)],
+    [/^快速思考已禁用推荐点位，请自行判断局面$/, () => pick("Reflexion rapide desactive les points recommandes ; lisez la position vous-meme.", "Schnelles Denken deaktiviert empfohlene Punkte; lies die Stellung selbst.")],
+    [/^这张卡会禁用悔棋$/, () => pick("Cette carte desactive l'annulation.", "Diese Karte deaktiviert Ruecknahme.")],
+    [/^测试版闯关：推荐点次数已用完$/, () => pick("Defi beta : les recommandations sont epuisees.", "Beta-Herausforderung: Empfehlungszuege sind aufgebraucht.")],
+    [/^测试版闯关：悔棋次数已用完$/, () => pick("Defi beta : les annulations sont epuisees.", "Beta-Herausforderung: Ruecknahmen sind aufgebraucht.")],
+    [/^测试版闯关：代下次数已用完$/, () => pick("Defi beta : les coups assistes sont epuises.", "Beta-Herausforderung: Stellvertreterzuege sind aufgebraucht.")],
+    [/^当前测试版闯关没有剩余刷新次数$/, () => pick("Il ne reste aucun rafraichissement pour ce defi.", "In dieser Herausforderung sind keine Aktualisierungen mehr uebrig.")],
+    [/^当前可刷新卡牌不足 3 张$/, () => pick("Moins de 3 cartes peuvent etre rafraichies.", "Es sind weniger als 3 Karten zum Aktualisieren verfuegbar.")],
+    [/^代练上号接管中，请等待强化 AI 完成代打$/, () => pick("Le coaching IA joue ce coup ; attendez la fin du coup assiste.", "Der KI-Coach uebernimmt diesen Zug; warte auf den Abschluss.")],
+    [/^代练上号已经在接管中$/, () => pick("Le coaching IA est deja en cours.", "Der KI-Coach ist bereits aktiv.")],
+    [/^代练上号已经用完了$/, () => pick("Le coaching IA a deja ete utilise.", "Der KI-Coach wurde bereits verbraucht.")],
+    [/^傀儡术已用完$/, () => pick("Marionnette a deja ete utilisee.", "Marionette wurde bereits verbraucht.")],
+    [/^双子星辰已用完$/, () => pick("Etoiles jumelles a deja ete utilisee.", "Zwillingssterne wurde bereits verbraucht.")],
+    [/^乾坤挪移已用完$/, () => pick("Echange cosmique a deja ete utilise.", "Kosmische Rochade wurde bereits verbraucht.")],
+    [/^请选择对方棋子和目标空点$/, () => pick("Selectionnez une pierre adverse et un point vide cible.", "Waehle einen gegnerischen Stein und einen leeren Zielpunkt.")],
+    [/^乾坤挪移只能移动对方棋子$/, () => pick("Echange cosmique ne peut deplacer qu'une pierre adverse.", "Kosmische Rochade kann nur gegnerische Steine bewegen.")],
+    [/^目标位置必须是空点$/, () => pick("Le point cible doit etre vide.", "Der Zielpunkt muss leer sein.")],
+    [/^处理出错: (.+)$/, (err) => pick(`Erreur de traitement : ${err}`, `Verarbeitungsfehler: ${err}`)],
+    [/^服务器错误: (.+)$/, (err) => pick(`Erreur serveur : ${err}`, `Serverfehler: ${err}`)],
+    [/^🎭 傀儡术待命：你先正常落子，随后 AI 会被迫下在 (.+)$/, (gtp) => pick(`🎭 Marionnette prete : jouez normalement, puis l'IA sera forcee de jouer en ${gtp}.`, `🎭 Marionette bereit: Spiele zuerst normal, danach muss die KI auf ${gtp} spielen.`)],
+    [/^⚡ 双子星辰！你可以继续落子$/, () => pick("⚡ Etoiles jumelles : vous pouvez rejouer.", "⚡ Zwillingssterne: Du darfst erneut spielen.")],
+    [/^🔄 乾坤挪移！你可以继续落子$/, () => pick("🔄 Echange cosmique : vous pouvez rejouer.", "🔄 Kosmische Rochade: Du darfst erneut spielen.")],
+    [/^🏋️ 奖励回合！你可以继续落子$/, () => pick("🏋️ Tour bonus : vous pouvez rejouer.", "🏋️ Bonuszug: Du darfst erneut spielen.")],
+    [/^你可以继续落子$/, () => pick("Vous pouvez rejouer.", "Du darfst erneut spielen.")],
+    [/^连珠棋触发成功，你可以继续落子$/, () => pick("Chaine de coups declenchee. Vous pouvez rejouer.", "Kettenzug ausgelost. Du darfst erneut spielen.")],
+    [/^双刀流触发成功，你可以继续落子$/, () => pick("Deux lames declenchee. Vous pouvez rejouer.", "Doppelklinge ausgelost. Du darfst erneut spielen.")],
+    [/^⚡ 快速思考：0\.5 秒追加手已开启$/, () => pick("⚡ Reflexion rapide : fenetre de 0,5 s ouverte pour un coup bonus.", "⚡ Schnelles Denken: 0,5-s-Fenster fuer einen Bonuszug ist offen.")],
+    [/^⚡ 快速思考：2 秒追加手已开启$/, () => pick("⚡ Reflexion rapide : fenetre de 2 s ouverte pour un coup bonus.", "⚡ Schnelles Denken: 2-s-Fenster fuer einen Bonuszug ist offen.")],
+    [/^📏 一板一眼：本回合还可继续落 (\d+) 子$/, (n) => pick(`📏 Methode : vous pouvez encore jouer ${n} pierre(s) ce tour.`, `📏 Methodisch: Du darfst in diesem Zug noch ${n} Stein(e) spielen.`)],
+    [/^🏋️ 让子棋任务：还需虚手 (\d+) 次才能落子$/, (n) => pick(`🏋️ Mission handicap : passez encore ${n} fois avant de jouer.`, `🏋️ Handicap-Mission: Passe noch ${n} Mal, bevor du spielen darfst.`)],
+    [/^🏋️ 让子棋任务完成！$/, () => pick("🏋️ Mission handicap terminee.", "🏋️ Handicap-Mission abgeschlossen.")],
+    [/^🏋️ 让子棋任务完成！现在每 (\d+) 手可多下一手$/, (n) => pick(`🏋️ Mission handicap terminee. Vous gagnez maintenant 1 coup bonus tous les ${n} coups.`, `🏋️ Handicap-Mission abgeschlossen. Du erhaeltst jetzt alle ${n} Zuege 1 Bonuszug.`)],
+    [/^🏋️ 虚手 (\d+)\/(\d+)$/, (a, b) => pick(`🏋️ Passes : ${a}/${b}`, `🏋️ Passen: ${a}/${b}`)],
+    [/^🎭 傀儡术！你替 AI 落子于 (.+)$/, (gtp) => pick(`🎭 Marionnette : vous avez joue ${gtp} pour l'IA.`, `🎭 Marionette: Du hast fuer die KI auf ${gtp} gespielt.`)],
+    [/^🎭 傀儡术生效，AI 被迫落子于 (.+)$/, (gtp) => pick(`🎭 Marionnette declenchee : l'IA a ete forcee de jouer en ${gtp}.`, `🎭 Marionette ausgelost: Die KI musste auf ${gtp} spielen.`)],
+    [/^🎭 傀儡术目标 (.+) 已被占用，AI 改为正常应手$/, (gtp) => pick(`🎭 La cible ${gtp} de Marionnette est occupee ; l'IA repond normalement.`, `🎭 Marionettenziel ${gtp} ist besetzt; die KI antwortet normal.`)],
+    [/^🎭 傀儡术目标 (.+) 当前不合法，AI 改为正常应手$/, (gtp) => pick(`🎭 La cible ${gtp} de Marionnette est illegale ; l'IA repond normalement.`, `🎭 Marionettenziel ${gtp} ist derzeit illegal; die KI antwortet normal.`)],
+    [/^🎭 傀儡术目标 (.+) 执行失败，AI 改为正常应手$/, (gtp) => pick(`🎭 La cible ${gtp} de Marionnette a echoue ; l'IA repond normalement.`, `🎭 Marionettenziel ${gtp} konnte nicht ausgefuehrt werden; die KI antwortet normal.`)],
+    [/^⚡ 双子星辰激活！下一手后可连续落子（剩余 (\d+) 次）$/, (n) => pick(`⚡ Etoiles jumelles activees. Apres votre prochain coup, vous pourrez rejouer. (${n} restant)`, `⚡ Zwillingssterne aktiv. Nach deinem naechsten Zug darfst du erneut spielen. (${n} uebrig)`)],
+    [/^🔄 乾坤挪移激活！AI 下次将被迫虚手$/, () => pick("🔄 Echange cosmique active. L'IA sera forcee de passer au prochain tour.", "🔄 Kosmische Rochade aktiv. Die KI muss im naechsten Zug passen.")],
+    [/^乾坤挪移生效，AI 本回合虚手并把回合交还给你$/, () => pick("Echange cosmique applique : l'IA passe et vous rend le trait.", "Kosmische Rochade wirkte: Die KI passt und gibt den Zug zurueck.")],
+    [/^黄金角已封锁 (.+) 的 4x4 区域$/, (corner) => pick(`Le Coin d'or a verrouille la zone 4x4 du ${translateCorner(corner)}.`, `Goldenes Eck hat das 4x4-Gebiet im ${translateCorner(corner)} gesperrt.`)],
+    [/^黑洞已锁定中央区域，整局都会限制 AI 进入$/, () => pick("Le Trou noir verrouille le centre ; l'IA ne pourra pas y entrer pendant toute la partie.", "Schwarzes Loch sperrt die Mitte; die KI darf sie die ganze Partie nicht betreten.")],
+    [/^定式强迫症已点亮 (\d+) 个目标点：(.*)。命中其中 (\d+) 个后会自动补满剩余点位$/, (count, pts, hits) => pick(`Joseki OCD marque ${count} points cibles : ${pts}. Touchez-en ${hits} pour remplir les autres automatiquement.`, `Joseki-Zwang markiert ${count} Zielpunkte: ${pts}. Triff ${hits} davon, um die uebrigen automatisch zu fuellen.`)],
+    [/^定式爆发已点亮目标点：(.*)。命中其中 3 个后会触发爆发$/, (pts) => pick(`Explosion joseki marque ces points cibles : ${pts}. Touchez-en 3 pour declencher l'explosion.`, `Joseki-Ausbruch markiert Zielpunkte: ${pts}. Triff 3 davon, um den Ausbruch auszuloesen.`)],
+    [/^让子任务开始：你需要先虚手 (\d+) 次，之后每下满 (\d+) 手可再让 AI 虚手一次$/, (passes, interval) => pick(`Mission handicap lancee : passez ${passes} fois, puis tous les ${interval} coups vous pourrez faire passer l'IA.`, `Handicap-Mission gestartet: Passe zuerst ${passes} Mal, danach darf die KI alle ${interval} Zuege erneut passen.`)],
+    [/^蚕食触发：提掉 (\d+) 子，当前贴目变为 (.+)$/, (captured, komi) => pick(`Erosion declenchee : ${captured} pierres capturees, komi actuel ${komi}.`, `Erosion ausgelost: ${captured} Steine geschlagen, Komi jetzt ${komi}.`)],
+    [/^萌芽触发：在提子处 3×3 范围的 (.+) 额外长出一颗己方棋子$/, (gtp) => pick(`🌱 Germe declenche : une pierre alliee pousse en ${gtp}, pres de la capture.`, `🌱 Spross ausgelost: Ein verbuendeter Stein waechst bei ${gtp} nahe dem Schlagpunkt.`)],
+    [/^萌芽触发：在 (.+) 额外长出一颗己方棋子$/, (gtp) => pick(`🌱 Germe declenche : une pierre alliee pousse en ${gtp}.`, `🌱 Spross ausgelost: Ein verbuendeter Stein waechst auf ${gtp}.`)],
+    [/^定式命中 \((\d+)\/(\d+)\)$/, (a, b) => pick(`Joseki touche (${a}/${b})`, `Joseki-Treffer (${a}/${b})`)],
+    [/^定式强迫症完成，自动补上 (\d+) 颗同色棋$/, (n) => pick(`Joseki OCD termine : ${n} pierres de meme couleur ajoutees automatiquement.`, `Joseki-Zwang abgeschlossen: ${n} gleichfarbige Steine automatisch ergaenzt.`)],
+    [/^✨ 神之一手发动，在暗点周围爆发 (\d+) 颗同色棋$/, (n) => pick(`✨ Main divine declenchee : ${n} pierres de meme couleur apparaissent autour du point cache.`, `✨ Goettliche Hand ausgelost: ${n} gleichfarbige Steine erscheinen um den verdeckten Punkt.`)],
+    [/^🏯 守角辅助补强了 (\d+) 颗角部援军$/, (n) => pick(`🏯 Aide au coin : ${n} renforts ajoutes dans le coin.`, `🏯 Eckhilfe: ${n} Verstaerkungssteine im Eck gesetzt.`)],
+    [/^✦ 三连星发动，(?:额外点亮|自动补出) (\d+) 个?颗?星位(?:棋)?$/, (n) => pick(`✦ Sanrensei declenche : ${n} points hoshi renforces.`, `✦ Sanrensei ausgelost: ${n} Hoshi-Punkte verstaerkt.`)],
+    [/^🎯 五子连珠发动，正好连成 5 子，在首尾 3×3 区域补下 (\d+) 颗己方棋子$/, (n) => pick(`🎯 Cinq en ligne declenche : ligne exacte de 5, ${n} pierre(s) alliee(s) ajoutee(s) dans les zones 3x3 aux deux bouts.`, `🎯 Fuenferlinie ausgelost: genau 5 Steine, ${n} verbuendete Stein(e) in den 3x3-Zonen an beiden Enden gesetzt.`)],
+    [/^🎯 五子连珠发动，正好连成 5 子，首尾额外补下 (\d+) 颗棋子$/, (n) => pick(`🎯 Cinq en ligne declenche : ligne exacte de 5, ${n} pierre(s) bonus ajoutee(s) aux deux bouts.`, `🎯 Fuenferlinie ausgelost: genau 5 Steine, ${n} Bonusstein(e) an beiden Enden gesetzt.`)],
+    [/^🫀 起死回生发动，在上一手周围扭转局面：清掉 (\d+) 颗敌子，补下 (\d+) 颗己棋$/, (cleared, changed) => pick(`🫀 Dernier souffle declenche : autour du dernier coup, ${cleared} pierres ennemies retirees et ${changed} alliees ajoutees.`, `🫀 Letztes Aufbaeumen ausgelost: nahe dem letzten Zug ${cleared} gegnerische Steine entfernt und ${changed} eigene gesetzt.`)],
+    [/^🚫 永不悔棋发动，在 (.+) 补了一手$/, (gtp) => pick(`🚫 Sans regret declenche : un coup bonus est ajoute en ${gtp}.`, `🚫 Keine Reue ausgelost: Ein Bonusstein wurde auf ${gtp} gesetzt.`)],
+    [/^🚫 永不悔棋发动，AI 落子后在 (.+) 赠送一子$/, (gtp) => pick(`🚫 Sans regret declenche apres le coup de l'IA : 1 pierre alliee offerte en ${gtp}.`, `🚫 Keine Reue nach dem KI-Zug ausgelost: 1 verbuendeter Stein auf ${gtp} gesetzt.`)],
+    [/^🪤 大智若愚发动，识别到 (\d+) 个愚形，额外长出 (\d+) 颗己方棋子$/, (shapes, stones) => pick(`🪤 Sage maladresse declenchee : ${shapes} formes maladroites detectees, ${stones} pierres alliees ajoutees.`, `🪤 Weiser Narr ausgelost: ${shapes} schlechte Formen erkannt, ${stones} verbuendete Steine erzeugt.`)],
+    [/^🛡 防御至上触发：在 (.+) 赠送 1 颗己棋，本局剩余 (\d+) 次$/, (gtp, n) => pick(`🛡 Defense d'abord declenchee : 1 pierre alliee offerte en ${gtp}. ${n} declenchement(s) restant(s).`, `🛡 Verteidigung zuerst ausgelost: 1 verbuendeter Stein auf ${gtp} gesetzt. ${n} Ausloesung(en) uebrig.`)],
+    [/^⚔ 进攻至上触发：在 (.+) 赠送 1 颗己棋，本局剩余 (\d+) 次$/, (gtp, n) => pick(`⚔ Attaque d'abord declenchee : 1 pierre alliee offerte en ${gtp}. ${n} declenchement(s) restant(s).`, `⚔ Angriff zuerst ausgelost: 1 verbuendeter Stein auf ${gtp} gesetzt. ${n} Ausloesung(en) uebrig.`)],
+    [/^🧺 提子犯规触发！(.+) 提子达到 (\d+) 颗，在我方推荐点 (.+) 赠送 1 颗己棋$/, (color, n, gtp) => pick(`🧺 Faute de capture declenchee : ${translateColor(color)} atteint ${n} captures ; 1 pierre alliee offerte au point recommande ${gtp}.`, `🧺 Schlag-Foul ausgelost: ${translateColor(color)} erreicht ${n} geschlagene Steine; 1 verbuendeter Stein auf Empfehlungspunkt ${gtp} gesetzt.`)],
+    [/^🧺 提子犯规触发！(.+) 提子达到 (\d+) 颗，但当前没有可用推荐点$/, (color, n) => pick(`🧺 Faute de capture declenchee : ${translateColor(color)} atteint ${n} captures, mais aucun point recommande n'est disponible.`, `🧺 Schlag-Foul ausgelost: ${translateColor(color)} erreicht ${n} geschlagene Steine, aber es gibt keinen verfuegbaren Empfehlungspunkt.`)],
+    [/^🧺 提子犯规触发！(.+) 被罚 (.+) 目$/, (color, penalty) => pick(`🧺 Faute de capture declenchee : ${translateColor(color)} perd ${penalty} points.`, `🧺 Schlag-Foul ausgelost: ${translateColor(color)} erhaelt ${penalty} Punkte Strafe.`)],
+    [/^让子任务奖励触发：每满 (\d+) 手获得一次奖励，本回合 AI 虚手$/, (n) => pick(`Bonus de mission handicap : recompense tous les ${n} coups, l'IA passe ce tour.`, `Handicap-Bonus ausgelost: alle ${n} Zuege gibt es eine Belohnung, die KI passt in diesem Zug.`)],
+    [/^让子任务奖励触发：每满 (\d+) 手获得一次奖励，当前进度 (\d+)\/(\d+)，AI 将虚手一次$/, (n, current, total) => pick(`Bonus de mission handicap : recompense tous les ${n} coups. Progression ${current}/${total}, l'IA passera une fois.`, `Handicap-Bonus ausgelost: alle ${n} Zuege gibt es eine Belohnung. Fortschritt ${current}/${total}; die KI passt einmal.`)],
+    [/^🔄 乾坤挪移：已将对方 (.+) 的棋子摆动到 (.+)$/, (from, to) => pick(`🔄 Echange cosmique : la pierre adverse en ${from} est deplacee vers ${to}.`, `🔄 Kosmische Rochade: Der gegnerische Stein von ${from} wurde nach ${to} bewegt.`)],
+    [/^🎓 代练上号启动：接下来 (\d+) 手将由更强 AI 代打$/, (n) => pick(`🎓 Coaching IA lance : une IA plus forte jouera les ${n} prochain(s) coup(s).`, `🎓 KI-Coach gestartet: Eine staerkere KI spielt die naechsten ${n} Zug/Zuege.`)],
+    [/^🎓 代练上号：强化 AI 接管了一手，剩余 (\d+) 手$/, (n) => pick(`🎓 Coaching IA : l'IA renforcee a joue un coup. ${n} coup(s) restant(s).`, `🎓 KI-Coach: Die verstaerkte KI hat einen Zug gespielt. ${n} Zug/Zuege uebrig.`)],
+    [/^🎓 代练上号追加触发：胜率仍低于 50%，额外再代打 (\d+) 手$/, (n) => pick(`🎓 Coaching IA prolonge : le taux de victoire reste sous 50 %, ${n} coup(s) assiste(s) en plus.`, `🎓 KI-Coach verlaengert: Die Gewinnrate liegt weiter unter 50 %, ${n} weitere Assistenzzuege.`)],
+    [/^🦠 无限增生！生成 (\d+) 颗棋子$/, (n) => pick(`🦠 Proliferation infinie : ${n} pierres generees.`, `🦠 Unendliche Wucherung: ${n} Steine erzeugt.`)],
+    [/^🌿 狂野生长！(\d+) 颗棋子生长出新子$/, (n) => pick(`🌿 Croissance sauvage : ${n} pierres ont produit de nouvelles pierres.`, `🌿 Wildwuchs: Aus ${n} Steinen wachsen neue Steine.`)],
+    [/^👥 影分身！在 (.+) 出现分身，下一回合会连成镜像线$/, (gtp) => pick(`👥 Clone d'ombre en ${gtp} ; la ligne miroir se formera au prochain tour.`, `👥 Schattenklon auf ${gtp}; die Spiegellinie entsteht im naechsten Zug.`)],
+    [/^👥 影分身连线完成：(.+) 连到 (.+)，铺开 (\d+) 颗同色棋$/, (from, to, n) => pick(`👥 Ligne de clones terminee : de ${from} a ${to}, ${n} pierres de meme couleur posees.`, `👥 Schattenklon-Linie fertig: von ${from} bis ${to}, ${n} gleichfarbige Steine gelegt.`)],
+    [/^☠️ 瘟疫蔓延！感染 (\d+) 颗敌子$/, (n) => pick(`☠️ Peste propagee : ${n} pierres ennemies infectees.`, `☠️ Seuche breitet sich aus: ${n} gegnerische Steine infiziert.`)],
+    [/^☄️ 陨石雨！摧毁 (\d+) 颗对方棋子$/, (n) => pick(`☄️ Pluie de meteores : ${n} pierres adverses detruites.`, `☄️ Meteorschauer: ${n} gegnerische Steine zerstoert.`)],
+    [/^⚛️ 量子纠缠！在 (\d+) 个位置出现棋子$/, (n) => pick(`⚛️ Intrication quantique : des pierres apparaissent sur ${n} points.`, `⚛️ Quantenverschränkung: Steine erscheinen an ${n} Punkten.`)],
+    [/^👹 吞噬之口！吃掉 (\d+) 颗对方棋子$/, (n) => pick(`👹 Gueule devorante : ${n} pierres adverses avalees.`, `👹 Verschlingender Schlund: ${n} gegnerische Steine gefressen.`)],
+    [/^⏳ 时空裂缝！抹去对方 (\d+) 手棋$/, (n) => pick(`⏳ Faille temporelle : ${n} coups adverses effaces.`, `⏳ Zeitriss: ${n} gegnerische Zuege geloescht.`)],
+    [/^🌋 天崩地裂！十字清除 (\d+) 颗敌子$/, (n) => pick(`🌋 Cataclysme : ${n} pierres ennemies retirees en croix.`, `🌋 Kataklysmus: ${n} gegnerische Steine kreuzfoermig entfernt.`)],
+    [/^🧲 磁力吸附！(\d+) 子飞奔，碾碎 (\d+) 颗敌子$/, (moved, crushed) => pick(`🧲 Attraction magnetique : ${moved} pierres foncent et ecrasent ${crushed} ennemies.`, `🧲 Magnetzug: ${moved} Steine rasen los und zermalmen ${crushed} Gegner.`)],
+    [/^🧲 磁力吸附！(\d+) 子飞奔$/, (moved) => pick(`🧲 Attraction magnetique : ${moved} pierres foncent.`, `🧲 Magnetzug: ${moved} Steine rasen los.`)],
+    [/^💀 亡灵召唤！召唤 (\d+) 子，转化 (\d+) 子$/, (spawned, converted) => pick(`💀 Necromancie : ${spawned} pierres invoquees, ${converted} converties.`, `💀 Nekromantie: ${spawned} Steine beschworen, ${converted} umgewandelt.`)],
+    [/^定式爆发命中 \((\d+)\/(\d+)\)$/, (a, b) => pick(`Explosion joseki touche (${a}/${b})`, `Joseki-Ausbruch Treffer (${a}/${b})`)],
+    [/^定式爆发完成：补满 (\d+) 个目标点，并额外爆发 (\d+) 颗棋子$/, (targets, extra) => pick(`Explosion joseki terminee : ${targets} points remplis, ${extra} pierres bonus explosees.`, `Joseki-Ausbruch abgeschlossen: ${targets} Zielpunkte gefuellt und ${extra} Extrasteine ausgebrochen.`)],
+    [/^✨ 神之一手发动，清空 (\d+) 颗敌子并洒下 (\d+) 颗同色棋$/, (cleared, filled) => pick(`✨ Main divine declenchee : ${cleared} ennemies retirees et ${filled} pierres de meme couleur semees.`, `✨ Goettliche Hand ausgelost: ${cleared} Gegner entfernt und ${filled} gleichfarbige Steine gestreut.`)],
+    [/^🏯 守角要塞封锁角部，清空 (\d+) 子并筑边 (\d+) 子$/, (cleared, placed) => pick(`🏯 Forteresse de coin : coin verrouille, ${cleared} pierres retirees, ${placed} pierres de bord construites.`, `🏯 Eckfestung: Eck gesperrt, ${cleared} Steine entfernt und ${placed} Randsteine gebaut.`)],
+    [/^✦ 三连星爆发，清空 (\d+) 子并扩张 (\d+) 颗星位势力$/, (cleared, changed) => pick(`✦ Explosion sanrensei : ${cleared} pierres retirees, influence hoshi etendue de ${changed} pierres.`, `✦ Sanrensei-Ausbruch: ${cleared} Steine entfernt und Hoshi-Einfluss um ${changed} Steine erweitert.`)],
+    [/^🎯 五子连珠爆发连锁 (\d+) 次：随机清除 (\d+) 颗敌子，并补下 (\d+) 颗己棋$/, (chains, cleared, spawned) => pick(`🎯 Cinq en ligne enchaine ${chains} fois : ${cleared} ennemies retirees au hasard, ${spawned} alliees ajoutees.`, `🎯 Fuenferlinie kettet ${chains} Mal: ${cleared} Gegner zufaellig entfernt, ${spawned} eigene Steine gesetzt.`)],
+    [/^🫀 起死回生发动，绝境反扑：清掉 (\d+) 颗敌子，并补下 (\d+) 颗己棋$/, (cleared, spawned) => pick(`🫀 Dernier souffle : ${cleared} ennemies retirees, ${spawned} pierres alliees ajoutees.`, `🫀 Letztes Aufbaeumen: ${cleared} Gegner entfernt, ${spawned} eigene Steine gesetzt.`)],
+    [/^🪤 大智若愚第 (\d+) 波发动，识别到 (\d+) 个愚形，生成 (\d+) 颗己方棋子$/, (wave, shapes, batch) => pick(`🪤 Sage maladresse vague ${wave} : ${shapes} formes maladroites, ${batch} pierres alliees generees.`, `🪤 Weiser Narr Welle ${wave}: ${shapes} schlechte Formen erkannt, ${batch} verbuendete Steine erzeugt.`)],
+    [/^🪤 大智若愚连锁结束，本次共生成 (\d+) 颗己方棋子$/, (n) => pick(`🪤 Fin de chaine Sage maladresse : ${n} pierres alliees generees au total.`, `🪤 Weiser-Narr-Kette beendet: Insgesamt ${n} eigene Steine erzeugt.`)],
+    [/^🧱 万里长城发动！第 (\d+) 行筑起 (\d+) 子$/, (row, placed) => pick(`🧱 Grande Muraille : ${placed} pierres construites sur la ligne ${row}.`, `🧱 Grosse Mauer: ${placed} Steine in Reihe ${row} gebaut.`)],
+    [/^🧱 万里长城发动！([A-Z]) 列筑起 (\d+) 子$/, (col, placed) => pick(`🧱 Grande Muraille : ${placed} pierres construites sur la colonne ${col}.`, `🧱 Grosse Mauer: ${placed} Steine in Spalte ${col} gebaut.`)],
+    [/^🧱 万里长城未能成型，这次没有筑起城墙$/, () => pick("🧱 La Grande Muraille ne prend pas forme cette fois.", "🧱 Die Grosse Mauer entsteht diesmal nicht.")],
+    [/^AI 的连珠棋触发，AI 将继续落子$/, () => pick("La chaine de coups de l'IA se declenche ; l'IA rejoue.", "Der Kettenzug der KI wurde ausgelost; die KI spielt erneut.")],
+    [/^AI 的双刀流触发，AI 将继续落子$/, () => pick("Deux lames de l'IA se declenche ; l'IA rejoue.", "Doppelklinge der KI wurde ausgelost; die KI spielt erneut.")],
+    [/^掷骰触发，AI 这手选择虚手$/, () => pick("Jet de de declenche : l'IA choisit de passer ce tour.", "Wuerfelwurf ausgelost: Die KI passt in diesem Zug.")],
+    [/^镜像触发，AI 在对称点 (.+) 落子$/, (gtp) => pick(`Miroir declenche : l'IA joue au point symetrique ${gtp}.`, `Spiegel ausgelost: Die KI spielt am symmetrischen Punkt ${gtp}.`)],
+    [/^🌫 战争迷雾刷新：3×3 禁区本回合对 AI 禁止落子$/, () => pick("🌫 Brouillard de guerre : la zone interdite 3x3 est fermee a l'IA ce tour.", "🌫 Kriegsnebel: Die 3x3-Verbotszone ist in diesem Zug fuer die KI gesperrt.")],
+    [/^🌫 战争迷雾刷新：高亮 3x3 区域本回合对 AI 禁止落子$/, () => pick("🌫 Brouillard de guerre : la zone 3x3 surlignee est fermee a l'IA ce tour.", "🌫 Kriegsnebel: Die markierte 3x3-Zone ist in diesem Zug fuer die KI gesperrt.")],
+    [/^🌫 战争迷雾残留：本回合随机封锁 (\d+) 个 AI 禁着点$/, (n) => pick(`🌫 Brouillard residuel : ${n} points interdits a l'IA sont verrouilles au hasard ce tour.`, `🌫 Restnebel: ${n} KI-Verbots-punkt(e) werden in diesem Zug zufaellig gesperrt.`)],
+    [/^手滑了触发，AI 原本想下 (.+)，结果滑到 (.+)$/, (from, to) => pick(`Main glissante declenchee : l'IA visait ${from}, mais glisse en ${to}.`, `Ausrutscher ausgelost: Die KI wollte ${from}, rutschte aber nach ${to}.`)],
+    [/^△? ?三三陷阱发动，在 (.+) (?:周围|相邻点)反打 (\d+) 子$/, (gtp, n) => pick(`△ Piege 3-3 declenche : ${n} contre-pierres posees pres de ${gtp}.`, `△ 3-3-Falle ausgelost: ${n} Kontersteine nahe ${gtp} gesetzt.`)],
+    [/^蚕食反制：AI 提掉了 (\d+) 子，当前贴目变为 (.+)$/, (captured, komi) => pick(`Contre-erosion : l'IA capture ${captured} pierres, komi actuel ${komi}.`, `Erosion gekontert: Die KI schlaegt ${captured} Steine, Komi jetzt ${komi}.`)],
+    [/^🐛 蚕食！AI 提 (\d+) 子，贴目变为 (.+)$/, (captured, komi) => pick(`🐛 Erosion : l'IA capture ${captured} pierres, komi actuel ${komi}.`, `🐛 Erosion: Die KI schlaegt ${captured} Steine, Komi jetzt ${komi}.`)],
+  ];
+  const translated = translateServerEventByPatterns(message, patterns);
+  return translated === null ? translateServerEventMessageLegacy(message, true) : translated;
+}
+
+function translateServerEventMessageTraditional(message) {
+  const table = {
+    "围": "圍", "对": "對", "盘": "盤", "谱": "譜", "让": "讓", "贴": "貼", "读": "讀",
+    "胜": "勝", "势": "勢", "设": "設", "开": "開", "关": "關", "选": "選", "级": "級",
+    "虚": "虛", "终": "終", "计": "計", "线": "線", "错": "錯", "误": "誤", "检": "檢",
+    "测": "測", "动": "動", "强": "強", "镜": "鏡", "黄": "黃", "战": "戰", "争": "爭", "雾": "霧",
+    "规": "規", "双": "雙", "随": "隨", "机": "機", "间": "間", "显": "顯", "请": "請",
+    "标": "標", "点": "點", "敌": "敵", "掷": "擲", "蚕": "蠶", "术": "術", "颗": "顆",
+    "内": "內", "转": "轉", "区": "區", "后": "後", "发": "發", "触": "觸", "补": "補",
+    "赠": "贈", "数": "數", "锁": "鎖", "获": "獲", "达": "達", "为": "為", "径": "徑",
+    "万": "萬", "与": "與", "两": "兩", "个": "個", "于": "於", "仅": "僅", "从": "從",
+    "优": "優", "会": "會", "体": "體", "侧": "側", "储": "儲", "关": "關", "写": "寫",
+    "军": "軍", "冲": "衝", "决": "決", "击": "擊", "则": "則", "创": "創", "别": "別",
+    "办": "辦", "务": "務", "励": "勵", "势": "勢", "单": "單", "叠": "疊", "号": "號",
+    "听": "聽", "启": "啟", "响": "響", "唤": "喚", "团": "團", "围": "圍", "国": "國",
+    "图": "圖", "圆": "圓", "场": "場", "块": "塊", "坛": "壇", "墙": "牆", "声": "聲",
+    "处": "處", "备": "備", "复": "復", "头": "頭", "奖": "獎", "妇": "婦", "学": "學",
+    "实": "實", "审": "審", "宽": "寬", "导": "導", "将": "將", "层": "層", "岁": "歲",
+    "岛": "島", "带": "帶", "帮": "幫", "庆": "慶", "应": "應", "废": "廢", "异": "異",
+    "张": "張", "归": "歸", "当": "當", "录": "錄", "忆": "憶", "忧": "憂", "怀": "懷",
+    "总": "總", "恶": "惡", "恼": "惱", "惯": "慣", "惩": "懲", "执": "執", "扩": "擴",
+    "扰": "擾", "扫": "掃", "扬": "揚", "抚": "撫", "护": "護", "报": "報", "担": "擔",
+    "拟": "擬", "拢": "攏", "拣": "揀", "拥": "擁", "拦": "攔", "拨": "撥", "择": "擇",
+    "挡": "擋", "挣": "掙", "挤": "擠", "挥": "揮", "损": "損", "捡": "撿", "换": "換",
+    "据": "據", "掺": "摻", "揽": "攬", "摇": "搖", "撑": "撐", "断": "斷", "无": "無",
+    "旧": "舊", "时": "時", "昼": "晝", "暂": "暫", "权": "權", "条": "條", "来": "來",
+    "极": "極", "构": "構", "栏": "欄", "树": "樹", "样": "樣", "档": "檔", "楼": "樓",
+    "横": "橫", "欢": "歡", "残": "殘", "毁": "毀", "气": "氣", "汇": "匯", "汉": "漢",
+    "泪": "淚", "泽": "澤", "洁": "潔", "浅": "淺", "测": "測", "济": "濟", "浑": "渾",
+    "浓": "濃", "润": "潤", "温": "溫", "湾": "灣", "湿": "濕", "满": "滿", "灭": "滅",
+    "灯": "燈", "灵": "靈", "爱": "愛", "牵": "牽", "状": "狀", "独": "獨", "现": "現",
+    "电": "電", "画": "畫", "盘": "盤", "础": "礎", "确": "確", "礼": "禮", "种": "種",
+    "积": "積", "称": "稱", "稳": "穩", "穷": "窮", "竖": "豎", "筑": "築", "筛": "篩",
+    "筹": "籌", "签": "簽", "简": "簡", "类": "類", "纠": "糾", "红": "紅", "约": "約",
+    "纪": "紀", "经": "經", "结": "結", "绕": "繞", "绘": "繪", "给": "給", "绝": "絕",
+    "统": "統", "绪": "緒", "续": "續", "缝": "縫", "缠": "纏", "网": "網", "罚": "罰",
+    "职": "職", "胜": "勝", "脑": "腦", "脸": "臉", "腾": "騰", "艰": "艱", "艺": "藝",
+    "节": "節", "荐": "薦", "荣": "榮", "荧": "螢", "获": "獲", "营": "營", "蓝": "藍",
+    "虑": "慮", "虫": "蟲", "蛮": "蠻", "补": "補", "见": "見", "观": "觀", "视": "視",
+    "览": "覽", "觉": "覺", "认": "認", "让": "讓", "讯": "訊", "记": "記", "讲": "講",
+    "许": "許", "设": "設", "访": "訪", "证": "證", "评": "評", "识": "識", "译": "譯",
+    "试": "試", "该": "該", "详": "詳", "语": "語", "说": "說", "读": "讀", "调": "調",
+    "谱": "譜", "负": "負", "财": "財", "责": "責", "败": "敗", "贴": "貼", "费": "費",
+    "资": "資", "赏": "賞", "赠": "贈", "赢": "贏", "转": "轉", "轮": "輪", "较": "較",
+    "辅": "輔", "输": "輸", "边": "邊", "过": "過", "还": "還", "这": "這", "进": "進",
+    "远": "遠", "违": "違", "连": "連", "适": "適", "选": "選", "递": "遞", "邻": "鄰",
+    "释": "釋", "铺": "鋪", "链": "鏈", "销": "銷", "锅": "鍋", "键": "鍵", "长": "長",
+    "门": "門", "闭": "閉", "问": "問", "闯": "闖", "闲": "閒", "闻": "聞", "阁": "閣",
+    "阈": "閾", "队": "隊", "阶": "階", "际": "際", "陆": "陸", "陨": "隕", "险": "險",
+    "隐": "隱", "难": "難", "页": "頁", "项": "項", "预": "預", "领": "領", "频": "頻",
+    "题": "題", "颜": "顏", "额": "額", "风": "風", "飞": "飛", "马": "馬", "驱": "驅",
+    "驶": "駛", "骑": "騎", "验": "驗", "鱼": "魚", "鲜": "鮮", "鸟": "鳥", "鸣": "鳴",
+    "鹰": "鷹", "麦": "麥", "齐": "齊", "齿": "齒", "龙": "龍", "龟": "龜",
+  };
+  return String(message || "")
+    .replace(/[\u3400-\u9fff]/g, ch => table[ch] || ch)
+    .replace(/禁着/g, "禁著")
+    .replace(/着点/g, "著點")
+    .replace(/包干/g, "包乾");
+}
+
 function translateServerEventMessage(message) {
   const source = String(message || "");
   if (!source) return "";
   if (currentLang === "en") return translateServerEventMessageLegacy(source);
+  if (currentLang === "fr" || currentLang === "de") return translateServerEventMessageWestern(source, currentLang);
+  if (currentLang === "zht") return translateServerEventMessageTraditional(source);
   if (currentLang === "zh") return source;
   const pick = (ja, ko) => currentLang === "ja" ? ja : ko;
   const translateCorner = (corner) => translateServerEventCorner(corner, currentLang);
+  const translateColor = (color) => translateServerEventColor(color, currentLang);
   const patterns = [
     [/^暂无进行中的对局$/, () => pick("進行中の対局はありません", "진행 중인 대국이 없습니다")],
     [/^KataGo尚未就绪，当前不能进行 AI 对局$/, () => pick("KataGoはまだ準備できていないため、AI対局は開始できません", "KataGo가 아직 준비되지 않아 AI 대국을 진행할 수 없습니다")],
@@ -190,7 +422,7 @@ function translateServerEventMessage(message) {
     [/^🪤 大智若愚发动，识别到 (\d+) 个愚形，额外长出 (\d+) 颗己方棋子$/, (shapes, stones) => pick(`🪤 大智若愚発動：愚形${shapes}個を検出し、味方${stones}子を追加しました`, `🪤 대지약우 발동: 나쁜 모양 ${shapes}개를 감지해 아군 돌 ${stones}개를 추가했습니다`)],
     [/^🛡 防御至上触发：在 (.+) 赠送 1 颗己棋，本局剩余 (\d+) 次$/, (gtp, n) => pick(`🛡 防御至上発動：${gtp}に味方1子を追加しました。残り${n}回`, `🛡 방어 우선 발동: ${gtp}에 아군 돌 1개를 추가했습니다. 남은 ${n}회`)],
     [/^⚔ 进攻至上触发：在 (.+) 赠送 1 颗己棋，本局剩余 (\d+) 次$/, (gtp, n) => pick(`⚔ 攻撃至上発動：${gtp}に味方1子を追加しました。残り${n}回`, `⚔ 공격 우선 발동: ${gtp}에 아군 돌 1개를 추가했습니다. 남은 ${n}회`)],
-    [/^🧺 提子犯规触发！(.+) 提子达到 (\d+) 颗，在我方推荐点 (.+) 赠送 1 颗己棋$/, (color, n, gtp) => pick(`🧺 取り石反則発動：${color}が${n}子取り、推奨点${gtp}に味方1子を追加しました`, `🧺 따냄 반칙 발동: ${color}이 ${n}개를 따내 추천점 ${gtp}에 아군 돌 1개를 추가했습니다`)],
+    [/^🧺 提子犯规触发！(.+) 提子达到 (\d+) 颗，在我方推荐点 (.+) 赠送 1 颗己棋$/, (color, n, gtp) => pick(`🧺 取り石反則発動：${translateColor(color)}が${n}子取り、推奨点${gtp}に味方1子を追加しました`, `🧺 따냄 반칙 발동: ${translateColor(color)}이 ${n}개를 따내 추천점 ${gtp}에 아군 돌 1개를 추가했습니다`)],
     [/^让子任务奖励触发：每满 (\d+) 手获得一次奖励，本回合 AI 虚手$/, (n) => pick(`置き石クエスト報酬発動：${n}手ごとに報酬を得て、この回はAIがパスします`, `접바둑 임무 보상 발동: ${n}수마다 보상을 얻으며 이번 차례 AI가 패스합니다`)],
     [/^🦠 无限增生！生成 (\d+) 颗棋子$/, (n) => pick(`🦠 無限増殖！${n}子を生成しました`, `🦠 무한 증식! 돌 ${n}개를 생성했습니다`)],
     [/^🌿 狂野生长！(\d+) 颗棋子生长出新子$/, (n) => pick(`🌿 狂野成長！${n}子から新しい石が伸びました`, `🌿 야생 성장! 돌 ${n}개에서 새 돌이 자랐습니다`)],

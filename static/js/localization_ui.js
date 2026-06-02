@@ -2,9 +2,12 @@
 
 const LANGUAGE_OPTIONS = [
   ["zh", "中文", "Chinese", "中国語", "중국어"],
+  ["zht", "繁體中文", "Traditional Chinese", "繁体字中国語", "번체 중국어"],
   ["en", "English", "English", "英語", "영어"],
   ["ja", "日语", "Japanese", "日本語", "일본어"],
   ["ko", "韩语", "Korean", "韓国語", "한국어"],
+  ["fr", "法语", "French", "フランス語", "프랑스어"],
+  ["de", "德语", "German", "ドイツ語", "독일어"],
 ];
 
 const AI_STYLE_OPTIONS = [
@@ -269,7 +272,7 @@ function refreshLocalizedRuntimeViews() {
 }
 
 function applyLanguage() {
-  document.documentElement.lang = { zh: "zh-CN", en: "en", ja: "ja", ko: "ko" }[currentLang] || "zh-CN";
+  document.documentElement.lang = { zh: "zh-CN", zht: "zh-TW", en: "en", ja: "ja", ko: "ko", fr: "fr", de: "de" }[currentLang] || "zh-CN";
   document.title = ui("rogue-go-arena", "rogue-go-arena", "rogue-go-arena", "rogue-go-arena");
 
   ensureLanguageControl();
