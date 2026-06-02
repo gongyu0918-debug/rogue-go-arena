@@ -71,7 +71,7 @@ def smoke_adapter_refresh_forwards_fog_picker_hooks() -> None:
         pick_fog_point_fn=pick_point,
     )
     assert game.ai_rogue_seal_points == [(4, 4)]
-    assert point_calls == [game, game]
+    assert point_calls == [game]
 
 
 def smoke_server_record_player_action_uses_current_record_wrapper() -> None:

@@ -5,7 +5,8 @@ const ROGUE_CARD_IDS = [
   "tengen","dice","erosion","puppet","seal","twin","nerf","komi_relief","time_press","lowline",
   "suboptimal","mirror","slip","blackhole","exchange","fog","gravity","golden_corner","sansan","shadow",
   "sprout","joseki_ocd","handicap_quest","god_hand","sansan_trap","corner_helper","sanrensei","no_regret",
-  "quickthink","foolish_wisdom","five_in_row","coach_mode","capture_foul","last_stand",
+  "quickthink","foolish_wisdom","five_in_row","coach_mode","capture_foul","last_stand","defense_first",
+  "attack_first","methodical",
 ];
 
 const ULTIMATE_CARD_IDS = [
@@ -29,6 +30,9 @@ const ROGUE_CARD_META = {
   no_regret: { tier: "B+", category: "风险收益", complexity: "低" },
   quickthink: { tier: "A", category: "节奏", complexity: "高" },
   five_in_row: { tier: "A", category: "连线构筑", complexity: "高" },
+  defense_first: { tier: "A", category: "构筑", complexity: "中" },
+  attack_first: { tier: "A", category: "构筑", complexity: "中" },
+  methodical: { tier: "A", category: "节奏", complexity: "高" },
 };
 
 const ULTIMATE_CARD_META = {
@@ -44,7 +48,8 @@ const CARD_ART_IDS = new Set([
   "tengen","dice","erosion","puppet","seal","twin","nerf","komi_relief","time_press","lowline",
   "suboptimal","mirror","slip","blackhole","exchange","fog","gravity","golden_corner","sansan","shadow",
   "sprout","joseki_ocd","handicap_quest","god_hand","sansan_trap","corner_helper","sanrensei","no_regret",
-  "quickthink","foolish_wisdom","five_in_row","coach_mode","capture_foul","last_stand","chain","proliferate",
+  "quickthink","foolish_wisdom","five_in_row","coach_mode","capture_foul","last_stand","defense_first",
+  "attack_first","methodical","chain","proliferate",
   "double","wildgrow","rejection","territory","shadow_clone","plague","meteor","quantum","devour","timewarp",
   "blackout","magnet","necro","wall","joseki_burst",
 ]);

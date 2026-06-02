@@ -35,6 +35,7 @@ class ForcedRogueAiTurnBinding:
     prepare_player_turn_modifiers: Callable[[Any], Any]
     finalize_forced_pass: Callable[..., Awaitable[None]]
     finalize_forced_stone: Callable[..., Awaitable[bool]]
+    check_capture_foul: Callable[..., Awaitable[None]]
     apply_puppet_move: Callable[..., Awaitable[bool]]
     finish_ai_move: Callable[..., Awaitable[None]]
 
@@ -50,6 +51,7 @@ class RestrictionRogueAiTurnBinding:
     coord_to_gtp: Callable[..., Any]
     finalize_forced_stone: Callable[..., Awaitable[bool]]
     prepare_player_turn_modifiers: Callable[[Any], Any]
+    check_capture_foul: Callable[..., Awaitable[None]]
     choose_allowed_move: Callable[..., Awaitable[str | None]]
     choose_avoid_move: Callable[..., Awaitable[str | None]]
     finish_ai_move: Callable[..., Awaitable[None]]
@@ -86,6 +88,7 @@ def build_forced_rogue_ai_turn_deps(binding: ForcedRogueAiTurnBinding) -> Forced
         prepare_player_turn_modifiers=binding.prepare_player_turn_modifiers,
         finalize_forced_pass=binding.finalize_forced_pass,
         finalize_forced_stone=binding.finalize_forced_stone,
+        check_capture_foul=binding.check_capture_foul,
         apply_puppet_move=binding.apply_puppet_move,
         finish_ai_move=binding.finish_ai_move,
     )
@@ -104,6 +107,7 @@ def build_restriction_rogue_ai_turn_deps(
         coord_to_gtp=binding.coord_to_gtp,
         finalize_forced_stone=binding.finalize_forced_stone,
         prepare_player_turn_modifiers=binding.prepare_player_turn_modifiers,
+        check_capture_foul=binding.check_capture_foul,
         choose_allowed_move=binding.choose_allowed_move,
         choose_avoid_move=binding.choose_avoid_move,
         finish_ai_move=binding.finish_ai_move,

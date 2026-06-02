@@ -279,7 +279,7 @@
     "rogue": {
       "tengen": {
         "name": "Tengen",
-        "desc": "For its first 3 moves, the AI is pulled toward the center and star points."
+        "desc": "The AI must open at tengen, then its next 1 move is restricted to the 5x5 diamond around tengen."
       },
       "dice": {
         "name": "Dice Roll",
@@ -315,7 +315,7 @@
       },
       "lowline": {
         "name": "Low Sweep",
-        "desc": "The AI hugs the 2nd–3rd lines for 6 moves."
+        "desc": "For its first 5 moves, the AI prefers low 2nd- and 3rd-line points."
       },
       "suboptimal": {
         "name": "Second Best",
@@ -339,7 +339,7 @@
       },
       "fog": {
         "name": "Fog of War",
-        "desc": "For the AI's first 11 moves, a drifting 3×3 no-go zone appears. After that, each turn blocks 2 random legal points."
+        "desc": "For the AI's first 11 moves, refresh a 3x3 no-go zone. After that, block 1 AI-forbidden point each turn inside the 3x3 diamond around the AI's previous move."
       },
       "gravity": {
         "name": "Gravity Well",
@@ -359,7 +359,7 @@
       },
       "sprout": {
         "name": "Sprout",
-        "desc": "Each capture spawns a bonus friendly stone nearby."
+        "desc": "After each of your captures, spawn 1 friendly stone at random within a 3x3 area around the captured point."
       },
       "joseki_ocd": {
         "name": "Joseki OCD",
@@ -391,15 +391,15 @@
       },
       "quickthink": {
         "name": "Quick Think",
-        "desc": "Play within 3s to unlock a 1s bonus move window. Hints and undo are disabled while this card is active."
+        "desc": "Play within 1 second to open a 0.5-second combo window. Timeout becomes a pass, and hints plus undo are disabled."
       },
       "foolish_wisdom": {
         "name": "Wise Fool",
-        "desc": "Form an ugly shape to sprout 2 bonus stones in the nearby 5×5 area."
+        "desc": "Form an ugly shape to sprout 1 bonus stone in the nearby 5x5 area."
       },
       "five_in_row": {
         "name": "Five in a Row",
-        "desc": "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, it extends the ends if possible; blocked ends become nearby support stones, plus 4 extra support stones near the line."
+        "desc": "When you form exactly 5 in a row, spawn 1 friendly stone in each 3x3 area at the two ends."
       },
       "coach_mode": {
         "name": "Coach Login",
@@ -407,17 +407,29 @@
       },
       "capture_foul": {
         "name": "Capture Foul",
-        "desc": "When the opponent's single capture or running capture total reaches 4 stones, a foul triggers automatically. The offender loses 4 points, then the counter resets."
+        "desc": "When the opponent captures 4 stones in one move or cumulatively, gift 1 friendly stone on your next recommended point, then reset the counter."
       },
       "last_stand": {
         "name": "Last Stand",
         "desc": "Once per game, if your winrate drops below 26%, remove 1 enemy stone and add 1 friendly stone inside the last move's 3×3 area without landing on forbidden points."
+      },
+      "defense_first": {
+        "name": "Defense First",
+        "desc": "Starting with your 3rd move, if your last 3 moves each have no enemy stone within their 5x5 area, spawn 1 friendly stone within a 5x5 area around any of your stones. Triggers up to twice per game."
+      },
+      "attack_first": {
+        "name": "Attack First",
+        "desc": "If your last 3 moves are each within a 3x3 area around enemy stones, spawn 1 friendly stone within a 3x3 area around any enemy stone. Triggers up to twice per game."
+      },
+      "methodical": {
+        "name": "Methodical",
+        "desc": "Each of your turns resolves after you play 2 stones in sequence; every 10th player turn grants 1 extra stone for a 3-stone turn."
       }
     },
     "ultimate": {
       "chain": {
         "name": "Chain Strike",
-        "desc": "Every move has a 65% chance to grant an extra turn."
+        "desc": "Every move has an 80% chance to grant an extra turn."
       },
       "proliferate": {
         "name": "Infinite Bloom",
@@ -445,7 +457,7 @@
       },
       "plague": {
         "name": "Plague",
-        "desc": "Convert every enemy stone in the 3×3 area to your color."
+        "desc": "Convert every enemy stone in the 5x5 area to your color."
       },
       "meteor": {
         "name": "Meteor Strike",

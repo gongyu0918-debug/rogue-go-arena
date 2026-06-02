@@ -18,6 +18,7 @@ class RogueAiTurnSharedFns:
     gtp_to_coord: Callable[..., Any]
     coord_to_gtp: Callable[..., Any]
     prepare_player_turn_modifiers: Callable[[Any], Any]
+    check_capture_foul: Callable[..., Awaitable[None]]
     finish_ai_move: Callable[..., Awaitable[None]]
 
 
@@ -87,6 +88,7 @@ def build_forced_rogue_ai_turn_binding(
         prepare_player_turn_modifiers=dependencies.shared.prepare_player_turn_modifiers,
         finalize_forced_pass=dependencies.forced.finalize_forced_pass,
         finalize_forced_stone=dependencies.forced.finalize_forced_stone,
+        check_capture_foul=dependencies.shared.check_capture_foul,
         apply_puppet_move=dependencies.forced.apply_puppet_move,
         finish_ai_move=dependencies.shared.finish_ai_move,
     )
@@ -105,6 +107,7 @@ def build_restriction_rogue_ai_turn_binding(
         coord_to_gtp=dependencies.shared.coord_to_gtp,
         finalize_forced_stone=dependencies.forced.finalize_forced_stone,
         prepare_player_turn_modifiers=dependencies.shared.prepare_player_turn_modifiers,
+        check_capture_foul=dependencies.shared.check_capture_foul,
         choose_allowed_move=dependencies.restriction.choose_allowed_move,
         choose_avoid_move=dependencies.restriction.choose_avoid_move,
         finish_ai_move=dependencies.shared.finish_ai_move,

@@ -70,6 +70,7 @@ class GeneratedMoveFinishBinding:
     roll_random: Callable[[], float]
     has_rogue_card: Callable[[Any, str], bool]
     pick_best_point: Callable[..., Awaitable[tuple[int, int] | None]]
+    check_capture_foul: Callable[..., Awaitable[None]]
     prepare_player_turn_modifiers: Callable[[Any], Any]
     apply_erosion_counter: Callable[..., Awaitable[Any]]
     erosion_shift: float
@@ -147,6 +148,7 @@ def build_generated_move_finish_deps(binding: GeneratedMoveFinishBinding) -> Gen
         roll_random=binding.roll_random,
         has_rogue_card=binding.has_rogue_card,
         pick_best_point=binding.pick_best_point,
+        check_capture_foul=binding.check_capture_foul,
         prepare_player_turn_modifiers=binding.prepare_player_turn_modifiers,
         apply_erosion_counter=binding.apply_erosion_counter,
         erosion_shift=binding.erosion_shift,

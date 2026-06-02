@@ -90,15 +90,15 @@ ROGUE_NERF_FACTOR = 0.05
 ROGUE_NERF_BACKUP_CHANCE = 0.60
 ROGUE_NERF_BACKUP_AI_MOVES = 12
 ROGUE_EROSION_SHIFT = 4.0
-ROGUE_TENGEN_AI_MOVES = 3
+ROGUE_TENGEN_AI_MOVES = 2
 ROGUE_FOG_MASK_RADIUS = 1
 ROGUE_FOG_AI_MOVES = 11
-ROGUE_FOG_POST_MASK_POINTS = 2
+ROGUE_FOG_POST_MASK_POINTS = 1
 ROGUE_BLACKHOLE_AI_MOVES = 6
 ROGUE_GOLDEN_CORNER_AI_MOVES = 10
 ROGUE_GOLDEN_CORNER_SPAN = 4
 ROGUE_GRAVITY_AI_MOVES = 6
-ROGUE_LOWLINE_AI_MOVES = 8
+ROGUE_LOWLINE_AI_MOVES = 5
 ROGUE_SHADOW_AI_MOVE_INDEXES = {1, 2, 3}
 ROGUE_SHADOW_CHANCE = 0.18
 ROGUE_SUBOPTIMAL_AI_MOVES = 8
@@ -106,7 +106,7 @@ ROGUE_TIME_PRESS_MAX_TIME = 0.10
 ROGUE_TIME_PRESS_MAX_VISITS = 20
 ROGUE_TIME_PRESS_BACKUP_CHANCE = 0.60
 ROGUE_TIME_PRESS_BACKUP_AI_MOVES = 12
-ROGUE_FOOLISH_FILL_COUNT = 2
+ROGUE_FOOLISH_FILL_COUNT = 1
 ULTIMATE_FOOLISH_FILL_COUNT = 20
 ULTIMATE_FOOLISH_CHAIN_DELAY = 1.0
 ROGUE_HANDICAP_REQUIRED_PASSES = 1
@@ -123,13 +123,22 @@ ROGUE_SANRENSEI_OPENING_MOVES = 3
 ROGUE_SANRENSEI_BONUS_STONES = 2
 ROGUE_SANRENSEI_SUPPORT_STONES = 0
 ROGUE_NO_REGRET_CHANCE = 0.08
-ROGUE_QUICKTHINK_FIRST_SECONDS = 2
-ROGUE_QUICKTHINK_SECOND_SECONDS = 1
+ROGUE_QUICKTHINK_FIRST_SECONDS = 1
+ROGUE_QUICKTHINK_SECOND_SECONDS = 0.5
 ROGUE_SANSAN_TRAP_STONES = 1
 ROGUE_SEAL_POINT_COUNT = 4
-ROGUE_FIVE_IN_ROW_SUPPORT_STONES = 2
+ROGUE_FIVE_IN_ROW_SUPPORT_STONES = 0
+ROGUE_SUPREMACY_TRIGGER_WINDOW = 3
+ROGUE_SUPREMACY_MAX_TRIGGERS = 2
+ROGUE_DEFENSE_SAFE_RADIUS = 2
+ROGUE_DEFENSE_SPAWN_RADIUS = 2
+ROGUE_ATTACK_NEAR_RADIUS = 1
+ROGUE_ATTACK_SPAWN_RADIUS = 1
+ROGUE_METHODICAL_BASE_PLAYS = 2
+ROGUE_METHODICAL_BONUS_INTERVAL = 10
+ROGUE_METHODICAL_BONUS_PLAYS = 3
 
-ULTIMATE_CHAIN_EXTRA_TURN_CHANCE = 0.65
+ULTIMATE_CHAIN_EXTRA_TURN_CHANCE = 0.80
 ULTIMATE_WILDGROW_MAX_GROWTH = 4
 ULTIMATE_METEOR_DESTROY_COUNT = 5
 ULTIMATE_QUANTUM_PLACE_COUNT = 5
@@ -217,12 +226,11 @@ BALANCE_TUNABLES = {
     "ROGUE_SANRENSEI_SUPPORT_STONES": {"group": "Rogue", "card": "sanrensei", "label": "三连星援军", "min": 0, "max": 20, "step": 1},
     "ROGUE_NO_REGRET_CHANCE": {"group": "Rogue", "card": "no_regret", "label": "永不悔棋白送概率", "min": 0, "max": 1, "step": 0.01},
     "ROGUE_QUICKTHINK_FIRST_SECONDS": {"group": "Rogue", "card": "quickthink", "label": "快速思考首段秒数", "min": 1, "max": 30, "step": 1},
-    "ROGUE_QUICKTHINK_SECOND_SECONDS": {"group": "Rogue", "card": "quickthink", "label": "快速思考连击秒数", "min": 1, "max": 30, "step": 1},
+    "ROGUE_QUICKTHINK_SECOND_SECONDS": {"group": "Rogue", "card": "quickthink", "label": "快速思考连击秒数", "min": 0.1, "max": 30, "step": 0.1},
     "ROGUE_SANSAN_TRAP_STONES": {"group": "Rogue", "card": "sansan_trap", "label": "三三陷阱反生子", "min": 0, "max": 40, "step": 1},
     "ROGUE_SEAL_POINT_COUNT": {"group": "Rogue", "card": "seal", "label": "封印点数量", "min": 1, "max": 20, "step": 1},
     "ROGUE_FIVE_IN_ROW_SUPPORT_STONES": {"group": "Rogue", "card": "five_in_row", "label": "五子连珠援军", "min": 0, "max": 30, "step": 1},
     "ROGUE_CAPTURE_FOUL_THRESHOLD": {"group": "Rogue", "card": "capture_foul", "label": "提子犯规阈值", "min": 1, "max": 50, "step": 1},
-    "ROGUE_CAPTURE_FOUL_KOMI_PENALTY": {"group": "Rogue", "card": "capture_foul", "label": "提子犯规罚目", "min": 0, "max": 50, "step": 0.5},
     "ROGUE_COACH_BASE_TURNS": {"group": "Rogue", "card": "coach_mode", "label": "代练基础手数", "min": 1, "max": 120, "step": 1},
     "ROGUE_COACH_BONUS_TURNS": {"group": "Rogue", "card": "coach_mode", "label": "代练追加手数", "min": 0, "max": 120, "step": 1},
     "ROGUE_COACH_BONUS_THRESHOLD": {"group": "Rogue", "card": "coach_mode", "label": "代练追加阈值", "min": 0, "max": 1, "step": 0.01},

@@ -20,6 +20,7 @@ class RestrictionRogueAiTurnDeps:
     coord_to_gtp: Callable[..., Any]
     finalize_forced_stone: Callable[..., Awaitable[bool]]
     prepare_player_turn_modifiers: Callable[[Any], Any]
+    check_capture_foul: Callable[..., Awaitable[None]]
     choose_allowed_move: Callable[..., Awaitable[str | None]]
     choose_avoid_move: Callable[..., Awaitable[str | None]]
     finish_ai_move: Callable[..., Awaitable[None]]
@@ -52,6 +53,7 @@ async def try_finish_restriction_rogue_ai_turn_event(
         coord_to_gtp=deps.coord_to_gtp,
         finalize_forced_stone=deps.finalize_forced_stone,
         prepare_player_turn_modifiers=deps.prepare_player_turn_modifiers,
+        check_capture_foul=deps.check_capture_foul,
         run_engine_command=run_engine_command,
         choose_allowed_move=deps.choose_allowed_move,
         choose_avoid_move=deps.choose_avoid_move,

@@ -8,7 +8,7 @@ import asyncio
 from typing import get_type_hints
 
 import app.runtime.ws_actions as ws_actions
-from app.config.gameplay import ROGUE_HANDICAP_REQUIRED_PASSES
+from app.config.gameplay import ROGUE_HANDICAP_REQUIRED_PASSES, ROGUE_METHODICAL_BASE_PLAYS
 from app.domain.coordinates import coord_to_gtp
 from app.domain.game_state import GoGame
 from app.runtime.ws_action_context import WebSocketActionContext
@@ -243,8 +243,37 @@ async def smoke_rogue_quickthink_bonus_skips_ai_once() -> None:
     assert game.rogue_quickthink_stage == 2
     assert game.current_player == game.player_color
     assert ctx.ai_moves == []
-    assert ctx.sent[-1] == {"type": "rogue_event", "msg": "⚡ 快速思考：2 秒追加手已开启"}
+    assert ctx.sent[-1] == {"type": "rogue_event", "msg": "⚡ 快速思考：0.5 秒追加手已开启"}
     assert ctx.background_games == [game]
+
+
+async def smoke_rogue_methodical_keeps_player_until_quota_is_used() -> None:
+    game = make_game()
+    game.rogue_card = "methodical"
+    ctx = FakeContext(game)
+
+    await handle_play(ctx, {"x": 4, "y": 4})
+    await asyncio.sleep(0)
+
+    assert game.moves == [("B", "E5")]
+    assert game.rogue_methodical_turns["B"] == 1
+    assert game.rogue_methodical_remaining == ROGUE_METHODICAL_BASE_PLAYS - 1
+    assert game.current_player == game.player_color
+    assert ctx.ai_moves == []
+    assert ctx.sent[-1] == {
+        "type": "rogue_event",
+        "msg": "📏 一板一眼：本回合还可继续落 1 子",
+    }
+
+    await handle_play(ctx, {"x": 5, "y": 4})
+    await asyncio.sleep(0)
+
+    assert game.moves == [("B", "E5"), ("B", "F5")]
+    assert game.rogue_methodical_turns["B"] == 1
+    assert game.rogue_methodical_remaining == 0
+    assert game.current_player == game.ai_color
+    assert ctx.ai_moves == [game]
+    assert ctx.engine.commands == ["play B E5", "play B F5"]
 
 
 async def smoke_play_dispatches_ultimate_games_to_ultimate_handler() -> None:
@@ -286,6 +315,7 @@ async def main() -> None:
     await smoke_engine_rejects_invalid_play_without_mutating_board()
     await smoke_rogue_skip_ai_keeps_player_turn()
     await smoke_rogue_quickthink_bonus_skips_ai_once()
+    await smoke_rogue_methodical_keeps_player_until_quota_is_used()
     await smoke_play_dispatches_ultimate_games_to_ultimate_handler()
     smoke_ws_action_handlers_keep_play_action_name()
     smoke_play_action_annotations_resolve_runtime_context()

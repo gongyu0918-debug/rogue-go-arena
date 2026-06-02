@@ -93,7 +93,8 @@ def pick_joseki_targets(size: int, n: int = 8) -> list[tuple[int, int]]:
 
 
 def is_lowline(x: int, y: int, size: int) -> bool:
-    return x <= 2 or x >= size - 3 or y <= 2 or y >= size - 3
+    edge_distance = min(x, y, size - 1 - x, size - 1 - y)
+    return edge_distance in {1, 2}
 
 
 def mirror_coord(x: int, y: int, size: int) -> tuple[int, int]:

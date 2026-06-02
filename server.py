@@ -48,6 +48,9 @@ from app.config.gameplay import (
     ROGUE_LAST_STAND_CLEAR_COUNT,
     ROGUE_LAST_STAND_SPAWN_COUNT,
     ROGUE_LAST_STAND_THRESHOLD,
+    ROGUE_METHODICAL_BONUS_INTERVAL,
+    ROGUE_METHODICAL_BONUS_PLAYS,
+    ROGUE_METHODICAL_BASE_PLAYS,
     ROGUE_MIRROR_CHANCE,
     ROGUE_NO_REGRET_CHANCE,
     ROGUE_QUICKTHINK_FIRST_SECONDS,
@@ -919,6 +922,10 @@ def _capture_foul_dependencies() -> CaptureFoulDependencies:
     return CaptureFoulDependencies(
         runtime=CaptureFoulRuntimeFns(
             sync_komi=_sync_engine_komi,
+            sync_board=_sync_board_to_katago,
+            pick_best_point=_pick_best_point,
+            spawn_bonus_points=_spawn_bonus_points,
+            coord_to_gtp=coord_to_gtp,
         ),
     )
 
@@ -1576,6 +1583,7 @@ def _generated_ai_runtime_dependencies() -> GeneratedAiRuntimeDependencies:
             roll_random=random.random,
             has_rogue_card=_rogue_has,
             pick_best_point=_pick_best_point,
+            check_capture_foul=_check_capture_foul,
             prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
             apply_erosion_counter=apply_erosion_komi_counter,
             run_erosion_command=_send_engine_command,
@@ -1637,6 +1645,7 @@ def _rogue_ai_turn_dependencies() -> RogueAiTurnDependencies:
             gtp_to_coord=gtp_to_coord,
             coord_to_gtp=coord_to_gtp,
             prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
+            check_capture_foul=_check_capture_foul,
             finish_ai_move=_finish_ai_move,
         ),
         forced=ForcedRogueAiTurnFns(

@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import asyncio
 
-from app.config.gameplay import ROGUE_HANDICAP_REQUIRED_PASSES
+from app.config.gameplay import (
+    ROGUE_HANDICAP_REQUIRED_PASSES,
+    ROGUE_METHODICAL_BASE_PLAYS,
+    ROGUE_METHODICAL_BONUS_INTERVAL,
+    ROGUE_METHODICAL_BONUS_PLAYS,
+)
+from app.gameplay.turn_modifiers import has_methodical_card
 from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_action_utils import board_point_from_data
 from app.runtime.ws_ultimate_actions import handle_ultimate_play
@@ -89,7 +95,25 @@ async def handle_play(ctx: WebSocketActionContext, data: dict) -> None:
         return
     game.moves.append((color, gtp))
     game.passed[color] = False
-    game.current_player = "W" if color == "B" else "B"
+
+    methodical_bonus = False
+    methodical_remaining = 0
+    if has_methodical_card(game) and not game.two_player:
+        if game.rogue_methodical_remaining <= 0:
+            game.rogue_methodical_turns[color] += 1
+            turn_count = game.rogue_methodical_turns[color]
+            game.rogue_methodical_remaining = (
+                ROGUE_METHODICAL_BONUS_PLAYS
+                if turn_count % ROGUE_METHODICAL_BONUS_INTERVAL == 0
+                else ROGUE_METHODICAL_BASE_PLAYS
+            )
+        game.rogue_methodical_remaining = max(0, game.rogue_methodical_remaining - 1)
+        methodical_remaining = game.rogue_methodical_remaining
+        methodical_bonus = methodical_remaining > 0
+        game.current_player = game.player_color if methodical_bonus else game.ai_color
+    else:
+        game.current_player = "W" if color == "B" else "B"
+
     await ctx.check_capture_foul(game, ctx.send, color, captured, ultimate=False)
     await ctx.apply_player_rogue_move_effects(game, ctx.send, x, y, color, captured)
     await ctx.apply_ai_rogue_response_effects(game, ctx.send, x, y, color)
@@ -116,9 +140,14 @@ async def handle_play(ctx: WebSocketActionContext, data: dict) -> None:
             "handicap_quest": "🏋️ 奖励回合！你可以继续落子",
         }
         await ctx.send({"type": "rogue_event", "msg": skip_msgs.get(game.rogue_card, "你可以继续落子")})
+    elif methodical_bonus:
+        await ctx.send({
+            "type": "rogue_event",
+            "msg": f"📏 一板一眼：本回合还可继续落 {methodical_remaining} 子",
+        })
     elif not game.two_player and ctx.engine.ready:
         if quickthink_bonus:
-            await ctx.send({"type": "rogue_event", "msg": "⚡ 快速思考：2 秒追加手已开启"})
+            await ctx.send({"type": "rogue_event", "msg": "⚡ 快速思考：0.5 秒追加手已开启"})
         else:
             await ctx.ai_move(game, ctx.send)
 

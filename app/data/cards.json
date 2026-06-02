@@ -18,10 +18,10 @@
           "ko-KR": "천원"
         },
         "desc": {
-          "zh-CN": "AI 开局必下天元，随后 2 手只能在天元 5×5 菱形区域落子。",
-          "en-US": "The AI opens at tengen, then its next 2 moves are restricted to the 5x5 diamond around tengen.",
-          "ja-JP": "AIは初手を天元に打ち、その後2手は天元周囲5×5の菱形内に制限されます。",
-          "ko-KR": "AI는 첫 수를 천원에 두고, 이후 2수는 천원 주변 5x5 마름모 영역에만 둘 수 있습니다."
+          "zh-CN": "AI 第一手必下天元，随后 1 手只能在天元 5×5 菱形区域落子。",
+          "en-US": "The AI must open at tengen, then its next 1 move is restricted to the 5x5 diamond around tengen.",
+          "ja-JP": "AIは初手を天元に打ち、その後1手だけ天元周囲5×5の菱形内に制限されます。",
+          "ko-KR": "AI는 첫 수를 천원에 두고, 이후 1수는 천원 주변 5x5 마름모 영역에만 둘 수 있습니다."
         },
         "icon": "◎"
       },
@@ -155,10 +155,10 @@
           "ko-KR": "저공비행"
         },
         "desc": {
-          "zh-CN": "AI 前 8 手偏向二三路低位",
-          "en-US": "The AI hugs the 2nd–3rd lines for 6 moves.",
-          "ja-JP": "AIの序盤8手は二線・三線の低い着点を好みます。",
-          "ko-KR": "AI의 초반 8수가 2선과 3선의 낮은 착점을 선호합니다."
+          "zh-CN": "AI 前 5 手偏向二三路低位。",
+          "en-US": "For its first 5 moves, the AI prefers low 2nd- and 3rd-line points.",
+          "ja-JP": "AIの序盤5手は二線・三線の低い着点を好みます。",
+          "ko-KR": "AI의 초반 5수는 2선과 3선의 낮은 착점을 선호합니다."
         },
         "icon": "🦊"
       },
@@ -246,10 +246,10 @@
           "ko-KR": "전장의 안개"
         },
         "desc": {
-          "zh-CN": "AI 前 11 手每手前会刷新一个 3×3 禁区遮罩；之后每回合随机封锁 2 个 AI 禁着点",
-          "en-US": "For the AI's first 11 moves, a drifting 3×3 no-go zone appears. After that, each turn blocks 2 random legal points.",
-          "ja-JP": "AIの序盤11手は、毎手ごとに3×3の禁じ手エリアが移動します。その後は各手番でAIの合法点2か所をランダムに封鎖します。",
-          "ko-KR": "AI의 초반 11수마다 3×3 금수 마스크가 새로 생깁니다. 이후 매 차례 AI의 합법점 2곳을 무작위로 봉쇄합니다."
+          "zh-CN": "AI 前 11 手每手前刷新一个 3×3 禁区；之后每回合随机封锁 1 个 AI 禁着点，且禁着点位于 AI 上一手落子的 3×3 菱形区域。",
+          "en-US": "For the AI's first 11 moves, refresh a 3x3 no-go zone. After that, block 1 AI-forbidden point each turn inside the 3x3 diamond around the AI's previous move.",
+          "ja-JP": "AIの序盤11手は毎手3×3の禁区を更新します。その後は各手番で、AIの前手周囲3×3菱形内の1点を禁着にします。",
+          "ko-KR": "AI의 초반 11수마다 3x3 금지 구역을 새로 고칩니다. 이후 매 턴 AI 이전 착수 주변 3x3 마름모 안에서 금지점 1곳을 봉쇄합니다."
         },
         "icon": "🌫️"
       },
@@ -321,10 +321,10 @@
           "ko-KR": "싹트기"
         },
         "desc": {
-          "zh-CN": "每次提子后，都会在附近自动长出 1 颗己棋",
-          "en-US": "Each capture spawns a bonus friendly stone nearby.",
-          "ja-JP": "石を取るたびに、近くの空点へ自分の石が1子生えます。",
-          "ko-KR": "돌을 따낼 때마다 근처 빈 점에 내 돌 1개가 자동으로 생깁니다."
+          "zh-CN": "每次我方提子后，在提子处 3×3 范围内随机生成 1 颗我方棋子。",
+          "en-US": "After each of your captures, spawn 1 friendly stone at random within a 3x3 area around the captured point.",
+          "ja-JP": "自分が石を取るたび、取った地点の3×3範囲に自分の石1子がランダムに生えます。",
+          "ko-KR": "내가 돌을 따낼 때마다 따낸 지점 3x3 범위에 내 돌 1개가 무작위로 생깁니다."
         },
         "icon": "🌱"
       },
@@ -441,10 +441,10 @@
           "ko-KR": "빠른 생각"
         },
         "desc": {
-          "zh-CN": "2 秒内落子可追加 1 秒连击窗口；超时视为虚手。选中后禁用推荐点位与悔棋。",
-          "en-US": "Play within 2 seconds to open a 1-second combo window; timeout becomes a pass. Hints and undo are disabled.",
-          "ja-JP": "2秒以内に着手すると1秒の連撃窓が開き、時間切れはパス扱い。ヒントと待ったは使用不可。",
-          "ko-KR": "2초 안에 두면 1초 연속 착수 창이 열리고, 시간 초과는 패스로 처리됩니다. 추천점과 되돌리기는 비활성화됩니다."
+          "zh-CN": "1 秒内落子可追加 0.5 秒连击窗口；超时虚手，禁用推荐点与悔棋。",
+          "en-US": "Play within 1 second to open a 0.5-second combo window. Timeout becomes a pass, and hints plus undo are disabled.",
+          "ja-JP": "1秒以内に着手すると0.5秒の連撃窓が開きます。時間切れはパス扱いで、ヒントと待ったは使用不可。",
+          "ko-KR": "1초 안에 두면 0.5초 연속 착수 창이 열립니다. 시간 초과는 패스가 되며 추천점과 되돌리기는 비활성화됩니다."
         },
         "icon": "⚡"
       },
@@ -456,10 +456,10 @@
           "ko-KR": "우형의 지혜"
         },
         "desc": {
-          "zh-CN": "摆出愚形，附近 5×5 内随机长出 2 颗己棋",
-          "en-US": "Form an ugly shape to sprout 2 bonus stones in the nearby 5×5 area.",
-          "ja-JP": "愚形を作ると、近くの5×5範囲に自分の石が2子生えます。",
-          "ko-KR": "우형을 만들면 근처 5×5 영역에 내 돌 2개가 생깁니다."
+          "zh-CN": "摆出愚形，附近 5×5 内随机长出 1 颗己棋。",
+          "en-US": "Form an ugly shape to sprout 1 bonus stone in the nearby 5x5 area.",
+          "ja-JP": "愚形を作ると、近くの5×5範囲に自分の石が1子生えます。",
+          "ko-KR": "우형을 만들면 근처 5x5 영역에 내 돌 1개가 생깁니다."
         },
         "icon": "🧠"
       },
@@ -471,10 +471,10 @@
           "ko-KR": "오목 연주"
         },
         "desc": {
-          "zh-CN": "每当我方横、竖、斜正好连成 5 颗同色棋，就会优先在首尾补子；若首尾被堵住，则改在两端附近补子，并在连线附近再补 2 颗援军。",
-          "en-US": "When exactly 5 of your stones connect in a line, endpoints are filled first; if blocked, nearby endpoints are used, plus 2 support stones near the line.",
-          "ja-JP": "自分の石が縦横斜めにちょうど5子連なると、まず両端を補強します。塞がれていれば端付近に置き、さらに周辺に援軍2子を補います。",
-          "ko-KR": "내 돌 5개가 가로/세로/대각선으로 정확히 이어지면 양끝을 우선 보강하고, 막혀 있으면 주변 끝점과 선 근처에 지원 돌 2개를 추가합니다."
+          "zh-CN": "正好连成 5 颗时，在首尾 3×3 区域各生成 1 颗己方棋子。",
+          "en-US": "When you form exactly 5 in a row, spawn 1 friendly stone in each 3x3 area at the two ends.",
+          "ja-JP": "ちょうど5子が連なると、両端の3×3範囲に自分の石を各1子生成します。",
+          "ko-KR": "정확히 5개가 이어지면 양 끝 3x3 영역에 내 돌을 각각 1개 생성합니다."
         },
         "icon": "🎯"
       },
@@ -502,10 +502,10 @@
           "ko-KR": "따냄 반칙"
         },
         "desc": {
-          "zh-CN": "若对手单次或累计提子达到 4 颗，就会触发“提子未放在棋盒”，被惩罚方罚 4 目，随后重新计数",
-          "en-US": "When the opponent's single capture or running capture total reaches 4 stones, a foul triggers automatically. The offender loses 4 points, then the counter resets.",
-          "ja-JP": "相手が1回または累計で4子取ると反則判定が発生し、反則側に4目の罰が入ってカウントをリセットします。",
-          "ko-KR": "상대가 한 번에 또는 누적으로 4개 이상 따내면 반칙 판정이 발생해 반칙 쪽에 4집 벌점을 주고 카운트를 초기화합니다."
+          "zh-CN": "对手单次或累计提子达 4 颗时，在我方下一手推荐落点中赠送 1 颗我方棋子，随后重新计数。",
+          "en-US": "When the opponent captures 4 stones in one move or cumulatively, gift 1 friendly stone on your next recommended point, then reset the counter.",
+          "ja-JP": "相手が1回または累計で4子取ると、自分の次の推奨点に自分の石1子を贈り、カウントをリセットします。",
+          "ko-KR": "상대가 한 번에 또는 누적으로 4개를 따내면 내 다음 추천점에 내 돌 1개를 주고 카운트를 초기화합니다."
         },
         "icon": "🧺"
       },
@@ -523,6 +523,51 @@
           "ko-KR": "내 승률이 26% 아래로 떨어질 때 한 번만 발동합니다. 직전 수 주변 3×3에서 상대 돌 1개를 지우고 내 돌 1개를 보충합니다."
         },
         "icon": "🫀"
+      },
+      "defense_first": {
+        "name": {
+          "zh-CN": "防御至上",
+          "en-US": "Defense First",
+          "ja-JP": "防御至上",
+          "ko-KR": "방어 우선"
+        },
+        "desc": {
+          "zh-CN": "从我方第三手开始，若我方连续 3 手落子点位的 5×5 范围内无敌方棋子，则在我方任意 1 颗棋子 5×5 范围内随机赠送 1 颗我方棋子。每局最多触发 2 次。",
+          "en-US": "Starting with your 3rd move, if your last 3 moves each have no enemy stone within their 5x5 area, spawn 1 friendly stone within a 5x5 area around any of your stones. Triggers up to twice per game.",
+          "ja-JP": "自分の3手目以降、直近3手それぞれの5×5範囲に敵石がなければ、自分の任意の石の5×5範囲に自分の石1子をランダムに追加します。1局2回まで。",
+          "ko-KR": "내 3수째부터 최근 3수 각각의 5x5 범위에 적 돌이 없으면, 내 임의의 돌 5x5 범위에 내 돌 1개를 무작위로 추가합니다. 한 판 최대 2회."
+        },
+        "icon": "🛡️"
+      },
+      "attack_first": {
+        "name": {
+          "zh-CN": "进攻至上",
+          "en-US": "Attack First",
+          "ja-JP": "攻撃至上",
+          "ko-KR": "공격 우선"
+        },
+        "desc": {
+          "zh-CN": "若我方连续 3 手落子点位都在敌方棋子 3×3 范围内，则在任意敌方棋子 3×3 范围内随机赠送 1 颗我方棋子。每局最多触发 2 次。",
+          "en-US": "If your last 3 moves are each within a 3x3 area around enemy stones, spawn 1 friendly stone within a 3x3 area around any enemy stone. Triggers up to twice per game.",
+          "ja-JP": "直近3手がすべて敵石の3×3範囲内なら、任意の敵石の3×3範囲に自分の石1子をランダムに追加します。1局2回まで。",
+          "ko-KR": "최근 3수가 모두 적 돌 3x3 범위 안이면, 임의의 적 돌 3x3 범위에 내 돌 1개를 무작위로 추가합니다. 한 판 최대 2회."
+        },
+        "icon": "⚔️"
+      },
+      "methodical": {
+        "name": {
+          "zh-CN": "一板一眼",
+          "en-US": "Methodical",
+          "ja-JP": "一手一手",
+          "ko-KR": "차근차근"
+        },
+        "desc": {
+          "zh-CN": "我方每个回合需要按节奏连续落 2 子后才交给 AI；每第 10 个我方回合可额外多落 1 子（共 3 子）。",
+          "en-US": "Each of your turns resolves after you play 2 stones in sequence; every 10th player turn grants 1 extra stone for a 3-stone turn.",
+          "ja-JP": "自分の手番は2子を連続で打ってからAIへ渡します。自分の10手番ごとに追加で1子、合計3子打てます。",
+          "ko-KR": "내 차례마다 2수를 연속으로 둔 뒤 AI에게 넘깁니다. 내 10번째 차례마다 1수를 추가해 총 3수를 둘 수 있습니다."
+        },
+        "icon": "📏"
       }
     },
     "ultimate": {
@@ -534,10 +579,10 @@
           "ko-KR": "연주기"
         },
         "desc": {
-          "zh-CN": "每手 65% 概率触发追加行动",
-          "en-US": "Every move has a 65% chance to grant an extra turn.",
-          "ja-JP": "各手65%の確率で追加手番が発生します。",
-          "ko-KR": "매 수 65% 확률로 추가 행동이 발동합니다."
+          "zh-CN": "每手 80% 概率触发追加行动。",
+          "en-US": "Every move has an 80% chance to grant an extra turn.",
+          "ja-JP": "各手80%の確率で追加手番が発生します。",
+          "ko-KR": "매 수 80% 확률로 추가 행동이 발동합니다."
         },
         "icon": "🔥"
       },
@@ -639,10 +684,10 @@
           "ko-KR": "역병"
         },
         "desc": {
-          "zh-CN": "3×3 内所有敌子转化为己方",
-          "en-US": "Convert every enemy stone in the 3×3 area to your color.",
-          "ja-JP": "3×3内の敵石すべてを自分の色に変えます。",
-          "ko-KR": "3×3 안의 모든 상대 돌을 내 색으로 바꿉니다."
+          "zh-CN": "5×5 内所有敌子转化为己方。",
+          "en-US": "Convert every enemy stone in the 5x5 area to your color.",
+          "ja-JP": "5×5内の敵石すべてを自分の色に変えます。",
+          "ko-KR": "5x5 안의 모든 상대 돌을 내 색으로 바꿉니다."
         },
         "icon": "☣️"
       },
@@ -984,6 +1029,21 @@
         "tier": "A",
         "category": "连线构筑",
         "complexity": "高"
+      },
+      "defense_first": {
+        "tier": "A",
+        "category": "构筑",
+        "complexity": "中"
+      },
+      "attack_first": {
+        "tier": "A",
+        "category": "构筑",
+        "complexity": "中"
+      },
+      "methodical": {
+        "tier": "A",
+        "category": "节奏",
+        "complexity": "高"
       }
     },
     "ultimate": {
@@ -1031,7 +1091,10 @@
       "sanrensei",
       "god_hand",
       "quickthink",
-      "five_in_row"
+      "five_in_row",
+      "defense_first",
+      "attack_first",
+      "methodical"
     ],
     "ultimate_featured": [
       "corner_helper",
@@ -1279,7 +1342,7 @@
       "min": 1,
       "max": 40,
       "step": 1,
-      "value": 3
+      "value": 2
     },
     "ROGUE_FOG_MASK_RADIUS": {
       "group": "Rogue",
@@ -1321,7 +1384,7 @@
       "min": 0,
       "max": 12,
       "step": 1,
-      "value": 2
+      "value": 1
     },
     "ROGUE_BLACKHOLE_AI_MOVES": {
       "group": "Rogue",
@@ -1391,7 +1454,7 @@
       "min": 1,
       "max": 80,
       "step": 1,
-      "value": 8
+      "value": 5
     },
     "ROGUE_SHADOW_CHANCE": {
       "group": "Rogue",
@@ -1489,7 +1552,7 @@
       "min": 0,
       "max": 20,
       "step": 1,
-      "value": 2
+      "value": 1
     },
     "ROGUE_HANDICAP_REQUIRED_PASSES": {
       "group": "Rogue",
@@ -1699,7 +1762,7 @@
       "min": 1,
       "max": 30,
       "step": 1,
-      "value": 2
+      "value": 1
     },
     "ROGUE_QUICKTHINK_SECOND_SECONDS": {
       "group": "Rogue",
@@ -1710,10 +1773,10 @@
         "ja-JP": "快速思考连击秒数",
         "ko-KR": "快速思考连击秒数"
       },
-      "min": 1,
+      "min": 0.1,
       "max": 30,
-      "step": 1,
-      "value": 1
+      "step": 0.1,
+      "value": 0.5
     },
     "ROGUE_SANSAN_TRAP_STONES": {
       "group": "Rogue",
@@ -1747,7 +1810,7 @@
       "group": "Rogue",
       "card": "five_in_row",
       "label": {
-        "zh-CN": "五子连珠援军",
+        "zh-CN": "五子连珠额外援军",
         "en-US": "Rogue Five In Row Support Stones",
         "ja-JP": "五子连珠援军",
         "ko-KR": "五子连珠援军"
@@ -1755,7 +1818,7 @@
       "min": 0,
       "max": 30,
       "step": 1,
-      "value": 2
+      "value": 0
     },
     "ROGUE_CAPTURE_FOUL_THRESHOLD": {
       "group": "Rogue",
@@ -1770,20 +1833,6 @@
       "max": 50,
       "step": 1,
       "value": 4
-    },
-    "ROGUE_CAPTURE_FOUL_KOMI_PENALTY": {
-      "group": "Rogue",
-      "card": "capture_foul",
-      "label": {
-        "zh-CN": "提子犯规罚目",
-        "en-US": "Rogue Capture Foul Komi Penalty",
-        "ja-JP": "提子犯规罚目",
-        "ko-KR": "提子犯规罚目"
-      },
-      "min": 0,
-      "max": 50,
-      "step": 0.5,
-      "value": 4.0
     },
     "ROGUE_COACH_BASE_TURNS": {
       "group": "Rogue",
@@ -1895,7 +1944,7 @@
       "min": 0,
       "max": 1,
       "step": 0.01,
-      "value": 0.65
+      "value": 0.8
     },
     "ULTIMATE_WILDGROW_MAX_GROWTH": {
       "group": "Ultimate",

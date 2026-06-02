@@ -64,6 +64,9 @@ async def smoke_forced_flow_injects_turn_and_runtime_deps() -> None:
     async def finish_ai_move(game_arg, send_fn, color, card, gtp_move, rogue_msg=None):
         calls.append(("finish", game_arg is game, send_fn is send, color, card, gtp_move, rogue_msg))
 
+    async def check_capture_foul(*_args, **_kwargs):
+        return None
+
     async def try_finish(game_arg, send_fn, **kwargs):
         calls.append((
             "try",
@@ -82,6 +85,7 @@ async def smoke_forced_flow_injects_turn_and_runtime_deps() -> None:
             kwargs["run_engine_command"] is run_engine,
             kwargs["finalize_forced_pass"] is forced_pass,
             kwargs["finalize_forced_stone"] is forced_stone,
+            kwargs["check_capture_foul"] is check_capture_foul,
             kwargs["apply_puppet_move"] is puppet,
             kwargs["finish_ai_move"] is finish_ai_move,
         ))
@@ -108,6 +112,7 @@ async def smoke_forced_flow_injects_turn_and_runtime_deps() -> None:
         prepare_player_turn_modifiers=prepare_modifiers,
         finalize_forced_pass=forced_pass,
         finalize_forced_stone=forced_stone,
+        check_capture_foul=check_capture_foul,
         apply_puppet_move=puppet,
         finish_ai_move=finish_ai_move,
     )
@@ -132,6 +137,7 @@ async def smoke_forced_flow_injects_turn_and_runtime_deps() -> None:
             True,
             0.5,
             0.75,
+            True,
             True,
             True,
             True,
@@ -190,6 +196,7 @@ async def smoke_server_wrapper_resolves_forced_runtime_deps_late() -> None:
             kwargs["run_engine_command"] is run_engine,
             kwargs["finalize_forced_pass"] is s.finalize_forced_ai_pass,
             kwargs["finalize_forced_stone"] is s.try_finalize_forced_ai_stone,
+            kwargs["check_capture_foul"] is s._check_capture_foul,
             kwargs["apply_puppet_move"] is s.try_apply_puppet_ai_move,
             kwargs["finish_ai_move"] is s._finish_ai_move,
         ))
@@ -229,6 +236,7 @@ async def smoke_server_wrapper_resolves_forced_runtime_deps_late() -> None:
             True,
             0.33,
             0.44,
+            True,
             True,
             True,
             True,

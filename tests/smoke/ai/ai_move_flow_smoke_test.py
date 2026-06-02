@@ -307,6 +307,9 @@ def _finish_prepared_ai_move_deps(**overrides):
     async def pick_best_point(_game, _color):
         return None
 
+    async def check_capture_foul(_game, _send, _offender, _captured, *, ultimate):
+        return None
+
     async def erosion(_game, _send, **_kwargs):
         return False
 
@@ -340,6 +343,7 @@ def _finish_prepared_ai_move_deps(**overrides):
         "roll_random": lambda: 1.0,
         "has_rogue_card": lambda _game, _card: False,
         "pick_best_point": pick_best_point,
+        "check_capture_foul": check_capture_foul,
         "prepare_player_turn_modifiers": lambda _game: None,
         "apply_erosion_counter": erosion,
         "erosion_shift": 0.5,
@@ -630,6 +634,9 @@ def _try_finish_generated_ai_move_deps(**overrides):
     async def finish_response(_game, _send, **_kwargs):
         return False
 
+    async def check_capture_foul(_game, _send, _offender, _captured, *, ultimate):
+        return None
+
     finish_deps = _finish_prepared_ai_move_deps()
     async def choose_candidate(_game, **_kwargs):
         return AiMoveCandidate("C3")
@@ -681,6 +688,7 @@ def _try_finish_generated_ai_move_deps(**overrides):
         "no_regret_chance": 0.25,
         "has_rogue_card": lambda _game, _card: False,
         "pick_best_point": finish_deps["pick_best_point"],
+        "check_capture_foul": check_capture_foul,
         "prepare_player_turn_modifiers": lambda _game: None,
         "apply_erosion_counter": finish_deps["apply_erosion_counter"],
         "erosion_shift": 0.5,
@@ -742,6 +750,7 @@ def _try_finish_generated_ai_move_deps(**overrides):
             roll_random=refs["roll_random"],
             has_rogue_card=refs["has_rogue_card"],
             pick_best_point=refs["pick_best_point"],
+            check_capture_foul=refs["check_capture_foul"],
             prepare_player_turn_modifiers=refs["prepare_player_turn_modifiers"],
             apply_erosion_counter=refs["apply_erosion_counter"],
             erosion_shift=refs["erosion_shift"],
@@ -1721,6 +1730,9 @@ async def _finish_ai_turn_response_double_pass_skips_ai_move_response() -> None:
         calls.append(("double_engine", command))
         return "="
 
+    async def check_capture_foul(game_arg, send_fn, offender, captured, *, ultimate):
+        calls.append(("capture_foul", game_arg is game, send_fn is send, offender, captured, ultimate))
+
     async def double_pass(game_arg, send_fn, **kwargs):
         calls.append((
             "double_pass",
@@ -1748,6 +1760,7 @@ async def _finish_ai_turn_response_double_pass_skips_ai_move_response() -> None:
         coord=None,
         captured=2,
         rogue_msg="slip msg",
+        check_capture_foul=check_capture_foul,
         prepare_player_turn_modifiers=prepare,
         apply_erosion_counter=erosion,
         erosion_shift=0.5,
@@ -1762,6 +1775,7 @@ async def _finish_ai_turn_response_double_pass_skips_ai_move_response() -> None:
     assert handled is True
     assert calls == [
         ("prepare", True, "B"),
+        ("capture_foul", True, True, "W", 2, False),
         ("erosion", True, True, "erosion", 2, 0.5, True, "erosion 2 7.5"),
         ("send", "game_state", None),
         ("double_pass", True, True, "W", "pass", True, "slip msg"),
@@ -1794,6 +1808,9 @@ async def _finish_ai_turn_response_nonterminal_sends_ai_move_response() -> None:
         calls.append(("double_engine", command))
         return "="
 
+    async def check_capture_foul(game_arg, send_fn, offender, captured, *, ultimate):
+        calls.append(("capture_foul", game_arg is game, send_fn is send, offender, captured, ultimate))
+
     async def double_pass(game_arg, send_fn, **kwargs):
         calls.append(("double_pass", game_arg is game, send_fn is send, kwargs["gtp_move"]))
         return False
@@ -1822,6 +1839,7 @@ async def _finish_ai_turn_response_nonterminal_sends_ai_move_response() -> None:
         coord=(2, 2),
         captured=0,
         rogue_msg=None,
+        check_capture_foul=check_capture_foul,
         prepare_player_turn_modifiers=prepare,
         apply_erosion_counter=erosion,
         erosion_shift=0.5,
@@ -1836,6 +1854,7 @@ async def _finish_ai_turn_response_nonterminal_sends_ai_move_response() -> None:
     assert handled is False
     assert calls == [
         ("prepare", True, "B"),
+        ("capture_foul", True, True, "W", 0, False),
         ("erosion", True, True, 0),
         ("send", "game_state", None),
         ("double_pass", True, True, "C3"),
@@ -1845,6 +1864,95 @@ async def _finish_ai_turn_response_nonterminal_sends_ai_move_response() -> None:
 
 def test_finish_ai_turn_response_nonterminal_sends_ai_move_response() -> None:
     asyncio.run(_finish_ai_turn_response_nonterminal_sends_ai_move_response())
+
+
+async def _finish_ai_turn_response_capture_foul_gifts_before_game_state() -> None:
+    game = GoGame(size=9, komi=7.5, player_color="B")
+    game.rogue_card = "capture_foul"
+    game.ai_color = "W"
+    sent = []
+    syncs = []
+
+    async def send(payload):
+        sent.append(payload)
+
+    async def pick_best_point(game_arg, color):
+        assert game_arg is game
+        assert color == "B"
+        return (4, 4)
+
+    async def sync_board(game_arg):
+        syncs.append(game_arg)
+
+    def prepare(game_arg):
+        assert game_arg is game
+
+    async def erosion(_game, _send_fn, **_kwargs):
+        return False
+
+    async def run_command(_command):
+        return "="
+
+    async def double_pass(_game, _send_fn, **_kwargs):
+        return False
+
+    async def ai_response(game_arg, send_fn, **kwargs):
+        assert game_arg is game
+        await send_fn(
+            {
+                "type": "ai_move",
+                "gtp": kwargs["gtp_move"],
+                "color": kwargs["color"],
+            }
+        )
+
+    async def coach(_game, _send_fn):
+        raise AssertionError("coach should not run in this path")
+
+    old_pick = s._pick_best_point
+    old_sync = s._sync_board_to_katago
+    try:
+        s._pick_best_point = pick_best_point
+        s._sync_board_to_katago = sync_board
+        handled = await finish_ai_turn_response(
+            game,
+            send,
+            color="W",
+            card="capture_foul",
+            gtp_move="D4",
+            coord=(3, 5),
+            captured=gameplay_config.ROGUE_CAPTURE_FOUL_THRESHOLD,
+            rogue_msg=None,
+            check_capture_foul=s._check_capture_foul,
+            prepare_player_turn_modifiers=prepare,
+            apply_erosion_counter=erosion,
+            erosion_shift=0,
+            run_erosion_command=run_command,
+            erosion_message=lambda capture_count, komi: f"{capture_count}:{komi}",
+            finalize_double_pass=double_pass,
+            run_double_pass_command=run_command,
+            send_ai_move_response=ai_response,
+            run_coach_turn_if_needed=coach,
+        )
+    finally:
+        s._pick_best_point = old_pick
+        s._sync_board_to_katago = old_sync
+
+    assert handled is False
+    assert syncs == [game]
+    assert game.board[4][4] == 1
+    assert game.rogue_capture_foul_progress["W"] == 0
+
+    event_index = next(i for i, payload in enumerate(sent) if payload["type"] == "rogue_event")
+    state_index = next(i for i, payload in enumerate(sent) if payload["type"] == "game_state")
+    assert event_index < state_index
+    assert "提子犯规" in sent[event_index]["msg"]
+    assert sent[state_index]["board"][4][4] == 1
+    assert sent[-1]["type"] == "ai_move"
+
+
+def test_finish_ai_turn_response_capture_foul_gifts_before_game_state() -> None:
+    asyncio.run(_finish_ai_turn_response_capture_foul_gifts_before_game_state())
 
 
 async def _choose_or_generate_ai_style_move_plays_style_choice() -> None:
@@ -3129,6 +3237,103 @@ async def _try_finalize_forced_ai_stone_skips_state_on_engine_error() -> None:
 
 def test_try_finalize_forced_ai_stone_skips_state_on_engine_error() -> None:
     asyncio.run(_try_finalize_forced_ai_stone_skips_state_on_engine_error())
+
+
+def _setup_four_stone_capture(game: GoGame) -> tuple[int, int]:
+    black_group = [(3, 3), (4, 3), (3, 4), (4, 4)]
+    target = (5, 4)
+    white_shell = [(2, 3), (3, 2), (4, 2), (5, 3), (2, 4), (3, 5), (4, 5)]
+    for x, y in black_group:
+        game.board[y][x] = 1
+    for x, y in white_shell:
+        game.board[y][x] = 2
+    return target
+
+
+async def _try_finish_restriction_forced_stone_runs_capture_foul_before_state() -> None:
+    game = GoGame(size=9, komi=7.5, player_color="B")
+    game.ai_color = "W"
+    game.rogue_card = "capture_foul"
+    target = _setup_four_stone_capture(game)
+    sent = []
+    syncs = []
+
+    async def send(payload):
+        sent.append(payload)
+
+    async def run_engine_command(command):
+        assert command == "play W F5"
+        return "="
+
+    async def pick_best_point(game_arg, color):
+        assert game_arg is game
+        assert color == "B"
+        return (0, 0)
+
+    async def sync_board(game_arg):
+        syncs.append(game_arg)
+
+    def prepare_player_turn(game_arg):
+        assert game_arg is game
+
+    async def unused(*_args, **_kwargs):
+        raise AssertionError("restriction fallback should not run after forced target")
+
+    def choose_tengen_target(game_arg, ai_move_count):
+        assert game_arg is game
+        assert ai_move_count == 0
+        return SimpleNamespace(coord=target, message="天元 forced")
+
+    old_pick = s._pick_best_point
+    old_sync = s._sync_board_to_katago
+    try:
+        s._pick_best_point = pick_best_point
+        s._sync_board_to_katago = sync_board
+        handled = await try_finish_rogue_restriction_ai_move(
+            game,
+            send,
+            color="W",
+            card="capture_foul",
+            rogue_cards={"tengen", "capture_foul"},
+            ai_move_count=0,
+            visits=100,
+            time_limit=1.0,
+            choose_tengen_target=choose_tengen_target,
+            tengen_followup_points=lambda *_args: None,
+            gravity_allowed_points=lambda *_args: None,
+            lowline_allowed_points=lambda *_args: None,
+            sansan_opening_restriction=lambda *_args: None,
+            coord_to_gtp=s.coord_to_gtp,
+            finalize_forced_stone=try_finalize_forced_ai_stone,
+            prepare_player_turn_modifiers=prepare_player_turn,
+            run_engine_command=run_engine_command,
+            choose_allowed_move=unused,
+            choose_avoid_move=unused,
+            finish_ai_move=unused,
+            finish_allowed_restriction_move=unused,
+            finish_sansan_restriction_move=unused,
+            check_capture_foul=s._check_capture_foul,
+        )
+    finally:
+        s._pick_best_point = old_pick
+        s._sync_board_to_katago = old_sync
+
+    assert handled is True
+    assert syncs == [game]
+    assert game.captures["W"] == gameplay_config.ROGUE_CAPTURE_FOUL_THRESHOLD
+    assert game.rogue_capture_foul_progress["W"] == 0
+    assert game.board[0][0] == 1
+
+    event_index = next(i for i, payload in enumerate(sent) if payload["type"] == "rogue_event")
+    state_index = next(i for i, payload in enumerate(sent) if payload["type"] == "game_state")
+    assert event_index < state_index
+    assert "提子犯规" in sent[event_index]["msg"]
+    assert sent[state_index]["board"][0][0] == 1
+    assert sent[state_index]["captures"]["W"] == gameplay_config.ROGUE_CAPTURE_FOUL_THRESHOLD
+
+
+def test_try_finish_restriction_forced_stone_runs_capture_foul_before_state() -> None:
+    asyncio.run(_try_finish_restriction_forced_stone_runs_capture_foul_before_state())
 
 
 async def _try_finish_forced_rogue_ai_move_dice_preempts_later_cards() -> None:
@@ -8801,6 +9006,7 @@ if __name__ == "__main__":
     test_send_ai_move_and_run_coach_sends_pass_and_rogue_msg_before_coach()
     test_finish_ai_turn_response_double_pass_skips_ai_move_response()
     test_finish_ai_turn_response_nonterminal_sends_ai_move_response()
+    test_finish_ai_turn_response_capture_foul_gifts_before_game_state()
     test_choose_or_generate_ai_style_move_plays_style_choice()
     test_choose_or_generate_ai_style_move_balanced_falls_back_to_genmove()
     test_choose_or_generate_ai_style_move_analysis_error_falls_back()
@@ -8827,6 +9033,7 @@ if __name__ == "__main__":
     test_try_finalize_forced_ai_stone_sends_legacy_payloads()
     test_try_finalize_forced_ai_stone_can_skip_history_push()
     test_try_finalize_forced_ai_stone_skips_state_on_engine_error()
+    test_try_finish_restriction_forced_stone_runs_capture_foul_before_state()
     test_try_finish_forced_rogue_ai_move_dice_preempts_later_cards()
     test_try_finish_forced_rogue_ai_move_mirror_forces_stone()
     test_try_finish_forced_rogue_ai_move_mirror_false_falls_through()

@@ -141,6 +141,7 @@ def smoke_finish_binding_maps_every_field() -> None:
         roll_random=fake_sync,
         has_rogue_card=fake_sync,
         pick_best_point=fake_async,
+        check_capture_foul=fake_async,
         prepare_player_turn_modifiers=fake_sync,
         apply_erosion_counter=fake_async,
         erosion_shift=1.5,
@@ -174,6 +175,7 @@ def smoke_finish_binding_maps_every_field() -> None:
     assert deps.roll_random is fake_sync
     assert deps.has_rogue_card is fake_sync
     assert deps.pick_best_point is fake_async
+    assert deps.check_capture_foul is fake_async
     assert deps.prepare_player_turn_modifiers is fake_sync
     assert deps.apply_erosion_counter is fake_async
     assert deps.erosion_shift == 1.5
@@ -239,6 +241,7 @@ def smoke_generated_ai_runtime_builders_group_dependencies() -> None:
         roll_random=lambda: 0.4,
         has_rogue_card=fake_sync,
         pick_best_point=fake_async,
+        check_capture_foul=fake_async,
         prepare_player_turn_modifiers=fake_sync,
         apply_erosion_counter=fake_async,
         run_erosion_command=run_erosion,
@@ -289,6 +292,7 @@ def smoke_generated_ai_runtime_builders_group_dependencies() -> None:
     assert finish.trap_stones == 4
     assert finish.no_regret_chance == 0.25
     assert finish.erosion_shift == 0.75
+    assert finish.check_capture_foul is fake_async
     assert finish.run_erosion_command is run_erosion
     assert finish.run_double_pass_command is run_double_pass
     assert turn.rogue_forbidden_points is fake_sync
@@ -385,6 +389,7 @@ async def smoke_generated_turn_binding_delegates_with_factories() -> None:
             roll_random=fake_sync,
             has_rogue_card=fake_sync,
             pick_best_point=fake_async,
+            check_capture_foul=fake_async,
             prepare_player_turn_modifiers=fake_sync,
             apply_erosion_counter=fake_async,
             erosion_shift=1.5,

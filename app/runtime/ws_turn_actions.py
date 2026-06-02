@@ -6,6 +6,7 @@ from app.config.gameplay import (
     ROGUE_HANDICAP_BONUS_INTERVAL,
     ROGUE_HANDICAP_REQUIRED_PASSES,
 )
+from app.gameplay.turn_modifiers import has_methodical_card
 from app.runtime.ws_action_context import WebSocketActionContext
 
 
@@ -63,6 +64,8 @@ async def handle_pass(ctx: WebSocketActionContext, data: dict) -> None:
     game.current_player = "W" if color == "B" else "B"
     if game.rogue_card == "quickthink":
         game.rogue_quickthink_stage = 0
+    if has_methodical_card(game):
+        game.rogue_methodical_remaining = 0
 
     if (
         game.rogue_card == "handicap_quest"

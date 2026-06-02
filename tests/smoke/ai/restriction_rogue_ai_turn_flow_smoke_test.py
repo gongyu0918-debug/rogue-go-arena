@@ -75,6 +75,9 @@ async def smoke_restriction_flow_injects_turn_plan_and_runtime_deps() -> None:
     async def finish_ai_move(game_arg, send_fn, color, card, gtp_move, rogue_msg=None):
         calls.append(("finish", game_arg is game, send_fn is send, color, card, gtp_move, rogue_msg))
 
+    async def check_capture_foul(*_args, **_kwargs):
+        return None
+
     async def finish_allowed(game_arg, send_fn, **kwargs):
         calls.append(("finish_allowed", game_arg is game, send_fn is send, kwargs["choose_allowed_move"] is choose_allowed))
         return False
@@ -102,6 +105,7 @@ async def smoke_restriction_flow_injects_turn_plan_and_runtime_deps() -> None:
             kwargs["coord_to_gtp"] is coord_to_gtp,
             kwargs["finalize_forced_stone"] is finalize_stone,
             kwargs["prepare_player_turn_modifiers"] is prepare_modifiers,
+            kwargs["check_capture_foul"] is check_capture_foul,
             kwargs["run_engine_command"] is run_engine,
             kwargs["choose_allowed_move"] is choose_allowed,
             kwargs["choose_avoid_move"] is choose_avoid,
@@ -135,6 +139,7 @@ async def smoke_restriction_flow_injects_turn_plan_and_runtime_deps() -> None:
         coord_to_gtp=coord_to_gtp,
         finalize_forced_stone=finalize_stone,
         prepare_player_turn_modifiers=prepare_modifiers,
+        check_capture_foul=check_capture_foul,
         choose_allowed_move=choose_allowed,
         choose_avoid_move=choose_avoid,
         finish_ai_move=finish_ai_move,
@@ -163,6 +168,7 @@ async def smoke_restriction_flow_injects_turn_plan_and_runtime_deps() -> None:
             4,
             456,
             7.5,
+            True,
             True,
             True,
             True,
@@ -228,6 +234,7 @@ async def smoke_server_wrapper_resolves_restriction_runtime_deps_late() -> None:
             kwargs["coord_to_gtp"] is s.coord_to_gtp,
             kwargs["finalize_forced_stone"] is s.try_finalize_forced_ai_stone,
             kwargs["prepare_player_turn_modifiers"] is s._prepare_player_turn_modifiers,
+            kwargs["check_capture_foul"] is s._check_capture_foul,
             kwargs["run_engine_command"] is run_engine,
             kwargs["choose_allowed_move"] is s._ai_move_avoid_points_allow_only,
             kwargs["choose_avoid_move"] is s._ai_move_avoid_points,
@@ -262,6 +269,7 @@ async def smoke_server_wrapper_resolves_restriction_runtime_deps_late() -> None:
             2,
             111,
             2.5,
+            True,
             True,
             True,
             True,

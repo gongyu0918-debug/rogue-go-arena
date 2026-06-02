@@ -21,6 +21,7 @@ class ForcedRogueAiTurnDeps:
     prepare_player_turn_modifiers: Callable[[Any], Any]
     finalize_forced_pass: Callable[..., Awaitable[None]]
     finalize_forced_stone: Callable[..., Awaitable[bool]]
+    check_capture_foul: Callable[..., Awaitable[None]]
     apply_puppet_move: Callable[..., Awaitable[bool]]
     finish_ai_move: Callable[..., Awaitable[None]]
 
@@ -48,6 +49,7 @@ async def try_finish_forced_rogue_ai_turn_event(
         run_engine_command=run_engine_command,
         finalize_forced_pass=deps.finalize_forced_pass,
         finalize_forced_stone=deps.finalize_forced_stone,
+        check_capture_foul=deps.check_capture_foul,
         apply_puppet_move=deps.apply_puppet_move,
         finish_ai_move=deps.finish_ai_move,
     )

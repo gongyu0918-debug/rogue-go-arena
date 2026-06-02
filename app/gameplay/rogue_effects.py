@@ -90,6 +90,12 @@ def reset_rogue_effect_state(
     game.rogue_five_in_row_seen = set()
     game.rogue_last_stand_done = {"B": False, "W": False}
     game.rogue_capture_foul_progress = {"B": 0, "W": 0}
+    game.rogue_defense_first_triggers = {"B": 0, "W": 0}
+    game.rogue_attack_first_triggers = {"B": 0, "W": 0}
+    game.rogue_defense_first_last_index = {"B": 0, "W": 0}
+    game.rogue_attack_first_last_index = {"B": 0, "W": 0}
+    game.rogue_methodical_turns = {"B": 0, "W": 0}
+    game.rogue_methodical_remaining = 0
     game.rogue_coach_moves_left = 0
     game.rogue_coach_bonus_checked = False
     game.rogue_quickthink_stage = 0
@@ -180,6 +186,14 @@ def apply_rogue_card_activation(
         )
     elif card_id == "quickthink" and game.current_player == game.player_color:
         game.rogue_quickthink_stage = 1
+    elif card_id == "methodical" and game.current_player == game.player_color:
+        game.rogue_methodical_turns[game.player_color] += 1
+        turn_count = game.rogue_methodical_turns[game.player_color]
+        game.rogue_methodical_remaining = (
+            gameplay_config.ROGUE_METHODICAL_BONUS_PLAYS
+            if turn_count % gameplay_config.ROGUE_METHODICAL_BONUS_INTERVAL == 0
+            else gameplay_config.ROGUE_METHODICAL_BASE_PLAYS
+        )
     elif card_id == "coach_mode":
         game.rogue_uses.setdefault("coach_mode", 1)
 
@@ -237,7 +251,12 @@ def apply_challenge_rogue_loadout(
     if challenge_zone_points_fn is None:
         challenge_zone_points_fn = challenge_zone_points
 
-    cards = card_ids_fn(game.challenge_cards)
+    cards = [
+        card_id
+        for card_id in card_ids_fn(game.challenge_cards)
+        if card_id != "methodical"
+    ]
+    game.challenge_cards = cards
     game.rogue_card = cards[-1] if cards else None
     reset_rogue_effect_state(game, reset_uses=True, reset_handicap=True)
     game.rogue_enabled = bool(cards)
@@ -293,6 +312,182 @@ def rogue_card_ids(game: Any) -> list[str]:
 
 def rogue_has(game: Any, card_id: str) -> bool:
     return card_id in rogue_card_ids(game)
+
+
+def _color_value(color: str) -> int:
+    return 1 if color == "B" else 2
+
+
+def _enemy_value(color: str) -> int:
+    return 2 if color == "B" else 1
+
+
+def _recent_non_pass_move_entries(
+    game: Any,
+    color: str,
+    gtp_to_coord: CoordFormatter,
+    count: int,
+) -> list[tuple[int, tuple[int, int]]]:
+    entries: list[tuple[int, tuple[int, int]]] = []
+    color_move_index = sum(
+        1
+        for move_color, gtp in game.moves
+        if move_color == color and gtp.upper() != "PASS"
+    )
+    for move_color, gtp in reversed(game.moves):
+        if move_color != color or gtp.upper() == "PASS":
+            continue
+        coord = gtp_to_coord(gtp, game.size)
+        if coord:
+            entries.append((color_move_index, coord))
+        color_move_index -= 1
+        if len(entries) >= count:
+            break
+    return list(reversed(entries))
+
+
+def _has_stone_in_square(
+    game: Any,
+    center: tuple[int, int],
+    color_value: int,
+    radius: int,
+) -> bool:
+    return any(
+        game.board[py][px] == color_value
+        for px, py in get_square_points(center[0], center[1], radius, game.size)
+    )
+
+
+def _empty_points_around_stones(
+    game: Any,
+    anchor_value: int,
+    radius: int,
+) -> list[tuple[int, int]]:
+    candidates: list[tuple[int, int]] = []
+    seen: set[tuple[int, int]] = set()
+    for sy in range(game.size):
+        for sx in range(game.size):
+            if game.board[sy][sx] != anchor_value:
+                continue
+            for point in get_square_points(sx, sy, radius, game.size):
+                if point in seen:
+                    continue
+                seen.add(point)
+                px, py = point
+                if game.board[py][px] == 0:
+                    candidates.append(point)
+    random.shuffle(candidates)
+    return candidates
+
+
+def _apply_supremacy_card(
+    game: Any,
+    color: str,
+    *,
+    card_id: str,
+    recent_entries: list[tuple[int, tuple[int, int]]],
+    spawn_anchor_value: int,
+    spawn_radius: int,
+    trigger_counts: dict[str, int],
+    last_trigger_indices: dict[str, int],
+    message_name: str,
+    coord_to_gtp: CoordFormatter,
+) -> RogueBoardEffectResult:
+    if trigger_counts.get(color, 0) >= gameplay_config.ROGUE_SUPREMACY_MAX_TRIGGERS:
+        return RogueBoardEffectResult(False, [], [])
+    if len(recent_entries) < gameplay_config.ROGUE_SUPREMACY_TRIGGER_WINDOW:
+        return RogueBoardEffectResult(False, [], [])
+
+    window_entries = recent_entries[-gameplay_config.ROGUE_SUPREMACY_TRIGGER_WINDOW:]
+    last_trigger_index = last_trigger_indices.get(color, 0)
+    if any(index <= last_trigger_index for index, _coord in window_entries):
+        return RogueBoardEffectResult(False, [], [])
+
+    candidates = _empty_points_around_stones(game, spawn_anchor_value, spawn_radius)
+    changed = spawn_bonus_points(game, candidates[:1], color)
+    if not changed:
+        return RogueBoardEffectResult(False, [], [])
+
+    trigger_counts[color] = trigger_counts.get(color, 0) + 1
+    last_trigger_indices[color] = window_entries[-1][0]
+    bx, by = changed[0]
+    remaining = gameplay_config.ROGUE_SUPREMACY_MAX_TRIGGERS - trigger_counts[color]
+    return RogueBoardEffectResult(
+        True,
+        [
+            f"{message_name}触发：在 {coord_to_gtp(bx, by, game.size)} 赠送 1 颗己棋，"
+            f"本局剩余 {remaining} 次"
+        ],
+        [],
+    )
+
+
+def _apply_defense_first(
+    game: Any,
+    color: str,
+    *,
+    gtp_to_coord: CoordFormatter,
+    coord_to_gtp: CoordFormatter,
+) -> RogueBoardEffectResult:
+    recent = _recent_non_pass_move_entries(
+        game,
+        color,
+        gtp_to_coord,
+        gameplay_config.ROGUE_SUPREMACY_TRIGGER_WINDOW,
+    )
+    recent_coords = [coord for _index, coord in recent]
+    enemy = _enemy_value(color)
+    if any(
+        _has_stone_in_square(game, coord, enemy, gameplay_config.ROGUE_DEFENSE_SAFE_RADIUS)
+        for coord in recent_coords
+    ):
+        return RogueBoardEffectResult(False, [], [])
+    return _apply_supremacy_card(
+        game,
+        color,
+        card_id="defense_first",
+        recent_entries=recent,
+        spawn_anchor_value=_color_value(color),
+        spawn_radius=gameplay_config.ROGUE_DEFENSE_SPAWN_RADIUS,
+        trigger_counts=game.rogue_defense_first_triggers,
+        last_trigger_indices=game.rogue_defense_first_last_index,
+        message_name="🛡 防御至上",
+        coord_to_gtp=coord_to_gtp,
+    )
+
+
+def _apply_attack_first(
+    game: Any,
+    color: str,
+    *,
+    gtp_to_coord: CoordFormatter,
+    coord_to_gtp: CoordFormatter,
+) -> RogueBoardEffectResult:
+    recent = _recent_non_pass_move_entries(
+        game,
+        color,
+        gtp_to_coord,
+        gameplay_config.ROGUE_SUPREMACY_TRIGGER_WINDOW,
+    )
+    recent_coords = [coord for _index, coord in recent]
+    enemy = _enemy_value(color)
+    if not all(
+        _has_stone_in_square(game, coord, enemy, gameplay_config.ROGUE_ATTACK_NEAR_RADIUS)
+        for coord in recent_coords
+    ):
+        return RogueBoardEffectResult(False, [], [])
+    return _apply_supremacy_card(
+        game,
+        color,
+        card_id="attack_first",
+        recent_entries=recent,
+        spawn_anchor_value=enemy,
+        spawn_radius=gameplay_config.ROGUE_ATTACK_SPAWN_RADIUS,
+        trigger_counts=game.rogue_attack_first_triggers,
+        last_trigger_indices=game.rogue_attack_first_last_index,
+        message_name="⚔ 进攻至上",
+        coord_to_gtp=coord_to_gtp,
+    )
 
 
 def challenge_remaining(game: Any, key: str) -> int:
@@ -359,19 +554,25 @@ def apply_player_rogue_board_effects(
     modified = False
 
     if rogue_has(game, "sprout") and captured > 0:
-        empty_adj = [
-            (ax, ay)
-            for ax, ay in adjacent_points(x, y, game.size)
-            if game.board[ay][ax] == 0
-        ]
-        if empty_adj:
-            bx, by = random.choice(empty_adj)
-            changed = spawn_bonus_points(game, [(bx, by)], color)
-            if changed:
-                modified = True
-                messages.append(
-                    f"萌芽触发：在 {coord_to_gtp(bx, by, game.size)} 额外长出一颗己方棋子"
-                )
+        sprout_area: list[tuple[int, int]] = []
+        seen_sprout_points: set[tuple[int, int]] = set()
+        captured_points = list(getattr(game, "last_captured_points", [])) or [(x, y)]
+        for cx, cy in captured_points:
+            for point in get_square_points(cx, cy, 1, game.size):
+                if point in seen_sprout_points:
+                    continue
+                seen_sprout_points.add(point)
+                px, py = point
+                if game.board[py][px] == 0:
+                    sprout_area.append(point)
+        random.shuffle(sprout_area)
+        changed = spawn_bonus_points(game, sprout_area[:1], color)
+        if changed:
+            bx, by = changed[0]
+            modified = True
+            messages.append(
+                f"萌芽触发：在提子处 3×3 范围的 {coord_to_gtp(bx, by, game.size)} 额外长出一颗己方棋子"
+            )
 
     if rogue_has(game, "joseki_ocd") and not game.rogue_joseki_done:
         if (x, y) in game.rogue_joseki_targets:
@@ -546,6 +747,28 @@ def apply_player_rogue_board_effects(
                 f"🪤 大智若愚发动，识别到 {len(new_shapes)} 个愚形，额外长出 {len(changed)} 颗己方棋子"
             )
 
+    if rogue_has(game, "defense_first"):
+        result = _apply_defense_first(
+            game,
+            color,
+            gtp_to_coord=gtp_to_coord,
+            coord_to_gtp=coord_to_gtp,
+        )
+        if result.modified:
+            modified = True
+        messages.extend(result.messages)
+
+    if rogue_has(game, "attack_first"):
+        result = _apply_attack_first(
+            game,
+            color,
+            gtp_to_coord=gtp_to_coord,
+            coord_to_gtp=coord_to_gtp,
+        )
+        if result.modified:
+            modified = True
+        messages.extend(result.messages)
+
     if (
         rogue_has(game, "handicap_quest")
         and game.rogue_handicap_active
@@ -583,6 +806,8 @@ def apply_rogue_five_in_row(
     should_bonus_derivative_fn: Callable[[Any], bool] = challenge_should_bonus_derivative,
     support_stones: int = gameplay_config.ROGUE_FIVE_IN_ROW_SUPPORT_STONES,
 ) -> RogueBoardEffectResult:
+    del should_bonus_derivative_fn, support_stones
+
     current_lines = set(find_exact_five_lines(game, color))
     game.rogue_five_in_row_seen.intersection_update(current_lines)
     new_lines = [
@@ -593,47 +818,25 @@ def apply_rogue_five_in_row(
     if not new_lines:
         return RogueBoardEffectResult(False, [], [])
 
-    endpoints: list[tuple[int, int]] = []
+    targets: list[tuple[int, int]] = []
+    planned: set[tuple[int, int]] = set()
     for line in new_lines:
         game.rogue_five_in_row_seen.add(line)
         sorted_line = sorted(line)
-        x1, y1 = sorted_line[0]
-        x2, y2 = sorted_line[1]
-        dx, dy = x2 - x1, y2 - y1
-        perp = (-dy, dx)
         start, end = line_endpoints(line)
         for point, anchor in ((start, sorted_line[0]), (end, sorted_line[-1])):
-            if not point:
-                continue
-            x, y = point
-            if 0 <= x < game.size and 0 <= y < game.size and game.board[y][x] == 0:
-                endpoints.append(point)
-                continue
-            ax, ay = anchor
-            for px, py in ((ax + perp[0], ay + perp[1]), (ax - perp[0], ay - perp[1])):
-                if 0 <= px < game.size and 0 <= py < game.size and game.board[py][px] == 0:
-                    endpoints.append((px, py))
-                    break
+            center = point if point and 0 <= point[0] < game.size and 0 <= point[1] < game.size else anchor
+            region = [
+                (px, py)
+                for px, py in get_square_points(center[0], center[1], 1, game.size)
+                if game.board[py][px] == 0 and (px, py) not in planned
+            ]
+            shuffle_points(region)
+            if region:
+                targets.append(region[0])
+                planned.add(region[0])
 
-    changed = spawn_bonus_points(game, endpoints, color)
-    if changed:
-        support_pool: list[tuple[int, int]] = []
-        for line in new_lines:
-            for px, py in line:
-                for nx, ny in adjacent8_points(px, py, game.size):
-                    if game.board[ny][nx] == 0 and (nx, ny) not in support_pool:
-                        support_pool.append((nx, ny))
-        shuffle_points(support_pool)
-        changed.extend(spawn_bonus_points(game, support_pool[:support_stones], color))
-
-    if changed and should_bonus_derivative_fn(game):
-        extra_endpoints = [
-            point
-            for point in endpoints
-            if point not in changed and game.board[point[1]][point[0]] == 0
-        ]
-        shuffle_points(extra_endpoints)
-        changed.extend(spawn_bonus_points(game, extra_endpoints[:1], color))
+    changed = spawn_bonus_points(game, targets, color)
 
     if not changed:
         return RogueBoardEffectResult(False, [], [])
@@ -641,7 +844,7 @@ def apply_rogue_five_in_row(
     return RogueBoardEffectResult(
         True,
         [
-            f"🎯 五子连珠发动，正好连成 5 子，首尾额外补下 {len(changed)} 颗棋子"
+            f"🎯 五子连珠发动，正好连成 5 子，在首尾 3×3 区域补下 {len(changed)} 颗己方棋子"
         ],
         [],
     )

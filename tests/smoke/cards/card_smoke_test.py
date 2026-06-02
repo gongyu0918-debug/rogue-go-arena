@@ -109,6 +109,12 @@ def smoke_card_catalog():
     assert "god_hand" in card_data.featured_rogue_cards(["dice", "god_hand"])
     assert all(card in card_data.ROGUE_CARDS for card in card_data.ai_rogue_cards())
     assert all(card in card_data.ULTIMATE_CARDS for card in card_data.ai_ultimate_cards())
+    for card_id in ("defense_first", "attack_first", "methodical"):
+        assert card_id in card_data.ROGUE_CARDS
+        assert card_id not in card_data.AI_ROGUE_POOL
+        assert (s.BASE_DIR / "static" / "assets" / "icons" / "cards-tech" / f"{card_id}.png").exists()
+    assert "methodical" not in card_data.CHALLENGE_BETA_POOL
+    assert card_data.challenge_card_category("methodical") is None
 
 
 def seed_board(game):
@@ -646,6 +652,7 @@ async def smoke_quickthink_flow():
     final_state = next(msg for msg in reversed(sent) if msg.get("type") == "game_state")
     assert final_state["current_player"] == "B"
     assert final_state["rogue_quickthink_stage"] == 1
+    assert final_state["rogue_quickthink_seconds"] == s.ROGUE_QUICKTHINK_FIRST_SECONDS
 
     game = make_game()
     game.ultimate = True
@@ -804,6 +811,195 @@ async def smoke_fog_mask_refresh():
 
     assert marker["forbidden"] == [(5, 5)]
     assert game.rogue_seal_points == [(5, 5)]
+
+
+async def smoke_new_rogue_supremacy_and_methodical_cards():
+    async def send(_payload):
+        return None
+
+    def black_count(game):
+        return sum(1 for row in game.board for cell in row if cell == 1)
+
+    old_sync = s._sync_board_to_katago
+    old_shuffle = s.random.shuffle
+    try:
+        async def fake_sync(_game):
+            return None
+
+        s._sync_board_to_katago = fake_sync
+        s.random.shuffle = lambda _items: None
+
+        game = make_game(size=9)
+        game.rogue_card = "defense_first"
+        for move in ("A9", "E5", "J1"):
+            game.moves.append(("B", move))
+            x, y = s.gtp_to_coord(move, game.size)
+            game.board[y][x] = 1
+        before = black_count(game)
+        await s._apply_player_rogue_move_effects(game, send, 8, 8, "B", 0)
+        after = black_count(game)
+        assert after == before + 1
+        assert game.rogue_defense_first_triggers["B"] == 1
+        assert game.rogue_defense_first_last_index["B"] == 3
+
+        repeat_before = black_count(game)
+        await s._apply_player_rogue_move_effects(game, send, 8, 8, "B", 0)
+        assert black_count(game) == repeat_before
+        assert game.rogue_defense_first_triggers["B"] == 1
+        assert game.rogue_defense_first_last_index["B"] == 3
+
+        move = "A1"
+        game.moves.append(("B", move))
+        x, y = s.gtp_to_coord(move, game.size)
+        game.board[y][x] = 1
+        overlap_before = black_count(game)
+        await s._apply_player_rogue_move_effects(game, send, x, y, "B", 0)
+        assert black_count(game) == overlap_before
+        assert game.rogue_defense_first_triggers["B"] == 1
+        assert game.rogue_defense_first_last_index["B"] == 3
+
+        for move in ("C1", "D1"):
+            game.moves.append(("B", move))
+            x, y = s.gtp_to_coord(move, game.size)
+            game.board[y][x] = 1
+        second_before = black_count(game)
+        await s._apply_player_rogue_move_effects(game, send, x, y, "B", 0)
+        assert black_count(game) == second_before + 1
+        assert game.rogue_defense_first_triggers["B"] == 2
+        assert game.rogue_defense_first_last_index["B"] == 6
+
+        game = make_game(size=9)
+        game.rogue_card = "defense_first"
+        repeated_window = ("A9", "E5", "J1")
+        for expected_trigger, expected_index in ((1, 3), (2, 6)):
+            for move in repeated_window:
+                game.moves.append(("B", move))
+                x, y = s.gtp_to_coord(move, game.size)
+                game.board[y][x] = 1
+            before = black_count(game)
+            await s._apply_player_rogue_move_effects(game, send, x, y, "B", 0)
+            assert black_count(game) == before + 1
+            assert game.rogue_defense_first_triggers["B"] == expected_trigger
+            assert game.rogue_defense_first_last_index["B"] == expected_index
+
+        game = make_game(size=9)
+        game.rogue_card = "defense_first"
+        for move in ("C7", "E5", "G3"):
+            game.moves.append(("B", move))
+            x, y = s.gtp_to_coord(move, game.size)
+            game.board[y][x] = 1
+        game.board[4][5] = 2
+        before = black_count(game)
+        await s._apply_player_rogue_move_effects(game, send, 6, 6, "B", 0)
+        assert black_count(game) == before
+        assert game.rogue_defense_first_triggers["B"] == 0
+
+        game = make_game(size=9)
+        game.rogue_card = "defense_first"
+        game.rogue_defense_first_triggers["B"] = s.gameplay_config.ROGUE_SUPREMACY_MAX_TRIGGERS
+        for move in ("A9", "E5", "J1"):
+            game.moves.append(("B", move))
+            x, y = s.gtp_to_coord(move, game.size)
+            game.board[y][x] = 1
+        before = black_count(game)
+        await s._apply_player_rogue_move_effects(game, send, 8, 8, "B", 0)
+        assert black_count(game) == before
+
+        game = make_game(size=9)
+        game.rogue_card = "attack_first"
+        for enemy in ((3, 2), (5, 4), (7, 6)):
+            game.board[enemy[1]][enemy[0]] = 2
+        for move in ("C7", "E5", "G3"):
+            game.moves.append(("B", move))
+            x, y = s.gtp_to_coord(move, game.size)
+            game.board[y][x] = 1
+        before = black_count(game)
+        await s._apply_player_rogue_move_effects(game, send, 6, 2, "B", 0)
+        after = black_count(game)
+        assert after == before + 1
+        assert game.rogue_attack_first_triggers["B"] == 1
+        assert game.rogue_attack_first_last_index["B"] == 3
+
+        repeat_before = black_count(game)
+        await s._apply_player_rogue_move_effects(game, send, 6, 2, "B", 0)
+        assert black_count(game) == repeat_before
+        assert game.rogue_attack_first_triggers["B"] == 1
+        assert game.rogue_attack_first_last_index["B"] == 3
+
+        for enemy in ((0, 7), (1, 7), (3, 8)):
+            game.board[enemy[1]][enemy[0]] = 2
+        move = "A1"
+        game.moves.append(("B", move))
+        x, y = s.gtp_to_coord(move, game.size)
+        game.board[y][x] = 1
+        overlap_before = black_count(game)
+        await s._apply_player_rogue_move_effects(game, send, x, y, "B", 0)
+        assert black_count(game) == overlap_before
+        assert game.rogue_attack_first_triggers["B"] == 1
+        assert game.rogue_attack_first_last_index["B"] == 3
+
+        for move in ("B1", "C1"):
+            game.moves.append(("B", move))
+            x, y = s.gtp_to_coord(move, game.size)
+            game.board[y][x] = 1
+        second_before = black_count(game)
+        await s._apply_player_rogue_move_effects(game, send, x, y, "B", 0)
+        assert black_count(game) == second_before + 1
+        assert game.rogue_attack_first_triggers["B"] == 2
+        assert game.rogue_attack_first_last_index["B"] == 6
+
+        game = make_game(size=9)
+        game.rogue_card = "attack_first"
+        for enemy in ((3, 2), (5, 4), (7, 6)):
+            game.board[enemy[1]][enemy[0]] = 2
+        repeated_window = ("C7", "E5", "G3")
+        for expected_trigger, expected_index in ((1, 3), (2, 6)):
+            for move in repeated_window:
+                game.moves.append(("B", move))
+                x, y = s.gtp_to_coord(move, game.size)
+                game.board[y][x] = 1
+            before = black_count(game)
+            await s._apply_player_rogue_move_effects(game, send, x, y, "B", 0)
+            assert black_count(game) == before + 1
+            assert game.rogue_attack_first_triggers["B"] == expected_trigger
+            assert game.rogue_attack_first_last_index["B"] == expected_index
+
+        game = make_game(size=9)
+        game.rogue_card = "attack_first"
+        for enemy in ((3, 2), (5, 4)):
+            game.board[enemy[1]][enemy[0]] = 2
+        for move in ("C7", "E5", "G3"):
+            game.moves.append(("B", move))
+            x, y = s.gtp_to_coord(move, game.size)
+            game.board[y][x] = 1
+        before = black_count(game)
+        await s._apply_player_rogue_move_effects(game, send, 6, 2, "B", 0)
+        assert black_count(game) == before
+        assert game.rogue_attack_first_triggers["B"] == 0
+
+        game = make_game(size=9)
+        game.rogue_card = "attack_first"
+        game.rogue_attack_first_triggers["B"] = s.gameplay_config.ROGUE_SUPREMACY_MAX_TRIGGERS
+        for enemy in ((3, 2), (5, 4), (7, 6)):
+            game.board[enemy[1]][enemy[0]] = 2
+        for move in ("C7", "E5", "G3"):
+            game.moves.append(("B", move))
+            x, y = s.gtp_to_coord(move, game.size)
+            game.board[y][x] = 1
+        before = black_count(game)
+        await s._apply_player_rogue_move_effects(game, send, 6, 2, "B", 0)
+        assert black_count(game) == before
+    finally:
+        s._sync_board_to_katago = old_sync
+        s.random.shuffle = old_shuffle
+
+    game = make_game(size=9)
+    game.rogue_card = "methodical"
+    game.rogue_methodical_turns["B"] = s.ROGUE_METHODICAL_BONUS_INTERVAL - 1
+    game.rogue_methodical_remaining = 0
+    s._prepare_player_turn_modifiers(game)
+    assert game.rogue_methodical_remaining == s.ROGUE_METHODICAL_BONUS_PLAYS
+    assert game.to_state()["rogue_methodical_remaining"] == s.ROGUE_METHODICAL_BONUS_PLAYS
 
 
 async def smoke_foolish_wisdom_rogue():
@@ -1175,8 +1371,10 @@ async def smoke_five_in_row_and_last_stand_cards():
     finally:
         s._sync_board_to_katago = old_sync
 
-    assert game.board[4][1] == 1
-    assert game.board[4][7] == 1
+    left_region = get_square_points(1, 4, 1, game.size)
+    right_region = get_square_points(7, 4, 1, game.size)
+    assert any(game.board[y][x] == 1 for x, y in left_region)
+    assert any(game.board[y][x] == 1 for x, y in right_region)
     assert any("五子连珠" in msg.get("msg", "") for msg in sent)
 
     game = make_game(size=9)
@@ -1508,6 +1706,14 @@ async def smoke_challenge_beta_set_bonuses():
     assert game.level == "6k"
     assert any("限制套装触发" in msg.get("msg", "") for msg in sent)
 
+    game = make_game(size=9)
+    game.challenge_beta = True
+    game.challenge_cards = ["methodical", "fog"]
+    await s._apply_challenge_rogue_loadout(game, send)
+    assert game.challenge_cards == ["fog"]
+    assert game.rogue_card == "fog"
+    assert game.rogue_methodical_remaining == 0
+
 
 async def smoke_corner_helper_can_trigger_per_corner():
     game = make_game(size=9)
@@ -1622,6 +1828,7 @@ async def main():
         await smoke_featured_pools()
         await smoke_suboptimal_extended()
         await smoke_fog_mask_refresh()
+        await smoke_new_rogue_supremacy_and_methodical_cards()
         await smoke_foolish_wisdom_rogue()
         await smoke_bonus_spawn_safety()
         await smoke_place_stone_does_not_overwrite()

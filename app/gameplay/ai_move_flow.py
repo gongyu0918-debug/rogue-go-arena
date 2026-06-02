@@ -153,6 +153,7 @@ class GeneratedMoveFinishDeps:
     roll_random: RandomFloatFn
     has_rogue_card: RogueHasFn
     pick_best_point: PickBestPointFn
+    check_capture_foul: CheckCaptureFoulFn
     prepare_player_turn_modifiers: PreparePlayerTurnFn
     apply_erosion_counter: ErosionCounterFn
     erosion_shift: float
@@ -205,6 +206,7 @@ async def try_finalize_forced_ai_stone(
     message: str,
     prepare_player_turn_modifiers: PreparePlayerTurnFn,
     run_engine_command: EngineCommandFn,
+    check_capture_foul: CheckCaptureFoulFn | None = None,
     push_history: bool = True,
 ) -> bool:
     resp = await run_engine_command(f"play {color} {gtp_move}")
@@ -213,10 +215,12 @@ async def try_finalize_forced_ai_stone(
 
     x, y = coord
     game.moves.append((color, gtp_move))
-    game.place_stone(x, y, color)
+    captured = game.place_stone(x, y, color)
     game.passed[color] = False
     game.current_player = game.player_color
     prepare_player_turn_modifiers(game)
+    if check_capture_foul is not None:
+        await check_capture_foul(game, send_fn, color, captured, ultimate=False)
     if push_history:
         game.push_history()
     await send_fn({"type": "game_state", **game.to_state()})
@@ -301,6 +305,7 @@ async def try_finish_forced_rogue_ai_move(
     finalize_forced_stone: FinalizeForcedStoneFn,
     apply_puppet_move: PuppetMoveFn,
     finish_ai_move: FinishAiMoveFn,
+    check_capture_foul: CheckCaptureFoulFn | None = None,
 ) -> bool:
     if "dice" in rogue_cards and roll_random() < dice_pass_chance:
         await finalize_forced_pass(
@@ -330,6 +335,7 @@ async def try_finish_forced_rogue_ai_move(
                         message=f"镜像触发，AI 在对称点 {mirror_gtp} 落子",
                         prepare_player_turn_modifiers=prepare_player_turn_modifiers,
                         run_engine_command=run_engine_command,
+                        check_capture_foul=check_capture_foul,
                     ):
                         return True
 
@@ -420,6 +426,7 @@ async def try_finish_rogue_restriction_ai_move(
     finish_ai_move: FinishAiMoveFn,
     finish_allowed_restriction_move: AllowedRestrictionFinishFn,
     finish_sansan_restriction_move: SansanRestrictionFinishFn,
+    check_capture_foul: CheckCaptureFoulFn | None = None,
 ) -> bool:
     if "tengen" in rogue_cards:
         target_plan = choose_tengen_target(game, ai_move_count)
@@ -436,6 +443,7 @@ async def try_finish_rogue_restriction_ai_move(
                     message=target_plan.message,
                     prepare_player_turn_modifiers=prepare_player_turn_modifiers,
                     run_engine_command=run_engine_command,
+                    check_capture_foul=check_capture_foul,
                 ):
                     return True
         restriction = tengen_followup_points(game, ai_move_count)
@@ -612,8 +620,8 @@ async def refresh_fog_restriction_points(
     else:
         fog_pts: list[tuple[int, int]] = []
         for _ in range(gameplay_config.ROGUE_FOG_POST_MASK_POINTS):
-            fog_pts.extend(challenge_zone_points(game, pick_fog_point(game, rng)))
-        game.rogue_seal_points = _unique_points(fog_pts)
+            fog_pts.extend(pick_fog_point(game, rng))
+        game.rogue_seal_points = _unique_points(fog_pts)[:gameplay_config.ROGUE_FOG_POST_MASK_POINTS]
         fog_msg = f"🌫 战争迷雾残留：本回合随机封锁 {gameplay_config.ROGUE_FOG_POST_MASK_POINTS} 个 AI 禁着点"
 
     await send_fn({"type": "game_state", **game.to_state()})
@@ -1105,6 +1113,7 @@ async def finish_prepared_ai_move(
     roll_random: RandomFloatFn,
     has_rogue_card: RogueHasFn,
     pick_best_point: PickBestPointFn,
+    check_capture_foul: CheckCaptureFoulFn,
     prepare_player_turn_modifiers: PreparePlayerTurnFn,
     apply_erosion_counter: ErosionCounterFn,
     erosion_shift: float,
@@ -1153,6 +1162,7 @@ async def finish_prepared_ai_move(
         coord=placement.coord,
         captured=placement.captured,
         rogue_msg=prepared_move.message,
+        check_capture_foul=check_capture_foul,
         prepare_player_turn_modifiers=prepare_player_turn_modifiers,
         apply_erosion_counter=apply_erosion_counter,
         erosion_shift=erosion_shift,
@@ -1248,6 +1258,7 @@ async def try_finish_generated_ai_move(
         roll_random=finish_deps.roll_random,
         has_rogue_card=finish_deps.has_rogue_card,
         pick_best_point=finish_deps.pick_best_point,
+        check_capture_foul=finish_deps.check_capture_foul,
         prepare_player_turn_modifiers=finish_deps.prepare_player_turn_modifiers,
         apply_erosion_counter=finish_deps.apply_erosion_counter,
         erosion_shift=finish_deps.erosion_shift,
@@ -1270,6 +1281,7 @@ async def finish_ai_turn_response(
     coord: tuple[int, int] | None,
     captured: int,
     rogue_msg: str | None,
+    check_capture_foul: CheckCaptureFoulFn,
     prepare_player_turn_modifiers: PreparePlayerTurnFn,
     apply_erosion_counter: ErosionCounterFn,
     erosion_shift: float,
@@ -1282,6 +1294,7 @@ async def finish_ai_turn_response(
 ) -> bool:
     game.current_player = game.player_color
     prepare_player_turn_modifiers(game)
+    await check_capture_foul(game, send_fn, color, captured, ultimate=False)
 
     await apply_erosion_counter(
         game,

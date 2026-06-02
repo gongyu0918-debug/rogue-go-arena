@@ -12,6 +12,8 @@ import app.config.gameplay as gameplay_config
 class CaptureFoulResult:
     triggered: bool
     message: str | None = None
+    beneficiary: str | None = None
+    sync_komi: bool = False
 
 
 def apply_score_penalty(game: Any, offender: str, amount: float) -> None:
@@ -60,6 +62,7 @@ def _check_ultimate_capture_foul(
     return CaptureFoulResult(
         True,
         f"🧺 提子犯规触发！{_color_label(offender)} 被罚 {gameplay_config.ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY:.0f} 目",
+        sync_komi=True,
     )
 
 
@@ -69,6 +72,8 @@ def _check_rogue_capture_foul(
     captured: int,
     random_value_fn: Callable[[], float],
 ) -> CaptureFoulResult:
+    del random_value_fn
+
     if game.rogue_card != "capture_foul":
         return CaptureFoulResult(False)
     if offender != game.ai_color:
@@ -79,20 +84,11 @@ def _check_rogue_capture_foul(
     if progress[offender] < gameplay_config.ROGUE_CAPTURE_FOUL_THRESHOLD:
         return CaptureFoulResult(False)
 
-    chance = min(
-        1.0,
-        gameplay_config.ROGUE_CAPTURE_FOUL_BASE
-        + max(0, progress[offender] - gameplay_config.ROGUE_CAPTURE_FOUL_THRESHOLD)
-        * gameplay_config.ROGUE_CAPTURE_FOUL_STEP,
-    )
-    if random_value_fn() > chance:
-        return CaptureFoulResult(False)
-
-    apply_score_penalty(game, offender, gameplay_config.ROGUE_CAPTURE_FOUL_KOMI_PENALTY)
     progress[offender] = 0
     return CaptureFoulResult(
         True,
-        f"🧺 提子犯规！{_color_label(offender)} 被罚 {gameplay_config.ROGUE_CAPTURE_FOUL_KOMI_PENALTY:.1f} 目",
+        f"🧺 提子犯规触发！{_color_label(offender)} 提子达到 {gameplay_config.ROGUE_CAPTURE_FOUL_THRESHOLD} 颗",
+        beneficiary=game.player_color,
     )
 
 

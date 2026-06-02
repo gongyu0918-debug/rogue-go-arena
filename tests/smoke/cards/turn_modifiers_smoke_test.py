@@ -8,7 +8,7 @@ import random
 import app.config.gameplay as gameplay_config
 import server as s
 from app.domain.game_state import GoGame
-from app.gameplay import turn_modifiers
+from app.gameplay import ai_moves, turn_modifiers
 
 
 def make_game() -> GoGame:
@@ -72,6 +72,41 @@ def test_refresh_ai_rogue_fog_mask_and_point_modes() -> None:
     assert game.ai_rogue_seal_points == []
 
 
+def test_pick_fog_point_uses_ai_previous_move_diamond() -> None:
+    game = make_game()
+    game.ai_color = "W"
+    game.moves = [("B", "D4"), ("W", "E5")]
+    game.board[4][4] = 2
+
+    picked = turn_modifiers.pick_fog_point(game, random.Random(7))
+
+    assert len(picked) == gameplay_config.ROGUE_FOG_POST_MASK_POINTS
+    px, py = picked[0]
+    assert abs(px - 4) + abs(py - 4) <= 1
+    assert (px, py) != (4, 4)
+
+    for px, py in [(3, 4), (5, 4), (4, 3), (4, 5)]:
+        game.board[py][px] = 1
+    assert turn_modifiers.pick_fog_point(game, random.Random(8)) == []
+
+
+def test_lowline_allows_only_second_and_third_lines_for_first_five_ai_moves() -> None:
+    game = make_game()
+
+    restriction = ai_moves.lowline_allowed_points(game, ai_move_count=0)
+
+    assert restriction is not None
+    assert restriction.kind == "allow_only"
+    assert (0, 0) not in restriction.points
+    assert (1, 4) in restriction.points
+    assert (2, 4) in restriction.points
+    assert (3, 3) not in restriction.points
+    assert ai_moves.lowline_allowed_points(
+        game,
+        ai_move_count=gameplay_config.ROGUE_LOWLINE_AI_MOVES,
+    ) is None
+
+
 def test_prepare_and_clear_quickthink_turns() -> None:
     game = make_game()
     game.rogue_card = "quickthink"
@@ -100,6 +135,17 @@ def test_prepare_and_clear_quickthink_turns() -> None:
     assert game.rogue_quickthink_stage == 0
     assert game.ultimate_quickthink_active is False
     assert game.ultimate_quickthink_turn_counted is False
+
+
+def test_methodical_ignores_challenge_card_loadout() -> None:
+    game = make_game()
+    game.rogue_card = "sprout"
+    game.challenge_cards = ["methodical", "sprout"]
+
+    turn_modifiers.prepare_player_turn_modifiers(game)
+
+    assert game.rogue_methodical_remaining == 0
+    assert game.rogue_methodical_turns["B"] == 0
 
 
 def test_apply_ultimate_ai_move_result_records_stone_move() -> None:
@@ -381,7 +427,10 @@ if __name__ == "__main__":
     test_ai_rogue_forbidden_points()
     test_player_bonus_forbidden_points()
     test_refresh_ai_rogue_fog_mask_and_point_modes()
+    test_pick_fog_point_uses_ai_previous_move_diamond()
+    test_lowline_allows_only_second_and_third_lines_for_first_five_ai_moves()
     test_prepare_and_clear_quickthink_turns()
+    test_methodical_ignores_challenge_card_loadout()
     test_apply_ultimate_ai_move_result_records_stone_move()
     test_apply_ultimate_ai_move_result_records_pass_without_counting_double_bonus()
     test_apply_ultimate_ai_move_result_treats_missing_coord_as_pass_state()

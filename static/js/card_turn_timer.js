@@ -41,7 +41,7 @@ function syncCardTurnTimer() {
   }
 
   if (activeRogueCard === "quickthink" && gameState.rogue_quickthink_stage > 0) {
-    const seconds = gameState.rogue_quickthink_seconds || (gameState.rogue_quickthink_stage === 1 ? 3 : 2);
+    const seconds = gameState.rogue_quickthink_seconds || (gameState.rogue_quickthink_stage === 1 ? 1 : 0.5);
     const key = `rq:${gameState.move_number}:${gameState.rogue_quickthink_stage}`;
     if (cardTurnKey !== key) {
       logI18n(

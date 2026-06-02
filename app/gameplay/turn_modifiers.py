@@ -7,7 +7,8 @@ from dataclasses import dataclass
 from typing import Any
 
 import app.config.gameplay as gameplay_config
-from app.gameplay.effect_utils import get_square_points
+from app.domain.coordinates import gtp_to_coord
+from app.gameplay.effect_utils import diamond_points, get_square_points
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,22 @@ def pick_fog_mask(size: int, rng: random.Random) -> list[tuple[int, int]]:
 
 
 def pick_fog_point(game: Any, rng: random.Random) -> list[tuple[int, int]]:
+    last_ai_coord = None
+    for move_color, move in reversed(game.moves):
+        if move_color != game.ai_color or move.upper() == "PASS":
+            continue
+        last_ai_coord = gtp_to_coord(move, game.size)
+        break
+    if last_ai_coord:
+        candidates = [
+            (x, y)
+            for x, y in diamond_points(last_ai_coord[0], last_ai_coord[1], 1, game.size)
+            if game.board[y][x] == 0
+        ]
+        if candidates:
+            return [rng.choice(candidates)]
+        return []
+
     candidates = [
         (x, y)
         for y in range(game.size)
@@ -97,6 +114,27 @@ def finish_ultimate_quickthink_turn(game: Any) -> None:
     game.ultimate_quickthink_turn_counted = False
 
 
+def has_methodical_card(game: Any) -> bool:
+    return game.rogue_card == "methodical"
+
+
+def prepare_methodical_turn(game: Any) -> None:
+    if game.two_player or not has_methodical_card(game):
+        return
+    if game.current_player != game.player_color:
+        return
+    if game.rogue_methodical_remaining > 0:
+        return
+
+    game.rogue_methodical_turns[game.player_color] += 1
+    turn_count = game.rogue_methodical_turns[game.player_color]
+    game.rogue_methodical_remaining = (
+        gameplay_config.ROGUE_METHODICAL_BONUS_PLAYS
+        if turn_count % gameplay_config.ROGUE_METHODICAL_BONUS_INTERVAL == 0
+        else gameplay_config.ROGUE_METHODICAL_BASE_PLAYS
+    )
+
+
 def refresh_ai_rogue_player_turn(
     game: Any,
     *,
@@ -139,6 +177,7 @@ def prepare_player_turn_modifiers(
     refresh_ai_rogue_player_turn_fn(game)
     if game.rogue_card == "quickthink" and game.rogue_quickthink_stage == 0:
         game.rogue_quickthink_stage = 1
+    prepare_methodical_turn(game)
     if game.ultimate and game.ultimate_player_card == "quickthink" and not game.ultimate_quickthink_active:
         game.ultimate_quickthink_token += 1
         game.ultimate_quickthink_active = True

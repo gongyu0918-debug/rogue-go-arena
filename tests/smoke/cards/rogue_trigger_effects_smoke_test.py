@@ -9,6 +9,7 @@ import copy
 
 import server as s
 from app.domain.game_state import GoGame
+from app.gameplay.effect_utils import get_square_points
 from app.gameplay.rogue_effects import (
     RogueBoardEffectResult,
     apply_rogue_five_in_row,
@@ -30,6 +31,7 @@ def test_apply_rogue_five_in_row_places_endpoints_and_marks_seen() -> None:
     for x in range(2, 7):
         game.board[4][x] = 1
     expected_line = tuple((x, 4) for x in range(2, 7))
+    before_board = copy.deepcopy(game.board)
 
     result = apply_rogue_five_in_row(
         game,
@@ -42,10 +44,17 @@ def test_apply_rogue_five_in_row_places_endpoints_and_marks_seen() -> None:
     assert result.modified is True
     assert result.trap_bonus_sources == []
     assert result.messages == [
-        "🎯 五子连珠发动，正好连成 5 子，首尾额外补下 2 颗棋子"
+        "🎯 五子连珠发动，正好连成 5 子，在首尾 3×3 区域补下 2 颗己方棋子"
     ]
-    assert game.board[4][1] == 1
-    assert game.board[4][7] == 1
+    new_points = {
+        (x, y)
+        for y in range(game.size)
+        for x in range(game.size)
+        if game.board[y][x] == 1 and before_board[y][x] != 1
+    }
+    assert len(new_points) == 2
+    assert new_points & set(get_square_points(1, 4, 1, game.size))
+    assert new_points & set(get_square_points(7, 4, 1, game.size))
     assert expected_line in game.rogue_five_in_row_seen
 
     second = apply_rogue_five_in_row(

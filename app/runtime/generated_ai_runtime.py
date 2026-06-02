@@ -65,6 +65,7 @@ class GeneratedMoveFinishFns:
     roll_random: Callable[[], float]
     has_rogue_card: Callable[[Any, str], bool]
     pick_best_point: Callable[..., Awaitable[tuple[int, int] | None]]
+    check_capture_foul: Callable[..., Awaitable[None]]
     prepare_player_turn_modifiers: Callable[[Any], Any]
     apply_erosion_counter: Callable[..., Awaitable[Any]]
     run_erosion_command: EngineCommandFn
@@ -160,6 +161,7 @@ def build_generated_move_finish_binding(
         roll_random=dependencies.finish.roll_random,
         has_rogue_card=dependencies.finish.has_rogue_card,
         pick_best_point=dependencies.finish.pick_best_point,
+        check_capture_foul=dependencies.finish.check_capture_foul,
         prepare_player_turn_modifiers=dependencies.finish.prepare_player_turn_modifiers,
         apply_erosion_counter=dependencies.finish.apply_erosion_counter,
         erosion_shift=dependencies.finish_tuning.erosion_shift,

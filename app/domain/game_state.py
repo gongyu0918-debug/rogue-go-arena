@@ -57,6 +57,12 @@ class GoGame:
         self.rogue_five_in_row_seen: set[tuple[tuple[int, int], ...]] = set()
         self.rogue_last_stand_done: dict[str, bool] = {"B": False, "W": False}
         self.rogue_capture_foul_progress: dict[str, int] = {"B": 0, "W": 0}
+        self.rogue_defense_first_triggers: dict[str, int] = {"B": 0, "W": 0}
+        self.rogue_attack_first_triggers: dict[str, int] = {"B": 0, "W": 0}
+        self.rogue_defense_first_last_index: dict[str, int] = {"B": 0, "W": 0}
+        self.rogue_attack_first_last_index: dict[str, int] = {"B": 0, "W": 0}
+        self.rogue_methodical_turns: dict[str, int] = {"B": 0, "W": 0}
+        self.rogue_methodical_remaining: int = 0
         self.rogue_coach_moves_left: int = 0
         self.rogue_coach_bonus_checked: bool = False
         self.rogue_quickthink_stage: int = 0
@@ -111,6 +117,7 @@ class GoGame:
         self.ai_style_black: str = "balanced"
         self.ai_style_white: str = "balanced"
         self.last_analysis: dict = {"winrate": 0.5, "score": 0.0, "top_moves": [], "ownership": []}
+        self.last_captured_points: list[tuple[int, int]] = []
         # Ko rule: (x, y, color_value) that is forbidden on the NEXT move
         self.ko_point: Optional[tuple[int, int, int]] = None
         self.created_at: float = now
@@ -164,10 +171,12 @@ class GoGame:
         board_before = [row[:] for row in self.board]
         captures_before = dict(self.captures)
         ko_before = self.ko_point
+        captured_before = list(self.last_captured_points)
         result = self.place_stone(x, y, color, skip_ko=skip_ko)
         self.board = board_before
         self.captures = captures_before
         self.ko_point = ko_before
+        self.last_captured_points = captured_before
         return result >= 0
 
     def place_stone(self, x, y, color, *, skip_ko=False):
@@ -179,15 +188,18 @@ class GoGame:
             return -1  # ko violation
         prev_captures = dict(self.captures)
         prev_ko_point = self.ko_point
+        prev_captured_points = list(self.last_captured_points)
         self.board[y][x] = cv
         captured = 0
         captured_single: Optional[tuple[int, int]] = None
+        captured_points: list[tuple[int, int]] = []
         for nx, ny in self.neighbors(x, y):
             if self.board[ny][nx] == ov:
                 grp = self.get_group(nx, ny)
                 if not self.has_liberty(grp):
                     for gx, gy in grp:
                         self.board[gy][gx] = 0
+                        captured_points.append((gx, gy))
                     if len(grp) == 1 and captured == 0:
                         captured_single = next(iter(grp))
                     captured += len(grp)
@@ -197,6 +209,7 @@ class GoGame:
             self.board[y][x] = 0
             self.captures = prev_captures
             self.ko_point = prev_ko_point
+            self.last_captured_points = prev_captured_points
             return -2  # suicide / self-capture
         # Update ko point: if exactly 1 stone was captured and the
         # capturing stone itself has exactly 1 liberty (the captured
@@ -215,6 +228,7 @@ class GoGame:
                 self.ko_point = None
         else:
             self.ko_point = None
+        self.last_captured_points = captured_points
         return captured
 
     def _snapshot_state(self) -> dict:
@@ -292,6 +306,7 @@ class GoGame:
             "rogue_undo_disabled": self.rogue_card in {"no_regret", "quickthink"},
             "rogue_coach_moves_left": self.rogue_coach_moves_left,
             "rogue_quickthink_stage": self.rogue_quickthink_stage,
+            "rogue_methodical_remaining": self.rogue_methodical_remaining,
             "rogue_quickthink_seconds": (
                 ROGUE_QUICKTHINK_FIRST_SECONDS
                 if self.rogue_quickthink_stage == 1
@@ -327,4 +342,3 @@ class GoGame:
                 ULTIMATE_QUICKTHINK_SECONDS if self.ultimate_quickthink_active else 0
             ),
         }
-

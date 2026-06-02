@@ -61,6 +61,7 @@ def smoke_forced_binding_maps_every_field() -> None:
         prepare_player_turn_modifiers=fake_sync,
         finalize_forced_pass=fake_async,
         finalize_forced_stone=fake_async,
+        check_capture_foul=fake_async,
         apply_puppet_move=fake_async,
         finish_ai_move=fake_async,
     )
@@ -77,6 +78,7 @@ def smoke_forced_binding_maps_every_field() -> None:
     assert deps.prepare_player_turn_modifiers is fake_sync
     assert deps.finalize_forced_pass is fake_async
     assert deps.finalize_forced_stone is fake_async
+    assert deps.check_capture_foul is fake_async
     assert deps.apply_puppet_move is fake_async
     assert deps.finish_ai_move is fake_async
 
@@ -92,6 +94,7 @@ def smoke_restriction_binding_maps_every_field() -> None:
         coord_to_gtp=fake_sync,
         finalize_forced_stone=fake_async,
         prepare_player_turn_modifiers=fake_sync,
+        check_capture_foul=fake_async,
         choose_allowed_move=fake_async,
         choose_avoid_move=fake_async,
         finish_ai_move=fake_async,
@@ -110,6 +113,7 @@ def smoke_restriction_binding_maps_every_field() -> None:
     assert deps.coord_to_gtp is fake_sync
     assert deps.finalize_forced_stone is fake_async
     assert deps.prepare_player_turn_modifiers is fake_sync
+    assert deps.check_capture_foul is fake_async
     assert deps.choose_allowed_move is fake_async
     assert deps.choose_avoid_move is fake_async
     assert deps.finish_ai_move is fake_async
@@ -228,6 +232,7 @@ def smoke_rogue_ai_turn_runtime_builders_group_dependencies() -> None:
             gtp_to_coord=gtp_to_coord,
             coord_to_gtp=coord_to_gtp,
             prepare_player_turn_modifiers=prepare_modifiers,
+            check_capture_foul=fake_async,
             finish_ai_move=finish_ai,
         ),
         forced=ForcedRogueAiTurnFns(
@@ -279,6 +284,7 @@ def smoke_rogue_ai_turn_runtime_builders_group_dependencies() -> None:
     assert forced.prepare_player_turn_modifiers is prepare_modifiers
     assert forced.finalize_forced_pass is finalize_pass
     assert forced.finalize_forced_stone is finalize_stone
+    assert forced.check_capture_foul is fake_async
     assert forced.apply_puppet_move is apply_puppet
     assert forced.finish_ai_move is finish_ai
     assert restriction.try_finish_rogue_restriction_ai_move is restriction_move
@@ -290,6 +296,7 @@ def smoke_rogue_ai_turn_runtime_builders_group_dependencies() -> None:
     assert restriction.coord_to_gtp is coord_to_gtp
     assert restriction.finalize_forced_stone is finalize_stone
     assert restriction.prepare_player_turn_modifiers is prepare_modifiers
+    assert restriction.check_capture_foul is fake_async
     assert restriction.choose_allowed_move is choose_allowed
     assert restriction.choose_avoid_move is choose_avoid
     assert restriction.finish_ai_move is finish_ai
@@ -351,6 +358,7 @@ async def smoke_adapters_delegate_to_underlying_flow() -> None:
             prepare_player_turn_modifiers=fake_sync,
             finalize_forced_pass=fake_async,
             finalize_forced_stone=fake_async,
+            check_capture_foul=fake_async,
             apply_puppet_move=fake_async,
             finish_ai_move=fake_async,
         ),
@@ -371,6 +379,7 @@ async def smoke_adapters_delegate_to_underlying_flow() -> None:
             coord_to_gtp=fake_sync,
             finalize_forced_stone=fake_async,
             prepare_player_turn_modifiers=fake_sync,
+            check_capture_foul=fake_async,
             choose_allowed_move=fake_async,
             choose_avoid_move=fake_async,
             finish_ai_move=fake_async,
@@ -559,6 +568,7 @@ def smoke_server_bindings_resolve_current_runtime() -> None:
         assert forced.prepare_player_turn_modifiers is fake_prepare_modifiers
         assert forced.finalize_forced_pass is finalize_pass
         assert forced.finalize_forced_stone is finalize_stone
+        assert forced.check_capture_foul is s._check_capture_foul
         assert forced.apply_puppet_move is apply_puppet
         assert forced.finish_ai_move is finish_ai
         assert restriction.try_finish_rogue_restriction_ai_move is restriction_move
@@ -570,6 +580,7 @@ def smoke_server_bindings_resolve_current_runtime() -> None:
         assert restriction.coord_to_gtp is fake_coord_to_gtp
         assert restriction.finalize_forced_stone is finalize_stone
         assert restriction.prepare_player_turn_modifiers is fake_prepare_modifiers
+        assert restriction.check_capture_foul is s._check_capture_foul
         assert restriction.choose_allowed_move is choose_allowed
         assert restriction.choose_avoid_move is choose_avoid
         assert restriction.finish_ai_move is finish_ai
