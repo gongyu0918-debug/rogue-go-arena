@@ -69,6 +69,17 @@ function Test-ReleaseKataGoAssets {
     Write-Host "==> KataGo assets: engines=$($engines -join ', ') models=$($models -join ', ')"
 }
 
+function Assert-NativeCommandSucceeded {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Step
+    )
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Step failed with exit code $LASTEXITCODE"
+    }
+}
+
 Write-Host "==> Repo root: $RepoRoot"
 Write-Host "==> Build version: $Version"
 Write-Host "==> Build dir: $BuildDir"
@@ -101,16 +112,20 @@ try {
 
         Write-Host "==> Installing frontend dependencies"
         npm ci --prefix (Join-Path $RepoRoot "frontend")
+        Assert-NativeCommandSucceeded "npm ci"
 
         Write-Host "==> Building React frontend"
         npm run build --prefix (Join-Path $RepoRoot "frontend")
+        Assert-NativeCommandSucceeded "npm run build"
     }
 
     Write-Host "==> Building launcher EXE"
     python -m PyInstaller --noconfirm --distpath $DistDir --workpath $BuildDir rogue-go-arena.spec
+    Assert-NativeCommandSucceeded "PyInstaller launcher build"
 
     Write-Host "==> Building server EXE bundle"
     python -m PyInstaller --noconfirm --distpath $DistDir --workpath $BuildDir rogue-go-arena-server.spec
+    Assert-NativeCommandSucceeded "PyInstaller server build"
 
     $iscc = Resolve-Iscc
     Write-Host "==> Building installer with Inno Setup"
@@ -120,6 +135,7 @@ try {
         "/DDistDir=$DistDir" `
         "/DReleaseDir=$ReleaseDir" `
         (Join-Path $RepoRoot "rogue-go-arena_Setup.iss")
+    Assert-NativeCommandSucceeded "Inno Setup compiler"
 }
 finally {
     $env:PYTHONPATH = $oldPythonPath

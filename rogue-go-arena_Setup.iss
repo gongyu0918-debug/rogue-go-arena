@@ -36,7 +36,7 @@ PrivilegesRequiredOverridesAllowed=dialog
 
 [Languages]
 Name: "chinesesimplified"; MessagesFile: "{#RepoRoot}\ChineseSimplified.isl"
-Name: "chinesetraditional"; MessagesFile: "compiler:Languages\ChineseTraditional.isl"
+Name: "chinesetraditional"; MessagesFile: "{#RepoRoot}\ChineseTraditional.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
