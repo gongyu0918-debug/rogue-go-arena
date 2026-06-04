@@ -11,6 +11,10 @@ let rogueSealing = false;
 let rogueSeals = [];
 let aiRogueSeals = [];
 let puppetMode = false;
+let pendingRogueSealPoints = [];
+let rogueSealRequired = 0;
+let rogueSealWaitingForOpponent = false;
+let quickthinkAwaitingAiMove = false;
 
 let ultimateMode = false;
 let ultimatePlayerCard = null;

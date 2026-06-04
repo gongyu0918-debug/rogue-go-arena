@@ -143,7 +143,7 @@ try {
   assert(initialState.stateGlobals.analysis.analysisReady === false, `analysis.analysis_ready default changed: ${JSON.stringify(initialState.stateGlobals)}`);
   assert(initialState.stateGlobals.analysisReady === false, `analysis ready default changed: ${JSON.stringify(initialState.stateGlobals)}`);
   assert(initialState.stateGlobals.winrateHistoryLength === 0, `winrate history default changed: ${JSON.stringify(initialState.stateGlobals)}`);
-  assert(initialState.stylesheetState.legacyStylesheetHref === "/static/legacy.css?v=20260531a", `legacy stylesheet link changed: ${JSON.stringify(initialState.stylesheetState)}`);
+  assert(initialState.stylesheetState.legacyStylesheetHref === "/static/legacy.css?v=20260603a", `legacy stylesheet link changed: ${JSON.stringify(initialState.stylesheetState)}`);
   assert(initialState.stylesheetState.inlineStyleTags === 0, `index.html still has inline style tags: ${JSON.stringify(initialState.stylesheetState)}`);
   assert(initialState.stylesheetState.bodyDisplay === "flex", `legacy stylesheet did not apply body layout: ${JSON.stringify(initialState.stylesheetState)}`);
   assert(initialState.stylesheetState.boardContainerPosition === "relative", `legacy stylesheet did not apply board container layout: ${JSON.stringify(initialState.stylesheetState)}`);

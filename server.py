@@ -78,6 +78,7 @@ from app.data.cards import (
     rogue_card_ids,
 )
 from app.domain.coordinates import coord_to_gtp, gtp_to_coord
+import app.domain.game_state as game_state_module
 from app.domain.game_state import GoGame
 from app.domain.sgf import generate_sgf
 from app.runtime.access_urls import get_access_urls as build_access_urls
@@ -564,6 +565,7 @@ def _sync_balance_globals() -> None:
         gameplay_config=gameplay_config,
         ws_actions_module=ws_actions_module,
         ws_action_modules=(ws_rogue_actions_module, ws_ultimate_actions_module),
+        state_modules=(game_state_module,),
     )
 
 

@@ -19,10 +19,12 @@ def smoke_balance_sync_updates_existing_server_globals_and_ws_keys() -> None:
         BALANCE_DEFAULTS={
             "ROGUE_COACH_BASE_TURNS": 30,
             "ROGUE_SEAL_POINT_COUNT": 4,
+            "ROGUE_QUICKTHINK_FIRST_SECONDS": 2,
             "ULTIMATE_CHAIN_EXTRA_TURN_CHANCE": 0.75,
         },
         ROGUE_COACH_BASE_TURNS=12,
         ROGUE_SEAL_POINT_COUNT=6,
+        ROGUE_QUICKTHINK_FIRST_SECONDS=4,
         ULTIMATE_CHAIN_EXTRA_TURN_CHANCE=0.25,
         ULTIMATE_JOSEKI_TARGET_COUNT=9,
         EXTRA_WS_BALANCE=99,
@@ -40,12 +42,17 @@ def smoke_balance_sync_updates_existing_server_globals_and_ws_keys() -> None:
         ULTIMATE_CHAIN_EXTRA_TURN_CHANCE=0.75,
         ULTIMATE_JOSEKI_TARGET_COUNT=7,
     )
+    game_state = SimpleNamespace(
+        ROGUE_QUICKTHINK_FIRST_SECONDS=2,
+        ULTIMATE_CHAIN_EXTRA_TURN_CHANCE=0.75,
+    )
 
     sync_live_balance_globals(
         target_globals=target_globals,
         gameplay_config=config,
         ws_actions_module=ws_actions,
         ws_action_modules=(ws_rogue_actions, ws_ultimate_actions),
+        state_modules=(game_state,),
     )
 
     assert target_globals == {
@@ -60,6 +67,8 @@ def smoke_balance_sync_updates_existing_server_globals_and_ws_keys() -> None:
     assert ws_rogue_actions.ROGUE_SEAL_POINT_COUNT == 6
     assert ws_ultimate_actions.ULTIMATE_CHAIN_EXTRA_TURN_CHANCE == 0.25
     assert ws_ultimate_actions.ULTIMATE_JOSEKI_TARGET_COUNT == 9
+    assert game_state.ROGUE_QUICKTHINK_FIRST_SECONDS == 4
+    assert game_state.ULTIMATE_CHAIN_EXTRA_TURN_CHANCE == 0.25
 
 
 def smoke_server_balance_sync_wrapper_resolves_runtime_modules_late() -> None:

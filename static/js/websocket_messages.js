@@ -6,6 +6,7 @@ function renderIfIdle() {
 
 function handleGameStartMessage(msg) {
   clearGameLog();
+  quickthinkAwaitingAiMove = false;
   twoPlayerMode = !!msg.two_player;
   gameState = msg;
   syncChallengeSessionFromState(msg);
@@ -28,6 +29,7 @@ function handleGameStartMessage(msg) {
   initTimers();
   if (timerMode !== "none") startTimerFor(msg.current_player);
   triggerBoardIntro();
+  advanceStartProgressForGameStart(msg);
 
   if (msg.ai_observer) {
     logStudyGameStart(msg);
@@ -108,6 +110,7 @@ function handleGameStateMessage(msg) {
 }
 
 function handleAiMoveMessage(msg) {
+  quickthinkAwaitingAiMove = false;
   lastAiMove = msg;
   setThinking(false);
   clearTimeout(aiResponseTimer);
@@ -122,6 +125,8 @@ function handleAiMoveMessage(msg) {
   } else {
     logI18n("AI 虚手", "AI passes", "AIパス", "AI 패스");
   }
+  syncCardTurnTimer();
+  updateUI();
   renderIfIdle();
 }
 
@@ -168,6 +173,7 @@ function handleAnalysisMessage(msg) {
 function handleGameOverMessage(msg) {
   if (gameState) gameState.game_over = true;
   isMyTurn = false;
+  quickthinkAwaitingAiMove = false;
   setThinking(false);
   setButtons(false);
   stopTimerTick();
@@ -234,6 +240,8 @@ function handleChallengeGameOver(msg, youWin) {
 }
 
 function handleReconnectedMessage(msg) {
+  hideStartProgress();
+  quickthinkAwaitingAiMove = false;
   twoPlayerMode = !!msg.two_player;
   gameState = msg;
   syncChallengeSessionFromState(msg);
@@ -271,6 +279,8 @@ function handleReconnectedMessage(msg) {
 }
 
 function handleReconnectFailedMessage() {
+  hideStartProgress();
+  quickthinkAwaitingAiMove = false;
   logI18n(
     "暂无进行中的对局，请点击「开始对弈」开始",
     "No active game was found. Click Start Game to begin.",
@@ -280,6 +290,8 @@ function handleReconnectFailedMessage() {
 }
 
 function handleErrorMessage(msg) {
+  hideStartProgress();
+  quickthinkAwaitingAiMove = false;
   logServerEvent(msg.message, "⚠ ");
   setThinking(false);
   if (previousBoard && gameState) {
@@ -302,6 +314,7 @@ function handleLevelSetMessage(msg) {
 }
 
 function handleRogueCardSelectedMessage(msg) {
+  hideStartProgress();
   gameState = msg;
   syncChallengeSessionFromState(msg);
   activeRogueCard = msg.card_id;
@@ -314,8 +327,9 @@ function handleRogueCardSelectedMessage(msg) {
   syncCardTurnTimer();
   renderIfIdle();
   if (msg.waiting_seal) {
-    rogueSealing = true;
-    document.getElementById("seal-overlay").style.display = "block";
+    startRogueSealSelection(msg.rogue_seal_required || 0);
+  } else {
+    finishRogueSealSelection();
   }
   showCardEffectVisual(msg.card_name || getRogueCardName(msg.card_id), "rogue");
   logRogueCardSelected(msg);
@@ -336,6 +350,7 @@ function handleRogueAiSelectedMessage(msg) {
   gameState = msg;
   activeAiRogueCard = msg.card_id;
   aiRogueSeals = msg.ai_rogue_seal_points || [];
+  if (msg.waiting_seal) showOpponentSealWaiting();
   updateRogueBar();
   renderIfIdle();
   showCardEffectVisual(msg.card_name || getRogueCardName(msg.card_id), "rogue");
@@ -354,16 +369,20 @@ function logRogueAiSelected(msg) {
 }
 
 function handleRogueSealUpdateMessage(msg) {
-  document.getElementById("seal-hint").textContent =
-    ui(`🚫 请在棋盘上点击封印点（剩余 ${msg.remaining} 个）`, `🚫 Click points on the board to seal them (${msg.remaining} left)`);
   rogueSeals = msg.points;
+  const hint = document.getElementById("seal-hint");
+  if (hint) {
+    hint.textContent = ui(
+      `禁着点已提交 ${msg.selected ?? rogueSeals.length}/${msg.required ?? rogueSeals.length}`,
+      `Forbidden points submitted ${msg.selected ?? rogueSeals.length}/${msg.required ?? rogueSeals.length}`
+    );
+  }
   renderIfIdle();
 }
 
 function handleRogueSealDoneMessage() {
-  rogueSealing = false;
-  document.getElementById("seal-overlay").style.display = "none";
-  logI18n("🚫 四道封印已设定！", "🚫 Four seals are now in place!", "🚫 4つの封印を設定しました！", "🚫 네 개의 봉인이 설정되었습니다!");
+  finishRogueSealSelection();
+  logI18n("🚫 禁着点已设定！", "🚫 Forbidden points are now in place!", "🚫 禁点を設定しました！", "🚫 금지점이 설정되었습니다!");
   renderIfIdle();
 }
 
@@ -379,6 +398,7 @@ function handleRogueUsesUpdateMessage(msg) {
 }
 
 function handleUltimateCardsSelectedMessage(msg) {
+  hideStartProgress();
   gameState = msg;
   ultimateMode = true;
   ultimatePlayerCard = msg.player_card;
@@ -423,14 +443,14 @@ const LEGACY_WEBSOCKET_MESSAGE_HANDLERS = {
   reconnect_failed: handleReconnectFailedMessage,
   error: handleErrorMessage,
   level_set: handleLevelSetMessage,
-  rogue_offer: msg => showRogueCards(msg.cards, msg),
+  rogue_offer: msg => { hideStartProgress(); showRogueCards(msg.cards, msg); },
   rogue_card_selected: handleRogueCardSelectedMessage,
   rogue_ai_selected: handleRogueAiSelectedMessage,
   rogue_seal_update: handleRogueSealUpdateMessage,
   rogue_seal_done: handleRogueSealDoneMessage,
   rogue_event: handleRogueEventMessage,
   rogue_uses_update: handleRogueUsesUpdateMessage,
-  ultimate_offer: msg => showUltimateCards(msg.cards),
+  ultimate_offer: msg => { hideStartProgress(); showUltimateCards(msg.cards); },
   ultimate_cards_selected: handleUltimateCardsSelectedMessage,
 };
 

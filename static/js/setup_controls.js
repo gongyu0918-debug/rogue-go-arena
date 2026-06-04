@@ -90,15 +90,32 @@ function closeRogueWiki() {
   document.getElementById("rogue-wiki-modal").classList.remove("show");
 }
 
-function showConfirmModal(msg, onConfirm) {
+function showConfirmModal(msg, onConfirm, options = {}) {
   document.getElementById("confirm-msg").textContent = msg;
   const btnOk = document.getElementById("btn-confirm-ok");
+  const btnCancel = document.getElementById("confirm-cancel");
+  if (btnOk) btnOk.textContent = options.confirmText || ui("确定", "OK", "確定", "확인");
+  if (btnCancel) {
+    btnCancel.textContent = options.cancelText || ui("取消", "Cancel", "キャンセル", "취소");
+    btnCancel.onclick = () => {
+      closeConfirmModal();
+      if (typeof options.onCancel === "function") options.onCancel();
+    };
+  }
   btnOk.onclick = () => { closeConfirmModal(); onConfirm(); };
   document.getElementById("confirm-modal").classList.add("show");
 }
 
 function closeConfirmModal() {
-  document.getElementById("confirm-modal").classList.remove("show");
+  const modal = document.getElementById("confirm-modal");
+  if (modal) modal.classList.remove("show");
+  const btnOk = document.getElementById("btn-confirm-ok");
+  const btnCancel = document.getElementById("confirm-cancel");
+  if (btnOk) btnOk.textContent = ui("确定", "OK", "確定", "확인");
+  if (btnCancel) {
+    btnCancel.textContent = ui("取消", "Cancel", "キャンセル", "취소");
+    btnCancel.onclick = closeConfirmModal;
+  }
 }
 
 function newGameFromOverlay() {
@@ -172,6 +189,10 @@ function resetGameUiBeforeStart() {
   localStorage.setItem("rogue_go_arena_game_id", gameId);
 
   resetRogueState();
+  pendingRogueSealPoints = [];
+  rogueSealRequired = 0;
+  rogueSealWaitingForOpponent = false;
+  quickthinkAwaitingAiMove = false;
   intentionalClose = true;
   if (ws) ws.close();
 }
@@ -219,6 +240,11 @@ function startGameFromSetup() {
   byoTimeSetting = parseInt(document.getElementById("sel-byo-time").value, 10);
 
   resetGameUiBeforeStart();
+  showGameStartProgress({
+    mode: isUltimateVariant ? "ultimate" : (isRogueMode || isChallenge ? "rogue" : "normal"),
+    twoPlayer: isTwoPlayer,
+    aiObserver: isAiWatch,
+  });
 
   setTimeout(() => {
     connect();

@@ -394,7 +394,7 @@
       },
       "quickthink": {
         "name": "Schnelles Denken",
-        "desc": "Spiele innerhalb von 1 Sekunde, um ein 0,5-Sekunden-Combofenster zu öffnen. Timeout wird Pass; Empfehlungen und Rücknahme sind deaktiviert."
+        "desc": "Spiele innerhalb von 2 Sekunden, um ein 1-Sekunden-Combofenster zu öffnen. Timeout wird Pass; Empfehlungen und Rücknahme sind deaktiviert."
       },
       "foolish_wisdom": {
         "name": "Schwere Weisheit",

@@ -22,6 +22,10 @@ function isQuickThinkPassActive() {
   return ultimateMode && ultimatePlayerCard === "quickthink" && gameState.ultimate_quickthink_active;
 }
 
+function isRogueQuickThinkPassActive() {
+  return activeRogueCard === "quickthink" && (gameState?.rogue_quickthink_stage || 0) > 0;
+}
+
 function blackWinratePercentForAction() {
   const wr = analysis ? analysis.winrate : 0.5;
   return wr * 100;
@@ -97,6 +101,9 @@ function handlePassAction() {
     endLocalTurnForAi();
     logI18n("快速思考结束，轮到 AI 读盘", "Quick Thinking ended. The AI is reading the board.", "クイック思考終了。AIの読み番です", "빠른 사고 종료, AI가 판을 읽습니다");
     return;
+  }
+  if (!twoPlayerMode && isRogueQuickThinkPassActive()) {
+    quickthinkAwaitingAiMove = true;
   }
   sendWS({ action: "pass" });
   endLocalTurnForAi();

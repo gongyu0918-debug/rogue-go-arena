@@ -176,9 +176,10 @@ try {
     const rogueSealCountAfterUpdate = rogueSeals.length;
 
     rogueSealing = true;
-    document.getElementById("seal-overlay").style.display = "block";
+    const sealOverlay = document.getElementById("seal-overlay");
+    sealOverlay.hidden = false;
     dispatch({ type: "rogue_seal_done" });
-    const sealOverlayDisplayAfterDone = document.getElementById("seal-overlay")?.style.display || "";
+    const sealOverlayHiddenAfterDone = document.getElementById("seal-overlay")?.hidden ?? false;
     const rogueSealingAfterDone = rogueSealing;
 
     dispatch({ type: "rogue_event", msg: "Smoke rogue event" });
@@ -223,7 +224,7 @@ try {
       rogueOfferCardCount,
       sealHintAfterUpdate,
       rogueSealCountAfterUpdate,
-      sealOverlayDisplayAfterDone,
+      sealOverlayHiddenAfterDone,
       rogueSealingAfterDone,
       ultimateMode,
       ultimatePlayerCard,
@@ -259,7 +260,7 @@ try {
   assert(state.aiRogueCardAfterSelected === "dice", `rogue_ai_selected did not sync AI card: ${state.aiRogueCardAfterSelected}`);
   assert(state.sealHintAfterUpdate.includes("剩余 2"), `rogue_seal_update did not update hint: ${state.sealHintAfterUpdate}`);
   assert(state.rogueSealCountAfterUpdate === 2, `rogue_seal_update did not sync points: ${state.rogueSealCountAfterUpdate}`);
-  assert(state.sealOverlayDisplayAfterDone === "none", `rogue_seal_done did not hide overlay: ${state.sealOverlayDisplayAfterDone}`);
+  assert(state.sealOverlayHiddenAfterDone === true, `rogue_seal_done did not hide overlay: ${state.sealOverlayHiddenAfterDone}`);
   assert(!state.rogueSealingAfterDone, "rogue_seal_done did not clear rogueSealing");
   assert(state.rogueUses.quickthink === 2, `rogue uses did not sync: ${JSON.stringify(state.rogueUses)}`);
   assert(state.ultimateOfferOpenAfterOffer, "ultimate_offer did not open the Ultimate overlay");

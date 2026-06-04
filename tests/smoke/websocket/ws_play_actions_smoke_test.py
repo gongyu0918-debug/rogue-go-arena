@@ -243,7 +243,7 @@ async def smoke_rogue_quickthink_bonus_skips_ai_once() -> None:
     assert game.rogue_quickthink_stage == 2
     assert game.current_player == game.player_color
     assert ctx.ai_moves == []
-    assert ctx.sent[-1] == {"type": "rogue_event", "msg": "⚡ 快速思考：0.5 秒追加手已开启"}
+    assert ctx.sent[-1] == {"type": "rogue_event", "msg": "⚡ 快速思考：1 秒追加手已开启"}
     assert ctx.background_games == [game]
 
 

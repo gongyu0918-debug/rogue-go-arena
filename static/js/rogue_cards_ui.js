@@ -165,13 +165,22 @@ function resetRogueState() {
   rogueSealing = false;
   rogueSeals = [];
   aiRogueSeals = [];
+  pendingRogueSealPoints = [];
+  rogueSealRequired = 0;
+  rogueSealWaitingForOpponent = false;
+  quickthinkAwaitingAiMove = false;
   puppetMode = false;
   if (typeof exchangeModeActive !== "undefined") exchangeModeActive = false;
   if (typeof exchangeModeSource !== "undefined") exchangeModeSource = null;
   document.getElementById("rogue-bar").style.display = "none";
   updateRogueSkillButton();
   document.getElementById("rogue-overlay").classList.remove("show");
-  document.getElementById("seal-overlay").style.display = "none";
+  if (typeof finishRogueSealSelection === "function") {
+    finishRogueSealSelection();
+  } else {
+    const sealOverlay = document.getElementById("seal-overlay");
+    if (sealOverlay) sealOverlay.hidden = true;
+  }
   ultimateMode = false;
   ultimatePlayerCard = null;
   ultimateAiCard = null;

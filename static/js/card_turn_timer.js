@@ -41,7 +41,11 @@ function syncCardTurnTimer() {
   }
 
   if (activeRogueCard === "quickthink" && gameState.rogue_quickthink_stage > 0) {
-    const seconds = gameState.rogue_quickthink_seconds || (gameState.rogue_quickthink_stage === 1 ? 1 : 0.5);
+    if (quickthinkAwaitingAiMove) {
+      clearCardTurnTimer();
+      return;
+    }
+    const seconds = gameState.rogue_quickthink_seconds || (gameState.rogue_quickthink_stage === 1 ? 2 : 1);
     const key = `rq:${gameState.move_number}:${gameState.rogue_quickthink_stage}`;
     if (cardTurnKey !== key) {
       logI18n(
@@ -54,6 +58,7 @@ function syncCardTurnTimer() {
         // Safety: do not auto-pass if it's no longer the player's turn.
         if (!isMyTurn || (gameState && gameState.current_player !== myColor)) return;
         logI18n("⚡ 快速思考超时，自动虚手", "⚡ Quick Thinking timed out. Auto-pass.", "⚡ クイック思考が時間切れになり、自動パス", "⚡ 빠른 사고 시간 초과, 자동 패스");
+        quickthinkAwaitingAiMove = true;
         sendWS({ action: "pass" });
         if (!twoPlayerMode) {
           isMyTurn = false;

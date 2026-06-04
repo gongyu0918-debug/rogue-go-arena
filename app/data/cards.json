@@ -615,13 +615,13 @@
           "de-DE": "Schnelles Denken"
         },
         "desc": {
-          "zh-CN": "1 秒内落子可追加 0.5 秒连击窗口；超时虚手，禁用推荐点与悔棋。",
-          "en-US": "Play within 1 second to open a 0.5-second combo window. Timeout becomes a pass, and hints plus undo are disabled.",
-          "ja-JP": "1秒以内に着手すると0.5秒の連撃窓が開きます。時間切れはパス扱いで、ヒントと待ったは使用不可。",
-          "ko-KR": "1초 안에 두면 0.5초 연속 착수 창이 열립니다. 시간 초과는 패스가 되며 추천점과 되돌리기는 비활성화됩니다.",
-          "zh-TW": "1 秒內落子可追加 0.5 秒連擊視窗；超時虛手，禁用推薦點與悔棋。",
-          "fr-FR": "Jouez en 1 seconde pour ouvrir une fenêtre combo de 0,5 seconde. En cas d'expiration : passe ; suggestions et annulation sont désactivées.",
-          "de-DE": "Spiele innerhalb von 1 Sekunde, um ein 0,5-Sekunden-Combofenster zu öffnen. Timeout wird Pass; Empfehlungen und Rücknahme sind deaktiviert."
+          "zh-CN": "2 秒内落子可追加 1 秒连击窗口；超时虚手，禁用推荐点与悔棋。",
+          "en-US": "Play within 2 seconds to open a 1-second combo window. Timeout becomes a pass, and hints plus undo are disabled.",
+          "ja-JP": "2秒以内に着手すると1秒の連撃窓が開きます。時間切れはパス扱いで、ヒントと待ったは使用不可。",
+          "ko-KR": "2초 안에 두면 1초 연속 착수 창이 열립니다. 시간 초과는 패스가 되며 추천점과 되돌리기는 비활성화됩니다.",
+          "zh-TW": "2 秒內落子可追加 1 秒連擊視窗；超時虛手，禁用推薦點與悔棋。",
+          "fr-FR": "Jouez en 2 secondes pour ouvrir une fenêtre combo de 1 seconde. En cas d'expiration : passe ; suggestions et annulation sont désactivées.",
+          "de-DE": "Spiele innerhalb von 2 Sekunden, um ein 1-Sekunden-Combofenster zu öffnen. Timeout wird Pass; Empfehlungen und Rücknahme sind deaktiviert."
         },
         "icon": "⚡"
       },
@@ -1767,7 +1767,7 @@
       "min": 0,
       "max": 4,
       "step": 1,
-      "value": 1
+      "value": 2
     },
     "ROGUE_FOG_AI_MOVES": {
       "group": "Rogue",
@@ -2277,7 +2277,7 @@
       "min": 0.1,
       "max": 30,
       "step": 0.1,
-      "value": 0.5
+      "value": 1
     },
     "ROGUE_SANSAN_TRAP_STONES": {
       "group": "Rogue",

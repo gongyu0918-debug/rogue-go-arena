@@ -34,7 +34,6 @@ function bindInlineActions() {
   bindClick("overlay-new-game", () => newGameFromOverlay());
   bindClick("setup-modal-close", () => closeSetupModal());
   bindClick("rogue-wiki-close", () => closeRogueWiki());
-  bindClick("confirm-cancel", () => closeConfirmModal());
   bindSetupModeButtons();
 }
 

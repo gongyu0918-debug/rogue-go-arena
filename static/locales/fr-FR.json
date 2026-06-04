@@ -394,7 +394,7 @@
       },
       "quickthink": {
         "name": "Réflexe rapide",
-        "desc": "Jouez en 1 seconde pour ouvrir une fenêtre combo de 0,5 seconde. En cas d'expiration : passe ; suggestions et annulation sont désactivées."
+        "desc": "Jouez en 2 secondes pour ouvrir une fenêtre combo de 1 seconde. En cas d'expiration : passe ; suggestions et annulation sont désactivées."
       },
       "foolish_wisdom": {
         "name": "Sagesse lourde",

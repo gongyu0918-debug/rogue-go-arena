@@ -18,6 +18,7 @@
     "smoke:legacy-runtime-status": "node scripts/legacy-runtime-status-smoke.mjs",
     "smoke:legacy-game-timers": "node scripts/legacy-game-timers-smoke.mjs",
     "smoke:legacy-visual-effects": "node scripts/legacy-visual-effects-smoke.mjs",
+    "smoke:legacy-card-overlays": "node scripts/legacy-card-overlays-smoke.mjs",
     "smoke:legacy-network-client": "node scripts/legacy-network-client-smoke.mjs",
     "smoke:legacy-runtime-helpers": "node scripts/legacy-runtime-helpers-smoke.mjs",
     "smoke:legacy-localization": "node scripts/legacy-localization-smoke.mjs",

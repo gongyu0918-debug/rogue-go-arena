@@ -139,6 +139,7 @@ function commitPlay(x, y) {
 
   sendWS({ action: "play", x, y });
   if (!twoPlayerMode) {
+    quickthinkAwaitingAiMove = expectsAi && activeRogueCard === "quickthink";
     isMyTurn = !expectsAi;
     setThinking(expectsAi);
     clearTimeout(aiResponseTimer);
@@ -158,7 +159,7 @@ canvas.addEventListener("click", e => {
   const {x, y} = boardXY(e);
   if (x < 0 || x >= boardSize || y < 0 || y >= boardSize) return;
   if (rogueSealing) {
-    sendWS({ action: "rogue_seal_point", x, y });
+    if (handleRogueSealBoardClick(x, y)) return;
     return;
   }
   if (puppetMode) {
@@ -195,7 +196,10 @@ canvas.addEventListener("touchend", e => {
   const touch = e.changedTouches[0];
   const {x, y} = boardXY(touch);
   if (x < 0 || x >= boardSize || y < 0 || y >= boardSize) return;
-  if (rogueSealing) { sendWS({ action: "rogue_seal_point", x, y }); return; }
+  if (rogueSealing) {
+    if (handleRogueSealBoardClick(x, y)) return;
+    return;
+  }
   if (puppetMode) {
     if (isCoachTakingOver()) {
       logI18n("🎓 代练上号接管中，暂时不能指定傀儡点。", "🎓 Coach is controlling this phase. Puppet targeting is paused.", "🎓 コーチモードが代打中のため、傀儡点は指定できません。", "🎓 코치 모드가 대리 착수 중이라 꼭두각시 지점을 지정할 수 없습니다.");

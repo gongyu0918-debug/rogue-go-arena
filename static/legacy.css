@@ -470,6 +470,53 @@ header h1 {
   flex-wrap: wrap;
   gap: 6px;
 }
+.seal-board-banner {
+  position: absolute;
+  top: 66px;
+  left: 50%;
+  z-index: 62;
+  transform: translateX(-50%);
+  max-width: min(82%, 420px);
+  padding: 7px 14px;
+  border-radius: 999px;
+  color: #f7e1a3;
+  background:
+    linear-gradient(180deg, rgba(21,16,11,.62), rgba(6,7,9,.48)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a');
+  background-size: auto, cover;
+  border: 1px solid rgba(226,178,80,.42);
+  box-shadow: 0 12px 28px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,235,181,.1);
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-align: center;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+#board-container.seal-stage #board-canvas {
+  cursor: cell;
+}
+#board-container.seal-stage-waiting #board-canvas {
+  cursor: wait;
+}
+.seal-stage-status {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 80;
+  transform: translateX(-50%);
+  max-width: min(92vw, 460px);
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: #f7e1a3;
+  background: rgba(10,9,7,.56);
+  border: 1px solid rgba(226,178,80,.3);
+  box-shadow: 0 12px 28px rgba(0,0,0,.32);
+  font-size: .75rem;
+  font-weight: 800;
+  pointer-events: none;
+}
 .hud-chip {
   display: inline-flex;
   align-items: center;
@@ -1523,6 +1570,41 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   box-shadow: 0 28px 70px rgba(0,0,0,0.62);
   width: 90%; max-width: 420px; max-height: 90vh; overflow-y: auto;
   position: relative;
+}
+.start-progress-content {
+  width: min(92vw, 380px);
+  max-width: 380px;
+  text-align: center;
+}
+.start-progress-content h2 {
+  margin: 6px 0 8px;
+  color: #f4e2a3;
+  font-size: 1.16rem;
+  letter-spacing: .04em;
+}
+.start-progress-content p {
+  margin: 0;
+  color: #d7c8a8;
+  font-size: .86rem;
+  line-height: 1.55;
+}
+.start-progress-detail {
+  margin-top: 8px !important;
+  color: #9fa8b4 !important;
+  font-size: .76rem !important;
+}
+.start-progress-spinner {
+  width: 38px;
+  height: 38px;
+  margin: 2px auto 12px;
+  border-radius: 50%;
+  border: 3px solid rgba(244,226,163,.18);
+  border-top-color: rgba(244,226,163,.9);
+  box-shadow: 0 0 18px rgba(212,175,55,.18);
+  animation: startProgressSpin .82s linear infinite;
+}
+@keyframes startProgressSpin {
+  to { transform: rotate(360deg); }
 }
 #setup-modal .modal-content {
   width: min(92vw, 780px);

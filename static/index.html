@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>rogue-go-arena</title>
 <link rel="icon" type="image/png" href="assets/rogue-go-arena-favicon.png?v=20260430a">
-<link rel="stylesheet" href="/static/legacy.css?v=20260531a">
+<link rel="stylesheet" href="/static/legacy.css?v=20260603a">
 </head>
 <body>
 
@@ -93,6 +93,9 @@
       <span class="ub-ai" id="ub-ai-card"></span>
     </div>
     <div id="board-fx-layer"></div>
+    <div id="seal-board-banner" class="seal-board-banner" hidden>
+      <span id="seal-board-banner-text">请标注禁着点</span>
+    </div>
     <div id="match-hud" class="match-hud">
       <div class="match-hud-title">
         <span id="hud-mode">准备对局</span>
@@ -507,9 +510,18 @@
 </div>
 
 <!-- Rogue Seal Selection Overlay -->
-<div id="seal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; z-index:80;
-  background:rgba(212,175,55,0.12); padding:10px; text-align:center; pointer-events:none;">
-  <span style="color:#d4af37; font-weight:600; font-size:.95rem;" id="seal-hint">🚫 请在棋盘上点击 4 个封印点（剩余 4 个）</span>
+<div id="seal-overlay" class="seal-stage-status" hidden>
+  <span id="seal-hint">请标注禁着点</span>
+</div>
+
+<!-- Start Progress Modal Overlay -->
+<div id="start-progress-modal" class="overlay-modal">
+  <div class="modal-content start-progress-content">
+    <div class="start-progress-spinner" aria-hidden="true"></div>
+    <h2 id="start-progress-title">对局准备中</h2>
+    <p id="start-progress-message">正在加载模型与同步棋盘…</p>
+    <p id="start-progress-detail" class="start-progress-detail"></p>
+  </div>
 </div>
 
 <!-- Custom Confirm Modal Overlay -->
@@ -527,31 +539,33 @@
 <script src="/static/js/wood_select.js?v=20260530a"></script>
 <script src="/static/js/i18n.js?v=20260602a"></script>
 <script src="/static/js/rank_controls.js?v=20260530a"></script>
-<script src="/static/js/card_state.js?v=20260430b"></script>
+<script src="/static/js/card_state.js?v=20260603a"></script>
 <script src="/static/js/card_catalog.js?v=20260602a"></script>
 <script src="/static/js/rogue_cards_ui.js?v=20260430b"></script>
-<script src="/static/js/card_board_marks.js?v=20260430b"></script>
-<script src="/static/js/card_turn_timer.js?v=20260430b"></script>
+<script src="/static/js/card_board_marks.js?v=20260603a"></script>
+<script src="/static/js/card_turn_timer.js?v=20260603a"></script>
+<script src="/static/js/seal_selection_ui.js?v=20260603a"></script>
 <script src="/static/js/visual_effects.js?v=20260530a"></script>
 <script src="/static/js/shell_ui.js?v=20260531a"></script>
+<script src="/static/js/start_progress_ui.js?v=20260603a"></script>
 <script src="/static/js/network_client.js?v=20260530a"></script>
 <script src="/static/js/game_runtime_helpers.js?v=20260530a"></script>
 <script src="/static/js/settings_controls.js?v=20260530a"></script>
 <script src="/static/js/runtime_status_ui.js?v=20260530a"></script>
 <script src="/static/js/game_timers.js?v=20260530a"></script>
-<script src="/static/js/server_event_i18n.js?v=20260602a"></script>
+<script src="/static/js/server_event_i18n.js?v=20260603a"></script>
 <script src="/static/js/game_log.js?v=20260430i"></script>
 <script src="/static/js/board_layout.js?v=20260527a"></script>
-<script src="/static/js/board_input.js?v=20260430f"></script>
+<script src="/static/js/board_input.js?v=20260603a"></script>
 <script src="/static/js/board_assets.js?v=20260430d"></script>
 <script src="/static/js/board_renderer.js?v=20260430e"></script>
 <script src="/static/js/review_controls.js?v=20260530a"></script>
 <script src="/static/js/localization_ui.js?v=20260602a"></script>
-<script src="/static/js/websocket_messages.js?v=20260530a"></script>
+<script src="/static/js/websocket_messages.js?v=20260603a"></script>
 <script src="/static/js/app_bootstrap.js?v=20260530a"></script>
-<script src="/static/js/setup_controls.js?v=20260530a"></script>
-<script src="/static/js/toolbar_actions.js?v=20260530a"></script>
-<script src="/static/js/inline_actions.js?v=20260530a"></script>
+<script src="/static/js/setup_controls.js?v=20260603a"></script>
+<script src="/static/js/toolbar_actions.js?v=20260603a"></script>
+<script src="/static/js/inline_actions.js?v=20260603a"></script>
 <script src="/static/js/legacy_state.js?v=20260531a"></script>
 <script src="/static/js/legacy_entry.js?v=20260531a"></script>
 </body>

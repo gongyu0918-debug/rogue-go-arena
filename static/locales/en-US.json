@@ -394,7 +394,7 @@
       },
       "quickthink": {
         "name": "Quick Think",
-        "desc": "Play within 1 second to open a 0.5-second combo window. Timeout becomes a pass, and hints plus undo are disabled."
+        "desc": "Play within 2 seconds to open a 1-second combo window. Timeout becomes a pass, and hints plus undo are disabled."
       },
       "foolish_wisdom": {
         "name": "Wise Fool",

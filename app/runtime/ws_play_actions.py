@@ -7,6 +7,7 @@ from app.config.gameplay import (
     ROGUE_METHODICAL_BASE_PLAYS,
     ROGUE_METHODICAL_BONUS_INTERVAL,
     ROGUE_METHODICAL_BONUS_PLAYS,
+    ROGUE_QUICKTHINK_SECOND_SECONDS,
 )
 from app.gameplay.turn_modifiers import has_methodical_card
 from app.runtime.ws_action_context import WebSocketActionContext
@@ -147,7 +148,10 @@ async def handle_play(ctx: WebSocketActionContext, data: dict) -> None:
         })
     elif not game.two_player and ctx.engine.ready:
         if quickthink_bonus:
-            await ctx.send({"type": "rogue_event", "msg": "⚡ 快速思考：0.5 秒追加手已开启"})
+            await ctx.send({
+                "type": "rogue_event",
+                "msg": f"⚡ 快速思考：{ROGUE_QUICKTHINK_SECOND_SECONDS:g} 秒追加手已开启",
+            })
         else:
             await ctx.ai_move(game, ctx.send)
 

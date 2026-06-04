@@ -97,6 +97,8 @@ async def handle_rogue_seal_point(ctx: WebSocketActionContext, data: dict) -> No
             "type": "rogue_seal_update",
             "points": [[px, py] for px, py in game.rogue_seal_points],
             "remaining": ROGUE_SEAL_POINT_COUNT - len(game.rogue_seal_points),
+            "required": ROGUE_SEAL_POINT_COUNT,
+            "selected": len(game.rogue_seal_points),
         }
     )
     if len(game.rogue_seal_points) >= ROGUE_SEAL_POINT_COUNT:
