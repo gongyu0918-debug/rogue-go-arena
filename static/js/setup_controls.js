@@ -194,6 +194,7 @@ function resetGameUiBeforeStart() {
   rogueSealWaitingForOpponent = false;
   quickthinkAwaitingAiMove = false;
   intentionalClose = true;
+  clearPendingWS();
   if (ws) ws.close();
 }
 

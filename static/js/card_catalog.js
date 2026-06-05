@@ -98,7 +98,7 @@ function getCardMetaMarkup(card, mode) {
 
 function getCardIconMarkup(card) {
   if (CARD_ART_IDS.has(card.id)) {
-    return `<div class="rc-icon rc-icon-art" style="background-image:url('assets/icons/cards-tech/${card.id}.png')"></div>`;
+    return `<div class="rc-icon rc-icon-art" style="background-image:url('assets/icons/cards-tech/${encodeURIComponent(card.id)}.png')"></div>`;
   }
   return `<div class="rc-icon">${escapeHtml(card.icon)}</div>`;
 }

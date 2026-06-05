@@ -259,7 +259,17 @@ class EngineStartupManager:
         except Exception:
             return False
 
-    def _get_nvidia_driver_major(self) -> Optional[int]:
+    @staticmethod
+    def _driver_version_code(version: str) -> Optional[int]:
+        try:
+            parts = version.strip().split(".")
+            major = int(parts[0])
+            minor = int(parts[1]) if len(parts) > 1 else 0
+            return major * 100 + minor
+        except (TypeError, ValueError, IndexError):
+            return None
+
+    def _get_nvidia_driver_version_code(self) -> Optional[int]:
         try:
             out = subprocess.check_output(
                 ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
@@ -269,16 +279,15 @@ class EngineStartupManager:
             if not out:
                 return None
             first = out[0].strip()
-            major = first.split(".")[0]
-            return int(major)
+            return self._driver_version_code(first)
         except Exception:
             return None
 
     def _cuda_backend_supported(self) -> bool:
         if not self.has_nvidia_gpu():
             return False
-        major = self._get_nvidia_driver_major()
-        if major is None or major < 528:
+        driver_code = self._get_nvidia_driver_version_code()
+        if driver_code is None or driver_code < 57261:
             return False
         cuda_runtime_ready = all(
             path.exists()

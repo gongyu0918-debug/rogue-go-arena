@@ -10,7 +10,8 @@ function connect() {
     setConnectionIndicator(true, ui("已连接", "Connected"));
     logI18n("已连接", "Connected", "接続済み", "연결됨");
     refreshNetworkInfo();
-    if (!gameState) sendWS({ action: "reconnect" });
+    const flushed = flushPendingWS();
+    if (!gameState && !flushed) sendWS({ action: "reconnect" });
   };
   ws.onclose = () => {
     if (intentionalClose) {

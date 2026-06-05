@@ -107,10 +107,10 @@ chinesesimplified.DriverOldNote=  (版本过旧!)
 english.DriverOldNote=  (too old!)
 japanese.DriverOldNote=  (古すぎます)
 korean.DriverOldNote=  (너무 오래됨)
-chinesesimplified.DriverNeed=GPU 加速需要驱动版本 ≥ 527.41
-english.DriverNeed=GPU acceleration requires driver version 527.41 or newer
-japanese.DriverNeed=GPU アクセラレーションには 527.41 以上のドライバーが必要です
-korean.DriverNeed=GPU 가속에는 527.41 이상의 드라이버가 필요합니다
+chinesesimplified.DriverNeed=内置 CUDA 12.8 加速建议驱动版本 ≥ 572.61
+english.DriverNeed=Bundled CUDA 12.8 acceleration is recommended with driver 572.61 or newer
+japanese.DriverNeed=内蔵 CUDA 12.8 アクセラレーションには 572.61 以上のドライバーを推奨します
+korean.DriverNeed=내장 CUDA 12.8 가속에는 드라이버 572.61 이상을 권장합니다
 chinesesimplified.DriverUpdate=请前往 https://www.nvidia.com/drivers 更新驱动
 english.DriverUpdate=Update the driver at https://www.nvidia.com/drivers
 japanese.DriverUpdate=https://www.nvidia.com/drivers からドライバーを更新してください
@@ -127,10 +127,10 @@ chinesesimplified.DriverWarnNote=  (建议更新)
 english.DriverWarnNote=  (update recommended)
 japanese.DriverWarnNote=  (更新推奨)
 korean.DriverWarnNote=  (업데이트 권장)
-chinesesimplified.DriverRecommend=建议更新至 ≥ 528.00 以获得最佳 CUDA 12 支持
-english.DriverRecommend=Driver 528.00 or newer is recommended for best CUDA 12 support
-japanese.DriverRecommend=CUDA 12 を安定して使うには 528.00 以上を推奨します
-korean.DriverRecommend=CUDA 12 지원을 위해 528.00 이상을 권장합니다
+chinesesimplified.DriverRecommend=建议更新至 ≥ 572.61，以便稳定使用内置 CUDA 12.8 与 RTX 50 系列
+english.DriverRecommend=Driver 572.61 or newer is recommended for bundled CUDA 12.8 and RTX 50 series
+japanese.DriverRecommend=内蔵 CUDA 12.8 と RTX 50 シリーズを安定して使うには 572.61 以上を推奨します
+korean.DriverRecommend=내장 CUDA 12.8 및 RTX 50 시리즈에는 드라이버 572.61 이상을 권장합니다
 chinesesimplified.DriverOk=✓ 驱动:
 english.DriverOk=✓ Driver:
 japanese.DriverOk=✓ ドライバー:
@@ -162,12 +162,12 @@ chinesetraditional.ContinueInstall=是否繼續安裝？
 chinesetraditional.GpuLabel=✓ 顯示卡:
 chinesetraditional.DriverOld=✗ 驅動程式:
 chinesetraditional.DriverOldNote=  (版本過舊!)
-chinesetraditional.DriverNeed=GPU 加速需要驅動程式版本 ≥ 527.41
+chinesetraditional.DriverNeed=內建 CUDA 12.8 加速建議驅動程式版本 ≥ 572.61
 chinesetraditional.DriverUpdate=請前往 https://www.nvidia.com/drivers 更新驅動程式
 chinesetraditional.CpuStillWorks=即使不更新，仍可使用內建 CPU 引擎對局。
 chinesetraditional.DriverWarn=⚠ 驅動程式:
 chinesetraditional.DriverWarnNote=  (建議更新)
-chinesetraditional.DriverRecommend=建議更新至 ≥ 528.00，以取得最佳 CUDA 12 支援
+chinesetraditional.DriverRecommend=建議更新至 ≥ 572.61，以便穩定使用內建 CUDA 12.8 與 RTX 50 系列
 chinesetraditional.DriverOk=✓ 驅動程式:
 chinesetraditional.CudaOk=✓ CUDA 支援: 正常
 chinesetraditional.SystemReady=您的系統符合執行需求!
@@ -187,12 +187,12 @@ french.ContinueInstall=Continuer l'installation ?
 french.GpuLabel=✓ GPU :
 french.DriverOld=✗ Pilote :
 french.DriverOldNote=  (trop ancien !)
-french.DriverNeed=L'accélération GPU nécessite le pilote 527.41 ou plus récent
+french.DriverNeed=L'accélération CUDA 12.8 intégrée est recommandée avec le pilote 572.61 ou plus récent
 french.DriverUpdate=Mettez le pilote à jour sur https://www.nvidia.com/drivers
 french.CpuStillWorks=Vous pouvez toujours jouer avec le moteur CPU intégré.
 french.DriverWarn=⚠ Pilote :
 french.DriverWarnNote=  (mise à jour recommandée)
-french.DriverRecommend=Le pilote 528.00 ou plus récent est recommandé pour CUDA 12
+french.DriverRecommend=Le pilote 572.61 ou plus récent est recommandé pour CUDA 12.8 intégré et les RTX série 50
 french.DriverOk=✓ Pilote :
 french.CudaOk=✓ CUDA : prêt
 french.SystemReady=Votre système répond aux prérequis.
@@ -212,12 +212,12 @@ german.ContinueInstall=Installation fortsetzen?
 german.GpuLabel=✓ GPU:
 german.DriverOld=✗ Treiber:
 german.DriverOldNote=  (zu alt!)
-german.DriverNeed=GPU-Beschleunigung benötigt Treiberversion 527.41 oder neuer
+german.DriverNeed=Für die integrierte CUDA-12.8-Beschleunigung wird Treiber 572.61 oder neuer empfohlen
 german.DriverUpdate=Aktualisieren Sie den Treiber unter https://www.nvidia.com/drivers
 german.CpuStillWorks=Sie können weiterhin mit der integrierten CPU-Engine spielen.
 german.DriverWarn=⚠ Treiber:
 german.DriverWarnNote=  (Update empfohlen)
-german.DriverRecommend=Für die beste CUDA-12-Unterstützung wird Treiber 528.00 oder neuer empfohlen
+german.DriverRecommend=Für integriertes CUDA 12.8 und RTX-50-GPUs wird Treiber 572.61 oder neuer empfohlen
 german.DriverOk=✓ Treiber:
 german.CudaOk=✓ CUDA-Unterstützung: bereit
 german.SystemReady=Ihr System erfüllt die Laufzeitanforderungen.
@@ -423,24 +423,30 @@ begin
   end;
 end;
 
-function GetDriverMajor(): Integer;
+function GetDriverVersionCode(): Integer;
 var
   DotPos: Integer;
   MajorStr: String;
+  MinorStr: String;
 begin
   Result := 0;
   DotPos := Pos('.', DriverVersion);
   if DotPos > 0 then
-    MajorStr := Copy(DriverVersion, 1, DotPos - 1)
-  else
+  begin
+    MajorStr := Copy(DriverVersion, 1, DotPos - 1);
+    MinorStr := Copy(DriverVersion, DotPos + 1, Length(DriverVersion));
+  end else
+  begin
     MajorStr := DriverVersion;
-  Result := StrToIntDef(MajorStr, 0);
+    MinorStr := '0';
+  end;
+  Result := (StrToIntDef(MajorStr, 0) * 100) + StrToIntDef(Copy(MinorStr, 1, 2), 0);
 end;
 
 function InitializeSetup(): Boolean;
 var
   Msg: String;
-  DriverMajor: Integer;
+  DriverCode: Integer;
 begin
   Result := True;
   if not RunNvidiaSmi() then
@@ -463,9 +469,9 @@ begin
     Result := (MsgBox(Msg, mbConfirmation, MB_YESNO) = IDYES);
   end else
   begin
-    DriverMajor := GetDriverMajor();
+    DriverCode := GetDriverVersionCode();
 
-    if DriverMajor < 520 then
+    if (DriverCode > 0) and (DriverCode < 52833) then
     begin
       Msg := GpuHeaderBox() + #13#10#13#10 +
              T('GpuLabel') + ' ' + GpuName + #13#10 +
@@ -475,7 +481,7 @@ begin
              T('CpuStillWorks') + #13#10#13#10 +
              T('ContinueInstall');
       Result := (MsgBox(Msg, mbConfirmation, MB_YESNO) = IDYES);
-    end else if DriverMajor < 528 then
+    end else if (DriverCode = 0) or (DriverCode < 57261) then
     begin
       Msg := GpuHeaderBox() + #13#10#13#10 +
              T('GpuLabel') + ' ' + GpuName + #13#10 +
@@ -483,14 +489,6 @@ begin
              T('DriverRecommend') + #13#10#13#10 +
              T('ContinueInstall');
       Result := (MsgBox(Msg, mbConfirmation, MB_YESNO) = IDYES);
-    end else
-    begin
-      MsgBox(GpuHeaderBox() + #13#10#13#10 +
-             T('GpuLabel') + ' ' + GpuName + #13#10 +
-             T('DriverOk') + ' ' + DriverVersion + #13#10 +
-             T('CudaOk') + #13#10#13#10 +
-             T('SystemReady'),
-             mbInformation, MB_OK);
     end;
   end;
 end;

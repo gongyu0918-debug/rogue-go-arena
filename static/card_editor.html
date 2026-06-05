@@ -629,6 +629,13 @@
         "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
       })[char]);
     }
+    function inputValue(value) {
+      return escapeHtml(value ?? "");
+    }
+    function numberValue(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? escapeHtml(n) : "";
+    }
     function isChanged(path) {
       const active = getAt(state.config, path);
       const base = getAt(state.base, path);
@@ -853,7 +860,7 @@
             <div class="field"><label>${t("name")}</label><input data-field="name" value="${escapeHtml(textOf(card.name))}"></div>
             <div class="field"><label>${t("icon")}</label><input data-field="icon" value="${escapeHtml(card.icon || "")}"></div>
             <div class="field" style="grid-column:1/-1"><label>${t("desc")}</label><textarea data-field="desc">${escapeHtml(textOf(card.desc))}</textarea></div>
-            <div class="field"><label>${t("uses")}</label><input data-field="uses" type="number" min="0" step="1" value="${card.uses ?? ""}"></div>
+            <div class="field"><label>${t("uses")}</label><input data-field="uses" type="number" min="0" step="1" value="${numberValue(card.uses)}"></div>
             <div class="field"><label>${t("tier")}</label><input data-meta="tier" value="${escapeHtml(meta.tier || "")}"></div>
             <div class="field"><label>${t("category")}</label><input data-meta="category" value="${escapeHtml(meta.category || "")}"></div>
             <div class="field"><label>${t("complexity")}</label><input data-meta="complexity" value="${escapeHtml(meta.complexity || "")}"></div>
@@ -943,11 +950,11 @@
               <div><span class="pill">${escapeHtml(spec.group || "")}</span> ${spec.card ? `<span class="pill">${escapeHtml(spec.card)}</span>` : ""}</div>
             </div>
             <div class="grid2">
-              <div class="field"><label>${t("value")}</label><input data-tune="value" type="range" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${value}"></div>
-              <div class="field"><label>${t("value")}</label><input data-tune-number type="number" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${formatNumber(value, spec.step)}"></div>
-              <div class="field"><label>${t("min")}</label><input data-tune="min" type="number" step="any" value="${spec.min ?? ""}"></div>
-              <div class="field"><label>${t("max")}</label><input data-tune="max" type="number" step="any" value="${spec.max ?? ""}"></div>
-              <div class="field"><label>${t("step")}</label><input data-tune="step" type="number" step="any" value="${spec.step ?? 1}"></div>
+              <div class="field"><label>${t("value")}</label><input data-tune="value" type="range" min="${numberValue(spec.min)}" max="${numberValue(spec.max)}" step="${numberValue(spec.step)}" value="${numberValue(value)}"></div>
+              <div class="field"><label>${t("value")}</label><input data-tune-number type="number" min="${numberValue(spec.min)}" max="${numberValue(spec.max)}" step="${numberValue(spec.step)}" value="${inputValue(formatNumber(value, spec.step))}"></div>
+              <div class="field"><label>${t("min")}</label><input data-tune="min" type="number" step="any" value="${numberValue(spec.min)}"></div>
+              <div class="field"><label>${t("max")}</label><input data-tune="max" type="number" step="any" value="${numberValue(spec.max)}"></div>
+              <div class="field"><label>${t("step")}</label><input data-tune="step" type="number" step="any" value="${numberValue(spec.step ?? 1)}"></div>
               <div class="field"><label>${t("group")}</label><input data-tune="group" value="${escapeHtml(spec.group || "")}"></div>
             </div>
             <button type="button" data-reset-tune>${t("reset")}</button>

@@ -8,7 +8,7 @@ from typing import Any
 
 
 def build_board_sync_sgf(game: Any) -> str:
-    sgf = f"(;GM[1]SZ[{game.size}]KM[{game.komi}]"
+    sgf = f"(;GM[1]FF[4]CA[UTF-8]RU[chinese]SZ[{game.size}]KM[{game.komi}]"
     blacks: list[str] = []
     whites: list[str] = []
     for y in range(game.size):

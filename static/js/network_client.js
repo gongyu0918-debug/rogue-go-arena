@@ -2,6 +2,8 @@
 
 (() => {
 let networkStatus = null;
+const pendingMessages = [];
+const MAX_PENDING_MESSAGES = 32;
 
 function normalizeNetworkStatus(status) {
   return status || null;
@@ -34,8 +36,28 @@ function websocketIsOpen(socket) {
   return !!socket && socket.readyState === WebSocket.OPEN;
 }
 
+function flushPendingWS() {
+  if (!websocketIsOpen(ws)) return 0;
+  let sent = 0;
+  while (pendingMessages.length) {
+    ws.send(JSON.stringify(pendingMessages.shift()));
+    sent += 1;
+  }
+  return sent;
+}
+
+function clearPendingWS() {
+  pendingMessages.length = 0;
+}
+
 function sendWS(data) {
-  if (websocketIsOpen(ws)) ws.send(JSON.stringify(data));
+  if (websocketIsOpen(ws)) {
+    ws.send(JSON.stringify(data));
+    return true;
+  }
+  pendingMessages.push(data);
+  if (pendingMessages.length > MAX_PENDING_MESSAGES) pendingMessages.shift();
+  return false;
 }
 
 Object.defineProperty(window, "__rogueGoArenaNetworkStatus", {
@@ -47,5 +69,7 @@ Object.defineProperty(window, "__rogueGoArenaNetworkStatus", {
 
 window.updateNetworkBadge = updateNetworkBadge;
 window.refreshNetworkInfo = refreshNetworkInfo;
+window.clearPendingWS = clearPendingWS;
+window.flushPendingWS = flushPendingWS;
 window.sendWS = sendWS;
 })();

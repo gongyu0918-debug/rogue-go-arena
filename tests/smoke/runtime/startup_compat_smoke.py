@@ -75,6 +75,9 @@ def make_manager(root: Path, engine=None) -> tuple[EngineStartupManager, EngineP
         model_small=touch(root / "katago" / "model_b18.bin.gz"),
         user_model_large=touch(root / "user" / "katago" / "model_large.bin.gz"),
     )
+    touch(root / "katago" / "cublas64_12.dll")
+    touch(root / "katago" / "cudart64_12.dll")
+    touch(root / "katago" / "cudnn64_9.dll")
     manager = EngineStartupManager(
         engine or DummyEngine(),
         paths=paths,
@@ -130,6 +133,17 @@ def main() -> int:
             ("CPU", "model_b18.bin.gz"),
             ("CPU", "model.bin.gz"),
         ]
+
+    with tempfile.TemporaryDirectory(dir=tmp_parent) as tmp:
+        manager, _paths = make_manager(Path(tmp))
+        manager.has_nvidia_gpu = lambda: True
+        manager._get_nvidia_driver_version_code = lambda: 57199
+        _has_gpu, candidates = manager.build_candidates()
+        assert [candidate["label"] for candidate in candidates] == ["OpenCL", "CPU"]
+
+        manager._get_nvidia_driver_version_code = lambda: 57261
+        _has_gpu, candidates = manager.build_candidates()
+        assert [candidate["label"] for candidate in candidates][:2] == ["CUDA(升级包)", "CUDA"]
 
     with tempfile.TemporaryDirectory(dir=tmp_parent) as tmp:
         engine = OpenClFailsCpuWorksEngine()
