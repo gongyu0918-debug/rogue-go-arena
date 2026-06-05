@@ -2,6 +2,7 @@
 
 (() => {
 let startProgressVisible = false;
+let startProgressDraftHideTimer = null;
 
 function startProgressElements() {
   return {
@@ -19,9 +20,17 @@ function setStartProgressText(title, message, detail) {
   if (els.detail) els.detail.textContent = detail || "";
 }
 
+function clearStartProgressDraftHideTimer() {
+  if (startProgressDraftHideTimer) {
+    clearTimeout(startProgressDraftHideTimer);
+    startProgressDraftHideTimer = null;
+  }
+}
+
 function showStartProgress(title, message, detail) {
   const els = startProgressElements();
   if (!els.modal) return;
+  clearStartProgressDraftHideTimer();
   startProgressVisible = true;
   setStartProgressText(title, message, detail);
   els.modal.classList.add("show");
@@ -34,8 +43,24 @@ function updateStartProgress(title, message, detail) {
 
 function hideStartProgress() {
   const els = startProgressElements();
+  clearStartProgressDraftHideTimer();
   startProgressVisible = false;
   if (els.modal) els.modal.classList.remove("show");
+}
+
+function hideStartProgressSoon(delayMs = 1200) {
+  clearStartProgressDraftHideTimer();
+  startProgressDraftHideTimer = setTimeout(() => {
+    startProgressDraftHideTimer = null;
+    hideStartProgress();
+  }, delayMs);
+}
+
+function engineLogText(item) {
+  if (!item) return "";
+  if (typeof item === "string") return item;
+  if (typeof item === "object") return item.message || item.detail || "";
+  return String(item);
 }
 
 function showGameStartProgress(options = {}) {
@@ -81,9 +106,45 @@ function advanceStartProgressForGameStart(msg) {
   hideStartProgress();
 }
 
+function engineProgressDetail(msg) {
+  const phase = msg?.phase ? String(msg.phase) : "";
+  const lastError = msg?.last_error ? String(msg.last_error) : "";
+  const logTail = Array.isArray(msg?.log_tail)
+    ? msg.log_tail.map(engineLogText).filter(Boolean).slice(-2).join(" / ")
+    : "";
+  if (lastError) return lastError;
+  if (logTail) return logTail;
+  if (phase && phase !== "ready") {
+    return ui(`当前阶段：${phase}`, `Current phase: ${phase}`);
+  }
+  return ui("首次启动可能需要更久，请不要重复点击开始。", "The first launch can take longer. Please do not start again.");
+}
+
+function updateStartProgressForEngineNotReady(msg) {
+  showStartProgress(
+    ui("模型加载中", "Loading model"),
+    msg?.message || ui("KataGo 正在随游戏启动…", "KataGo is starting with the game..."),
+    engineProgressDetail(msg)
+  );
+}
+
+function showDraftReadyProgress(mode) {
+  const isUltimate = mode === "ultimate";
+  showStartProgress(
+    ui("模型已就绪", "Model ready"),
+    isUltimate
+      ? ui("大招卡选择已打开。", "Ultimate card draft is open.")
+      : ui("Rogue 卡牌选择已打开。", "Rogue card draft is open."),
+    ui("请选择卡牌后继续对局。", "Choose a card to continue.")
+  );
+  hideStartProgressSoon();
+}
+
 window.showStartProgress = showStartProgress;
 window.updateStartProgress = updateStartProgress;
 window.hideStartProgress = hideStartProgress;
 window.showGameStartProgress = showGameStartProgress;
 window.advanceStartProgressForGameStart = advanceStartProgressForGameStart;
+window.updateStartProgressForEngineNotReady = updateStartProgressForEngineNotReady;
+window.showDraftReadyProgress = showDraftReadyProgress;
 })();

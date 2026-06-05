@@ -12,6 +12,7 @@ import app.gameplay.ai_move_flow as ai_move_flow
 import server as s
 from app.domain.coordinates import gtp_to_coord
 from app.domain.game_state import GoGame
+from app.gameplay.turn_modifiers import prepare_player_turn_modifiers
 from app.gameplay.ai_move_flow import (
     AiMoveAdjustment,
     AiMoveCandidate,
@@ -33,6 +34,7 @@ from app.gameplay.ai_move_flow import (
     GeneratedMoveFinishDeps,
     GeneratedMovePreparationDeps,
     prepare_generated_ai_move,
+    refresh_fog_restriction_points,
     resolve_ai_resign_move,
     retry_ai_move_avoiding_ko,
     send_ai_move_and_run_coach,
@@ -583,6 +585,86 @@ async def _finish_prepared_ai_move_returns_double_pass_handled() -> None:
 
 def test_finish_prepared_ai_move_returns_double_pass_handled() -> None:
     asyncio.run(_finish_prepared_ai_move_returns_double_pass_handled())
+
+
+class FixedFogRandom:
+    def __init__(self, roll: float) -> None:
+        self.roll = roll
+
+    def random(self) -> float:
+        return self.roll
+
+
+async def _refresh_fog_restriction_late_can_target_best_point() -> None:
+    game = GoGame(size=9, player_color="B")
+    game.rogue_card = "fog"
+    game.current_player = game.ai_color
+    calls = []
+    sent = []
+
+    async def send(payload):
+        sent.append(payload)
+
+    async def pick_best(game_arg, color):
+        calls.append(("best", game_arg is game, color))
+        return (2, 2)
+
+    handled = await refresh_fog_restriction_points(
+        game,
+        send,
+        rogue_cards={"fog"},
+        ai_move_count=gameplay_config.ROGUE_FOG_AI_MOVES,
+        color=game.ai_color,
+        make_rng=lambda: FixedFogRandom(0.49),
+        challenge_zone_points=lambda _game, points: points,
+        pick_fog_mask=lambda _size, _rng: [(1, 1)],
+        pick_fog_point=lambda _game, _rng: [(5, 5)],
+        pick_best_point=pick_best,
+    )
+
+    assert handled is True
+    assert game.rogue_seal_points == [(2, 2)]
+    assert calls == [("best", True, game.ai_color)]
+    assert [payload["type"] for payload in sent] == ["game_state", "rogue_event"]
+
+
+def test_refresh_fog_restriction_late_can_target_best_point() -> None:
+    asyncio.run(_refresh_fog_restriction_late_can_target_best_point())
+
+
+async def _refresh_fog_restriction_late_falls_back_to_random_point() -> None:
+    game = GoGame(size=9, player_color="B")
+    game.rogue_card = "fog"
+    game.current_player = game.ai_color
+    calls = []
+
+    async def send(_payload):
+        return None
+
+    async def pick_best(_game, _color):
+        calls.append(("best",))
+        return (2, 2)
+
+    handled = await refresh_fog_restriction_points(
+        game,
+        send,
+        rogue_cards={"fog"},
+        ai_move_count=gameplay_config.ROGUE_FOG_AI_MOVES,
+        color=game.ai_color,
+        make_rng=lambda: FixedFogRandom(0.5),
+        challenge_zone_points=lambda _game, points: points,
+        pick_fog_mask=lambda _size, _rng: [(1, 1)],
+        pick_fog_point=lambda _game, _rng: [(5, 5)],
+        pick_best_point=pick_best,
+    )
+
+    assert handled is True
+    assert game.rogue_seal_points == [(5, 5)]
+    assert calls == []
+
+
+def test_refresh_fog_restriction_late_falls_back_to_random_point() -> None:
+    asyncio.run(_refresh_fog_restriction_late_falls_back_to_random_point())
 
 
 def _try_finish_generated_ai_move_deps(**overrides):
@@ -1864,6 +1946,70 @@ async def _finish_ai_turn_response_nonterminal_sends_ai_move_response() -> None:
 
 def test_finish_ai_turn_response_nonterminal_sends_ai_move_response() -> None:
     asyncio.run(_finish_ai_turn_response_nonterminal_sends_ai_move_response())
+
+
+async def _finish_ai_turn_response_methodical_rearms_next_player_turn() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.rogue_card = "methodical"
+    game.ai_color = "W"
+    game.current_player = "W"
+    game.rogue_methodical_turns["B"] = 1
+    game.rogue_methodical_remaining = 0
+    sent = []
+
+    async def send(payload):
+        sent.append(payload)
+
+    async def check_capture_foul(_game, _send, _offender, _captured, *, ultimate):
+        return None
+
+    async def erosion(_game, _send, **_kwargs):
+        return False
+
+    async def run_command(_command):
+        return "="
+
+    async def double_pass(_game, _send, **_kwargs):
+        return False
+
+    async def ai_response(_game, _send, **_kwargs):
+        sent.append({"type": "ai_response_probe"})
+
+    async def coach(_game, _send):
+        return None
+
+    handled = await finish_ai_turn_response(
+        game,
+        send,
+        color="W",
+        card="methodical",
+        gtp_move="C3",
+        coord=(2, 2),
+        captured=0,
+        rogue_msg=None,
+        check_capture_foul=check_capture_foul,
+        prepare_player_turn_modifiers=prepare_player_turn_modifiers,
+        apply_erosion_counter=erosion,
+        erosion_shift=0.5,
+        run_erosion_command=run_command,
+        erosion_message=lambda capture_count, komi: f"erosion {capture_count} {komi}",
+        finalize_double_pass=double_pass,
+        run_double_pass_command=run_command,
+        send_ai_move_response=ai_response,
+        run_coach_turn_if_needed=coach,
+    )
+
+    assert handled is False
+    assert game.current_player == game.player_color
+    assert game.rogue_methodical_turns["B"] == 2
+    assert game.rogue_methodical_remaining == gameplay_config.ROGUE_METHODICAL_BASE_PLAYS
+    assert [payload["type"] for payload in sent] == ["game_state", "ai_response_probe"]
+    assert sent[0]["current_player"] == game.player_color
+    assert sent[0]["rogue_methodical_remaining"] == gameplay_config.ROGUE_METHODICAL_BASE_PLAYS
+
+
+def test_finish_ai_turn_response_methodical_rearms_next_player_turn() -> None:
+    asyncio.run(_finish_ai_turn_response_methodical_rearms_next_player_turn())
 
 
 async def _finish_ai_turn_response_capture_foul_gifts_before_game_state() -> None:
@@ -8985,6 +9131,8 @@ if __name__ == "__main__":
     test_finish_prepared_ai_move_skips_completed_or_missing_gtp()
     test_finish_prepared_ai_move_places_then_finishes_response()
     test_finish_prepared_ai_move_returns_double_pass_handled()
+    test_refresh_fog_restriction_late_can_target_best_point()
+    test_refresh_fog_restriction_late_falls_back_to_random_point()
     test_try_finish_generated_ai_move_stops_on_completed_candidate()
     test_try_finish_generated_ai_move_runs_prepare_then_finish()
     test_try_apply_sansan_trap_counter_skips_without_card_or_target()
@@ -9006,6 +9154,7 @@ if __name__ == "__main__":
     test_send_ai_move_and_run_coach_sends_pass_and_rogue_msg_before_coach()
     test_finish_ai_turn_response_double_pass_skips_ai_move_response()
     test_finish_ai_turn_response_nonterminal_sends_ai_move_response()
+    test_finish_ai_turn_response_methodical_rearms_next_player_turn()
     test_finish_ai_turn_response_capture_foul_gifts_before_game_state()
     test_choose_or_generate_ai_style_move_plays_style_choice()
     test_choose_or_generate_ai_style_move_balanced_falls_back_to_genmove()

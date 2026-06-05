@@ -1802,10 +1802,12 @@ async def _refresh_ai_turn_fog_restriction(
         send_fn,
         rogue_cards=turn.rogue_cards,
         ai_move_count=turn.ai_move_count,
+        color=turn.color,
         make_rng=lambda: random.Random(time.time_ns()),
         challenge_zone_points=_challenge_zone_points,
         pick_fog_mask=_pick_fog_mask,
         pick_fog_point=_pick_fog_point,
+        pick_best_point=_pick_best_point,
     )
 
 

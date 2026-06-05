@@ -8,6 +8,7 @@ const targetUrl = withLanguageParam(
 );
 
 const expectedMessageTypes = [
+  "engine_not_ready",
   "game_start",
   "game_state",
   "ai_move",
@@ -108,6 +109,21 @@ try {
       handleMessage(msg);
     };
 
+    dispatch({
+      type: "engine_not_ready",
+      phase: "initializing",
+      message: "KataGo smoke loading",
+      log_tail: [{ message: "loading model" }, { message: "warming policy" }],
+    });
+    const startProgressVisibleAfterEngineWait = document
+      .querySelector("#start-progress-modal")
+      ?.classList.contains("show") || false;
+    const startProgressTextAfterEngineWait = [
+      document.querySelector("#start-progress-title")?.textContent || "",
+      document.querySelector("#start-progress-message")?.textContent || "",
+      document.querySelector("#start-progress-detail")?.textContent || "",
+    ].join(" ");
+
     dispatch({ ...baseState(), type: "game_start" });
     dispatch({
       ...baseState({ move_number: 0 }),
@@ -132,6 +148,60 @@ try {
       }),
       type: "game_state",
     });
+
+    const methodicalInputProbe = (() => {
+      const sent = [];
+      const thinking = [];
+      const originalSendWS = window.sendWS;
+      const originalSetThinking = window.setThinking;
+      window.sendWS = (payload) => sent.push(payload);
+      window.setThinking = (value) => thinking.push(value);
+      try {
+        gameState = baseState({
+          rogue_card: "methodical",
+          rogue_methodical_remaining: 2,
+          board: emptyBoard(9),
+          current_player: "B",
+        });
+        activeRogueCard = "methodical";
+        twoPlayerMode = false;
+        myColor = "B";
+        isMyTurn = true;
+        commitPlay(1, 1);
+        const first = {
+          isMyTurn,
+          thinking: thinking.at(-1),
+          action: sent.at(-1)?.action,
+          x: sent.at(-1)?.x,
+          boardValue: gameState.board[1][1],
+        };
+        clearTimeout(aiResponseTimer);
+
+        sent.length = 0;
+        thinking.length = 0;
+        gameState = baseState({
+          rogue_card: "methodical",
+          rogue_methodical_remaining: 1,
+          board: emptyBoard(9),
+          current_player: "B",
+        });
+        isMyTurn = true;
+        commitPlay(2, 2);
+        const second = {
+          isMyTurn,
+          thinking: thinking.at(-1),
+          action: sent.at(-1)?.action,
+          x: sent.at(-1)?.x,
+          boardValue: gameState.board[2][2],
+        };
+        clearTimeout(aiResponseTimer);
+        return { first, second };
+      } finally {
+        window.sendWS = originalSendWS;
+        window.setThinking = originalSetThinking;
+      }
+    })();
+
     dispatch({
       type: "analysis",
       winrate: 0.83,
@@ -148,6 +218,10 @@ try {
     });
     const rogueOfferOpenAfterOffer = document.querySelector("#rogue-overlay")?.classList.contains("show") || false;
     const rogueOfferCardCount = document.querySelectorAll("#rogue-cards .rogue-card").length;
+    const startProgressVisibleAfterRogueOffer = document
+      .querySelector("#start-progress-modal")
+      ?.classList.contains("show") || false;
+    const startProgressTextAfterRogueOffer = document.querySelector("#start-progress-message")?.textContent || "";
 
     dispatch({
       ...baseState({
@@ -216,12 +290,17 @@ try {
       gameOver: gameState?.game_over,
       reconnectMoveNumber,
       levelAfterSet,
+      startProgressVisibleAfterEngineWait,
+      startProgressTextAfterEngineWait,
+      methodicalInputProbe,
       errorRevertedBoard,
       activeRogueCard,
       aiRogueCardAfterSelected,
       rogueUses,
       rogueOfferOpenAfterOffer,
       rogueOfferCardCount,
+      startProgressVisibleAfterRogueOffer,
+      startProgressTextAfterRogueOffer,
       sealHintAfterUpdate,
       rogueSealCountAfterUpdate,
       sealOverlayHiddenAfterDone,
@@ -253,12 +332,42 @@ try {
   assert(state.gameOver, "game_over message did not mark game over");
   assert(state.reconnectMoveNumber === 0, `reconnected message did not restore state: ${state.reconnectMoveNumber}`);
   assert(state.levelAfterSet === "8k", `level_set message did not update level: ${state.levelAfterSet}`);
+  assert(state.startProgressVisibleAfterEngineWait, "engine_not_ready did not show start progress");
+  assert(
+    state.startProgressTextAfterEngineWait.includes("KataGo smoke loading") &&
+      state.startProgressTextAfterEngineWait.includes("warming policy"),
+    `engine_not_ready did not render progress text: ${state.startProgressTextAfterEngineWait}`
+  );
+  assert(state.methodicalInputProbe.first.isMyTurn, "methodical first optimistic move should keep player turn");
+  assert(
+    state.methodicalInputProbe.first.thinking === false &&
+      state.methodicalInputProbe.first.action === "play" &&
+      state.methodicalInputProbe.first.x === 1 &&
+      state.methodicalInputProbe.first.boardValue === 1,
+    `methodical first move probe failed: ${JSON.stringify(state.methodicalInputProbe.first)}`
+  );
+  assert(!state.methodicalInputProbe.second.isMyTurn, "methodical final optimistic move should wait for AI");
+  assert(
+    state.methodicalInputProbe.second.thinking === true &&
+      state.methodicalInputProbe.second.action === "play" &&
+      state.methodicalInputProbe.second.x === 2 &&
+      state.methodicalInputProbe.second.boardValue === 1,
+    `methodical final move probe failed: ${JSON.stringify(state.methodicalInputProbe.second)}`
+  );
   assert(state.errorRevertedBoard, "error message did not revert optimistic board state");
   assert(state.rogueOfferOpenAfterOffer, "rogue_offer did not open the Rogue overlay");
   assert(state.rogueOfferCardCount === 1, `rogue_offer did not render a card: ${state.rogueOfferCardCount}`);
+  assert(state.startProgressVisibleAfterRogueOffer, "rogue_offer hid the start progress immediately");
+  assert(
+    state.startProgressTextAfterRogueOffer.includes("Rogue"),
+    `rogue_offer did not hand off through start progress: ${state.startProgressTextAfterRogueOffer}`
+  );
   assert(state.activeRogueCard === "quickthink", `rogue card did not sync: ${state.activeRogueCard}`);
   assert(state.aiRogueCardAfterSelected === "dice", `rogue_ai_selected did not sync AI card: ${state.aiRogueCardAfterSelected}`);
-  assert(state.sealHintAfterUpdate.includes("剩余 2"), `rogue_seal_update did not update hint: ${state.sealHintAfterUpdate}`);
+  assert(
+    state.sealHintAfterUpdate.includes("剩余 2") || state.sealHintAfterUpdate.includes("2/2"),
+    `rogue_seal_update did not update hint: ${state.sealHintAfterUpdate}`
+  );
   assert(state.rogueSealCountAfterUpdate === 2, `rogue_seal_update did not sync points: ${state.rogueSealCountAfterUpdate}`);
   assert(state.sealOverlayHiddenAfterDone === true, `rogue_seal_done did not hide overlay: ${state.sealOverlayHiddenAfterDone}`);
   assert(!state.rogueSealingAfterDone, "rogue_seal_done did not clear rogueSealing");

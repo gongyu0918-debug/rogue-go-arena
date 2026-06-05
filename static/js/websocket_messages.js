@@ -40,6 +40,11 @@ function handleGameStartMessage(msg) {
   }
 }
 
+function handleEngineNotReadyMessage(msg) {
+  updateStartProgressForEngineNotReady(msg);
+  if (msg?.message) logServerEvent(msg.message);
+}
+
 function logStudyGameStart(msg) {
   const blackLevel = msg.ai_level_black;
   const whiteLevel = msg.ai_level_white;
@@ -434,6 +439,7 @@ function logUltimateCardsSelected(msg) {
 }
 
 const LEGACY_WEBSOCKET_MESSAGE_HANDLERS = {
+  engine_not_ready: handleEngineNotReadyMessage,
   game_start: handleGameStartMessage,
   game_state: handleGameStateMessage,
   ai_move: handleAiMoveMessage,
@@ -443,14 +449,14 @@ const LEGACY_WEBSOCKET_MESSAGE_HANDLERS = {
   reconnect_failed: handleReconnectFailedMessage,
   error: handleErrorMessage,
   level_set: handleLevelSetMessage,
-  rogue_offer: msg => { hideStartProgress(); showRogueCards(msg.cards, msg); },
+  rogue_offer: msg => { showRogueCards(msg.cards, msg); showDraftReadyProgress("rogue"); },
   rogue_card_selected: handleRogueCardSelectedMessage,
   rogue_ai_selected: handleRogueAiSelectedMessage,
   rogue_seal_update: handleRogueSealUpdateMessage,
   rogue_seal_done: handleRogueSealDoneMessage,
   rogue_event: handleRogueEventMessage,
   rogue_uses_update: handleRogueUsesUpdateMessage,
-  ultimate_offer: msg => { hideStartProgress(); showUltimateCards(msg.cards); },
+  ultimate_offer: msg => { showUltimateCards(msg.cards); showDraftReadyProgress("ultimate"); },
   ultimate_cards_selected: handleUltimateCardsSelectedMessage,
 };
 

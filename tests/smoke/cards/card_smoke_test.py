@@ -760,6 +760,7 @@ async def smoke_fog_mask_refresh():
     old_engine = s.engine
     old_pick = s._pick_fog_mask
     old_pick_single = s._pick_fog_point
+    old_pick_best = s._pick_best_point
     old_avoid = s._ai_move_avoid_points
     try:
         s.engine = DummyEngine(["E5"])
@@ -776,6 +777,7 @@ async def smoke_fog_mask_refresh():
         s.engine = old_engine
         s._pick_fog_mask = old_pick
         s._pick_fog_point = old_pick_single
+        s._pick_best_point = old_pick_best
         s._ai_move_avoid_points = old_avoid
 
     assert marker["forbidden"] == [(3, 3), (3, 4), (4, 3), (4, 4)]
@@ -791,11 +793,17 @@ async def smoke_fog_mask_refresh():
     old_engine = s.engine
     old_pick = s._pick_fog_mask
     old_pick_single = s._pick_fog_point
+    old_pick_best = s._pick_best_point
     old_avoid = s._ai_move_avoid_points
     try:
         s.engine = DummyEngine(["E5"])
         s._pick_fog_mask = lambda _size, _rng: [(3, 3), (3, 4), (4, 3), (4, 4)]
         s._pick_fog_point = lambda _game, _rng: [(5, 5)]
+
+        async def fake_best_late(_game, _color):
+            return (5, 5)
+
+        s._pick_best_point = fake_best_late
 
         async def fake_avoid_late(_game, _color, _visits, _time_limit, forbidden):
             marker["forbidden"] = list(forbidden)
@@ -807,6 +815,7 @@ async def smoke_fog_mask_refresh():
         s.engine = old_engine
         s._pick_fog_mask = old_pick
         s._pick_fog_point = old_pick_single
+        s._pick_best_point = old_pick_best
         s._ai_move_avoid_points = old_avoid
 
     assert marker["forbidden"] == [(5, 5)]

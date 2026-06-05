@@ -123,9 +123,15 @@ function commitPlay(x, y) {
   fineTunePos = null;
   updateFinetuneUI();
 
+  const methodicalRemaining = Number(gameState?.rogue_methodical_remaining || 0);
+  const methodicalContinues = (
+    (activeRogueCard === "methodical" || gameState?.rogue_card === "methodical") &&
+    methodicalRemaining > 1
+  );
   const expectsAi = !(
     (activeRogueCard === "quickthink" && gameState?.rogue_quickthink_stage === 1) ||
-    (ultimateMode && ultimatePlayerCard === "quickthink" && gameState?.ultimate_quickthink_active)
+    (ultimateMode && ultimatePlayerCard === "quickthink" && gameState?.ultimate_quickthink_active) ||
+    methodicalContinues
   );
 
   lastPlayTime = Date.now();

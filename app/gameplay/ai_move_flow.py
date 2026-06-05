@@ -602,10 +602,13 @@ async def refresh_fog_restriction_points(
     *,
     rogue_cards: Collection[str],
     ai_move_count: int,
+    color: str | None = None,
     make_rng: RngFactory,
     challenge_zone_points: ChallengeZonePointsFn,
     pick_fog_mask: PickFogMaskFn,
     pick_fog_point: PickFogPointFn,
+    pick_best_point: PickBestPointFn | None = None,
+    best_point_chance: float = gameplay_config.ROGUE_FOG_POST_BEST_POINT_CHANCE,
 ) -> bool:
     if "fog" not in rogue_cards:
         return False
@@ -619,7 +622,16 @@ async def refresh_fog_restriction_points(
         fog_msg = "🌫 战争迷雾刷新：3×3 禁区本回合对 AI 禁止落子"
     else:
         fog_pts: list[tuple[int, int]] = []
-        for _ in range(gameplay_config.ROGUE_FOG_POST_MASK_POINTS):
+        if (
+            gameplay_config.ROGUE_FOG_POST_MASK_POINTS > 0
+            and color
+            and pick_best_point is not None
+            and rng.random() < best_point_chance
+        ):
+            best = await pick_best_point(game, color)
+            if best and game.board[best[1]][best[0]] == 0:
+                fog_pts.append(best)
+        for _ in range(max(0, gameplay_config.ROGUE_FOG_POST_MASK_POINTS - len(fog_pts))):
             fog_pts.extend(pick_fog_point(game, rng))
         game.rogue_seal_points = _unique_points(fog_pts)[:gameplay_config.ROGUE_FOG_POST_MASK_POINTS]
         fog_msg = f"🌫 战争迷雾残留：本回合随机封锁 {gameplay_config.ROGUE_FOG_POST_MASK_POINTS} 个 AI 禁着点"
