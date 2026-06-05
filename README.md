@@ -194,7 +194,7 @@ katago/*.exe
 
 ### 下载 Windows 版本
 
-打开 [Latest Release](https://github.com/gongyu0918-debug/rogue-go-arena/releases/latest)，下载 `rogue-go-arena_Setup_*.exe`，安装后启动 Rogue Go Arena。
+打开 [Latest Release](https://github.com/gongyu0918-debug/rogue-go-arena/releases/latest)，下载 `rogue-go-arena_WebView_Setup_*.exe`，安装后启动 Rogue Go Arena。
 
 安装包会自动尝试可用引擎路径：
 
@@ -327,7 +327,7 @@ Windows 版は WebView2 デスクトップアプリとして起動します。�
 
 ### Download
 
-[Latest Release](https://github.com/gongyu0918-debug/rogue-go-arena/releases/latest) から `rogue-go-arena_Setup_*.exe` をダウンロードしてインストールします。
+[Latest Release](https://github.com/gongyu0918-debug/rogue-go-arena/releases/latest) から `rogue-go-arena_WebView_Setup_*.exe` をダウンロードしてインストールします。
 
 ```text
 CUDA -> OpenCL -> CPU
@@ -362,7 +362,7 @@ Windows 버전은 WebView2 데스크톱 앱으로 실행됩니다. 로컬 FastAP
 
 ### Download
 
-[Latest Release](https://github.com/gongyu0918-debug/rogue-go-arena/releases/latest) 에서 `rogue-go-arena_Setup_*.exe` 를 내려받아 설치합니다.
+[Latest Release](https://github.com/gongyu0918-debug/rogue-go-arena/releases/latest) 에서 `rogue-go-arena_WebView_Setup_*.exe` 를 내려받아 설치합니다.
 
 ```text
 CUDA -> OpenCL -> CPU
