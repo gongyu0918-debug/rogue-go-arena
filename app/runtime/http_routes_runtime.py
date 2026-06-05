@@ -38,6 +38,7 @@ class RuntimeControlRoutesDependencies:
     rank_labels: Mapping[str, str]
     engine_runtime: Any
     run_in_executor: Callable[..., Awaitable[Any]]
+    save_idle_timeout_seconds: Callable[[Any], float]
 
 
 @dataclass(frozen=True)
@@ -91,6 +92,7 @@ def build_runtime_control_routes_binding(
         rank_labels=dependencies.rank_labels,
         engine_runtime=dependencies.engine_runtime,
         run_in_executor=dependencies.run_in_executor,
+        save_idle_timeout_seconds=dependencies.save_idle_timeout_seconds,
     )
 
 

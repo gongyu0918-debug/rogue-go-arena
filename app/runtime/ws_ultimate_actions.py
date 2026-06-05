@@ -13,6 +13,7 @@ from app.data.cards import ULTIMATE_CARDS, get_ultimate_card
 from app.gameplay.ultimate_effects import reset_ultimate_effect_state
 from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_action_utils import board_point_from_data
+from app.runtime.ws_session_actions import ensure_engine_ready_for_game
 
 
 async def handle_ultimate_play(
@@ -145,6 +146,8 @@ async def handle_ultimate_select_card(ctx: WebSocketActionContext, data: dict) -
             **game.to_state(),
         }
     )
+    if not await ensure_engine_ready_for_game(ctx, game, "ultimate_select_card"):
+        return
     if card_id == "joseki_burst":
         pts = ", ".join(ctx.coord_to_gtp(px, py, game.size) for px, py in game.ultimate_joseki_targets)
         await ctx.send({"type": "rogue_event", "msg": f"定式爆发已点亮目标点：{pts}。命中其中 3 个后会触发爆发"})
@@ -165,7 +168,7 @@ async def handle_ultimate_quickthink_end(ctx: WebSocketActionContext, data: dict
     await ctx.send({"type": "game_state", **game.to_state()})
     if game.ultimate_move_count >= 20:
         await ctx.ultimate_force_score(game, ctx.send)
-    elif ctx.engine.ready:
+    elif await ensure_engine_ready_for_game(ctx, game, "ultimate_quickthink_end"):
         await ctx.ultimate_ai_move(game, ctx.send)
     if not game.game_over and ctx.engine.ready:
         asyncio.create_task(ctx.do_analysis_bg(game))

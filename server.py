@@ -505,6 +505,7 @@ from app.gameplay.ultimate_effects import (
 from app.gameplay.ultimate_ai_flow import apply_ultimate_ai_post_move_effects
 from app.gameplay.ultimate_scoring import finalize_ultimate_score
 from app.runtime.engine import KataGoEngine
+from app.runtime.engine_idle_settings import load_idle_timeout_seconds, save_idle_timeout_seconds
 from app.runtime.game_store import ActiveGameStore
 from app.runtime.startup import EnginePaths, EngineStartupManager
 from app.runtime.ws_actions import WS_ACTION_HANDLERS
@@ -533,13 +534,14 @@ USER_DATA_DIR = Path(os.environ.get("LOCALAPPDATA", str(BASE_DIR))) / "rogue-go-
 USER_KATAGO_DIR = USER_DATA_DIR / "katago"
 USER_KATAGO_HOME = USER_KATAGO_DIR / "KataGoData"
 USER_RUNTIME_CONFIG_DIR = USER_KATAGO_DIR / "runtime"
+USER_SETTINGS_PATH = USER_DATA_DIR / "settings.json"
 USER_KATAGO_PATHS = UserKataGoPaths(
     data_dir=USER_DATA_DIR,
     katago_dir=USER_KATAGO_DIR,
     home_dir=USER_KATAGO_HOME,
     runtime_config_dir=USER_RUNTIME_CONFIG_DIR,
 )
-SERVER_REV = "20260601-runtime-hardening"
+SERVER_REV = "20260606-webview-idle-release"
 KATAGO_EXE = BASE_DIR / "katago" / "katago.exe"             # CUDA build (legacy/optional)
 KATAGO_CUDA_EXE = BASE_DIR / "katago" / "katago_cuda.exe"   # CUDA (downloaded upgrade)
 KATAGO_OPENCL_EXE = BASE_DIR / "katago" / "katago_opencl.exe"  # OpenCL (any GPU)
@@ -639,6 +641,7 @@ engine_runtime = EngineStartupManager(
     ),
     no_katago=NO_KATAGO,
     log_fn=log,
+    idle_timeout_seconds=load_idle_timeout_seconds(USER_SETTINGS_PATH),
 )
 _engine_log = engine_runtime.log_event
 _engine_state_snapshot = engine_runtime.snapshot
@@ -691,6 +694,10 @@ def _runtime_control_routes_dependencies() -> RuntimeControlRoutesDependencies:
         rank_labels=RANK_LABELS,
         engine_runtime=engine_runtime,
         run_in_executor=run_in_executor,
+        save_idle_timeout_seconds=lambda value: save_idle_timeout_seconds(
+            USER_SETTINGS_PATH,
+            value,
+        ),
     )
 
 

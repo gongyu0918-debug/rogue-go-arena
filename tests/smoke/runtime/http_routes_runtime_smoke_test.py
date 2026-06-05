@@ -68,16 +68,19 @@ def smoke_http_route_runtime_builders_map_every_field() -> None:
 
     rank_labels = {"1d": "1 dan"}
     run_in_executor = make_sync("executor")
+    save_idle_timeout_seconds = make_sync("save-idle")
     control = build_runtime_control_routes_binding(
         RuntimeControlRoutesDependencies(
             rank_labels=rank_labels,
             engine_runtime=engine_runtime,
             run_in_executor=run_in_executor,
+            save_idle_timeout_seconds=save_idle_timeout_seconds,
         )
     )
     assert control.rank_labels is rank_labels
     assert control.engine_runtime is engine_runtime
     assert control.run_in_executor is run_in_executor
+    assert control.save_idle_timeout_seconds is save_idle_timeout_seconds
 
     server_rev = "rev-test"
     host = "127.0.0.1"

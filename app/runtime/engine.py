@@ -40,6 +40,16 @@ class KataGoEngine:
         self.stderr_lines = []
         self.stderr_callback = None
         self.last_stderr_time = 0.0
+        self.last_activity_time = 0.0
+
+    def mark_activity(self, now: float | None = None) -> None:
+        self.last_activity_time = now if now is not None else time.time()
+
+    def idle_age(self, now: float | None = None) -> float:
+        if not self.last_activity_time:
+            return 0.0
+        current = now if now is not None else time.time()
+        return max(0.0, current - self.last_activity_time)
 
     def start(
         self,
@@ -135,10 +145,12 @@ class KataGoEngine:
             self.process.stdin.flush()
             resp = self.response_queue.get(timeout=10)
             self.ready = True
+            self.mark_activity()
             self.log(f"[KataGo] Started: {resp}")
         except queue.Empty:
             self.log("[KataGo] Warning: no ready signal received, assuming OK")
             self.ready = True
+            self.mark_activity()
 
     def _read_stdout(self):
         current_response = []
@@ -235,7 +247,11 @@ class KataGoEngine:
 
     def send_command(self, cmd: str, timeout: float = 60.0) -> str:
         with self.command_lock:
-            return self._send_command_locked(cmd, timeout)
+            self.mark_activity()
+            try:
+                return self._send_command_locked(cmd, timeout)
+            finally:
+                self.mark_activity()
 
     def set_visits(self, visits: int):
         self.current_visits = visits
@@ -254,6 +270,7 @@ class KataGoEngine:
             return [], []
 
         with self.command_lock:
+            self.mark_activity()
             original_visits = self.current_visits
             analysis_max_visits = 10000000 if visits == 0 else visits
             self._drain_response_queue(wait=0.05)
@@ -311,7 +328,38 @@ class KataGoEngine:
             self.log(
                 f"[Analysis] collected {len(lines)} info lines, {len(ownership)} ownership vals"
             )
+            self.mark_activity()
             return lines, ownership
+
+    def stop_if_idle(self, timeout_seconds: float, *, reason: str = "idle") -> bool:
+        if timeout_seconds <= 0 or not self.is_alive() or not self.ready:
+            return False
+        if self.is_analyzing:
+            self.mark_activity()
+            return False
+        if self.idle_age() < timeout_seconds:
+            return False
+        if not self.command_lock.acquire(blocking=False):
+            self.mark_activity()
+            return False
+        try:
+            if (
+                timeout_seconds <= 0
+                or not self.is_alive()
+                or not self.ready
+                or self.is_analyzing
+                or self.idle_age() < timeout_seconds
+            ):
+                return False
+            try:
+                self._send_command_locked("quit", timeout=3)
+            except Exception:
+                pass
+            self._terminate_process()
+            self.log(f"[KataGo] Stopped after {int(timeout_seconds)}s idle ({reason})")
+            return True
+        finally:
+            self.command_lock.release()
 
     def parse_analysis(
         self,

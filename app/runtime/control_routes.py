@@ -15,6 +15,7 @@ class RuntimeControlRoutesBinding:
     rank_labels: Mapping[str, str]
     engine_runtime: Any
     run_in_executor: Callable[..., Awaitable[Any]]
+    save_idle_timeout_seconds: Callable[[Any], float]
 
 
 RuntimeControlRoutesBindingProvider = Callable[[], RuntimeControlRoutesBinding]
@@ -44,5 +45,25 @@ def build_runtime_control_router(
         return restart_katago_request(
             engine_runtime=binding_provider().engine_runtime,
         )
+
+    @router.get("/engine_idle_timeout")
+    async def get_engine_idle_timeout():
+        runtime = binding_provider().engine_runtime
+        return {
+            "ok": True,
+            "seconds": runtime.idle_timeout_seconds,
+            "enabled": runtime.idle_timeout_seconds > 0,
+        }
+
+    @router.post("/engine_idle_timeout")
+    async def set_engine_idle_timeout(payload: dict[str, Any]):
+        binding = binding_provider()
+        seconds = binding.save_idle_timeout_seconds(payload.get("seconds"))
+        binding.engine_runtime.set_idle_timeout_seconds(seconds)
+        return {
+            "ok": True,
+            "seconds": seconds,
+            "enabled": seconds > 0,
+        }
 
     return router

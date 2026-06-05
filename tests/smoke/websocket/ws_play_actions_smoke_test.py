@@ -41,12 +41,21 @@ class FakeContext:
         self.ultimate_records = []
         self.ultimate_effects = []
         self.shadow_games = []
+        self.start_reasons = []
+        self.synced_games = []
 
     def restore_game(self):
         return self.game
 
     def engine_state_snapshot(self) -> dict:
-        return {"message": "engine offline"}
+        return {
+            "phase": "ready" if self.engine.ready else "stopped",
+            "message": "engine offline",
+        }
+
+    def start_engine_background(self, reason: str) -> None:
+        self.start_reasons.append(reason)
+        self.engine.ready = True
 
     async def send(self, payload: dict) -> None:
         self.sent.append(payload)
@@ -97,7 +106,7 @@ class FakeContext:
         return False
 
     async def sync_board_to_katago(self, game) -> None:
-        return None
+        self.synced_games.append(game)
 
     async def ultimate_ai_move(self, game, send_fn) -> None:
         self.ai_moves.append(game)
@@ -128,15 +137,19 @@ async def smoke_two_player_play_places_current_color_without_ai_turn() -> None:
     assert [payload["type"] for payload in ctx.sent] == ["game_state"]
 
 
-async def smoke_ai_game_waits_for_ready_engine() -> None:
+async def smoke_ai_game_restarts_released_engine_before_play() -> None:
     game = make_game()
     ctx = FakeContext(game, engine=FakeEngine(ready=False))
 
     await handle_play(ctx, {"x": 4, "y": 4})
+    await asyncio.sleep(0)
 
-    assert ctx.errors == ["engine offline"]
-    assert game.moves == []
-    assert ctx.sent == []
+    assert ctx.start_reasons == ["player_move"]
+    assert ctx.synced_games == [game]
+    assert ctx.errors == []
+    assert game.moves == [("B", "E5")]
+    assert ctx.engine.commands == ["play B E5"]
+    assert [payload["type"] for payload in ctx.sent] == ["engine_not_ready", "game_state"]
 
 
 async def smoke_ai_observer_rejects_manual_play() -> None:
@@ -306,7 +319,7 @@ def smoke_play_action_annotations_resolve_runtime_context() -> None:
 
 async def main() -> None:
     await smoke_two_player_play_places_current_color_without_ai_turn()
-    await smoke_ai_game_waits_for_ready_engine()
+    await smoke_ai_game_restarts_released_engine_before_play()
     await smoke_ai_observer_rejects_manual_play()
     await smoke_rogue_handicap_requires_passes_before_play()
     await smoke_occupied_point_is_rejected_before_engine_play()

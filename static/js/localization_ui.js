@@ -135,6 +135,7 @@ function localizeSettingsDrawer() {
     .filter(el => el.id !== "lang-panel-label");
   if (settingsLabels[0]) settingsLabels[0].textContent = ui("落子模式", "Placement", "着手方式", "착수 방식");
   setText("#settings-stage-label", ui("画面尺寸", "Display Size", "画面サイズ", "화면 크기"));
+  setText("#settings-engine-idle-label", ui("AI 空闲释放", "AI Idle Release", "AI自動解放", "AI 유휴 해제"));
   setText("#btn-card-editor", ui("卡牌编辑器", "Card Editor", "カード編集", "카드 편집기"));
   setTitle("#btn-card-editor", ui("打开卡牌强度编辑器", "Open Card Editor", "カード編集を開く", "카드 편집기 열기"));
   setText("#card-editor-modal-title", ui("卡牌编辑器", "Card Editor", "カード編集", "카드 편집기"));
@@ -223,6 +224,12 @@ function localizeSetupOptions() {
     ["1080", "1080p", "1080p"],
     ["1440", "1440p", "1440p"],
     ["2160", "4K", "4K"]
+  ]);
+  setOptionText("sel-engine-idle-timeout", [
+    ["0", "关闭", "Off", "オフ", "끄기"],
+    ["120", "2分钟", "2 min", "2分", "2분"],
+    ["300", "5分钟", "5 min", "5分", "5분"],
+    ["600", "10分钟", "10 min", "10分", "10분"]
   ]);
   const stageSelect = document.getElementById("sel-stage-preset");
   if (stageSelect) stageSelect.value = stagePreset;

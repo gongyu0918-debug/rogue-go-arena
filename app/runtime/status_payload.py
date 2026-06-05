@@ -46,4 +46,7 @@ def build_status_payload(
         "engine_initializing": engine_snapshot.get("initializing"),
         "engine_log_tail": engine_snapshot.get("log_tail"),
         "nvidia_detected": engine_snapshot.get("nvidia_detected"),
+        "engine_idle_timeout_seconds": engine_snapshot.get("idle_timeout_seconds"),
+        "engine_idle_seconds": engine_snapshot.get("idle_seconds"),
+        "engine_idle_auto_release": engine_snapshot.get("idle_auto_release"),
     }

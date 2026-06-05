@@ -1,6 +1,7 @@
 // Legacy settings drawer controls and card editor entry points.
 
 const QUICKTHINK_CARD_ID = "quickthink";
+const ENGINE_IDLE_TIMEOUT_OPTIONS = [0, 120, 300, 600];
 
 function currentWinrate() {
   return analysis ? analysis.winrate : 0.5;
@@ -115,6 +116,52 @@ function toggleSoundSetting() {
   if (soundEnabled) getAudioCtx();
 }
 
+function nearestEngineIdleTimeoutOption(seconds) {
+  const value = Number(seconds);
+  if (!Number.isFinite(value) || value <= 0) return "0";
+  return String(ENGINE_IDLE_TIMEOUT_OPTIONS
+    .filter(option => option > 0)
+    .reduce((best, option) => (
+      Math.abs(option - value) < Math.abs(best - value) ? option : best
+    ), 300));
+}
+
+function setEngineIdleTimeoutSelect(seconds) {
+  const select = document.getElementById("sel-engine-idle-timeout");
+  if (!select) return;
+  const optionValue = nearestEngineIdleTimeoutOption(seconds);
+  select.value = optionValue;
+  syncWoodSelect(select);
+}
+
+async function syncEngineIdleTimeoutSetting() {
+  try {
+    const resp = await fetch("/engine_idle_timeout", { headers: { "Accept": "application/json" } });
+    if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+    const payload = await resp.json();
+    setEngineIdleTimeoutSelect(payload.seconds);
+  } catch (err) {
+    console.warn("[Settings] engine idle timeout load failed", err);
+  }
+}
+
+async function updateEngineIdleTimeoutSetting(value) {
+  const seconds = Number(value);
+  setEngineIdleTimeoutSelect(seconds);
+  try {
+    const resp = await fetch("/engine_idle_timeout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({ seconds }),
+    });
+    if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+    const payload = await resp.json();
+    setEngineIdleTimeoutSelect(payload.seconds);
+  } catch (err) {
+    console.warn("[Settings] engine idle timeout save failed", err);
+  }
+}
+
 function bindSettingsControls() {
   document.getElementById("btn-card-editor")?.addEventListener("click", openCardEditorPanel);
   document.getElementById("card-editor-modal-close")?.addEventListener("click", closeCardEditorPanel);
@@ -129,6 +176,10 @@ function bindSettingsControls() {
   });
   document.getElementById("sound-toggle")?.addEventListener("click", toggleSoundSetting);
   document.getElementById("sound-settings-toggle")?.addEventListener("click", toggleSoundSetting);
+  document.getElementById("sel-engine-idle-timeout")?.addEventListener("change", event => {
+    updateEngineIdleTimeoutSetting(event.target.value);
+  });
+  syncEngineIdleTimeoutSetting();
 }
 
 bindSettingsControls();
@@ -138,3 +189,4 @@ window.isHintLockedByCard = isHintLockedByCard;
 window.openCardEditorPanel = openCardEditorPanel;
 window.closeCardEditorPanel = closeCardEditorPanel;
 window.toggleTerritory = toggleTerritory;
+window.syncEngineIdleTimeoutSetting = syncEngineIdleTimeoutSetting;

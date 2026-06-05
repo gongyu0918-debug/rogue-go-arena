@@ -12,6 +12,7 @@ from app.config.gameplay import (
 from app.gameplay.turn_modifiers import has_methodical_card
 from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_action_utils import board_point_from_data
+from app.runtime.ws_session_actions import ensure_engine_ready_for_game
 from app.runtime.ws_ultimate_actions import handle_ultimate_play
 
 
@@ -30,9 +31,7 @@ async def handle_play(ctx: WebSocketActionContext, data: dict) -> None:
     if game.two_player:
         color = game.current_player
     else:
-        if not ctx.engine.ready:
-            snapshot = ctx.engine_state_snapshot()
-            await ctx.send_error(snapshot.get("message") or "KataGo尚未就绪，当前不能进行 AI 对局")
+        if not await ensure_engine_ready_for_game(ctx, game, "player_move"):
             return
         if game.current_player != game.player_color:
             await ctx.send_error("还没轮到你")

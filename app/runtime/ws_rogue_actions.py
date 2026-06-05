@@ -6,6 +6,7 @@ from app.config.gameplay import ROGUE_COACH_BASE_TURNS, ROGUE_SEAL_POINT_COUNT
 from app.data.cards import CHALLENGE_BETA_POOL, ROGUE_CARDS, get_rogue_card
 from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_action_utils import board_point_from_data
+from app.runtime.ws_session_actions import ensure_engine_ready_for_game
 
 
 async def handle_rogue_select_card(ctx: WebSocketActionContext, data: dict) -> None:
@@ -39,6 +40,9 @@ async def handle_rogue_select_card(ctx: WebSocketActionContext, data: dict) -> N
         await ctx.activate_ai_rogue_card(game, ctx.send, ai_card_id)
     game.reset_history()
     if card_id != "seal":
+        if not game.two_player:
+            if not await ensure_engine_ready_for_game(ctx, game, "rogue_select_card"):
+                return
         if not game.two_player and ctx.engine.ready and game.ai_color == game.current_player:
             await ctx.ai_move(game, ctx.send)
         if not game.game_over and ctx.engine.ready:
@@ -107,6 +111,9 @@ async def handle_rogue_seal_point(ctx: WebSocketActionContext, data: dict) -> No
         game.rogue_waiting_seal = False
         game.reset_history()
         await ctx.send({"type": "rogue_seal_done"})
+        if not game.two_player:
+            if not await ensure_engine_ready_for_game(ctx, game, "rogue_seal_done"):
+                return
         if ctx.engine.ready and game.ai_color == game.current_player:
             await ctx.ai_move(game, ctx.send)
         if not game.game_over and ctx.engine.ready:
@@ -219,7 +226,9 @@ async def handle_rogue_use_exchange(ctx: WebSocketActionContext, data: dict) -> 
 
 async def handle_rogue_use_coach(ctx: WebSocketActionContext, data: dict) -> None:
     game = ctx.restore_game()
-    if not game or game.game_over or not ctx.engine.ready:
+    if not game or game.game_over:
+        return
+    if not await ensure_engine_ready_for_game(ctx, game, "coach_mode"):
         return
     if game.rogue_card == "coach_mode" and game.rogue_coach_moves_left > 0:
         await ctx.send_error("代练上号已经在接管中")

@@ -8,6 +8,7 @@ from app.config.gameplay import (
 )
 from app.gameplay.turn_modifiers import has_methodical_card
 from app.runtime.ws_action_context import WebSocketActionContext
+from app.runtime.ws_session_actions import ensure_engine_ready_for_game
 
 
 async def handle_pass(ctx: WebSocketActionContext, data: dict) -> None:
@@ -25,6 +26,8 @@ async def handle_pass(ctx: WebSocketActionContext, data: dict) -> None:
         color = game.current_player
     else:
         if game.current_player != game.player_color:
+            return
+        if not await ensure_engine_ready_for_game(ctx, game, "player_pass"):
             return
         color = game.player_color
 
@@ -117,6 +120,10 @@ async def handle_undo(ctx: WebSocketActionContext, data: dict) -> None:
             return
         game.challenge_usage["undo"] += 1
 
+    if not game.two_player:
+        if not await ensure_engine_ready_for_game(ctx, game, "undo", sync_board=False):
+            return
+
     undo_count = 1 if game.two_player else (2 if len(game.moves) >= 2 else 1)
     if not game.undo_history(undo_count):
         return
@@ -139,6 +146,9 @@ async def handle_score(ctx: WebSocketActionContext, data: dict) -> None:
     if game.ai_observer:
         await ctx.send_error("AI 学习模式不接受人工操作")
         return
+    if not game.two_player:
+        if not await ensure_engine_ready_for_game(ctx, game, "score"):
+            return
     if ctx.engine.ready:
         await ctx.sync_board_to_katago(game)
         resp = await ctx.run_in_executor(ctx.engine.send_command, "final_score")

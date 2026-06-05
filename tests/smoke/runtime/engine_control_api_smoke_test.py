@@ -14,6 +14,7 @@ from app.runtime.engine_control_api import restart_katago_request, stop_katago_r
 class FakeEngineRuntime:
     def __init__(self) -> None:
         self.calls = []
+        self.idle_timeout_seconds = 300.0
 
     def stop_via_api(self) -> dict:
         self.calls.append("stop")
@@ -22,6 +23,11 @@ class FakeEngineRuntime:
     def restart_via_api(self) -> dict:
         self.calls.append("restart")
         return {"ok": True, "action": "restart"}
+
+    def set_idle_timeout_seconds(self, seconds: float) -> float:
+        self.calls.append(("idle", seconds))
+        self.idle_timeout_seconds = seconds
+        return seconds
 
 
 def endpoint_for(routes, path: str, method: str):
@@ -66,17 +72,24 @@ async def smoke_engine_control_router_resolves_runtime_deps_late() -> None:
             rank_labels={},
             engine_runtime=current["runtime"],
             run_in_executor=inline_executor,
+            save_idle_timeout_seconds=lambda value: float(value),
         )
 
     router = build_runtime_control_router(binding_provider)
     stop_endpoint = endpoint_for(router.routes, "/stop_katago", "POST")
     restart_endpoint = endpoint_for(router.routes, "/restart_katago", "POST")
+    get_idle_endpoint = endpoint_for(router.routes, "/engine_idle_timeout", "GET")
+    set_idle_endpoint = endpoint_for(router.routes, "/engine_idle_timeout", "POST")
     stopped = await stop_endpoint()
     restarted = await restart_endpoint()
+    idle_before = await get_idle_endpoint()
+    idle_saved = await set_idle_endpoint({"seconds": 120})
 
     assert stopped == {"ok": True, "action": "stop"}
     assert restarted == {"ok": True, "action": "restart"}
-    assert runtime.calls == ["stop", "restart"]
+    assert idle_before == {"ok": True, "seconds": 300.0, "enabled": True}
+    assert idle_saved == {"ok": True, "seconds": 120.0, "enabled": True}
+    assert runtime.calls == ["stop", "restart", ("idle", 120.0)]
     assert executor_calls == [(runtime.stop_via_api, ())]
     assert stop_endpoint.__doc__ == "Stop the KataGo engine while keeping the server running."
     assert restart_endpoint.__doc__ == "Restart the KataGo engine."
@@ -92,22 +105,28 @@ async def smoke_server_engine_control_routes_resolve_runtime_deps_late() -> None
 
     original_runtime = s.engine_runtime
     original_executor = s.run_in_executor
+    original_save_idle = s.save_idle_timeout_seconds
     try:
         s.engine_runtime = runtime
         s.run_in_executor = inline_executor
+        s.save_idle_timeout_seconds = lambda _path, value: float(value)
 
         assert s._runtime_control_routes_binding().engine_runtime is runtime
         stop_endpoint = endpoint_for(s.app.routes, "/stop_katago", "POST")
         restart_endpoint = endpoint_for(s.app.routes, "/restart_katago", "POST")
+        set_idle_endpoint = endpoint_for(s.app.routes, "/engine_idle_timeout", "POST")
         stopped = await stop_endpoint()
         restarted = await restart_endpoint()
+        idle_saved = await set_idle_endpoint({"seconds": 0})
     finally:
         s.engine_runtime = original_runtime
         s.run_in_executor = original_executor
+        s.save_idle_timeout_seconds = original_save_idle
 
     assert stopped == {"ok": True, "action": "stop"}
     assert restarted == {"ok": True, "action": "restart"}
-    assert runtime.calls == ["stop", "restart"]
+    assert idle_saved == {"ok": True, "seconds": 0.0, "enabled": False}
+    assert runtime.calls == ["stop", "restart", ("idle", 0.0)]
     assert executor_calls == [(runtime.stop_via_api, ())]
     assert stop_endpoint.__doc__ == "Stop the KataGo engine while keeping the server running."
     assert restart_endpoint.__doc__ == "Restart the KataGo engine."

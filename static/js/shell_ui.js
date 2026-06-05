@@ -147,6 +147,9 @@ function engineStatusText(net, connected) {
     const model = net.engine_model || net.katago_model_name || "";
     return model ? `${backend} · ${model}` : backend;
   }
+  if (net.engine_phase === "stopped" && net.engine_idle_auto_release) {
+    return ui("AI 已空闲释放", "AI released; reloads when needed", "AI解放済み・必要時に再読込", "AI 해제됨 · 필요 시 재시작");
+  }
   if (net.katago_model) {
     const model = net.katago_model_name || "";
     return model

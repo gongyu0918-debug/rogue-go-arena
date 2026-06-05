@@ -24,7 +24,7 @@ from urllib.parse import urlencode
 SERVER_PORT = 8000
 LOOPBACK_HOST = "127.0.0.1"
 SERVER_URL = f"http://{LOOPBACK_HOST}:{SERVER_PORT}"
-EXPECTED_SERVER_REV = "20260601-runtime-hardening"
+EXPECTED_SERVER_REV = "20260606-webview-idle-release"
 NATIVE_WINDOW_SIZE = "1500,1000"
 EDGE_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "rogue-go-arena" / "edge-app-profile"
 WEBVIEW_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "rogue-go-arena" / "webview-profile"

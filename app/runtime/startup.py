@@ -38,6 +38,7 @@ class EngineStartupManager:
         paths: EnginePaths,
         no_katago: bool,
         log_fn: Callable[[str], None],
+        idle_timeout_seconds: float = 300.0,
     ) -> None:
         self.engine = engine
         self.paths = paths
@@ -48,6 +49,9 @@ class EngineStartupManager:
         self._start_token = 0
         self._cpu_mode = False
         self._event_log = deque(maxlen=120)
+        self._idle_timeout_seconds = max(0.0, float(idle_timeout_seconds or 0.0))
+        self._idle_stop_event = threading.Event()
+        self._idle_thread: Optional[threading.Thread] = None
         self._state = {
             "phase": "disabled" if no_katago else "idle",
             "message": "KataGo disabled" if no_katago else "KataGo not started yet",
@@ -58,6 +62,9 @@ class EngineStartupManager:
             "attempts": [],
             "candidates": [],
             "nvidia_detected": False,
+            "idle_timeout_seconds": self._idle_timeout_seconds,
+            "idle_seconds": 0.0,
+            "idle_auto_release": self._idle_timeout_seconds > 0,
             "updated_at": time.time(),
         }
 
@@ -85,12 +92,78 @@ class EngineStartupManager:
     def snapshot(self) -> dict:
         with self._state_lock:
             snapshot = dict(self._state)
+            snapshot["idle_timeout_seconds"] = self._idle_timeout_seconds
+            snapshot["idle_auto_release"] = self._idle_timeout_seconds > 0
+            snapshot["idle_seconds"] = self.engine.idle_age() if self.engine.ready else 0.0
             snapshot["attempts"] = [dict(item) for item in self._state.get("attempts", [])]
             snapshot["candidates"] = list(self._state.get("candidates", []))
             snapshot["log_tail"] = [dict(item) for item in self._event_log]
             snapshot["initializing"] = snapshot.get("phase") == "initializing"
             snapshot["ready"] = snapshot.get("phase") == "ready"
             return snapshot
+
+    @property
+    def idle_timeout_seconds(self) -> float:
+        with self._state_lock:
+            return self._idle_timeout_seconds
+
+    def set_idle_timeout_seconds(self, seconds: float) -> float:
+        value = max(0.0, float(seconds or 0.0))
+        with self._state_lock:
+            self._idle_timeout_seconds = value
+            self._state["idle_timeout_seconds"] = value
+            self._state["idle_auto_release"] = value > 0
+            self._state["updated_at"] = time.time()
+        self.log_event(
+            "Idle engine release disabled"
+            if value <= 0
+            else f"Idle engine release set to {int(value)}s"
+        )
+        return value
+
+    def _idle_monitor_interval(self) -> float:
+        timeout = self.idle_timeout_seconds
+        if timeout <= 0:
+            return 10.0
+        return min(30.0, max(0.5, timeout / 6.0))
+
+    def _run_idle_monitor(self) -> None:
+        while not self._idle_stop_event.wait(self._idle_monitor_interval()):
+            if self.no_katago:
+                continue
+            timeout = self.idle_timeout_seconds
+            if timeout <= 0:
+                continue
+            snapshot = self.snapshot()
+            if snapshot.get("phase") != "ready":
+                continue
+            if self.engine.stop_if_idle(timeout, reason="auto_release"):
+                self._set_cpu_mode(False)
+                self._set_state(
+                    phase="stopped",
+                    message=(
+                        f"KataGo 已因空闲 {int(timeout)} 秒自动释放，"
+                        "下一次需要 AI 时会自动重新加载"
+                    ),
+                    active_backend=None,
+                    active_backend_exe=None,
+                    last_error=None,
+                    idle_seconds=0.0,
+                )
+                self.log_event(f"KataGo auto-released after {int(timeout)}s idle")
+
+    def _ensure_idle_monitor(self) -> None:
+        if self.no_katago:
+            return
+        if self._idle_thread and self._idle_thread.is_alive():
+            return
+        self._idle_stop_event.clear()
+        self._idle_thread = threading.Thread(
+            target=self._run_idle_monitor,
+            name="katago-idle-monitor",
+            daemon=True,
+        )
+        self._idle_thread.start()
 
     def _next_token(self) -> int:
         with self._state_lock:
@@ -570,6 +643,7 @@ class EngineStartupManager:
                     self._start_thread = None
 
     def start_background(self, trigger: str, force_restart: bool = False) -> tuple[bool, str]:
+        self._ensure_idle_monitor()
         if force_restart:
             self._set_cpu_mode(False)
             self.engine.stop()
@@ -593,6 +667,7 @@ class EngineStartupManager:
         if self.no_katago:
             self.log_fn("[Server] KataGo disabled (--no-katago). Free-play mode.")
             return
+        self._ensure_idle_monitor()
         started, reason = self.start_background("startup")
         if started:
             self.log_fn("[Server] KataGo initialization scheduled in background")
@@ -600,6 +675,7 @@ class EngineStartupManager:
             self.log_fn(f"[Server] KataGo background init skipped: {reason}")
 
     def handle_app_shutdown(self) -> None:
+        self._idle_stop_event.set()
         self._next_token()
         self.engine.stop()
 

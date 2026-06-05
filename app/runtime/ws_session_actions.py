@@ -37,10 +37,12 @@ async def handle_resign(ctx: WebSocketActionContext, data: dict) -> None:
 
 async def handle_request_hint(ctx: WebSocketActionContext, data: dict) -> None:
     game = ctx.restore_game()
-    if not game or game.game_over or not ctx.engine.ready:
+    if not game or game.game_over:
         return
     if ctx.rogue_has(game, "quickthink"):
         await ctx.send_error("快速思考已禁用推荐点位，请自行判断局面")
+        return
+    if not await ensure_engine_ready_for_game(ctx, game, "request_hint"):
         return
     if game.challenge_beta:
         if ctx.challenge_remaining(game, "hint") <= 0:
@@ -69,6 +71,10 @@ async def handle_load_position(ctx: WebSocketActionContext, data: dict) -> None:
     size = int(data.get("size", 19))
     komi = float(data.get("komi", 7.5))
     moves_list = data.get("moves", [])
+
+    if not ctx.engine.ready:
+        if not await wait_for_engine_ready(ctx, "load_position"):
+            return
 
     if ctx.engine.ready:
         await ctx.run_in_executor(ctx.engine.send_command, f"boardsize {size}")
@@ -148,3 +154,26 @@ async def wait_for_engine_ready(ctx: WebSocketActionContext, reason: str) -> boo
         or "KataGo未就绪，请稍候重试，或先使用两人对局模式"
     )
     return False
+
+
+async def ensure_engine_ready_for_game(
+    ctx: WebSocketActionContext,
+    game: Any,
+    reason: str,
+    *,
+    sync_board: bool = True,
+) -> bool:
+    if game.two_player:
+        return True
+    snapshot_fn = getattr(
+        ctx,
+        "engine_state_snapshot",
+        lambda: {"phase": "ready" if ctx.engine.ready else "stopped"},
+    )
+    snapshot = snapshot_fn()
+    if not ctx.engine.ready or snapshot.get("phase") != "ready":
+        if not await wait_for_engine_ready(ctx, reason):
+            return False
+        if sync_board:
+            await ctx.sync_board_to_katago(game)
+    return True

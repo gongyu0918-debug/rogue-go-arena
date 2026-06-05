@@ -20,6 +20,9 @@ def main() -> int:
         "initializing": False,
         "log_tail": [{"message": "ready"}],
         "nvidia_detected": True,
+        "idle_timeout_seconds": 300.0,
+        "idle_seconds": 12.5,
+        "idle_auto_release": True,
     }
     payload = build_status_payload(
         server_rev="rev-test",
@@ -66,6 +69,9 @@ def main() -> int:
         "engine_initializing",
         "engine_log_tail",
         "nvidia_detected",
+        "engine_idle_timeout_seconds",
+        "engine_idle_seconds",
+        "engine_idle_auto_release",
     ]
     assert payload["server_rev"] == "rev-test"
     assert payload["katago_ready"] is True
@@ -75,6 +81,9 @@ def main() -> int:
     assert payload["card_config"] == "base"
     assert payload["card_config_errors"] == []
     assert payload["nvidia_detected"] is True
+    assert payload["engine_idle_timeout_seconds"] == 300.0
+    assert payload["engine_idle_seconds"] == 12.5
+    assert payload["engine_idle_auto_release"] is True
 
     idle_payload = build_status_payload(
         server_rev="rev-test",
@@ -96,6 +105,7 @@ def main() -> int:
     assert idle_payload["card_config_errors"] == []
     assert idle_payload["engine_phase"] is None
     assert idle_payload["nvidia_detected"] is None
+    assert idle_payload["engine_idle_timeout_seconds"] is None
 
     print("status payload smoke test: OK")
     return 0
