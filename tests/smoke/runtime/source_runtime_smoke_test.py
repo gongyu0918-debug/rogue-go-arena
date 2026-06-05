@@ -6,13 +6,28 @@ ensure_repo_root(__file__)
 
 import argparse
 import asyncio
+import importlib.util
 import json
+from pathlib import Path
+from typing import Any
 
-from runtime_smoke_test import run_smoke
 from tests.smoke._managed_source_server import ManagedSourceServer
 
 
 DEFAULT_PORT = 8877
+
+
+def _load_runtime_smoke():
+    smoke_path = Path(__file__).resolve().with_name("runtime_smoke_test.py")
+    spec = importlib.util.spec_from_file_location("_rogue_go_runtime_smoke", smoke_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load runtime smoke from {smoke_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.run_smoke
+
+
+run_smoke = _load_runtime_smoke()
 
 
 async def run_managed_smoke(

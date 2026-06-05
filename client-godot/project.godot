@@ -1,0 +1,28 @@
+; Engine configuration file.
+; This is the native desktop client for rogue-go-arena 1.0.
+
+config_version=5
+
+[application]
+
+config/name="rogue-go-arena"
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.4", "C#")
+
+[display]
+
+window/size/viewport_width=1500
+window/size/viewport_height=1000
+window/size/window_width_override=1500
+window/size/window_height_override=1000
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[dotnet]
+
+project/assembly_name="RogueGoArena"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+textures/canvas_textures/default_texture_filter=0

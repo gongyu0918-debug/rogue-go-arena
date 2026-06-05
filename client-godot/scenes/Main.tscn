@@ -1,0 +1,430 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/Main.cs" id="1_main"]
+[ext_resource type="Script" path="res://scripts/BoardView.cs" id="2_board"]
+[ext_resource type="Script" path="res://scripts/RuntimeWorker.cs" id="3_worker"]
+[ext_resource type="Script" path="res://scripts/StaticAssetTextureRect.cs" id="4_static_texture"]
+[ext_resource type="Script" path="res://scripts/CardIconTray.cs" id="5_card_tray"]
+[ext_resource type="Script" path="res://scripts/ToolbarStrip.cs" id="6_toolbar"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="RuntimeWorker" type="Node" parent="."]
+script = ExtResource("3_worker")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_static_texture")
+AssetPath = "res://assets/textures/ui-dark-wood-v1.png"
+
+[node name="HeaderBar" type="Control" parent="."]
+layout_mode = 1
+offset_right = 1500.0
+offset_bottom = 72.0
+
+[node name="HeaderShade" type="ColorRect" parent="HeaderBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0352941, 0.027451, 0.0196078, 0.86)
+
+[node name="StatusDot" type="ColorRect" parent="HeaderBar"]
+layout_mode = 1
+offset_left = 28.0
+offset_top = 26.0
+offset_right = 42.0
+offset_bottom = 40.0
+color = Color(0.956863, 0.717647, 0.25098, 1)
+
+[node name="BrandKicker" type="Label" parent="HeaderBar"]
+layout_mode = 1
+offset_left = 58.0
+offset_top = 12.0
+offset_right = 260.0
+offset_bottom = 34.0
+theme_override_font_sizes/font_size = 14
+text = "rogue-go-arena"
+
+[node name="Title" type="Label" parent="HeaderBar"]
+layout_mode = 1
+offset_left = 58.0
+offset_top = 30.0
+offset_right = 260.0
+offset_bottom = 58.0
+theme_override_font_sizes/font_size = 22
+text = "围棋对弈场"
+
+[node name="StatusText" type="Label" parent="HeaderBar"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 280.0
+offset_top = 26.0
+offset_right = -28.0
+offset_bottom = 50.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 16
+text = "连接中…"
+horizontal_alignment = 2
+
+[node name="CommandDeck" type="Control" parent="."]
+layout_mode = 1
+offset_left = 24.0
+offset_top = 72.0
+offset_right = 1476.0
+offset_bottom = 172.0
+
+[node name="DeckTexture" type="TextureRect" parent="CommandDeck"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_static_texture")
+AssetPath = "res://assets/textures/ui-dark-wood-v1.png"
+
+[node name="ClientTitle" type="Label" parent="CommandDeck"]
+layout_mode = 1
+offset_left = 18.0
+offset_top = 14.0
+offset_right = 220.0
+offset_bottom = 42.0
+theme_override_font_sizes/font_size = 20
+text = "rogue-go-arena"
+
+[node name="ClientKicker" type="Label" parent="CommandDeck"]
+layout_mode = 1
+offset_left = 18.0
+offset_top = 44.0
+offset_right = 118.0
+offset_bottom = 70.0
+theme_override_font_sizes/font_size = 16
+text = "ROGUE"
+
+[node name="WinrateBack" type="ColorRect" parent="CommandDeck"]
+layout_mode = 1
+offset_left = 250.0
+offset_top = 20.0
+offset_right = 620.0
+offset_bottom = 48.0
+color = Color(0.054902, 0.0392157, 0.027451, 0.92)
+
+[node name="WrBlack" type="ColorRect" parent="CommandDeck/WinrateBack"]
+layout_mode = 1
+anchors_preset = 13
+anchor_right = 0.5
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0313726, 0.027451, 0.0235294, 1)
+
+[node name="WrWhite" type="ColorRect" parent="CommandDeck/WinrateBack"]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 0.5
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.843137, 0.772549, 0.611765, 1)
+
+[node name="StatusCards" type="HBoxContainer" parent="CommandDeck"]
+layout_mode = 1
+offset_left = 650.0
+offset_top = 14.0
+offset_right = 1120.0
+offset_bottom = 82.0
+theme_override_constants/separation = 10
+
+[node name="Connection" type="Label" parent="CommandDeck/StatusCards"]
+custom_minimum_size = Vector2(108, 58)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "连接
+连接中…"
+
+[node name="Engine" type="Label" parent="CommandDeck/StatusCards"]
+custom_minimum_size = Vector2(108, 58)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "引擎
+检测中…"
+
+[node name="Mode" type="Label" parent="CommandDeck/StatusCards"]
+custom_minimum_size = Vector2(108, 58)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "模式
+Rogue"
+
+[node name="Run" type="Label" parent="CommandDeck/StatusCards"]
+custom_minimum_size = Vector2(108, 58)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "手数
+待开始"
+
+[node name="QuickActions" type="HBoxContainer" parent="CommandDeck"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -322.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = 58.0
+grow_horizontal = 0
+theme_override_constants/separation = 8
+
+[node name="QuickRogue" type="Button" parent="CommandDeck/QuickActions"]
+custom_minimum_size = Vector2(90, 38)
+layout_mode = 2
+text = "Rogue"
+
+[node name="QuickSetup" type="Button" parent="CommandDeck/QuickActions"]
+custom_minimum_size = Vector2(90, 38)
+layout_mode = 2
+text = "开始"
+
+[node name="QuickFullscreen" type="Button" parent="CommandDeck/QuickActions"]
+custom_minimum_size = Vector2(90, 38)
+layout_mode = 2
+text = "全屏"
+
+[node name="LanguageLabel" type="Label" parent="CommandDeck"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -180.0
+offset_top = 64.0
+offset_right = -18.0
+offset_bottom = 88.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 14
+text = "语言  中文"
+horizontal_alignment = 2
+
+[node name="BoardContainer" type="Control" parent="."]
+layout_mode = 1
+offset_left = 260.0
+offset_top = 190.0
+offset_right = 940.0
+offset_bottom = 938.0
+
+[node name="BoardView" type="Control" parent="BoardContainer"]
+layout_mode = 1
+offset_right = 680.0
+offset_bottom = 680.0
+mouse_filter = 0
+script = ExtResource("2_board")
+
+[node name="RogueBar" type="Label" parent="BoardContainer"]
+layout_mode = 1
+offset_left = 14.0
+offset_top = 12.0
+offset_right = 360.0
+offset_bottom = 38.0
+theme_override_font_sizes/font_size = 14
+text = "Rogue"
+
+[node name="UltimateBar" type="Label" parent="BoardContainer"]
+layout_mode = 1
+offset_left = 14.0
+offset_top = 40.0
+offset_right = 360.0
+offset_bottom = 66.0
+theme_override_font_sizes/font_size = 14
+text = "大招"
+
+[node name="SealBanner" type="Label" parent="BoardContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 120.0
+offset_top = 84.0
+offset_right = -120.0
+offset_bottom = 112.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 16
+text = "请标注禁着点"
+horizontal_alignment = 1
+
+[node name="MatchHud" type="Control" parent="BoardContainer"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 18.0
+offset_top = 74.0
+offset_right = -18.0
+offset_bottom = 132.0
+grow_horizontal = 2
+
+[node name="HudMode" type="Label" parent="BoardContainer/MatchHud"]
+layout_mode = 1
+offset_right = 140.0
+offset_bottom = 24.0
+theme_override_font_sizes/font_size = 16
+text = "准备对局"
+
+[node name="HudMove" type="Label" parent="BoardContainer/MatchHud"]
+layout_mode = 1
+offset_left = 150.0
+offset_right = 210.0
+offset_bottom = 24.0
+theme_override_font_sizes/font_size = 16
+text = "0"
+
+[node name="HudTurn" type="Label" parent="BoardContainer/MatchHud"]
+layout_mode = 1
+offset_top = 30.0
+offset_right = 120.0
+offset_bottom = 56.0
+theme_override_font_sizes/font_size = 14
+text = "待开始"
+
+[node name="HudCard" type="Label" parent="BoardContainer/MatchHud"]
+layout_mode = 1
+offset_left = 128.0
+offset_top = 30.0
+offset_right = 250.0
+offset_bottom = 56.0
+theme_override_font_sizes/font_size = 14
+text = "无卡牌"
+
+[node name="HudEngine" type="Label" parent="BoardContainer/MatchHud"]
+layout_mode = 1
+offset_left = 260.0
+offset_top = 30.0
+offset_right = 450.0
+offset_bottom = 56.0
+theme_override_font_sizes/font_size = 14
+text = "AI 待命"
+
+[node name="ThinkingIndicator" type="Label" parent="BoardContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -80.0
+offset_top = -14.0
+offset_right = 80.0
+offset_bottom = 14.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 16
+text = "AI 思考中…"
+horizontal_alignment = 1
+
+[node name="CardIconTray" type="HBoxContainer" parent="BoardContainer"]
+layout_mode = 1
+offset_left = 424.0
+offset_top = 14.0
+offset_right = 680.0
+offset_bottom = 90.0
+script = ExtResource("5_card_tray")
+
+[node name="MainToolbar" type="HBoxContainer" parent="BoardContainer"]
+layout_mode = 1
+offset_top = 698.0
+offset_right = 680.0
+offset_bottom = 766.0
+script = ExtResource("6_toolbar")
+
+[node name="SettingsDrawer" type="Control" parent="."]
+layout_mode = 1
+offset_left = 960.0
+offset_top = 190.0
+offset_right = 1290.0
+offset_bottom = 938.0
+
+[node name="DrawerTexture" type="TextureRect" parent="SettingsDrawer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_static_texture")
+AssetPath = "res://assets/textures/ui-dark-wood-v1.png"
+
+[node name="DrawerTitle" type="Label" parent="SettingsDrawer"]
+layout_mode = 1
+offset_left = 18.0
+offset_top = 16.0
+offset_right = 300.0
+offset_bottom = 44.0
+theme_override_font_sizes/font_size = 19
+text = "棋局控制台"
+
+[node name="Options" type="Label" parent="SettingsDrawer"]
+layout_mode = 1
+offset_left = 18.0
+offset_top = 66.0
+offset_right = 310.0
+offset_bottom = 184.0
+theme_override_font_sizes/font_size = 15
+text = "界面选项
+落子模式  直接落子
+画面尺寸  自适应
+语言      中文"
+
+[node name="Analysis" type="Label" parent="SettingsDrawer"]
+layout_mode = 1
+offset_left = 18.0
+offset_top = 206.0
+offset_right = 310.0
+offset_bottom = 354.0
+theme_override_font_sizes/font_size = 15
+text = "辅助分析
+显示推荐落点
+显示手数
+形势判断
+
+复盘/棋谱  保存棋谱  导入棋谱
+卡牌配置  卡牌编辑器"
+
+[node name="Info" type="Label" parent="SettingsDrawer"]
+layout_mode = 1
+offset_left = 18.0
+offset_top = 382.0
+offset_right = 310.0
+offset_bottom = 558.0
+theme_override_font_sizes/font_size = 15
+text = "对局信息
+我执        —
+当前手数    —
+行棋方      —
+黑吃子      0
+白吃子      0
+形势估算    —
+对手级别    —"
+
+[node name="GameLog" type="Label" parent="SettingsDrawer"]
+layout_mode = 1
+offset_left = 18.0
+offset_top = 586.0
+offset_right = 310.0
+offset_bottom = 720.0
+theme_override_font_sizes/font_size = 15
+text = "棋谱记录"

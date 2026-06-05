@@ -2,12 +2,26 @@ from __future__ import annotations
 
 import queue
 import re
+import os
 import subprocess
 import sys
 import threading
 import time
 from pathlib import Path
 from typing import Callable, Optional
+
+from app.runtime.managed_katago_process import ManagedKataGoProcess
+
+
+def _read_positive_float_env(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if raw in {None, ""}:
+        return default
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return default
+    return max(0.0, value)
 
 
 class KataGoEngine:
@@ -29,17 +43,71 @@ class KataGoEngine:
         self.coord_parser = coord_parser
 
         self.process: Optional[subprocess.Popen] = None
+        self.managed_process: Optional[ManagedKataGoProcess] = None
         self.response_queue = queue.Queue()
         self.analysis_lines = []
         self.ownership_data: list = []
         self.analysis_lock = threading.Lock()
         self.command_lock = threading.Lock()
+        self.activity_lock = threading.Lock()
         self.is_analyzing = False
         self.current_visits = 800
         self.ready = False
         self.stderr_lines = []
         self.stderr_callback = None
         self.last_stderr_time = 0.0
+        self.last_activity_time = 0.0
+        self.idle_timeout_seconds = _read_positive_float_env(
+            "ROGUE_GO_ARENA_KATAGO_IDLE_TIMEOUT_SECONDS",
+            _read_positive_float_env("ROGUE_GO_ARENA_ENGINE_IDLE_TIMEOUT_SECONDS", 180.0),
+        )
+        self.watchdog_interval_seconds = min(
+            10.0,
+            max(1.0, self.idle_timeout_seconds / 12.0),
+        ) if self.idle_timeout_seconds > 0 else 10.0
+        self._watchdog_stop = threading.Event()
+        self._watchdog_thread: Optional[threading.Thread] = None
+
+    def _mark_activity(self, now: float | None = None) -> None:
+        with self.activity_lock:
+            self.last_activity_time = now if now is not None else time.time()
+
+    def _activity_age(self, now: float | None = None) -> float:
+        current = now if now is not None else time.time()
+        with self.activity_lock:
+            if not self.last_activity_time:
+                return 0.0
+            return max(0.0, current - self.last_activity_time)
+
+    def _start_watchdog(self) -> None:
+        self._watchdog_stop.set()
+        self._watchdog_stop = threading.Event()
+        if self.idle_timeout_seconds <= 0:
+            return
+        thread = threading.Thread(target=self._watchdog_loop, daemon=True)
+        self._watchdog_thread = thread
+        thread.start()
+
+    def _watchdog_loop(self) -> None:
+        while not self._watchdog_stop.wait(self.watchdog_interval_seconds):
+            if self.stop_if_unresponsive():
+                return
+
+    def stop_if_unresponsive(self, now: float | None = None) -> bool:
+        if self.idle_timeout_seconds <= 0:
+            return False
+        process = self.process
+        if not process or process.poll() is not None:
+            return False
+        age = self._activity_age(now)
+        if age < self.idle_timeout_seconds:
+            return False
+        self.log(
+            "[KataGo] No engine activity for "
+            f"{int(age)}s, stopping managed child process"
+        )
+        self._terminate_process()
+        return True
 
     def start(
         self,
@@ -62,7 +130,9 @@ class KataGoEngine:
         self.stderr_lines = []
         self.stderr_callback = stderr_callback
         self.last_stderr_time = time.time()
+        self._mark_activity(self.last_stderr_time)
         self.process = None
+        self.managed_process = None
         while not self.response_queue.empty():
             try:
                 self.response_queue.get_nowait()
@@ -72,16 +142,19 @@ class KataGoEngine:
         cmd = [str(_exe), "gtp", "-model", str(_model), "-config", str(_cfg)]
         self.ensure_dirs()
         try:
-            self.process = subprocess.Popen(
+            self.managed_process = ManagedKataGoProcess.start(
                 cmd,
+                log_fn=self.log,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 bufsize=0,
                 creationflags=0x08000000 if sys.platform == "win32" else 0,
             )
+            self.process = self.managed_process.process
         except OSError as e:
             raise RuntimeError(f"Failed to launch {_exe.name}: {e}") from e
+        self._start_watchdog()
         threading.Thread(target=self._read_stdout, daemon=True).start()
         threading.Thread(target=self._read_stderr, daemon=True).start()
 
@@ -131,9 +204,11 @@ class KataGoEngine:
             )
 
         try:
+            self._mark_activity()
             self.process.stdin.write(b"name\n")
             self.process.stdin.flush()
             resp = self.response_queue.get(timeout=10)
+            self._mark_activity()
             self.ready = True
             self.log(f"[KataGo] Started: {resp}")
         except queue.Empty:
@@ -142,7 +217,11 @@ class KataGoEngine:
 
     def _read_stdout(self):
         current_response = []
-        for raw_line in self.process.stdout:
+        process = self.process
+        if not process or not process.stdout:
+            return
+        for raw_line in process.stdout:
+            self._mark_activity()
             line = raw_line.decode("utf-8", errors="replace").rstrip("\n\r")
             if self.is_analyzing and line.startswith("info "):
                 with self.analysis_lock:
@@ -164,11 +243,15 @@ class KataGoEngine:
                     current_response.append(line)
 
     def _read_stderr(self):
-        for raw_line in self.process.stderr:
+        process = self.process
+        if not process or not process.stderr:
+            return
+        for raw_line in process.stderr:
             line = raw_line.decode("utf-8", errors="replace").rstrip()
             if not line:
                 continue
             self.last_stderr_time = time.time()
+            self._mark_activity(self.last_stderr_time)
             self.stderr_lines.append(line)
             self.stderr_lines = self.stderr_lines[-200:]
             self.log(f"[KataGo stderr] {line}")
@@ -197,17 +280,24 @@ class KataGoEngine:
         return drained
 
     def _terminate_process(self) -> None:
+        self._watchdog_stop.set()
         if not self.process:
             return
-        try:
-            self.process.terminate()
-            self.process.wait(timeout=5)
-        except Exception:
+        process = self.process
+        managed_process = self.managed_process
+        if managed_process and managed_process.process is process:
+            managed_process.terminate_tree(timeout=5)
+        else:
             try:
-                self.process.kill()
+                process.terminate()
+                process.wait(timeout=5)
             except Exception:
-                pass
+                try:
+                    process.kill()
+                except Exception:
+                    pass
         self.process = None
+        self.managed_process = None
         self.ready = False
 
     def _send_command_locked(self, cmd: str, timeout: float = 60.0) -> str:
@@ -220,6 +310,7 @@ class KataGoEngine:
         try:
             with self.analysis_lock:
                 self.is_analyzing = False
+            self._mark_activity()
             self.process.stdin.write((cmd + "\n").encode())
             self.process.stdin.flush()
         except (OSError, ValueError, BrokenPipeError) as e:
@@ -227,7 +318,9 @@ class KataGoEngine:
             self.ready = False
             return "? write error"
         try:
-            return self.response_queue.get(timeout=timeout)
+            response = self.response_queue.get(timeout=timeout)
+            self._mark_activity()
+            return response
         except queue.Empty:
             self.log(f"[KataGo] Command timed out after {timeout}s: {cmd}, disabling engine")
             self._terminate_process()
@@ -277,12 +370,14 @@ class KataGoEngine:
                 cmd_parts.extend(extra_args)
             cmd = " ".join(cmd_parts)
             self.log(f"[Analysis] sending: {cmd}")
+            self._mark_activity()
             self.process.stdin.write((cmd + "\n").encode())
             self.process.stdin.flush()
 
             time.sleep(duration)
 
             try:
+                self._mark_activity()
                 self.process.stdin.write(b"stop\n")
                 self.process.stdin.flush()
             except (OSError, ValueError, BrokenPipeError) as exc:
