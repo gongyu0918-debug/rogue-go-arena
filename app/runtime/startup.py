@@ -651,14 +651,13 @@ class EngineStartupManager:
         with self._state_lock:
             if self._start_thread and self._start_thread.is_alive():
                 return False, "KataGo is already initializing"
-
-        token = self._next_token()
-        thread = threading.Thread(
-            target=self._run_engine_startup,
-            args=(trigger, token),
-            daemon=True,
-        )
-        with self._state_lock:
+            self._start_token += 1
+            token = self._start_token
+            thread = threading.Thread(
+                target=self._run_engine_startup,
+                args=(trigger, token),
+                daemon=True,
+            )
             self._state.update(
                 {
                     "phase": "initializing",

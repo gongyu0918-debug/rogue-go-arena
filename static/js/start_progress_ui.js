@@ -3,6 +3,9 @@
 (() => {
 let startProgressVisible = false;
 let startProgressDraftHideTimer = null;
+let startProgressWatchdogTimer = null;
+let startProgressShownAt = 0;
+let startProgressReadyAt = 0;
 
 function startProgressElements() {
   return {
@@ -27,13 +30,29 @@ function clearStartProgressDraftHideTimer() {
   }
 }
 
+function clearStartProgressWatchdog() {
+  if (startProgressWatchdogTimer) {
+    clearInterval(startProgressWatchdogTimer);
+    startProgressWatchdogTimer = null;
+  }
+  startProgressReadyAt = 0;
+}
+
+function ensureStartProgressWatchdog() {
+  if (startProgressWatchdogTimer) return;
+  startProgressWatchdogTimer = setInterval(checkStartProgressHealth, 2000);
+}
+
 function showStartProgress(title, message, detail) {
   const els = startProgressElements();
   if (!els.modal) return;
   clearStartProgressDraftHideTimer();
   startProgressVisible = true;
+  startProgressShownAt = Date.now();
+  startProgressReadyAt = 0;
   setStartProgressText(title, message, detail);
   els.modal.classList.add("show");
+  ensureStartProgressWatchdog();
 }
 
 function updateStartProgress(title, message, detail) {
@@ -44,6 +63,7 @@ function updateStartProgress(title, message, detail) {
 function hideStartProgress() {
   const els = startProgressElements();
   clearStartProgressDraftHideTimer();
+  clearStartProgressWatchdog();
   startProgressVisible = false;
   if (els.modal) els.modal.classList.remove("show");
 }
@@ -61,6 +81,67 @@ function engineLogText(item) {
   if (typeof item === "string") return item;
   if (typeof item === "object") return item.message || item.detail || "";
   return String(item);
+}
+
+async function checkStartProgressHealth() {
+  if (!startProgressVisible) return;
+  let status = null;
+  try {
+    status = await refreshNetworkInfo();
+  } catch (_) {
+    return;
+  }
+  if (!startProgressVisible || !status) return;
+  const phase = String(status.engine_phase || "");
+  const elapsedMs = Date.now() - startProgressShownAt;
+  if (status.katago_ready || phase === "ready") {
+    if (gameState) {
+      hideStartProgress();
+      return;
+    }
+    if (!startProgressReadyAt) startProgressReadyAt = Date.now();
+    if (Date.now() - startProgressReadyAt > 10000) {
+      updateStartProgress(
+        ui("模型已就绪", "Model ready"),
+        ui("对局消息没有返回，请重新开始对局。", "The game did not answer. Please start again."),
+        ""
+      );
+      logI18n(
+        "模型已就绪，但对局消息未返回，请重新开始对局。",
+        "The model is ready, but the game did not answer. Please start again.",
+        "モデルは準備完了ですが、対局応答がありません。再度開始してください。",
+        "모델은 준비됐지만 대국 응답이 없습니다. 다시 시작해 주세요."
+      );
+      hideStartProgressSoon(2200);
+    }
+    return;
+  }
+  startProgressReadyAt = 0;
+  if (phase === "failed" || phase === "disabled") {
+    updateStartProgress(
+      ui("模型启动失败", "Model startup failed"),
+      status.engine_message || ui("KataGo 未能启动。", "KataGo could not start."),
+      status.engine_last_error || ""
+    );
+    hideStartProgressSoon(3200);
+    return;
+  }
+  if (phase === "stopped" && elapsedMs > 8000) {
+    updateStartProgress(
+      ui("模型未在运行", "Model is not running"),
+      status.engine_message || ui("KataGo 已停止，请重新开始对局。", "KataGo stopped. Please start again."),
+      ""
+    );
+    hideStartProgressSoon(2600);
+    return;
+  }
+  if (phase === "initializing" && elapsedMs > 180000) {
+    updateStartProgress(
+      ui("模型仍在启动", "Model is still starting"),
+      ui("启动时间异常偏长，请关闭后重开，或切换 CPU/OpenCL 后再试。", "Startup is taking too long. Restart the app or try CPU/OpenCL."),
+      status.engine_message || ""
+    );
+  }
 }
 
 function showGameStartProgress(options = {}) {

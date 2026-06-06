@@ -132,10 +132,56 @@ def smoke_restart_from_stopped_marks_initializing_immediately() -> None:
             manager._start_thread.join(timeout=2.0)
 
 
+def smoke_concurrent_start_requests_share_one_start_thread() -> None:
+    engine = make_engine()
+    paths = EnginePaths(
+        base_dir=Path("."),
+        cuda_exe=Path("katago_cuda.exe"),
+        legacy_exe=Path("katago.exe"),
+        opencl_exe=Path("katago_opencl.exe"),
+        cpu_exe=Path("katago_cpu.exe"),
+        config=Path("config.cfg"),
+        cpu_config=Path("config_cpu.cfg"),
+        model_large=Path("model_large.bin.gz"),
+        model_default=Path("model.bin.gz"),
+        model_small=Path("model_b18.bin.gz"),
+        user_model_large=Path("user_model_large.bin.gz"),
+    )
+    manager = EngineStartupManager(
+        engine,
+        paths=paths,
+        no_katago=False,
+        log_fn=lambda _message: None,
+        idle_timeout_seconds=300.0,
+    )
+    allow_thread_exit = threading.Event()
+    starts: list[tuple[str, int]] = []
+
+    def fake_startup(trigger: str, token: int) -> None:
+        starts.append((trigger, token))
+        allow_thread_exit.wait(1.0)
+
+    manager._run_engine_startup = fake_startup
+    first_started, first_reason = manager.start_background("first")
+    second_started, second_reason = manager.start_background("second")
+    try:
+        assert first_started is True, first_reason
+        assert second_started is False
+        assert second_reason == "KataGo is already initializing"
+        assert manager.snapshot()["phase"] == "initializing"
+        assert starts == [] or starts == [("first", 1)]
+    finally:
+        allow_thread_exit.set()
+        if manager._start_thread:
+            manager._start_thread.join(timeout=2.0)
+    assert starts == [("first", 1)]
+
+
 def main() -> int:
     smoke_engine_stops_only_after_idle_timeout()
     smoke_idle_timeout_settings_roundtrip()
     smoke_restart_from_stopped_marks_initializing_immediately()
+    smoke_concurrent_start_requests_share_one_start_thread()
     print("engine idle release smoke test: OK")
     return 0
 
