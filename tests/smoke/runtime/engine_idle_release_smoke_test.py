@@ -5,6 +5,7 @@ from _path_bootstrap import ensure_repo_root
 ensure_repo_root(__file__)
 
 import shutil
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -15,6 +16,7 @@ from app.runtime.engine_idle_settings import (
     load_idle_timeout_seconds,
     save_idle_timeout_seconds,
 )
+from app.runtime.startup import EnginePaths, EngineStartupManager
 
 
 class FakeStdin:
@@ -89,9 +91,51 @@ def smoke_idle_timeout_settings_roundtrip() -> None:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
+def smoke_restart_from_stopped_marks_initializing_immediately() -> None:
+    engine = make_engine()
+    paths = EnginePaths(
+        base_dir=Path("."),
+        cuda_exe=Path("katago_cuda.exe"),
+        legacy_exe=Path("katago.exe"),
+        opencl_exe=Path("katago_opencl.exe"),
+        cpu_exe=Path("katago_cpu.exe"),
+        config=Path("config.cfg"),
+        cpu_config=Path("config_cpu.cfg"),
+        model_large=Path("model_large.bin.gz"),
+        model_default=Path("model.bin.gz"),
+        model_small=Path("model_b18.bin.gz"),
+        user_model_large=Path("user_model_large.bin.gz"),
+    )
+    manager = EngineStartupManager(
+        engine,
+        paths=paths,
+        no_katago=False,
+        log_fn=lambda _message: None,
+        idle_timeout_seconds=300.0,
+    )
+    allow_thread_exit = threading.Event()
+
+    def fake_startup(_trigger: str, _token: int) -> None:
+        allow_thread_exit.wait(1.0)
+
+    manager._run_engine_startup = fake_startup
+    manager._set_state(phase="stopped", message="KataGo 已停止，当前为纯对弈模式")
+    started, reason = manager.start_background("game_start")
+    try:
+        assert started is True, reason
+        snapshot = manager.snapshot()
+        assert snapshot["phase"] == "initializing"
+        assert "后台启动" in snapshot["message"]
+    finally:
+        allow_thread_exit.set()
+        if manager._start_thread:
+            manager._start_thread.join(timeout=2.0)
+
+
 def main() -> int:
     smoke_engine_stops_only_after_idle_timeout()
     smoke_idle_timeout_settings_roundtrip()
+    smoke_restart_from_stopped_marks_initializing_immediately()
     print("engine idle release smoke test: OK")
     return 0
 

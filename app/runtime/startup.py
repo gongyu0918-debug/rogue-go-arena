@@ -659,6 +659,16 @@ class EngineStartupManager:
             daemon=True,
         )
         with self._state_lock:
+            self._state.update(
+                {
+                    "phase": "initializing",
+                    "message": "KataGo 正在后台启动",
+                    "active_backend": None,
+                    "active_backend_exe": None,
+                    "last_error": None,
+                    "updated_at": time.time(),
+                }
+            )
             self._start_thread = thread
         thread.start()
         return True, "started"
