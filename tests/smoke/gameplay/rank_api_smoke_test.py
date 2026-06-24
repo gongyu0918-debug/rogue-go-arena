@@ -51,6 +51,7 @@ async def smoke_rank_router_resolves_labels_late() -> None:
             run_in_executor=noop_executor,
             save_idle_timeout_seconds=lambda value: float(value),
             shutdown_server=lambda: {"ok": True, "action": "shutdown"},
+            control_token="smoke-control-token",
         )
 
     router = build_runtime_control_router(binding_provider)

@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import secrets
 import shutil
 import socket
 import subprocess
@@ -25,6 +26,9 @@ SERVER_PORT = 8000
 LOOPBACK_HOST = "127.0.0.1"
 SERVER_URL = f"http://{LOOPBACK_HOST}:{SERVER_PORT}"
 EXPECTED_SERVER_REV = "20260624-desktop-server-shutdown"
+CONTROL_TOKEN_ENV = "ROGUE_GO_ARENA_CONTROL_TOKEN"
+CONTROL_TOKEN_HEADER = "X-Rogue-Go-Control-Token"
+CONTROL_TOKEN = os.environ.get(CONTROL_TOKEN_ENV) or secrets.token_urlsafe(32)
 NATIVE_WINDOW_SIZE = "1500,1000"
 EDGE_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "rogue-go-arena" / "edge-app-profile"
 WEBVIEW_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "rogue-go-arena" / "webview-profile"
@@ -202,7 +206,9 @@ def _is_project_python_server(pid: int) -> bool:
 
 
 def _stop_stale_server_on_port(port=SERVER_PORT) -> None:
-    if _request_server_shutdown(_server_url(port)):
+    server_url = _server_url(port)
+    status = _fetch_status(timeout=0.8, server_url=server_url)
+    if status and status.get("server_rev") and _request_server_shutdown(server_url):
         if _wait_for_port_closed(port):
             return
 
@@ -242,7 +248,11 @@ def _find_edge_exe() -> str | None:
 
 def _post_control(server_url: str, path: str, timeout=2) -> dict | None:
     try:
-        req = urllib.request.Request(f"{server_url}{path}", method="POST")
+        req = urllib.request.Request(
+            f"{server_url}{path}",
+            headers={CONTROL_TOKEN_HEADER: CONTROL_TOKEN},
+            method="POST",
+        )
         with urllib.request.urlopen(req, timeout=timeout) as response:
             body = response.read().decode("utf-8")
         return json.loads(body) if body else {}
@@ -264,7 +274,26 @@ def _shutdown_desktop_runtime(server_url: str = SERVER_URL) -> None:
         _stop_katago_runtime(server_url)
 
 
-def _open_webview_window(url: str, server_url: str = SERVER_URL) -> bool:
+def _terminate_server_process(process: subprocess.Popen | None, timeout: float = 5.0) -> None:
+    if process is None or process.poll() is not None:
+        return
+    try:
+        process.terminate()
+        process.wait(timeout=timeout)
+    except Exception:
+        try:
+            process.kill()
+            process.wait(timeout=timeout)
+        except Exception:
+            pass
+
+
+def _cleanup_started_server(server_url: str, process: subprocess.Popen | None) -> None:
+    _shutdown_desktop_runtime(server_url)
+    _terminate_server_process(process)
+
+
+def _open_webview_window(url: str, server_url: str = SERVER_URL, *, shutdown_on_close: bool = False) -> bool:
     try:
         import webview
     except Exception:
@@ -288,13 +317,14 @@ def _open_webview_window(url: str, server_url: str = SERVER_URL) -> bool:
             storage_path=str(WEBVIEW_PROFILE_DIR),
             icon=str(BASE_DIR / "rogue-go-arena.ico"),
         )
-        _shutdown_desktop_runtime(server_url)
+        if shutdown_on_close:
+            _shutdown_desktop_runtime(server_url)
         return True
     except Exception:
         return False
 
 
-def _open_edge_app_window(url: str, server_url: str = SERVER_URL) -> bool:
+def _open_edge_app_window(url: str, server_url: str = SERVER_URL, *, shutdown_on_close: bool = False) -> bool:
     edge = _find_edge_exe()
     if edge:
         try:
@@ -313,7 +343,8 @@ def _open_edge_app_window(url: str, server_url: str = SERVER_URL) -> bool:
                 creationflags=_creationflags_no_window(),
             )
             proc.wait()
-            _shutdown_desktop_runtime(server_url)
+            if shutdown_on_close:
+                _shutdown_desktop_runtime(server_url)
             return True
         except Exception:
             pass
@@ -332,16 +363,22 @@ def _open_system_browser(url: str, server_url: str = SERVER_URL) -> bool:
             except Exception:
                 pass
         finally:
-            _shutdown_desktop_runtime(server_url)
+            _stop_katago_runtime(server_url)
         return True
     except Exception:
         return False
 
 
-def _open_native_client_window(url: str, shell: str, server_url: str = SERVER_URL) -> bool:
-    if shell == "webview" and _open_webview_window(url, server_url):
+def _open_native_client_window(
+    url: str,
+    shell: str,
+    server_url: str = SERVER_URL,
+    *,
+    shutdown_on_close: bool = False,
+) -> bool:
+    if shell == "webview" and _open_webview_window(url, server_url, shutdown_on_close=shutdown_on_close):
         return True
-    if shell in {"webview", "edge"} and _open_edge_app_window(url, server_url):
+    if shell in {"webview", "edge"} and _open_edge_app_window(url, server_url, shutdown_on_close=shutdown_on_close):
         return True
     return _open_system_browser(url, server_url)
 
@@ -356,26 +393,28 @@ def _wait_frontend_ready(timeout=90.0, server_url: str = SERVER_URL) -> bool:
     return False
 
 
-def _start_server(port: int = SERVER_PORT) -> bool:
+def _start_server(port: int = SERVER_PORT) -> subprocess.Popen | None:
     cmd = [str(SERVER_EXE)] if SERVER_EXE.exists() else [sys.executable, str(SERVER_SCRIPT)]
     cmd.extend(["--host", LOOPBACK_HOST, "--port", str(port)])
     try:
-        subprocess.Popen(
+        env = os.environ.copy()
+        env[CONTROL_TOKEN_ENV] = CONTROL_TOKEN
+        return subprocess.Popen(
             cmd,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             cwd=str(BASE_DIR),
+            env=env,
             creationflags=_server_creationflags(),
             startupinfo=_server_startupinfo(),
         )
-        return True
     except Exception as exc:
         try:
             messagebox.showerror("rogue-go-arena", f"启动失败: {exc}")
         except Exception:
             pass
-        return False
+        return None
 
 
 def _resolve_shell(shell: str | None) -> str:
@@ -391,15 +430,26 @@ def run_native_client(shell: str | None = None) -> int:
 
     server_port = _select_server_port()
     server_url = _server_url(server_port)
-    if not _start_server(server_port):
+    server_process = _start_server(server_port)
+    if server_process is None:
         return 1
     if not _wait_frontend_ready(server_url=server_url):
+        _cleanup_started_server(server_url, server_process)
         try:
             messagebox.showerror("rogue-go-arena", f"服务未能在 {server_port} 端口就绪")
         except Exception:
             pass
         return 1
-    return 0 if _open_native_client_window(_frontend_url(server_url), desktop_shell, server_url) else 1
+    opened = _open_native_client_window(
+        _frontend_url(server_url),
+        desktop_shell,
+        server_url,
+        shutdown_on_close=(desktop_shell != "browser"),
+    )
+    if not opened:
+        _cleanup_started_server(server_url, server_process)
+        return 1
+    return 0
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:

@@ -7,6 +7,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 
 from app.runtime.engine_control_api import (
+    CONTROL_TOKEN_HEADER,
+    control_request_authorized,
     restart_katago_request,
     shutdown_server_request,
     stop_katago_request,
@@ -21,6 +23,7 @@ class RuntimeControlRoutesBinding:
     run_in_executor: Callable[..., Awaitable[Any]]
     save_idle_timeout_seconds: Callable[[Any], float]
     shutdown_server: Callable[[], dict[str, Any]]
+    control_token: str | None
 
 
 RuntimeControlRoutesBindingProvider = Callable[[], RuntimeControlRoutesBinding]
@@ -31,24 +34,36 @@ def build_runtime_control_router(
 ) -> APIRouter:
     router = APIRouter()
 
+    def require_control(request: Request, binding: RuntimeControlRoutesBinding) -> None:
+        result = control_request_authorized(
+            client_host=request.client.host if request.client else None,
+            request_token=request.headers.get(CONTROL_TOKEN_HEADER),
+            expected_token=binding.control_token,
+        )
+        if not result.get("ok"):
+            raise HTTPException(status_code=403, detail=result.get("error", "control denied"))
+
     @router.get("/ranks")
     async def get_ranks():
         return build_rank_options(binding_provider().rank_labels)
 
     @router.post("/stop_katago")
-    async def stop_katago():
+    async def stop_katago(request: Request):
         """Stop the KataGo engine while keeping the server running."""
         binding = binding_provider()
+        require_control(request, binding)
         return await stop_katago_request(
             engine_runtime=binding.engine_runtime,
             run_in_executor=binding.run_in_executor,
         )
 
     @router.post("/restart_katago")
-    async def restart_katago():
+    async def restart_katago(request: Request):
         """Restart the KataGo engine."""
+        binding = binding_provider()
+        require_control(request, binding)
         return restart_katago_request(
-            engine_runtime=binding_provider().engine_runtime,
+            engine_runtime=binding.engine_runtime,
         )
 
     @router.post("/shutdown")
@@ -57,6 +72,8 @@ def build_runtime_control_router(
         binding = binding_provider()
         result = shutdown_server_request(
             client_host=request.client.host if request.client else None,
+            request_token=request.headers.get(CONTROL_TOKEN_HEADER),
+            expected_token=binding.control_token,
             shutdown_server=binding.shutdown_server,
         )
         if not result.get("ok"):

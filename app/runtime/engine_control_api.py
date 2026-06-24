@@ -6,6 +6,7 @@ from typing import Any
 
 
 ExecutorFn = Callable[..., Awaitable[Any]]
+CONTROL_TOKEN_HEADER = "x-rogue-go-control-token"
 
 
 async def stop_katago_request(
@@ -29,7 +30,33 @@ def is_loopback_client(host: str | None) -> bool:
         return host.lower() == "localhost"
 
 
-def shutdown_server_request(*, client_host: str | None, shutdown_server: Callable[[], dict[str, Any]]) -> dict[str, Any]:
+def control_request_authorized(
+    *,
+    client_host: str | None,
+    request_token: str | None,
+    expected_token: str | None,
+) -> dict[str, Any]:
     if not is_loopback_client(client_host):
-        return {"ok": False, "error": "shutdown is only available from localhost"}
+        return {"ok": False, "error": "control actions are only available from localhost"}
+    if not expected_token:
+        return {"ok": False, "error": "control token is not configured"}
+    if request_token != expected_token:
+        return {"ok": False, "error": "invalid control token"}
+    return {"ok": True}
+
+
+def shutdown_server_request(
+    *,
+    client_host: str | None,
+    request_token: str | None,
+    expected_token: str | None,
+    shutdown_server: Callable[[], dict[str, Any]],
+) -> dict[str, Any]:
+    allowed = control_request_authorized(
+        client_host=client_host,
+        request_token=request_token,
+        expected_token=expected_token,
+    )
+    if not allowed.get("ok"):
+        return allowed
     return shutdown_server()

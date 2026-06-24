@@ -10,6 +10,8 @@ from types import SimpleNamespace
 import server as s
 from app.runtime.control_routes import RuntimeControlRoutesBinding, build_runtime_control_router
 from app.runtime.engine_control_api import (
+    CONTROL_TOKEN_HEADER,
+    control_request_authorized,
     is_loopback_client,
     restart_katago_request,
     shutdown_server_request,
@@ -34,6 +36,16 @@ class FakeEngineRuntime:
         self.calls.append(("idle", seconds))
         self.idle_timeout_seconds = seconds
         return seconds
+
+
+CONTROL_TOKEN = "smoke-control-token"
+
+
+def fake_request(host: str = "127.0.0.1", token: str | None = CONTROL_TOKEN) -> SimpleNamespace:
+    headers = {}
+    if token is not None:
+        headers[CONTROL_TOKEN_HEADER] = token
+    return SimpleNamespace(client=SimpleNamespace(host=host), headers=headers)
 
 
 def endpoint_for(routes, path: str, method: str):
@@ -63,7 +75,7 @@ async def smoke_engine_control_helpers_preserve_stop_executor_and_restart_sync()
     assert executor_calls == [(runtime.stop_via_api, ())]
 
 
-def smoke_shutdown_helper_rejects_non_localhost_clients() -> None:
+def smoke_control_helper_requires_localhost_and_token() -> None:
     calls = []
 
     def shutdown_server() -> dict:
@@ -74,13 +86,38 @@ def smoke_shutdown_helper_rejects_non_localhost_clients() -> None:
     assert is_loopback_client("::1")
     assert is_loopback_client("localhost")
     assert not is_loopback_client("192.168.0.12")
-    assert shutdown_server_request(client_host="127.0.0.1", shutdown_server=shutdown_server) == {
+    assert control_request_authorized(
+        client_host="127.0.0.1",
+        request_token=CONTROL_TOKEN,
+        expected_token=CONTROL_TOKEN,
+    ) == {"ok": True}
+    assert control_request_authorized(
+        client_host="127.0.0.1",
+        request_token=None,
+        expected_token=CONTROL_TOKEN,
+    ) == {"ok": False, "error": "invalid control token"}
+    assert control_request_authorized(
+        client_host="127.0.0.1",
+        request_token=CONTROL_TOKEN,
+        expected_token="",
+    ) == {"ok": False, "error": "control token is not configured"}
+    assert shutdown_server_request(
+        client_host="127.0.0.1",
+        request_token=CONTROL_TOKEN,
+        expected_token=CONTROL_TOKEN,
+        shutdown_server=shutdown_server,
+    ) == {
         "ok": True,
         "action": "shutdown",
     }
-    assert shutdown_server_request(client_host="192.168.0.12", shutdown_server=shutdown_server) == {
+    assert shutdown_server_request(
+        client_host="192.168.0.12",
+        request_token=CONTROL_TOKEN,
+        expected_token=CONTROL_TOKEN,
+        shutdown_server=shutdown_server,
+    ) == {
         "ok": False,
-        "error": "shutdown is only available from localhost",
+        "error": "control actions are only available from localhost",
     }
     assert calls == ["shutdown"]
 
@@ -103,6 +140,7 @@ async def smoke_engine_control_router_resolves_runtime_deps_late() -> None:
             run_in_executor=inline_executor,
             save_idle_timeout_seconds=lambda value: float(value),
             shutdown_server=lambda: shutdown_calls.append("shutdown") or {"ok": True, "action": "shutdown"},
+            control_token=CONTROL_TOKEN,
         )
 
     router = build_runtime_control_router(binding_provider)
@@ -111,14 +149,32 @@ async def smoke_engine_control_router_resolves_runtime_deps_late() -> None:
     shutdown_endpoint = endpoint_for(router.routes, "/shutdown", "POST")
     get_idle_endpoint = endpoint_for(router.routes, "/engine_idle_timeout", "GET")
     set_idle_endpoint = endpoint_for(router.routes, "/engine_idle_timeout", "POST")
-    stopped = await stop_endpoint()
-    restarted = await restart_endpoint()
-    shutdown = await shutdown_endpoint(SimpleNamespace(client=SimpleNamespace(host="127.0.0.1")))
+    stop_denied = None
+    restart_denied = None
+    try:
+        await stop_endpoint(fake_request(token=None))
+    except Exception as exc:
+        stop_denied = exc
+    try:
+        await restart_endpoint(fake_request(token=None))
+    except Exception as exc:
+        restart_denied = exc
+    stopped = await stop_endpoint(fake_request())
+    restarted = await restart_endpoint(fake_request())
+    shutdown_denied = None
+    try:
+        await shutdown_endpoint(fake_request(token=None))
+    except Exception as exc:
+        shutdown_denied = exc
+    shutdown = await shutdown_endpoint(fake_request())
     idle_before = await get_idle_endpoint()
     idle_saved = await set_idle_endpoint({"seconds": 120})
 
+    assert getattr(stop_denied, "status_code", None) == 403
+    assert getattr(restart_denied, "status_code", None) == 403
     assert stopped == {"ok": True, "action": "stop"}
     assert restarted == {"ok": True, "action": "restart"}
+    assert getattr(shutdown_denied, "status_code", None) == 403
     assert shutdown == {"ok": True, "action": "shutdown"}
     assert idle_before == {"ok": True, "seconds": 300.0, "enabled": True}
     assert idle_saved == {"ok": True, "seconds": 120.0, "enabled": True}
@@ -141,27 +197,30 @@ async def smoke_server_engine_control_routes_resolve_runtime_deps_late() -> None
     original_executor = s.run_in_executor
     original_save_idle = s.save_idle_timeout_seconds
     original_shutdown = s.request_server_shutdown
+    original_token = s.CONTROL_TOKEN
     shutdown_calls = []
     try:
         s.engine_runtime = runtime
         s.run_in_executor = inline_executor
         s.save_idle_timeout_seconds = lambda _path, value: float(value)
         s.request_server_shutdown = lambda: shutdown_calls.append("shutdown") or {"ok": True, "action": "shutdown"}
+        s.CONTROL_TOKEN = CONTROL_TOKEN
 
         assert s._runtime_control_routes_binding().engine_runtime is runtime
         stop_endpoint = endpoint_for(s.app.routes, "/stop_katago", "POST")
         restart_endpoint = endpoint_for(s.app.routes, "/restart_katago", "POST")
         shutdown_endpoint = endpoint_for(s.app.routes, "/shutdown", "POST")
         set_idle_endpoint = endpoint_for(s.app.routes, "/engine_idle_timeout", "POST")
-        stopped = await stop_endpoint()
-        restarted = await restart_endpoint()
-        shutdown = await shutdown_endpoint(SimpleNamespace(client=SimpleNamespace(host="127.0.0.1")))
+        stopped = await stop_endpoint(fake_request())
+        restarted = await restart_endpoint(fake_request())
+        shutdown = await shutdown_endpoint(fake_request())
         idle_saved = await set_idle_endpoint({"seconds": 0})
     finally:
         s.engine_runtime = original_runtime
         s.run_in_executor = original_executor
         s.save_idle_timeout_seconds = original_save_idle
         s.request_server_shutdown = original_shutdown
+        s.CONTROL_TOKEN = original_token
 
     assert stopped == {"ok": True, "action": "stop"}
     assert restarted == {"ok": True, "action": "restart"}
@@ -176,7 +235,7 @@ async def smoke_server_engine_control_routes_resolve_runtime_deps_late() -> None
 
 async def main() -> None:
     await smoke_engine_control_helpers_preserve_stop_executor_and_restart_sync()
-    smoke_shutdown_helper_rejects_non_localhost_clients()
+    smoke_control_helper_requires_localhost_and_token()
     await smoke_engine_control_router_resolves_runtime_deps_late()
     await smoke_server_engine_control_routes_resolve_runtime_deps_late()
     print("engine control api smoke test: OK")

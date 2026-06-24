@@ -12,6 +12,8 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
+CONTROL_TOKEN = "managed-source-server-smoke-token"
+CONTROL_TOKEN_HEADER = "X-Rogue-Go-Control-Token"
 
 
 def port_is_open(port: int) -> bool:
@@ -31,11 +33,20 @@ def http_json(base_url: str, path: str, *, timeout: float = 5.0) -> dict[str, An
         return json.loads(response.read().decode("utf-8"))
 
 
-def http_post_json(base_url: str, path: str, *, timeout: float = 10.0) -> dict[str, Any] | None:
+def http_post_json(
+    base_url: str,
+    path: str,
+    *,
+    timeout: float = 10.0,
+    token: str | None = CONTROL_TOKEN,
+) -> dict[str, Any] | None:
+    headers = {"Content-Type": "application/json"}
+    if token is not None:
+        headers[CONTROL_TOKEN_HEADER] = token
     request = urllib.request.Request(
         base_url + path,
         data=b"{}",
-        headers={"Content-Type": "application/json"},
+        headers=headers,
         method="POST",
     )
     try:
@@ -80,6 +91,7 @@ class ManagedSourceServer:
 
         env = os.environ.copy()
         env["PYTHONUNBUFFERED"] = "1"
+        env["ROGUE_GO_ARENA_CONTROL_TOKEN"] = CONTROL_TOKEN
         args = [
             sys.executable,
             "server.py",

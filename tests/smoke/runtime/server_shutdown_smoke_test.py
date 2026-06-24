@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -39,10 +40,29 @@ def wait_for_status(base_url: str, process: subprocess.Popen, timeout: float = 3
     raise TimeoutError(f"server did not expose /status: {last_error}")
 
 
-def post_shutdown(base_url: str) -> dict:
-    request = urllib.request.Request(base_url + "/shutdown", method="POST")
+CONTROL_TOKEN = "server-shutdown-smoke-token"
+CONTROL_TOKEN_HEADER = "X-Rogue-Go-Control-Token"
+
+
+def post_control(base_url: str, path: str, *, token: str | None = CONTROL_TOKEN) -> dict:
+    headers = {}
+    if token is not None:
+        headers[CONTROL_TOKEN_HEADER] = token
+    request = urllib.request.Request(base_url + path, headers=headers, method="POST")
     with urllib.request.urlopen(request, timeout=5) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def post_shutdown(base_url: str, *, token: str | None = CONTROL_TOKEN) -> dict:
+    return post_control(base_url, "/shutdown", token=token)
+
+
+def post_control_status(base_url: str, path: str, *, token: str | None) -> int:
+    try:
+        post_control(base_url, path, token=token)
+        return 200
+    except urllib.error.HTTPError as exc:
+        return exc.code
 
 
 def main() -> int:
@@ -50,6 +70,7 @@ def main() -> int:
     base_url = f"http://127.0.0.1:{port}"
     env = os.environ.copy()
     env["PYTHONUNBUFFERED"] = "1"
+    env["ROGUE_GO_ARENA_CONTROL_TOKEN"] = CONTROL_TOKEN
     log_path = Path(tempfile.gettempdir()) / f"rogue-go-shutdown-{port}.log"
     process = None
     with log_path.open("w", encoding="utf-8", errors="replace") as log:
@@ -71,6 +92,10 @@ def main() -> int:
         )
         try:
             status = wait_for_status(base_url, process)
+            denied_statuses = {
+                path: post_control_status(base_url, path, token=None)
+                for path in ("/stop_katago", "/restart_katago", "/shutdown")
+            }
             shutdown = post_shutdown(base_url)
             process.wait(timeout=10)
         finally:
@@ -84,6 +109,11 @@ def main() -> int:
 
     assert status["server_rev"] == "20260624-desktop-server-shutdown"
     assert status["no_katago"] is True
+    assert denied_statuses == {
+        "/stop_katago": 403,
+        "/restart_katago": 403,
+        "/shutdown": 403,
+    }
     assert shutdown == {"ok": True, "action": "shutdown"}
     assert process.returncode == 0
 
@@ -93,6 +123,7 @@ def main() -> int:
                 "status": "passed",
                 "port": port,
                 "returncode": process.returncode,
+                "denied_statuses": denied_statuses,
                 "log": str(log_path),
             },
             ensure_ascii=False,

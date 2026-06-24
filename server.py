@@ -555,6 +555,7 @@ KATAGO_CPU_CONFIG = BASE_DIR / "katago" / "config_cpu.cfg"
 STATIC_DIR = BASE_DIR / "static"
 SERVER_HOST = args.host
 SERVER_PORT = args.port
+CONTROL_TOKEN = os.environ.get("ROGUE_GO_ARENA_CONTROL_TOKEN", "").strip()
 _uvicorn_server: Optional[uvicorn.Server] = None
 
 
@@ -700,6 +701,7 @@ def _runtime_control_routes_dependencies() -> RuntimeControlRoutesDependencies:
             value,
         ),
         shutdown_server=request_server_shutdown,
+        control_token=CONTROL_TOKEN,
     )
 
 

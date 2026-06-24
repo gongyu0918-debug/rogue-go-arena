@@ -40,6 +40,7 @@ class RuntimeControlRoutesDependencies:
     run_in_executor: Callable[..., Awaitable[Any]]
     save_idle_timeout_seconds: Callable[[Any], float]
     shutdown_server: Callable[[], dict[str, Any]]
+    control_token: str | None
 
 
 @dataclass(frozen=True)
@@ -95,6 +96,7 @@ def build_runtime_control_routes_binding(
         run_in_executor=dependencies.run_in_executor,
         save_idle_timeout_seconds=dependencies.save_idle_timeout_seconds,
         shutdown_server=dependencies.shutdown_server,
+        control_token=dependencies.control_token,
     )
 
 

@@ -7,9 +7,10 @@ ensure_repo_root(__file__)
 import argparse
 import asyncio
 import json
+from typing import Any
 
-from runtime_smoke_test import run_smoke
 from tests.smoke._managed_source_server import ManagedSourceServer
+from tests.smoke.runtime.runtime_smoke_test import run_smoke
 
 
 DEFAULT_PORT = 8877
