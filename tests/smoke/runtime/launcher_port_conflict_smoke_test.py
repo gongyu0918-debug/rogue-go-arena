@@ -53,6 +53,7 @@ def smoke_conflicting_default_port_uses_alternate_port() -> None:
     with patched(
         _fetch_status=lambda timeout=1.5, server_url=launcher.SERVER_URL: None,
         _port_open=lambda port=launcher.SERVER_PORT, timeout=1.0: calls.append(("port_open", port)) or (port == launcher.SERVER_PORT),
+        _request_server_shutdown=lambda server_url=launcher.SERVER_URL: False,
         _stop_stale_server_on_port=lambda port=launcher.SERVER_PORT: calls.append(("stop_stale", port)),
         _pick_free_port=lambda: calls.append(("pick_free", alternate_port)) or alternate_port,
         _start_server=lambda port=launcher.SERVER_PORT: calls.append(("start", port)) or True,
@@ -69,6 +70,22 @@ def smoke_conflicting_default_port_uses_alternate_port() -> None:
     assert len(open_calls) == 1
     assert open_calls[0][1].startswith(alternate_url + "/?")
     assert open_calls[0][3] == alternate_url
+
+
+def smoke_stale_server_uses_graceful_shutdown_before_kill() -> None:
+    calls = []
+
+    with patched(
+        _request_server_shutdown=lambda server_url=launcher.SERVER_URL: calls.append(("shutdown", server_url)) or True,
+        _wait_for_port_closed=lambda port=launcher.SERVER_PORT, timeout=5.0: calls.append(("wait_closed", port, timeout)) or True,
+        _listener_pids=lambda port=launcher.SERVER_PORT: (_ for _ in ()).throw(AssertionError("unexpected taskkill path")),
+    ):
+        launcher._stop_stale_server_on_port(launcher.SERVER_PORT)
+
+    assert calls == [
+        ("shutdown", launcher.SERVER_URL),
+        ("wait_closed", launcher.SERVER_PORT, 5.0),
+    ]
 
 
 def smoke_existing_matching_server_is_reused() -> None:
@@ -92,7 +109,7 @@ def smoke_existing_matching_server_is_reused() -> None:
     assert calls[1][3] == launcher.SERVER_URL
 
 
-def smoke_window_close_stops_runtime_on_selected_port() -> None:
+def smoke_window_close_shuts_down_runtime_on_selected_port() -> None:
     calls = []
     selected_url = launcher._server_url(62124)
 
@@ -104,7 +121,7 @@ def smoke_window_close_stops_runtime_on_selected_port() -> None:
     sys.modules["webview"] = fake_webview
     try:
         with patched(
-            _stop_katago_runtime=lambda server_url=launcher.SERVER_URL: calls.append(("stop", server_url)),
+            _shutdown_desktop_runtime=lambda server_url=launcher.SERVER_URL: calls.append(("shutdown", server_url)),
         ):
             assert launcher._open_webview_window(selected_url + "/?rev=test", selected_url)
     finally:
@@ -113,14 +130,31 @@ def smoke_window_close_stops_runtime_on_selected_port() -> None:
         else:
             sys.modules["webview"] = original_webview
 
-    assert ("stop", selected_url) in calls
+    assert ("shutdown", selected_url) in calls
+
+
+def smoke_shutdown_runtime_falls_back_to_stop_katago_for_old_servers() -> None:
+    calls = []
+
+    with patched(
+        _request_server_shutdown=lambda server_url=launcher.SERVER_URL: calls.append(("shutdown", server_url)) or False,
+        _stop_katago_runtime=lambda server_url=launcher.SERVER_URL: calls.append(("stop_katago", server_url)),
+    ):
+        launcher._shutdown_desktop_runtime(launcher.SERVER_URL)
+
+    assert calls == [
+        ("shutdown", launcher.SERVER_URL),
+        ("stop_katago", launcher.SERVER_URL),
+    ]
 
 
 def main() -> int:
     smoke_default_port_is_used_when_free()
     smoke_conflicting_default_port_uses_alternate_port()
+    smoke_stale_server_uses_graceful_shutdown_before_kill()
     smoke_existing_matching_server_is_reused()
-    smoke_window_close_stops_runtime_on_selected_port()
+    smoke_window_close_shuts_down_runtime_on_selected_port()
+    smoke_shutdown_runtime_falls_back_to_stop_katago_for_old_servers()
     print("launcher port conflict smoke test: OK")
     return 0
 

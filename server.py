@@ -541,7 +541,7 @@ USER_KATAGO_PATHS = UserKataGoPaths(
     home_dir=USER_KATAGO_HOME,
     runtime_config_dir=USER_RUNTIME_CONFIG_DIR,
 )
-SERVER_REV = "20260607-webview-load-watchdog"
+SERVER_REV = "20260624-desktop-server-shutdown"
 KATAGO_EXE = BASE_DIR / "katago" / "katago.exe"             # CUDA build (legacy/optional)
 KATAGO_CUDA_EXE = BASE_DIR / "katago" / "katago_cuda.exe"   # CUDA (downloaded upgrade)
 KATAGO_OPENCL_EXE = BASE_DIR / "katago" / "katago_opencl.exe"  # OpenCL (any GPU)
@@ -555,6 +555,7 @@ KATAGO_CPU_CONFIG = BASE_DIR / "katago" / "config_cpu.cfg"
 STATIC_DIR = BASE_DIR / "static"
 SERVER_HOST = args.host
 SERVER_PORT = args.port
+_uvicorn_server: Optional[uvicorn.Server] = None
 
 
 def log(message: str):
@@ -698,6 +699,7 @@ def _runtime_control_routes_dependencies() -> RuntimeControlRoutesDependencies:
             USER_SETTINGS_PATH,
             value,
         ),
+        shutdown_server=request_server_shutdown,
     )
 
 
@@ -741,6 +743,14 @@ app.include_router(build_runtime_info_router(_runtime_info_routes_binding))
 async def run_in_executor(func, *args):
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, func, *args)
+
+
+def request_server_shutdown() -> dict:
+    if _uvicorn_server is None:
+        return {"ok": False, "error": "server shutdown handle unavailable"}
+    log("[Server] Shutdown requested by desktop launcher")
+    _uvicorn_server.should_exit = True
+    return {"ok": True, "action": "shutdown"}
 
 
 def _engine_gateway_dependencies() -> EngineGatewayDependencies:
@@ -2114,5 +2124,12 @@ async def _run_ai_observer_loop(game: GoGame, send_fn):
         return
 
 
+def run_server() -> None:
+    global _uvicorn_server
+    config = uvicorn.Config(app, host=SERVER_HOST, port=SERVER_PORT, reload=False)
+    _uvicorn_server = uvicorn.Server(config)
+    _uvicorn_server.run()
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, host=SERVER_HOST, port=SERVER_PORT, reload=False)
+    run_server()

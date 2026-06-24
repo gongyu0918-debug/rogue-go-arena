@@ -4,9 +4,13 @@ from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Request
 
-from app.runtime.engine_control_api import restart_katago_request, stop_katago_request
+from app.runtime.engine_control_api import (
+    restart_katago_request,
+    shutdown_server_request,
+    stop_katago_request,
+)
 from app.runtime.rank_api import build_rank_options
 
 
@@ -16,6 +20,7 @@ class RuntimeControlRoutesBinding:
     engine_runtime: Any
     run_in_executor: Callable[..., Awaitable[Any]]
     save_idle_timeout_seconds: Callable[[Any], float]
+    shutdown_server: Callable[[], dict[str, Any]]
 
 
 RuntimeControlRoutesBindingProvider = Callable[[], RuntimeControlRoutesBinding]
@@ -45,6 +50,18 @@ def build_runtime_control_router(
         return restart_katago_request(
             engine_runtime=binding_provider().engine_runtime,
         )
+
+    @router.post("/shutdown")
+    async def shutdown_server(request: Request):
+        """Stop the local desktop server process."""
+        binding = binding_provider()
+        result = shutdown_server_request(
+            client_host=request.client.host if request.client else None,
+            shutdown_server=binding.shutdown_server,
+        )
+        if not result.get("ok"):
+            raise HTTPException(status_code=403, detail=result.get("error", "shutdown denied"))
+        return result
 
     @router.get("/engine_idle_timeout")
     async def get_engine_idle_timeout():

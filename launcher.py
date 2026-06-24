@@ -24,7 +24,7 @@ from urllib.parse import urlencode
 SERVER_PORT = 8000
 LOOPBACK_HOST = "127.0.0.1"
 SERVER_URL = f"http://{LOOPBACK_HOST}:{SERVER_PORT}"
-EXPECTED_SERVER_REV = "20260607-webview-load-watchdog"
+EXPECTED_SERVER_REV = "20260624-desktop-server-shutdown"
 NATIVE_WINDOW_SIZE = "1500,1000"
 EDGE_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "rogue-go-arena" / "edge-app-profile"
 WEBVIEW_PROFILE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "rogue-go-arena" / "webview-profile"
@@ -128,6 +128,15 @@ def _select_server_port() -> int:
     return _pick_free_port()
 
 
+def _wait_for_port_closed(port=SERVER_PORT, timeout=5.0) -> bool:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if not _port_open(port, 0.25):
+            return True
+        time.sleep(0.25)
+    return not _port_open(port, 0.25)
+
+
 def _listener_pids(port=SERVER_PORT) -> list[int]:
     try:
         out = subprocess.check_output(
@@ -193,6 +202,10 @@ def _is_project_python_server(pid: int) -> bool:
 
 
 def _stop_stale_server_on_port(port=SERVER_PORT) -> None:
+    if _request_server_shutdown(_server_url(port)):
+        if _wait_for_port_closed(port):
+            return
+
     for pid in _listener_pids(port):
         image_name = _pid_image_name(pid)
         legacy_prefix = "go" + "ai"
@@ -227,13 +240,28 @@ def _find_edge_exe() -> str | None:
     return shutil.which("msedge")
 
 
-def _stop_katago_runtime(server_url: str = SERVER_URL) -> None:
+def _post_control(server_url: str, path: str, timeout=2) -> dict | None:
     try:
-        req = urllib.request.Request(f"{server_url}/stop_katago", method="POST")
-        with urllib.request.urlopen(req, timeout=2):
-            pass
-    except Exception:
-        pass
+        req = urllib.request.Request(f"{server_url}{path}", method="POST")
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            body = response.read().decode("utf-8")
+        return json.loads(body) if body else {}
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, TimeoutError, OSError):
+        return None
+
+
+def _request_server_shutdown(server_url: str = SERVER_URL) -> bool:
+    result = _post_control(server_url, "/shutdown")
+    return bool(result and result.get("ok"))
+
+
+def _stop_katago_runtime(server_url: str = SERVER_URL) -> None:
+    _post_control(server_url, "/stop_katago")
+
+
+def _shutdown_desktop_runtime(server_url: str = SERVER_URL) -> None:
+    if not _request_server_shutdown(server_url):
+        _stop_katago_runtime(server_url)
 
 
 def _open_webview_window(url: str, server_url: str = SERVER_URL) -> bool:
@@ -260,7 +288,7 @@ def _open_webview_window(url: str, server_url: str = SERVER_URL) -> bool:
             storage_path=str(WEBVIEW_PROFILE_DIR),
             icon=str(BASE_DIR / "rogue-go-arena.ico"),
         )
-        _stop_katago_runtime(server_url)
+        _shutdown_desktop_runtime(server_url)
         return True
     except Exception:
         return False
@@ -285,7 +313,7 @@ def _open_edge_app_window(url: str, server_url: str = SERVER_URL) -> bool:
                 creationflags=_creationflags_no_window(),
             )
             proc.wait()
-            _stop_katago_runtime(server_url)
+            _shutdown_desktop_runtime(server_url)
             return True
         except Exception:
             pass
@@ -304,7 +332,7 @@ def _open_system_browser(url: str, server_url: str = SERVER_URL) -> bool:
             except Exception:
                 pass
         finally:
-            _stop_katago_runtime(server_url)
+            _shutdown_desktop_runtime(server_url)
         return True
     except Exception:
         return False

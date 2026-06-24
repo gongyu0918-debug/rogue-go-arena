@@ -69,18 +69,21 @@ def smoke_http_route_runtime_builders_map_every_field() -> None:
     rank_labels = {"1d": "1 dan"}
     run_in_executor = make_sync("executor")
     save_idle_timeout_seconds = make_sync("save-idle")
+    shutdown_server = make_sync("shutdown-server")
     control = build_runtime_control_routes_binding(
         RuntimeControlRoutesDependencies(
             rank_labels=rank_labels,
             engine_runtime=engine_runtime,
             run_in_executor=run_in_executor,
             save_idle_timeout_seconds=save_idle_timeout_seconds,
+            shutdown_server=shutdown_server,
         )
     )
     assert control.rank_labels is rank_labels
     assert control.engine_runtime is engine_runtime
     assert control.run_in_executor is run_in_executor
     assert control.save_idle_timeout_seconds is save_idle_timeout_seconds
+    assert control.shutdown_server is shutdown_server
 
     server_rev = "rev-test"
     host = "127.0.0.1"
@@ -139,6 +142,7 @@ def smoke_server_http_route_dependencies_resolve_current_runtime() -> None:
         "reset_balance_overrides": s.reset_balance_overrides,
         "RANK_LABELS": s.RANK_LABELS,
         "run_in_executor": s.run_in_executor,
+        "request_server_shutdown": s.request_server_shutdown,
         "SERVER_REV": s.SERVER_REV,
         "SERVER_HOST": s.SERVER_HOST,
         "SERVER_PORT": s.SERVER_PORT,
@@ -160,6 +164,7 @@ def smoke_server_http_route_dependencies_resolve_current_runtime() -> None:
     reset_balance_overrides = make_sync("patched-reset")
     rank_labels = {"5k": "5 kyu"}
     run_in_executor = make_sync("patched-executor")
+    shutdown_server = make_sync("patched-shutdown")
     get_access_urls = make_sync("patched-urls")
     engine = object()
     engine_state_snapshot = make_sync("patched-state")
@@ -178,6 +183,7 @@ def smoke_server_http_route_dependencies_resolve_current_runtime() -> None:
         s.reset_balance_overrides = reset_balance_overrides
         s.RANK_LABELS = rank_labels
         s.run_in_executor = run_in_executor
+        s.request_server_shutdown = shutdown_server
         s.SERVER_REV = "patched-rev"
         s.SERVER_HOST = "0.0.0.0"
         s.SERVER_PORT = 5432
@@ -208,6 +214,7 @@ def smoke_server_http_route_dependencies_resolve_current_runtime() -> None:
         assert control.rank_labels is rank_labels
         assert control.engine_runtime is engine_runtime
         assert control.run_in_executor is run_in_executor
+        assert control.shutdown_server is shutdown_server
 
         info = s._runtime_info_routes_binding()
         assert info.server_rev == "patched-rev"
