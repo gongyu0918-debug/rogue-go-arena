@@ -37,6 +37,24 @@ DETACHED_PROCESS = getattr(subprocess, "DETACHED_PROCESS", 0)
 DESKTOP_SHELLS = {"webview", "edge", "browser"}
 
 
+class _DesktopWindowApi:
+    def __init__(self) -> None:
+        self._window = None
+
+    def bind(self, window) -> None:
+        self._window = window
+
+    def close_window(self) -> dict:
+        """Close the owned WebView window after the UI has shut down the runtime."""
+        if self._window is None:
+            return {"ok": False, "error": "window unavailable"}
+        try:
+            self._window.destroy()
+            return {"ok": True, "action": "window_destroy"}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+
+
 def _launcher_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
@@ -302,15 +320,18 @@ def _open_webview_window(url: str, server_url: str = SERVER_URL, *, shutdown_on_
     width, height = _window_size()
     try:
         WEBVIEW_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
-        webview.create_window(
+        desktop_api = _DesktopWindowApi()
+        window = webview.create_window(
             "rogue-go-arena",
             url,
+            js_api=desktop_api,
             width=width,
             height=height,
             min_size=(1100, 720),
             background_color="#111318",
             text_select=True,
         )
+        desktop_api.bind(window)
         webview.start(
             gui="edgechromium",
             private_mode=False,

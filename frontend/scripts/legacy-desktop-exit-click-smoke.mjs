@@ -2,6 +2,7 @@ import { chromium } from "playwright";
 
 const DEFAULT_URL = "http://127.0.0.1:8876/";
 const urlArg = process.argv.find((arg) => arg.startsWith("--url="));
+const simulatePywebviewClose = process.argv.includes("--simulate-pywebview-close");
 const targetUrl = withLanguageParam(
   urlArg ? urlArg.slice("--url=".length) : process.env.LEGACY_DESKTOP_EXIT_CLICK_URL || DEFAULT_URL,
   "zh"
@@ -28,6 +29,20 @@ function assert(condition, message) {
 const browser = await launchBrowser();
 const page = await browser.newPage({ viewport: { width: 1366, height: 768 }, deviceScaleFactor: 1 });
 const errors = [];
+
+if (simulatePywebviewClose) {
+  await page.addInitScript(() => {
+    window.__hostCloseCalls = 0;
+    window.pywebview = {
+      api: {
+        close_window() {
+          window.__hostCloseCalls += 1;
+          return Promise.resolve({ ok: true, action: "window_destroy" });
+        },
+      },
+    };
+  });
+}
 
 page.on("pageerror", (error) => errors.push(error.message));
 page.on("console", (message) => {
@@ -83,17 +98,25 @@ try {
     const text = document.querySelector("#status-text")?.textContent || "";
     return window.location.href === "about:blank" || text.includes("退出");
   }, null, { timeout: 8000 });
+  if (simulatePywebviewClose) {
+    await page.waitForFunction(() => window.__hostCloseCalls === 1, null, { timeout: 5000 });
+  }
 
   const finalUrl = page.url();
   const statusText = await page.evaluate(() => document.querySelector("#status-text")?.textContent || "").catch(() => "");
 
   assert(errors.length === 0, `browser errors: ${errors.join("; ")}`);
+  const hostCloseCalls = await page.evaluate(() => window.__hostCloseCalls || 0).catch(() => 0);
+  if (simulatePywebviewClose) {
+    assert(hostCloseCalls === 1, `expected one pywebview host close call, got ${hostCloseCalls}`);
+  }
   console.log(JSON.stringify({
     ok: true,
     initialDisabled,
     afterStartDisabled,
     finalUrl,
     statusText,
+    hostCloseCalls,
   }, null, 2));
 } finally {
   await browser.close();

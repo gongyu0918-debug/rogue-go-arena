@@ -19,6 +19,7 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=0, help="Use 0 for a free port.")
     parser.add_argument("--startup-timeout", type=float, default=30.0)
     parser.add_argument("--smoke-timeout", type=float, default=120.0)
+    parser.add_argument("--simulate-pywebview-close", action="store_true")
     args = parser.parse_args()
 
     with ManagedSourceServer(
@@ -30,16 +31,19 @@ def main() -> int:
         npm = shutil.which("npm.cmd") or shutil.which("npm")
         if not npm:
             raise RuntimeError("npm was not found on PATH")
+        smoke_args = [
+            npm,
+            "run",
+            "smoke:legacy-desktop-exit-click",
+            "--prefix",
+            "frontend",
+            "--",
+            f"--url={server.base_url}/",
+        ]
+        if args.simulate_pywebview_close:
+            smoke_args.append("--simulate-pywebview-close")
         result = subprocess.run(
-            [
-                npm,
-                "run",
-                "smoke:legacy-desktop-exit-click",
-                "--prefix",
-                "frontend",
-                "--",
-                f"--url={server.base_url}/",
-            ],
+            smoke_args,
             cwd=ROOT,
             capture_output=True,
             text=True,

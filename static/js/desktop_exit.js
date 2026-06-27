@@ -50,6 +50,27 @@ function confirmDesktopExit() {
   if (window.confirm(message)) void performDesktopExit();
 }
 
+function requestHostWindowClose() {
+  const api = window.pywebview && window.pywebview.api;
+  if (!api || typeof api.close_window !== "function") return false;
+  try {
+    const result = api.close_window();
+    if (result && typeof result.catch === "function") {
+      result.catch((err) => {
+        console.warn("[desktop-exit] host close failed", err);
+        try {
+          window.close();
+        } catch (_) {
+        }
+      });
+    }
+    return true;
+  } catch (err) {
+    console.warn("[desktop-exit] host close failed", err);
+    return false;
+  }
+}
+
 async function performDesktopExit() {
   const status = await refreshNetworkInfo().catch(() => null) || currentDesktopExitStatus();
   if (!desktopExitCanRun(status) || desktopExitInFlight) {
@@ -77,7 +98,9 @@ async function performDesktopExit() {
     }
     logI18n("正在关闭游戏并释放AI资源…", "Exiting and releasing AI resources...", "ゲームを終了しAIリソースを解放中…", "게임을 종료하고 AI 리소스를 해제 중...");
     setConnectionIndicator(false, ui("正在退出…", "Exiting..."));
-    window.setTimeout(() => { window.close(); }, 250);
+    window.setTimeout(() => {
+      if (!requestHostWindowClose()) window.close();
+    }, 250);
     window.setTimeout(() => {
       try {
         window.location.replace("about:blank");

@@ -242,6 +242,45 @@ def smoke_reused_webview_window_does_not_shutdown_runtime() -> None:
     assert not any(call[0] == "shutdown" for call in calls)
 
 
+def smoke_webview_api_closes_owned_window() -> None:
+    calls = []
+    selected_url = launcher._server_url(62127)
+
+    class FakeWindow:
+        def __init__(self) -> None:
+            self.destroyed = False
+
+        def destroy(self) -> None:
+            self.destroyed = True
+            calls.append(("window_destroy",))
+
+    fake_window = FakeWindow()
+
+    def create_window(*args, **kwargs):
+        calls.append(("webview_create", args, kwargs))
+        return fake_window
+
+    fake_webview = SimpleNamespace(
+        create_window=create_window,
+        start=lambda *args, **kwargs: calls.append(("webview_start", args, kwargs)),
+    )
+    original_webview = sys.modules.get("webview")
+    sys.modules["webview"] = fake_webview
+    try:
+        assert launcher._open_webview_window(selected_url + "/?rev=test", selected_url)
+    finally:
+        if original_webview is None:
+            sys.modules.pop("webview", None)
+        else:
+            sys.modules["webview"] = original_webview
+
+    create_call = next(call for call in calls if call[0] == "webview_create")
+    js_api = create_call[2].get("js_api")
+    assert js_api is not None
+    assert js_api.close_window() == {"ok": True, "action": "window_destroy"}
+    assert fake_window.destroyed
+
+
 def smoke_edge_window_shutdown_tracks_ownership() -> None:
     calls = []
     selected_url = launcher._server_url(62126)
@@ -325,6 +364,7 @@ def main() -> int:
     smoke_open_failure_cleans_started_server()
     smoke_window_close_shuts_down_runtime_on_selected_port()
     smoke_reused_webview_window_does_not_shutdown_runtime()
+    smoke_webview_api_closes_owned_window()
     smoke_edge_window_shutdown_tracks_ownership()
     smoke_browser_fallback_only_stops_katago()
     smoke_shutdown_runtime_falls_back_to_stop_katago_for_old_servers()
