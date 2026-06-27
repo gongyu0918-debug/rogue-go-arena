@@ -25,7 +25,7 @@ from urllib.parse import urlencode
 SERVER_PORT = 8000
 LOOPBACK_HOST = "127.0.0.1"
 SERVER_URL = f"http://{LOOPBACK_HOST}:{SERVER_PORT}"
-EXPECTED_SERVER_REV = "20260624-desktop-server-shutdown"
+EXPECTED_SERVER_REV = "20260627-desktop-exit-button"
 CONTROL_TOKEN_ENV = "ROGUE_GO_ARENA_CONTROL_TOKEN"
 CONTROL_TOKEN_HEADER = "X-Rogue-Go-Control-Token"
 CONTROL_TOKEN = os.environ.get(CONTROL_TOKEN_ENV) or secrets.token_urlsafe(32)

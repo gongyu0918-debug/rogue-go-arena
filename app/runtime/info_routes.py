@@ -5,8 +5,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
+from app.runtime.engine_control_api import is_loopback_client
 from app.runtime.gpu_info import CachedGpuInfo, runtime_gpu_info_payload
 from app.runtime.sgf_export import build_sgf_export_response
 from app.runtime.status_endpoint import build_runtime_status_payload
@@ -29,6 +30,7 @@ class RuntimeInfoRoutesBinding:
     large_model_path: Path
     active_games: Any
     generate_sgf: Callable[[Any], str]
+    desktop_exit_token: str | None
 
 
 RuntimeInfoRoutesBindingProvider = Callable[[], RuntimeInfoRoutesBinding]
@@ -40,8 +42,13 @@ def build_runtime_info_router(
     router = APIRouter()
 
     @router.get("/status")
-    async def get_status():
+    async def get_status(request: Request):
         binding = binding_provider()
+        local_exit_token = (
+            binding.desktop_exit_token
+            if is_loopback_client(request.client.host if request.client else None)
+            else None
+        )
         return build_runtime_status_payload(
             server_rev=binding.server_rev,
             host=binding.host,
@@ -53,6 +60,8 @@ def build_runtime_info_router(
             card_config_service=binding.card_config_service,
             no_katago=binding.no_katago,
             static_index_path=binding.static_dir / "index.html",
+            active_games=binding.active_games,
+            desktop_exit_token=local_exit_token,
         )
 
     @router.get("/gpu")

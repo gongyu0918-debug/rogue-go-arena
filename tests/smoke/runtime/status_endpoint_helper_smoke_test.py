@@ -40,6 +40,10 @@ class FakeCardConfigService:
         return {"source": "user", "errors": ["warn"]}
 
 
+def fake_request(host: str = "127.0.0.1") -> SimpleNamespace:
+    return SimpleNamespace(client=SimpleNamespace(host=host))
+
+
 def smoke_status_helper_collects_runtime_state_in_existing_order() -> None:
     calls = []
 
@@ -78,6 +82,7 @@ def smoke_status_helper_collects_runtime_state_in_existing_order() -> None:
             card_config_service=FakeCardConfigService(calls),
             no_katago=False,
             static_index_path=static_index,
+            desktop_exit_token="ui-exit-token",
         )
 
     assert calls == [
@@ -100,6 +105,9 @@ def smoke_status_helper_collects_runtime_state_in_existing_order() -> None:
     assert payload["card_config_errors"] == ["warn"]
     assert payload["engine_phase"] == "ready"
     assert payload["access_urls"] == {"local": ["http://127.0.0.1:8123"], "lan": []}
+    assert payload["active_games_count"] == 0
+    assert payload["desktop_exit_available"] is True
+    assert payload["desktop_exit_token"] == "ui-exit-token"
 
 
 def endpoint_for(path: str, method: str = "GET"):
@@ -139,6 +147,7 @@ async def smoke_server_status_wrapper_resolves_runtime_deps_late() -> None:
     original_get_access_urls = s.get_access_urls
     original_static_dir = s.STATIC_DIR
     original_no_katago = s.NO_KATAGO
+    original_ui_exit_token = s.DESKTOP_EXIT_TOKEN
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
             static_dir = Path(temp_dir)
@@ -151,13 +160,17 @@ async def smoke_server_status_wrapper_resolves_runtime_deps_late() -> None:
             s.get_access_urls = urls
             s.STATIC_DIR = static_dir
             s.NO_KATAGO = True
+            s.DESKTOP_EXIT_TOKEN = "server-ui-exit-token"
 
             binding = s._runtime_info_routes_binding()
             assert binding.engine is s.engine
             assert binding.engine_runtime is s.engine_runtime
             assert binding.card_config_service is s.card_config_service
             assert binding.static_dir == static_dir
-            payload = await endpoint_for("/status")()
+            payload = await endpoint_for("/status")(fake_request())
+            local_calls = list(calls)
+            calls.clear()
+            remote_payload = await endpoint_for("/status")(fake_request("192.168.0.12"))
     finally:
         s.engine = original_engine
         s.engine_runtime = original_runtime
@@ -166,8 +179,9 @@ async def smoke_server_status_wrapper_resolves_runtime_deps_late() -> None:
         s.get_access_urls = original_get_access_urls
         s.STATIC_DIR = original_static_dir
         s.NO_KATAGO = original_no_katago
+        s.DESKTOP_EXIT_TOKEN = original_ui_exit_token
 
-    assert calls == [
+    assert local_calls == [
         "snapshot",
         "has_model_files",
         "has_engine_binaries",
@@ -179,6 +193,9 @@ async def smoke_server_status_wrapper_resolves_runtime_deps_late() -> None:
     assert payload["katago_ready"] is False
     assert payload["static_ready"] is False
     assert payload["nvidia_detected"] is True
+    assert payload["desktop_exit_available"] is False
+    assert payload["desktop_exit_token"] == "server-ui-exit-token"
+    assert "desktop_exit_token" not in remote_payload
 
 
 async def main() -> None:

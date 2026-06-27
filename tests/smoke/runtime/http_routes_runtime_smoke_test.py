@@ -67,26 +67,38 @@ def smoke_http_route_runtime_builders_map_every_field() -> None:
     assert config.reset_balance_overrides is reset_balance_overrides
 
     rank_labels = {"1d": "1 dan"}
+    engine = object()
     run_in_executor = make_sync("executor")
     save_idle_timeout_seconds = make_sync("save-idle")
     shutdown_server = make_sync("shutdown-server")
+    desktop_shutdown_server = make_sync("desktop-shutdown-server")
     control_token = "smoke-control-token"
+    ui_exit_token = "smoke-ui-exit-token"
+    active_games = object()
     control = build_runtime_control_routes_binding(
         RuntimeControlRoutesDependencies(
             rank_labels=rank_labels,
+            engine=engine,
             engine_runtime=engine_runtime,
             run_in_executor=run_in_executor,
             save_idle_timeout_seconds=save_idle_timeout_seconds,
             shutdown_server=shutdown_server,
+            desktop_shutdown_server=desktop_shutdown_server,
             control_token=control_token,
+            ui_exit_token=ui_exit_token,
+            active_games=active_games,
         )
     )
     assert control.rank_labels is rank_labels
+    assert control.engine is engine
     assert control.engine_runtime is engine_runtime
     assert control.run_in_executor is run_in_executor
     assert control.save_idle_timeout_seconds is save_idle_timeout_seconds
     assert control.shutdown_server is shutdown_server
+    assert control.desktop_shutdown_server is desktop_shutdown_server
     assert control.control_token is control_token
+    assert control.ui_exit_token is ui_exit_token
+    assert control.active_games is active_games
 
     server_rev = "rev-test"
     host = "127.0.0.1"
@@ -98,6 +110,7 @@ def smoke_http_route_runtime_builders_map_every_field() -> None:
     large_model_path = Path("model.bin")
     active_games = object()
     generate_sgf = make_sync("sgf")
+    desktop_exit_token = "info-ui-exit-token"
     info = build_runtime_info_routes_binding(
         RuntimeInfoRoutesDependencies(
             server_rev=server_rev,
@@ -115,6 +128,7 @@ def smoke_http_route_runtime_builders_map_every_field() -> None:
             large_model_path=large_model_path,
             active_games=active_games,
             generate_sgf=generate_sgf,
+            desktop_exit_token=desktop_exit_token,
         )
     )
     assert info.server_rev == server_rev
@@ -132,6 +146,7 @@ def smoke_http_route_runtime_builders_map_every_field() -> None:
     assert info.large_model_path == large_model_path
     assert info.active_games is active_games
     assert info.generate_sgf is generate_sgf
+    assert info.desktop_exit_token is desktop_exit_token
 
 
 def smoke_server_http_route_dependencies_resolve_current_runtime() -> None:
@@ -147,6 +162,7 @@ def smoke_server_http_route_dependencies_resolve_current_runtime() -> None:
         "run_in_executor": s.run_in_executor,
         "request_server_shutdown": s.request_server_shutdown,
         "CONTROL_TOKEN": s.CONTROL_TOKEN,
+        "DESKTOP_EXIT_TOKEN": s.DESKTOP_EXIT_TOKEN,
         "SERVER_REV": s.SERVER_REV,
         "SERVER_HOST": s.SERVER_HOST,
         "SERVER_PORT": s.SERVER_PORT,
@@ -170,6 +186,7 @@ def smoke_server_http_route_dependencies_resolve_current_runtime() -> None:
     run_in_executor = make_sync("patched-executor")
     shutdown_server = make_sync("patched-shutdown")
     control_token = "patched-control-token"
+    desktop_exit_token = "patched-ui-exit-token"
     get_access_urls = make_sync("patched-urls")
     engine = object()
     engine_state_snapshot = make_sync("patched-state")
@@ -190,6 +207,7 @@ def smoke_server_http_route_dependencies_resolve_current_runtime() -> None:
         s.run_in_executor = run_in_executor
         s.request_server_shutdown = shutdown_server
         s.CONTROL_TOKEN = control_token
+        s.DESKTOP_EXIT_TOKEN = desktop_exit_token
         s.SERVER_REV = "patched-rev"
         s.SERVER_HOST = "0.0.0.0"
         s.SERVER_PORT = 5432
@@ -218,10 +236,13 @@ def smoke_server_http_route_dependencies_resolve_current_runtime() -> None:
 
         control = s._runtime_control_routes_binding()
         assert control.rank_labels is rank_labels
+        assert control.engine is s.engine
         assert control.engine_runtime is engine_runtime
         assert control.run_in_executor is run_in_executor
         assert control.shutdown_server is shutdown_server
         assert control.control_token is control_token
+        assert control.ui_exit_token is desktop_exit_token
+        assert control.active_games is s.active_games
 
         info = s._runtime_info_routes_binding()
         assert info.server_rev == "patched-rev"
@@ -239,6 +260,7 @@ def smoke_server_http_route_dependencies_resolve_current_runtime() -> None:
         assert info.large_model_path == large_model_path
         assert info.active_games is active_games
         assert info.generate_sgf is generate_sgf
+        assert info.desktop_exit_token is desktop_exit_token
     finally:
         for name, value in originals.items():
             setattr(s, name, value)

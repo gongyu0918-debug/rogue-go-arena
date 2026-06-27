@@ -43,6 +43,9 @@ try {
       typeof window.updateNetworkBadge,
       typeof window.refreshNetworkInfo,
       typeof window.sendWS,
+      typeof window.syncDesktopExitButton,
+      typeof window.confirmDesktopExit,
+      typeof window.performDesktopExit,
     ];
     const shellPublicFns = [
       typeof window.setText,
@@ -116,6 +119,81 @@ try {
       engineTitle: document.querySelector("#client-engine-value")?.title || "",
       hudEngine: document.querySelector("#hud-engine")?.textContent || "",
     };
+
+    gameState = null;
+    updateNetworkBadge({ desktop_exit_available: false, desktop_exit_token: "ui-token" });
+    syncDesktopExitButton();
+    const desktopExitInitial = {
+      disabled: document.querySelector("#desktop-exit-button")?.disabled ?? null,
+      text: document.querySelector("#desktop-exit-button")?.textContent || "",
+      title: document.querySelector("#desktop-exit-button")?.title || "",
+    };
+
+    updateNetworkBadge({ desktop_exit_available: true, desktop_exit_token: "ui-token" });
+    syncDesktopExitButton();
+    const desktopExitModelReady = {
+      disabled: document.querySelector("#desktop-exit-button")?.disabled ?? null,
+      title: document.querySelector("#desktop-exit-button")?.title || "",
+    };
+
+    gameState = { move_number: 0, current_player: "B", game_over: false };
+    updateNetworkBadge({ desktop_exit_available: false, desktop_exit_token: "ui-token" });
+    syncDesktopExitButton();
+    const desktopExitGameStarted = {
+      disabled: document.querySelector("#desktop-exit-button")?.disabled ?? null,
+    };
+
+    updateNetworkBadge({ desktop_exit_available: true });
+    syncDesktopExitButton();
+    const desktopExitMissingToken = {
+      disabled: document.querySelector("#desktop-exit-button")?.disabled ?? null,
+    };
+    gameState = null;
+
+    const originalFetchForDesktopExit = window.fetch;
+    const originalClearPendingWS = clearPendingWS;
+    const originalWsForDesktopExit = ws;
+    let desktopExitCloseCount = 0;
+    let desktopExitClearCount = 0;
+    const desktopExitFetches = [];
+    gameState = { move_number: 1, current_player: "B", game_over: false };
+    updateNetworkBadge({ desktop_exit_available: true, desktop_exit_token: "ui-token" });
+    ws = {
+      readyState: WebSocket.OPEN,
+      close: () => {
+        desktopExitCloseCount += 1;
+        ws.readyState = WebSocket.CLOSED;
+      },
+    };
+    intentionalClose = false;
+    clearPendingWS = window.clearPendingWS = () => { desktopExitClearCount += 1; };
+    window.fetch = async (resource) => {
+      const url = String(resource);
+      desktopExitFetches.push(url);
+      if (url.includes("/desktop_exit")) {
+        return { ok: false, status: 503, statusText: "SmokeFail", json: async () => ({ ok: false }) };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          desktop_exit_available: true,
+          desktop_exit_token: "ui-token",
+          katago_ready: true,
+        }),
+      };
+    };
+    await performDesktopExit();
+    const desktopExitFailedRequest = {
+      closeCount: desktopExitCloseCount,
+      clearCount: desktopExitClearCount,
+      intentionalClose,
+      disabled: document.querySelector("#desktop-exit-button")?.disabled ?? null,
+      fetches: desktopExitFetches,
+    };
+    window.fetch = originalFetchForDesktopExit;
+    clearPendingWS = window.clearPendingWS = originalClearPendingWS;
+    ws = originalWsForDesktopExit;
+    gameState = null;
 
     const defaultCardLabel = document.querySelector("#hud-card")?.textContent || "";
     activeRogueCard = "quickthink";
@@ -250,6 +328,11 @@ try {
       assignedBadgeState,
       clearedBadgeState,
       manualBadgeState,
+      desktopExitInitial,
+      desktopExitModelReady,
+      desktopExitGameStarted,
+      desktopExitMissingToken,
+      desktopExitFailedRequest,
       defaultCardLabel,
       rogueCardLabel,
       expectedRogueCardLabel,
@@ -287,6 +370,17 @@ try {
   assert(state.manualBadgeState.engineValue.includes("SmokeEngine"), `manual engine text changed: ${state.manualBadgeState.engineValue}`);
   assert(state.manualBadgeState.engineTitle.includes("SmokeEngine"), `manual engine title changed: ${state.manualBadgeState.engineTitle}`);
   assert(state.manualBadgeState.hudEngine.includes("SmokeEngine"), `manual HUD engine changed: ${state.manualBadgeState.hudEngine}`);
+  assert(state.desktopExitInitial.disabled === true, `desktop exit should be disabled before engine/game: ${JSON.stringify(state.desktopExitInitial)}`);
+  assert(state.desktopExitInitial.text.includes("关闭并退出"), `desktop exit label changed: ${JSON.stringify(state.desktopExitInitial)}`);
+  assert(state.desktopExitInitial.title.length > 0, `desktop exit disabled title missing: ${JSON.stringify(state.desktopExitInitial)}`);
+  assert(state.desktopExitModelReady.disabled === false, `desktop exit should enable when engine is available: ${JSON.stringify(state.desktopExitModelReady)}`);
+  assert(state.desktopExitGameStarted.disabled === false, `desktop exit should enable once a game exists: ${JSON.stringify(state.desktopExitGameStarted)}`);
+  assert(state.desktopExitMissingToken.disabled === true, `desktop exit should stay disabled without token: ${JSON.stringify(state.desktopExitMissingToken)}`);
+  assert(state.desktopExitFailedRequest.fetches.some(url => url.includes("/desktop_exit")), `desktop exit failure path did not call route: ${JSON.stringify(state.desktopExitFailedRequest)}`);
+  assert(state.desktopExitFailedRequest.closeCount === 0, `desktop exit failure should not close websocket: ${JSON.stringify(state.desktopExitFailedRequest)}`);
+  assert(state.desktopExitFailedRequest.clearCount === 0, `desktop exit failure should not clear queued WS messages: ${JSON.stringify(state.desktopExitFailedRequest)}`);
+  assert(state.desktopExitFailedRequest.intentionalClose === false, `desktop exit failure should not leave intentionalClose true: ${JSON.stringify(state.desktopExitFailedRequest)}`);
+  assert(state.desktopExitFailedRequest.disabled === false, `desktop exit failure should re-enable button: ${JSON.stringify(state.desktopExitFailedRequest)}`);
   assert(state.defaultCardLabel.includes("无卡牌") || state.defaultCardLabel.includes("No Card"), `default card HUD changed: ${state.defaultCardLabel}`);
   assert(state.expectedRogueCardLabel.length > 0, "expected rogue card label missing");
   assert(state.rogueCardLabel === state.expectedRogueCardLabel, `rogue card HUD changed: ${state.rogueCardLabel}`);

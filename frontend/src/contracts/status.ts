@@ -27,6 +27,12 @@ export interface ServerStatus {
   engine_attempts: unknown[];
   engine_candidates: unknown[];
   engine_initializing: boolean;
-  engine_log_tail: string[];
-  nvidia_detected: boolean;
+  engine_log_tail: unknown[];
+  nvidia_detected: boolean | null;
+  engine_idle_timeout_seconds: number | null;
+  engine_idle_seconds: number | null;
+  engine_idle_auto_release: boolean | null;
+  active_games_count: number;
+  desktop_exit_available: boolean;
+  desktop_exit_token?: string;
 }

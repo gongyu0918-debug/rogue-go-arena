@@ -104,6 +104,19 @@ class FakeContext:
         self.visits_calls.append((level, move_count, mode))
         return 321
 
+    def engine_state_snapshot(self) -> dict:
+        snapshots = getattr(self, "engine_snapshots", None)
+        if snapshots:
+            return snapshots.pop(0)
+        default_snapshot = getattr(self, "default_engine_snapshot", None)
+        if default_snapshot is not None:
+            return dict(default_snapshot)
+        return {"phase": "ready" if self.engine.ready else "idle", "message": "idle"}
+
+    def start_engine_background(self, reason: str) -> None:
+        self.start_calls = getattr(self, "start_calls", [])
+        self.start_calls.append(reason)
+
     def rogue_has(self, _game, card_id: str) -> bool:
         return card_id == "quickthink" and getattr(self, "quickthink", False)
 
@@ -188,6 +201,25 @@ async def smoke_set_level_and_load_position_use_runtime_dependencies() -> None:
     assert load_ctx.sent == [{"type": "analysis", "analysis_ready": True, "moves": 2}]
 
 
+async def smoke_engine_wait_exits_when_startup_is_cancelled() -> None:
+    ctx = FakeContext(engine_ready=False)
+    ctx.engine_snapshots = [
+        {"phase": "idle", "message": "idle"},
+        {"phase": "initializing", "message": "starting"},
+        {"phase": "initializing", "message": "starting"},
+        {"phase": "idle", "message": "cancelled"},
+        {"phase": "idle", "message": "cancelled"},
+    ]
+    ctx.default_engine_snapshot = {"phase": "idle", "message": "cancelled"}
+
+    ready = await wait_for_engine_ready(ctx, "game_start")
+
+    assert ready is False
+    assert ctx.start_calls == ["game_start"]
+    assert [payload["type"] for payload in ctx.sent] == ["engine_not_ready", "engine_not_ready"]
+    assert ctx.errors == ["cancelled"]
+
+
 def smoke_ws_action_handlers_keep_public_action_names() -> None:
     assert ws_actions.WS_ACTION_HANDLERS["reconnect"] is handle_reconnect
     assert ws_actions.WS_ACTION_HANDLERS["resign"] is handle_resign
@@ -215,6 +247,7 @@ async def main() -> None:
     await smoke_reconnect_resign_and_timeout_messages()
     await smoke_hint_challenge_usage_and_quickthink_guard()
     await smoke_set_level_and_load_position_use_runtime_dependencies()
+    await smoke_engine_wait_exits_when_startup_is_cancelled()
     smoke_ws_action_handlers_keep_public_action_names()
     smoke_session_action_annotations_resolve_runtime_context()
     print("ws session actions smoke test: OK")

@@ -169,6 +169,39 @@ header h1 {
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+.desktop-exit-button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 8px 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 178, 80, .42);
+  color: #f6e3a6;
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  background:
+    linear-gradient(180deg, rgba(25,19,13,.68), rgba(8,9,12,.72)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a');
+  background-size: auto, cover;
+  box-shadow: 0 12px 24px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,235,181,.1);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform .15s ease, border-color .15s ease, opacity .15s ease, box-shadow .15s ease;
+}
+.desktop-exit-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(244, 213, 132, .74);
+  box-shadow: 0 16px 30px rgba(212,175,55,.14), inset 0 1px 0 rgba(255,235,181,.12);
+}
+.desktop-exit-button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+  transform: none;
+}
+.desktop-exit-button.exiting {
+  opacity: .8;
+  pointer-events: none;
+}
 .client-command-deck {
   width: min(1180px, calc(100% - 40px));
   margin: 18px auto 0;
@@ -2679,6 +2712,13 @@ header::before { display: none; }
     grid-column: 3;
     justify-self: end;
     margin-left: 0;
+  }
+  .desktop-exit-button {
+    grid-column: 1 / -1;
+    justify-self: end;
+    min-height: 34px;
+    padding: 7px 12px;
+    font-size: .72rem;
   }
   .client-locale-controls {
     grid-column: 4;

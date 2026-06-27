@@ -25,9 +25,11 @@ async function refreshNetworkInfo() {
     if (!result.ok) return null;
     updateNetworkBadge(result.status);
     syncClientShell();
+    if (typeof window.syncDesktopExitButton === "function") window.syncDesktopExitButton();
     return result.status;
   } catch (_) {
     syncClientShell();
+    if (typeof window.syncDesktopExitButton === "function") window.syncDesktopExitButton();
     return null;
   }
 }

@@ -36,6 +36,9 @@ class ActiveGameStore(Generic[T]):
         self._touch_value(game)
         return game
 
+    def count(self) -> int:
+        return len(self._games)
+
     def prune(self, now: Optional[float] = None):
         current = time.time() if now is None else now
         expired_ids = []

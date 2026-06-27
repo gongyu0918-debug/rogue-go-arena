@@ -221,6 +221,7 @@ function syncClientShell() {
   if (hudTurn) hudTurn.textContent = turnLabel;
   if (hudCard) hudCard.textContent = cardText;
   if (hudEngine) hudEngine.textContent = hudEngineText(net, connected);
+  if (typeof window.syncDesktopExitButton === "function") window.syncDesktopExitButton();
 }
 
 function quickStartRogue() {

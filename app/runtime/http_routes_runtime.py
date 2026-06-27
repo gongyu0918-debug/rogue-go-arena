@@ -36,11 +36,15 @@ class ConfigRoutesDependencies:
 @dataclass(frozen=True)
 class RuntimeControlRoutesDependencies:
     rank_labels: Mapping[str, str]
+    engine: Any
     engine_runtime: Any
     run_in_executor: Callable[..., Awaitable[Any]]
     save_idle_timeout_seconds: Callable[[Any], float]
     shutdown_server: Callable[[], dict[str, Any]]
+    desktop_shutdown_server: Callable[[], dict[str, Any]]
     control_token: str | None
+    ui_exit_token: str | None
+    active_games: Any
 
 
 @dataclass(frozen=True)
@@ -60,6 +64,7 @@ class RuntimeInfoRoutesDependencies:
     large_model_path: Path
     active_games: Any
     generate_sgf: Callable[[Any], str]
+    desktop_exit_token: str | None
 
 
 def build_app_shell_binding(dependencies: AppShellDependencies) -> AppShellBinding:
@@ -92,11 +97,15 @@ def build_runtime_control_routes_binding(
 ) -> RuntimeControlRoutesBinding:
     return RuntimeControlRoutesBinding(
         rank_labels=dependencies.rank_labels,
+        engine=dependencies.engine,
         engine_runtime=dependencies.engine_runtime,
         run_in_executor=dependencies.run_in_executor,
         save_idle_timeout_seconds=dependencies.save_idle_timeout_seconds,
         shutdown_server=dependencies.shutdown_server,
+        desktop_shutdown_server=dependencies.desktop_shutdown_server,
         control_token=dependencies.control_token,
+        ui_exit_token=dependencies.ui_exit_token,
+        active_games=dependencies.active_games,
     )
 
 
@@ -119,4 +128,5 @@ def build_runtime_info_routes_binding(
         large_model_path=dependencies.large_model_path,
         active_games=dependencies.active_games,
         generate_sgf=dependencies.generate_sgf,
+        desktop_exit_token=dependencies.desktop_exit_token,
     )

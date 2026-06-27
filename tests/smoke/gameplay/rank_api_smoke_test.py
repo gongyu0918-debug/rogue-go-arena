@@ -47,11 +47,15 @@ async def smoke_rank_router_resolves_labels_late() -> None:
     def binding_provider():
         return RuntimeControlRoutesBinding(
             rank_labels=current["labels"],
+            engine=object(),
             engine_runtime=object(),
             run_in_executor=noop_executor,
             save_idle_timeout_seconds=lambda value: float(value),
             shutdown_server=lambda: {"ok": True, "action": "shutdown"},
+            desktop_shutdown_server=lambda: {"ok": True, "action": "shutdown"},
             control_token="smoke-control-token",
+            ui_exit_token="smoke-ui-exit-token",
+            active_games=object(),
         )
 
     router = build_runtime_control_router(binding_provider)

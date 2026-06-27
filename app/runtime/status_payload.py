@@ -19,8 +19,11 @@ def build_status_payload(
     cpu_mode: bool,
     static_ready: bool,
     card_config_payload: Mapping[str, Any],
+    active_games_count: int = 0,
+    desktop_exit_available: bool = False,
+    desktop_exit_token: str | None = None,
 ) -> dict[str, Any]:
-    return {
+    payload = {
         "server_rev": server_rev,
         "host": host,
         "port": port,
@@ -49,4 +52,9 @@ def build_status_payload(
         "engine_idle_timeout_seconds": engine_snapshot.get("idle_timeout_seconds"),
         "engine_idle_seconds": engine_snapshot.get("idle_seconds"),
         "engine_idle_auto_release": engine_snapshot.get("idle_auto_release"),
+        "active_games_count": active_games_count,
+        "desktop_exit_available": desktop_exit_available,
     }
+    if desktop_exit_token:
+        payload["desktop_exit_token"] = desktop_exit_token
+    return payload

@@ -41,6 +41,9 @@ def main() -> int:
         cpu_mode=False,
         static_ready=True,
         card_config_payload={"source": "base", "errors": []},
+        active_games_count=2,
+        desktop_exit_available=True,
+        desktop_exit_token="ui-exit-token",
     )
 
     assert list(payload) == [
@@ -72,6 +75,9 @@ def main() -> int:
         "engine_idle_timeout_seconds",
         "engine_idle_seconds",
         "engine_idle_auto_release",
+        "active_games_count",
+        "desktop_exit_available",
+        "desktop_exit_token",
     ]
     assert payload["server_rev"] == "rev-test"
     assert payload["katago_ready"] is True
@@ -84,6 +90,9 @@ def main() -> int:
     assert payload["engine_idle_timeout_seconds"] == 300.0
     assert payload["engine_idle_seconds"] == 12.5
     assert payload["engine_idle_auto_release"] is True
+    assert payload["active_games_count"] == 2
+    assert payload["desktop_exit_available"] is True
+    assert payload["desktop_exit_token"] == "ui-exit-token"
 
     idle_payload = build_status_payload(
         server_rev="rev-test",
@@ -106,6 +115,9 @@ def main() -> int:
     assert idle_payload["engine_phase"] is None
     assert idle_payload["nvidia_detected"] is None
     assert idle_payload["engine_idle_timeout_seconds"] is None
+    assert idle_payload["active_games_count"] == 0
+    assert idle_payload["desktop_exit_available"] is False
+    assert "desktop_exit_token" not in idle_payload
 
     print("status payload smoke test: OK")
     return 0

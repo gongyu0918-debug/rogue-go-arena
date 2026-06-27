@@ -143,7 +143,7 @@ async def wait_for_engine_ready(ctx: WebSocketActionContext, reason: str) -> boo
     while not fully_ready() and time.time() < deadline:
         await asyncio.sleep(0.5)
         snapshot = ctx.engine_state_snapshot()
-        if snapshot.get("phase") in {"failed", "disabled"}:
+        if snapshot.get("phase") not in {"initializing", "ready"}:
             break
     if fully_ready():
         return True

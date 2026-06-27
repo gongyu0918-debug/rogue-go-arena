@@ -4,6 +4,7 @@ rogue-go-arena server - KataGo-powered board game with FastAPI WebSocket backend
 import argparse
 import asyncio
 import random
+import secrets
 import traceback
 import time
 import os
@@ -541,7 +542,7 @@ USER_KATAGO_PATHS = UserKataGoPaths(
     home_dir=USER_KATAGO_HOME,
     runtime_config_dir=USER_RUNTIME_CONFIG_DIR,
 )
-SERVER_REV = "20260624-desktop-server-shutdown"
+SERVER_REV = "20260627-desktop-exit-button"
 KATAGO_EXE = BASE_DIR / "katago" / "katago.exe"             # CUDA build (legacy/optional)
 KATAGO_CUDA_EXE = BASE_DIR / "katago" / "katago_cuda.exe"   # CUDA (downloaded upgrade)
 KATAGO_OPENCL_EXE = BASE_DIR / "katago" / "katago_opencl.exe"  # OpenCL (any GPU)
@@ -556,6 +557,7 @@ STATIC_DIR = BASE_DIR / "static"
 SERVER_HOST = args.host
 SERVER_PORT = args.port
 CONTROL_TOKEN = os.environ.get("ROGUE_GO_ARENA_CONTROL_TOKEN", "").strip()
+DESKTOP_EXIT_TOKEN = secrets.token_urlsafe(32)
 _uvicorn_server: Optional[uvicorn.Server] = None
 
 
@@ -694,6 +696,7 @@ app.include_router(build_config_router(_config_routes_binding))
 def _runtime_control_routes_dependencies() -> RuntimeControlRoutesDependencies:
     return RuntimeControlRoutesDependencies(
         rank_labels=RANK_LABELS,
+        engine=engine,
         engine_runtime=engine_runtime,
         run_in_executor=run_in_executor,
         save_idle_timeout_seconds=lambda value: save_idle_timeout_seconds(
@@ -701,7 +704,10 @@ def _runtime_control_routes_dependencies() -> RuntimeControlRoutesDependencies:
             value,
         ),
         shutdown_server=request_server_shutdown,
+        desktop_shutdown_server=request_desktop_exit_shutdown,
         control_token=CONTROL_TOKEN,
+        ui_exit_token=DESKTOP_EXIT_TOKEN,
+        active_games=active_games,
     )
 
 
@@ -732,6 +738,7 @@ def _runtime_info_routes_dependencies() -> RuntimeInfoRoutesDependencies:
         large_model_path=KATAGO_MODEL_LARGE,
         active_games=active_games,
         generate_sgf=generate_sgf,
+        desktop_exit_token=DESKTOP_EXIT_TOKEN,
     )
 
 
@@ -753,6 +760,13 @@ def request_server_shutdown() -> dict:
     log("[Server] Shutdown requested by desktop launcher")
     _uvicorn_server.should_exit = True
     return {"ok": True, "action": "shutdown"}
+
+
+def request_desktop_exit_shutdown() -> dict:
+    result = request_server_shutdown()
+    if result.get("ok") and _uvicorn_server is not None:
+        _uvicorn_server.force_exit = True
+    return result
 
 
 def _engine_gateway_dependencies() -> EngineGatewayDependencies:
