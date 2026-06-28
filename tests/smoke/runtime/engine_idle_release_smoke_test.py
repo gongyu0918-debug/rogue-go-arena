@@ -30,6 +30,11 @@ class FakeStdin:
         return None
 
 
+class BrokenStdin(FakeStdin):
+    def write(self, payload: bytes) -> None:
+        raise BrokenPipeError("broken fake stdin")
+
+
 class FakeProcess:
     def __init__(self) -> None:
         self.stdin = FakeStdin()
@@ -47,6 +52,12 @@ class FakeProcess:
 
     def kill(self) -> None:
         self.killed = True
+
+
+class BrokenWriteProcess(FakeProcess):
+    def __init__(self) -> None:
+        super().__init__()
+        self.stdin = BrokenStdin()
 
 
 def make_engine() -> KataGoEngine:
@@ -76,6 +87,20 @@ def smoke_engine_stops_only_after_idle_timeout() -> None:
     assert process.stdin.commands == ["quit"]
     assert process.terminated is True
     assert engine.ready is False
+
+
+def smoke_analyze_write_error_disables_engine() -> None:
+    engine = make_engine()
+    process = BrokenWriteProcess()
+    engine.process = process
+    engine.ready = True
+
+    moves, ownership = engine.analyze("B", visits=10, duration=0.01)
+
+    assert moves == []
+    assert ownership == []
+    assert engine.ready is False
+    assert process.terminated is True
 
 
 def smoke_idle_timeout_settings_roundtrip() -> None:
@@ -179,6 +204,7 @@ def smoke_concurrent_start_requests_share_one_start_thread() -> None:
 
 def main() -> int:
     smoke_engine_stops_only_after_idle_timeout()
+    smoke_analyze_write_error_disables_engine()
     smoke_idle_timeout_settings_roundtrip()
     smoke_restart_from_stopped_marks_initializing_immediately()
     smoke_concurrent_start_requests_share_one_start_thread()

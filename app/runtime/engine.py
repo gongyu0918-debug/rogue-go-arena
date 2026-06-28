@@ -147,14 +147,22 @@ class KataGoEngine:
             self.ready = True
             self.mark_activity()
             self.log(f"[KataGo] Started: {resp}")
+        except (OSError, ValueError, BrokenPipeError) as exc:
+            self.log(f"[KataGo] ready check write error: {exc}, disabling engine")
+            self._terminate_process()
+            raise RuntimeError(f"{Path(_exe).name} ready check failed: {exc}") from exc
         except queue.Empty:
             self.log("[KataGo] Warning: no ready signal received, assuming OK")
             self.ready = True
             self.mark_activity()
 
     def _read_stdout(self):
+        process = self.process
+        stream = process.stdout if process else None
+        if stream is None:
+            return
         current_response = []
-        for raw_line in self.process.stdout:
+        for raw_line in stream:
             line = raw_line.decode("utf-8", errors="replace").rstrip("\n\r")
             if self.is_analyzing and line.startswith("info "):
                 with self.analysis_lock:
@@ -176,7 +184,11 @@ class KataGoEngine:
                     current_response.append(line)
 
     def _read_stderr(self):
-        for raw_line in self.process.stderr:
+        process = self.process
+        stream = process.stderr if process else None
+        if stream is None:
+            return
+        for raw_line in stream:
             line = raw_line.decode("utf-8", errors="replace").rstrip()
             if not line:
                 continue
@@ -209,14 +221,23 @@ class KataGoEngine:
         return drained
 
     def _terminate_process(self) -> None:
-        if not self.process:
+        process = self.process
+        if not process:
             return
         try:
-            self.process.terminate()
-            self.process.wait(timeout=5)
+            process.terminate()
+            process.wait(timeout=5)
         except Exception:
             try:
-                self.process.kill()
+                process.kill()
+                process.wait(timeout=5)
+            except Exception:
+                pass
+        for stream_name in ("stdin", "stdout", "stderr"):
+            stream = getattr(process, stream_name, None)
+            try:
+                if stream:
+                    stream.close()
             except Exception:
                 pass
         self.process = None
@@ -294,14 +315,28 @@ class KataGoEngine:
                 cmd_parts.extend(extra_args)
             cmd = " ".join(cmd_parts)
             self.log(f"[Analysis] sending: {cmd}")
-            self.process.stdin.write((cmd + "\n").encode())
-            self.process.stdin.flush()
+            try:
+                if not self.process or self.process.poll() is not None:
+                    self.ready = False
+                    with self.analysis_lock:
+                        self.is_analyzing = False
+                    return [], []
+                self.process.stdin.write((cmd + "\n").encode())
+                self.process.stdin.flush()
+            except (OSError, ValueError, BrokenPipeError) as exc:
+                self.log(f"[Analysis] stdin write error: {exc}, disabling engine")
+                self.ready = False
+                with self.analysis_lock:
+                    self.is_analyzing = False
+                self._terminate_process()
+                return [], []
 
             time.sleep(duration)
 
             try:
-                self.process.stdin.write(b"stop\n")
-                self.process.stdin.flush()
+                if self.process and self.process.poll() is None:
+                    self.process.stdin.write(b"stop\n")
+                    self.process.stdin.flush()
             except (OSError, ValueError, BrokenPipeError) as exc:
                 self.log(f"[Analysis] stop failed: {exc}")
 

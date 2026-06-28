@@ -349,6 +349,20 @@ async def smoke_score_parses_black_and_draw_results() -> None:
     assert draw_ctx.sent[-1]["score"] == "0"
 
 
+async def smoke_score_rejects_engine_error_without_game_over() -> None:
+    game = make_game()
+    ctx = FakeContext(game, engine=FakeEngine(final_score="? not started"))
+
+    await handle_score(ctx, {})
+
+    assert ctx.synced_games == [game]
+    assert ctx.engine.commands == ["final_score"]
+    assert game.game_over is False
+    assert game.winner is None
+    assert ctx.errors == ["AI 引擎数目失败：? not started"]
+    assert ctx.sent == []
+
+
 def smoke_ws_action_handlers_keep_turn_action_names() -> None:
     assert ws_actions.WS_ACTION_HANDLERS["pass"] is handle_pass
     assert ws_actions.WS_ACTION_HANDLERS["undo"] is handle_undo
@@ -376,6 +390,7 @@ async def main() -> None:
     await smoke_observer_rejects_user_turn_mutations()
     await smoke_score_syncs_engine_and_marks_winner()
     await smoke_score_parses_black_and_draw_results()
+    await smoke_score_rejects_engine_error_without_game_over()
     smoke_ws_action_handlers_keep_turn_action_names()
     smoke_turn_action_annotations_resolve_runtime_context()
     print("ws turn actions smoke test: OK")

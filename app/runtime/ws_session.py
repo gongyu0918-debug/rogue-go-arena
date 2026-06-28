@@ -81,7 +81,16 @@ async def run_websocket_game_session(
 
     try:
         while True:
-            data = json_loads(await websocket.receive_text())
+            raw_message = await websocket.receive_text()
+            try:
+                data = json_loads(raw_message)
+            except json.JSONDecodeError as exc:
+                log_fn(f"[WS {game_id}] Invalid JSON message: {exc}")
+                await send_error("消息格式错误：不是有效的 JSON")
+                continue
+            if not isinstance(data, dict):
+                await send_error("消息格式错误：JSON 必须是对象")
+                continue
             action = data.get("action")
             try:
                 context.game = game
@@ -91,6 +100,7 @@ async def run_websocket_game_session(
                     game = context.game
                     continue
 
+                await send_error(f"未知操作: {action}")
                 continue
 
             except WebSocketDisconnect:

@@ -149,9 +149,14 @@ async function updateEngineIdleTimeoutSetting(value) {
   const seconds = Number(value);
   setEngineIdleTimeoutSelect(seconds);
   try {
+    const status = await refreshNetworkInfo().catch(() => null) || window.__rogueGoArenaNetworkStatus || {};
+    const headers = { "Content-Type": "application/json", "Accept": "application/json" };
+    if (status.desktop_exit_token) {
+      headers["X-Rogue-Go-Ui-Exit-Token"] = status.desktop_exit_token;
+    }
     const resp = await fetch("/engine_idle_timeout", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      headers,
       body: JSON.stringify({ seconds }),
     });
     if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);

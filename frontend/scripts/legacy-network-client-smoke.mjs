@@ -82,6 +82,16 @@ try {
     ];
 
     const originalWs = ws;
+    const invalidWsWarnings = [];
+    const originalConsoleWarn = console.warn;
+    console.warn = (...args) => {
+      invalidWsWarnings.push(args.map(value => String(value)).join(" "));
+    };
+    try {
+      ws.onmessage({ data: "not-json" });
+    } finally {
+      console.warn = originalConsoleWarn;
+    }
     const sent = [];
     ws = { readyState: WebSocket.OPEN, send: text => sent.push(text) };
     sendWS({ action: "network_smoke", nested: { value: 7 } });
@@ -322,6 +332,7 @@ try {
       },
       privateFns,
       shellPrivateFns,
+      invalidWsWarnings,
       openSend,
       afterClosedSendCount,
       afterNullSendCount,
@@ -356,6 +367,7 @@ try {
   assert(state.networkStatusDescriptor.value === "undefined", `network status cache unexpectedly has data value: ${JSON.stringify(state.networkStatusDescriptor)}`);
   assert(state.privateFns.every(type => type === "undefined"), `network client private helpers leaked globally: ${state.privateFns.join(", ")}`);
   assert(state.shellPrivateFns.every(type => type === "undefined"), `shell UI private helpers leaked globally: ${state.shellPrivateFns.join(", ")}`);
+  assert(state.invalidWsWarnings.some(text => text.includes("invalid JSON message")), `invalid WebSocket JSON warning missing: ${JSON.stringify(state.invalidWsWarnings)}`);
   assert(state.openSend.length === 1, `open WebSocket send count changed: ${JSON.stringify(state.openSend)}`);
   assert(JSON.parse(state.openSend[0]).action === "network_smoke", `open WebSocket payload changed: ${state.openSend[0]}`);
   assert(JSON.parse(state.openSend[0]).nested.value === 7, `open WebSocket nested payload changed: ${state.openSend[0]}`);

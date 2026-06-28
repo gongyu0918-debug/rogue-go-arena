@@ -21,7 +21,16 @@ function connect() {
     setConnectionIndicator(false, ui("连接断开，重连中…", "Disconnected, reconnecting..."));
     setTimeout(connect, 2000);
   };
-  ws.onmessage = event => handleMessage(JSON.parse(event.data));
+  ws.onmessage = event => {
+    let message;
+    try {
+      message = JSON.parse(event.data);
+    } catch (err) {
+      console.warn("[WebSocket] invalid JSON message", err, event.data);
+      return;
+    }
+    handleMessage(message);
+  };
   ws.onerror = () => { setConnectionIndicator(false, ui("连接错误", "Connection error")); };
 }
 

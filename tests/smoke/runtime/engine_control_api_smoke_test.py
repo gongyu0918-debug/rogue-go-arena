@@ -193,7 +193,15 @@ async def smoke_engine_control_router_resolves_runtime_deps_late() -> None:
         desktop_exit_remote_denied = exc
     desktop_exit = await desktop_exit_endpoint(fake_request(token="smoke-ui-exit-token", header=UI_EXIT_TOKEN_HEADER))
     idle_before = await get_idle_endpoint()
-    idle_saved = await set_idle_endpoint({"seconds": 120})
+    idle_denied = None
+    try:
+        await set_idle_endpoint(fake_request(token=None), {"seconds": 120})
+    except Exception as exc:
+        idle_denied = exc
+    idle_saved = await set_idle_endpoint(
+        fake_request(token="smoke-ui-exit-token", header=UI_EXIT_TOKEN_HEADER),
+        {"seconds": 120},
+    )
 
     assert getattr(stop_denied, "status_code", None) == 403
     assert getattr(restart_denied, "status_code", None) == 403
@@ -207,6 +215,7 @@ async def smoke_engine_control_router_resolves_runtime_deps_late() -> None:
     assert desktop_exit["action"] == "desktop_exit"
     assert desktop_exit["shutdown"] == {"ok": True, "action": "shutdown"}
     assert idle_before == {"ok": True, "seconds": 300.0, "enabled": True}
+    assert getattr(idle_denied, "status_code", None) == 403
     assert idle_saved == {"ok": True, "seconds": 120.0, "enabled": True}
     assert runtime.calls == ["stop", "restart", "stop", ("idle", 120.0)]
     assert executor_calls == [(runtime.stop_via_api, ()), (runtime.stop_via_api, ())]
@@ -255,7 +264,7 @@ async def smoke_server_engine_control_routes_resolve_runtime_deps_late() -> None
         except Exception as exc:
             desktop_exit_remote_denied = exc
         desktop_exit = await desktop_exit_endpoint(fake_request(token="server-ui-exit-token", header=UI_EXIT_TOKEN_HEADER))
-        idle_saved = await set_idle_endpoint({"seconds": 0})
+        idle_saved = await set_idle_endpoint(fake_request(), {"seconds": 0})
     finally:
         s.engine_runtime = original_runtime
         s.run_in_executor = original_executor

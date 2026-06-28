@@ -321,6 +321,28 @@ async def smoke_finish_observer_double_pass() -> None:
     ]
 
 
+async def smoke_finish_observer_double_pass_rejects_engine_error_score() -> None:
+    game = FakeGame()
+    game.passed = {"B": True, "W": True}
+    sent = []
+
+    async def send_fn(payload):
+        sent.append(payload)
+
+    async def run_engine_command(command):
+        assert command == "final_score"
+        return "? not started"
+
+    assert not await finish_observer_double_pass(
+        game,
+        send_fn,
+        run_engine_command=run_engine_command,
+    )
+    assert game.game_over is False
+    assert game.winner is None
+    assert sent == [{"type": "error", "message": "AI 引擎数目失败：? not started"}]
+
+
 def smoke_apply_observer_ai_move_to_board() -> None:
     game = FakeGame()
     calls = []
@@ -348,6 +370,7 @@ async def main() -> None:
     await smoke_suspicious_pass_without_fallback_keeps_pass()
     await smoke_disconnect_propagates_to_server_wrapper()
     await smoke_finish_observer_double_pass()
+    await smoke_finish_observer_double_pass_rejects_engine_error_score()
     smoke_apply_observer_ai_move_to_board()
     print("ai observer smoke test: OK")
 

@@ -551,6 +551,8 @@ async def try_finish_sansan_restriction_move(
         time_limit,
         restriction.points,
     )
+    if not gtp_move:
+        return False
     await finish_ai_move(
         game,
         send_fn,
@@ -811,6 +813,9 @@ async def try_finalize_double_pass(
 
     resp_score = await run_engine_command("final_score")
     score_str = resp_score.replace("=", "").strip()
+    if is_engine_error_response(resp_score) or not score_str or score_str[0] not in {"B", "W", "0"}:
+        await send_fn({"type": "error", "message": f"AI 引擎数目失败：{resp_score}"})
+        return False
     winner = "B" if score_str.startswith("B") else "W"
     game.game_over = True
     game.winner = winner

@@ -658,7 +658,7 @@ def test_try_finish_sansan_restriction_move_non_allow_only_uses_avoid_move() -> 
     asyncio.run(_try_finish_sansan_restriction_move_non_allow_only_uses_avoid_move())
 
 
-async def _try_finish_sansan_restriction_move_finishes_none_avoid_result() -> None:
+async def _try_finish_sansan_restriction_move_skips_when_avoid_move_missing() -> None:
     game = GoGame(size=5, player_color="B")
     restriction = Restriction(points=[(1, 1)], message="sansan none")
     calls = []
@@ -690,16 +690,15 @@ async def _try_finish_sansan_restriction_move_finishes_none_avoid_result() -> No
         finish_ai_move=finish_ai_move,
     )
 
-    assert handled is True
+    assert handled is False
     assert calls == [
         ("allowed", True, "W", 123, 1.5, [(1, 1)]),
         ("avoid", True, "W", 123, 1.5, [(1, 1)]),
-        ("finish", True, True, "W", "sansan", None, "sansan none"),
     ]
 
 
-def test_try_finish_sansan_restriction_move_finishes_none_avoid_result() -> None:
-    asyncio.run(_try_finish_sansan_restriction_move_finishes_none_avoid_result())
+def test_try_finish_sansan_restriction_move_skips_when_avoid_move_missing() -> None:
+    asyncio.run(_try_finish_sansan_restriction_move_skips_when_avoid_move_missing())
 
 
 async def _try_finish_sansan_restriction_move_skips_when_no_restriction() -> None:
@@ -1343,7 +1342,7 @@ if __name__ == "__main__":
     test_try_finish_sansan_restriction_move_uses_allowed_move()
     test_try_finish_sansan_restriction_move_falls_back_to_avoid_move()
     test_try_finish_sansan_restriction_move_non_allow_only_uses_avoid_move()
-    test_try_finish_sansan_restriction_move_finishes_none_avoid_result()
+    test_try_finish_sansan_restriction_move_skips_when_avoid_move_missing()
     test_try_finish_sansan_restriction_move_skips_when_no_restriction()
     test_server_ai_move_sansan_delegates_to_sansan_flow()
     test_server_ai_move_sansan_flow_false_continues_to_normal_move()

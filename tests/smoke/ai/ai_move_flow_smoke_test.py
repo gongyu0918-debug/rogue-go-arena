@@ -1721,6 +1721,40 @@ def test_try_finalize_double_pass_keeps_legacy_non_b_score_winner() -> None:
     asyncio.run(_try_finalize_double_pass_keeps_legacy_non_b_score_winner())
 
 
+async def _try_finalize_double_pass_rejects_engine_error_score() -> None:
+    game = GoGame(size=5, player_color="B")
+    game.passed["B"] = True
+    game.passed["W"] = True
+    calls = []
+
+    async def send(payload):
+        calls.append(("send", payload["type"], payload.get("message")))
+
+    async def run_engine_command(command):
+        calls.append(("engine", command))
+        return "? not started"
+
+    handled = await try_finalize_double_pass(
+        game,
+        send,
+        color="W",
+        gtp_move="pass",
+        run_engine_command=run_engine_command,
+    )
+
+    assert handled is False
+    assert game.game_over is False
+    assert game.winner is None
+    assert calls == [
+        ("engine", "final_score"),
+        ("send", "error", "AI 引擎数目失败：? not started"),
+    ]
+
+
+def test_try_finalize_double_pass_rejects_engine_error_score() -> None:
+    asyncio.run(_try_finalize_double_pass_rejects_engine_error_score())
+
+
 async def _send_ai_move_and_run_coach_sends_coord_and_coach() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
@@ -9150,6 +9184,7 @@ if __name__ == "__main__":
     test_try_finalize_double_pass_skips_without_both_passes()
     test_try_finalize_double_pass_scores_and_sends_legacy_payloads()
     test_try_finalize_double_pass_keeps_legacy_non_b_score_winner()
+    test_try_finalize_double_pass_rejects_engine_error_score()
     test_send_ai_move_and_run_coach_sends_coord_and_coach()
     test_send_ai_move_and_run_coach_sends_pass_and_rogue_msg_before_coach()
     test_finish_ai_turn_response_double_pass_skips_ai_move_response()

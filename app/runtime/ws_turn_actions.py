@@ -6,6 +6,7 @@ from app.config.gameplay import (
     ROGUE_HANDICAP_BONUS_INTERVAL,
     ROGUE_HANDICAP_REQUIRED_PASSES,
 )
+from app.gameplay.engine_errors import is_engine_error_response
 from app.gameplay.turn_modifiers import has_methodical_card
 from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_session_actions import ensure_engine_ready_for_game
@@ -155,6 +156,9 @@ async def handle_score(ctx: WebSocketActionContext, data: dict) -> None:
         score_str = resp.replace("=", "").strip()
     else:
         score_str = "?"
+    if is_engine_error_response(score_str) or score_str[:1] not in {"B", "W", "0"}:
+        await ctx.send_error(f"AI 引擎数目失败：{score_str}")
+        return
     winner = "B" if score_str.startswith("B") else "W" if score_str.startswith("W") else "draw"
     game.game_over = True
     game.winner = winner

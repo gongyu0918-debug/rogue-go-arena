@@ -135,8 +135,20 @@ def build_runtime_control_router(
         }
 
     @router.post("/engine_idle_timeout")
-    async def set_engine_idle_timeout(payload: dict[str, Any]):
+    async def set_engine_idle_timeout(request: Request, payload: dict[str, Any]):
         binding = binding_provider()
+        control_allowed = control_request_authorized(
+            client_host=request.client.host if request.client else None,
+            request_token=request.headers.get(CONTROL_TOKEN_HEADER),
+            expected_token=binding.control_token,
+        )
+        ui_allowed = ui_exit_request_authorized(
+            client_host=request.client.host if request.client else None,
+            request_token=request.headers.get(UI_EXIT_TOKEN_HEADER),
+            expected_token=binding.ui_exit_token,
+        )
+        if not (control_allowed.get("ok") or ui_allowed.get("ok")):
+            raise HTTPException(status_code=403, detail="engine idle timeout update denied")
         seconds = binding.save_idle_timeout_seconds(payload.get("seconds"))
         binding.engine_runtime.set_idle_timeout_seconds(seconds)
         return {

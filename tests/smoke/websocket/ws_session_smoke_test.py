@@ -68,6 +68,9 @@ class FakeContext:
 
 async def main():
     await smoke_happy_path_analysis_send()
+    await smoke_invalid_json_reports_error_and_keeps_session_open()
+    await smoke_json_array_reports_error_and_keeps_session_open()
+    await smoke_unknown_action_reports_error()
     await smoke_stale_analysis_suppressed()
     await smoke_closed_socket_suppresses_later_sends()
     print("ws session smoke test: OK")
@@ -112,6 +115,93 @@ async def smoke_happy_path_analysis_send():
             "analysis_ready": True,
         },
     ]
+
+
+async def smoke_invalid_json_reports_error_and_keeps_session_open():
+    active_games = FakeActiveGames()
+    websocket = FakeWebSocket(["not-json", json.dumps({"action": "ping"})])
+
+    async def analyze_position(game):
+        raise AssertionError("analysis should not run in this smoke")
+
+    def make_context(game, send, send_error, do_analysis, do_analysis_bg):
+        return FakeContext("session-1", game, send, do_analysis_bg)
+
+    async def handle_ping(ctx, data):
+        await ctx.send({"type": "pong"})
+
+    await run_websocket_game_session(
+        websocket,
+        "session-1",
+        active_games=active_games,
+        action_handlers={"ping": handle_ping},
+        analyze_position=analyze_position,
+        make_context=make_context,
+        log_fn=lambda message: None,
+        traceback_fn=lambda: None,
+    )
+
+    assert websocket.sent == [
+        {"type": "error", "message": "消息格式错误：不是有效的 JSON"},
+        {"type": "pong"},
+    ]
+    assert active_games.touches == ["session-1", "session-1"]
+
+
+async def smoke_json_array_reports_error_and_keeps_session_open():
+    active_games = FakeActiveGames()
+    websocket = FakeWebSocket([json.dumps([]), json.dumps({"action": "ping"})])
+
+    async def analyze_position(game):
+        raise AssertionError("analysis should not run in this smoke")
+
+    def make_context(game, send, send_error, do_analysis, do_analysis_bg):
+        return FakeContext("session-1", game, send, do_analysis_bg)
+
+    async def handle_ping(ctx, data):
+        await ctx.send({"type": "pong"})
+
+    await run_websocket_game_session(
+        websocket,
+        "session-1",
+        active_games=active_games,
+        action_handlers={"ping": handle_ping},
+        analyze_position=analyze_position,
+        make_context=make_context,
+        log_fn=lambda message: None,
+        traceback_fn=lambda: None,
+    )
+
+    assert websocket.sent == [
+        {"type": "error", "message": "消息格式错误：JSON 必须是对象"},
+        {"type": "pong"},
+    ]
+    assert active_games.touches == ["session-1", "session-1"]
+
+
+async def smoke_unknown_action_reports_error():
+    active_games = FakeActiveGames()
+    websocket = FakeWebSocket([json.dumps({"action": "missing_action"})])
+
+    async def analyze_position(game):
+        raise AssertionError("analysis should not run in this smoke")
+
+    def make_context(game, send, send_error, do_analysis, do_analysis_bg):
+        return FakeContext("session-1", game, send, do_analysis_bg)
+
+    await run_websocket_game_session(
+        websocket,
+        "session-1",
+        active_games=active_games,
+        action_handlers={"ping": lambda _ctx, _data: None},
+        analyze_position=analyze_position,
+        make_context=make_context,
+        log_fn=lambda message: None,
+        traceback_fn=lambda: None,
+    )
+
+    assert websocket.sent == [{"type": "error", "message": "未知操作: missing_action"}]
+    assert active_games.touches == ["session-1"]
 
 
 async def smoke_stale_analysis_suppressed():
