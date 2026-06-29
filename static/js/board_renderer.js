@@ -202,7 +202,7 @@ function drawHintPercentChip(cx, cy, pct, rank) {
 function drawHints() {
   if (!showHints || reviewMode) return;
   if (isHintLockedByCard()) return;
-  if (!analysis.top_moves || !analysis.top_moves.length) return;
+  if (!analysis || !analysis.top_moves || !analysis.top_moves.length) return;
   if (!gameState || gameState.game_over) return;
   const myTurn = twoPlayerMode ? true : (gameState.current_player === myColor);
   if (!myTurn) return;
@@ -253,7 +253,7 @@ function drawHints() {
 }
 
 function drawTerritory() {
-  if (!showTerritory || !analysis.ownership || analysis.ownership.length === 0) return;
+  if (!showTerritory || !analysis || !analysis.ownership || analysis.ownership.length === 0) return;
   const board = getCurrentBoard();
   const sz = getCurrentSize();
   const own = analysis.ownership;

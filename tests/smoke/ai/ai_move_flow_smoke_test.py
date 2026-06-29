@@ -2403,7 +2403,7 @@ def test_choose_ai_move_candidate_uses_forbidden_avoid_move() -> None:
     asyncio.run(_choose_ai_move_candidate_uses_forbidden_avoid_move())
 
 
-async def _choose_ai_move_candidate_forbidden_none_does_not_genmove() -> None:
+async def _choose_ai_move_candidate_forbidden_none_falls_back_to_pass() -> None:
     game = GoGame(size=5, player_color="B")
     calls = []
 
@@ -2438,12 +2438,12 @@ async def _choose_ai_move_candidate_forbidden_none_does_not_genmove() -> None:
         log_error=log_error,
     )
 
-    assert result == AiMoveCandidate(None)
+    assert result == AiMoveCandidate("pass")
     assert calls == [("avoid", True, "W", 45, 1.5, [(0, 0)])]
 
 
-def test_choose_ai_move_candidate_forbidden_none_does_not_genmove() -> None:
-    asyncio.run(_choose_ai_move_candidate_forbidden_none_does_not_genmove())
+def test_choose_ai_move_candidate_forbidden_none_falls_back_to_pass() -> None:
+    asyncio.run(_choose_ai_move_candidate_forbidden_none_falls_back_to_pass())
 
 
 async def _choose_ai_move_candidate_uses_non_rogue_style_choice() -> None:
@@ -9198,7 +9198,7 @@ if __name__ == "__main__":
     test_try_choose_ai_style_move_returns_none_for_balanced()
     test_try_choose_ai_style_move_swallows_choice_errors()
     test_choose_ai_move_candidate_uses_forbidden_avoid_move()
-    test_choose_ai_move_candidate_forbidden_none_does_not_genmove()
+    test_choose_ai_move_candidate_forbidden_none_falls_back_to_pass()
     test_choose_ai_move_candidate_uses_non_rogue_style_choice()
     test_choose_ai_move_candidate_rogue_cards_skip_style_choice()
     test_choose_ai_move_candidate_genmove_game_over_completes()

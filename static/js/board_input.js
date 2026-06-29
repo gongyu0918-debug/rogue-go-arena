@@ -223,10 +223,15 @@ canvas.addEventListener("touchend", e => {
 
 canvas.addEventListener("touchstart", e => { e.preventDefault(); }, { passive: false });
 
-document.getElementById("ft-up").addEventListener("click", () => { if(fineTunePos) { fineTunePos.y = Math.max(0, fineTunePos.y-1); render(); }});
-document.getElementById("ft-down").addEventListener("click", () => { if(fineTunePos) { fineTunePos.y = Math.min(boardSize-1, fineTunePos.y+1); render(); }});
-document.getElementById("ft-left").addEventListener("click", () => { if(fineTunePos) { fineTunePos.x = Math.max(0, fineTunePos.x-1); render(); }});
-document.getElementById("ft-right").addEventListener("click", () => { if(fineTunePos) { fineTunePos.x = Math.min(boardSize-1, fineTunePos.x+1); render(); }});
-document.getElementById("ft-ok").addEventListener("click", () => {
+function bindFineTuneButton(id, handler) {
+  const element = document.getElementById(id);
+  if (element) element.addEventListener("click", handler);
+}
+
+bindFineTuneButton("ft-up", () => { if(fineTunePos) { fineTunePos.y = Math.max(0, fineTunePos.y-1); render(); }});
+bindFineTuneButton("ft-down", () => { if(fineTunePos) { fineTunePos.y = Math.min(boardSize-1, fineTunePos.y+1); render(); }});
+bindFineTuneButton("ft-left", () => { if(fineTunePos) { fineTunePos.x = Math.max(0, fineTunePos.x-1); render(); }});
+bindFineTuneButton("ft-right", () => { if(fineTunePos) { fineTunePos.x = Math.min(boardSize-1, fineTunePos.x+1); render(); }});
+bindFineTuneButton("ft-ok", () => {
   if(fineTunePos) commitPlay(fineTunePos.x, fineTunePos.y);
 });

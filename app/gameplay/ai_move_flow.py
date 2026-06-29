@@ -933,6 +933,8 @@ async def choose_ai_move_candidate(
 ) -> AiMoveCandidate:
     if forbidden:
         gtp_move = await choose_avoid_move(game, color, visits, time_limit, forbidden)
+        if not gtp_move:
+            return AiMoveCandidate("pass")
         return AiMoveCandidate(gtp_move)
 
     gtp_move = None

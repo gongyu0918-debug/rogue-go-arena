@@ -37,6 +37,11 @@ page.on("console", (message) => {
 try {
   await page.goto(targetUrl, { waitUntil: "domcontentloaded" });
   await page.locator("#board-canvas").waitFor({ state: "visible", timeout: 10000 });
+  await page.waitForFunction(
+    () => typeof ws !== "undefined" && ws !== null && typeof ws.onmessage === "function",
+    null,
+    { timeout: 10000 }
+  );
 
   const state = await page.evaluate(async () => {
     const publicFns = [
