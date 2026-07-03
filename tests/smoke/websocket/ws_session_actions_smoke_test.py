@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import get_type_hints
 
 import app.runtime.ws_actions as ws_actions
+from app.domain.coordinates import gtp_to_coord
 from app.domain.game_state import GoGame
 from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_session_actions import (
@@ -80,6 +81,7 @@ class FakeContext:
         self.visits_calls = []
         self.run_calls = []
         self.GoGame = GoGame
+        self.gtp_to_coord = gtp_to_coord
 
     def restore_game(self):
         if self.game is None:
@@ -199,6 +201,18 @@ async def smoke_set_level_and_load_position_use_runtime_dependencies() -> None:
     assert isinstance(load_ctx.analysis_calls[0], GoGame)
     assert load_ctx.analysis_calls[0].current_player == "B"
     assert load_ctx.sent == [{"type": "analysis", "analysis_ready": True, "moves": 2}]
+
+    bad_load_ctx = FakeContext(SimpleNamespace())
+    await handle_load_position(
+        bad_load_ctx,
+        {
+            "size": 9,
+            "komi": 6.5,
+            "moves": [("B", "A1\nquit")],
+        },
+    )
+    assert bad_load_ctx.engine.commands == []
+    assert bad_load_ctx.errors == ["复盘棋谱包含无效着手"]
 
 
 async def smoke_engine_wait_exits_when_startup_is_cancelled() -> None:

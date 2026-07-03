@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import secrets
 from typing import Any
 
 from app.runtime.engine_control_api import is_loopback_client
@@ -41,6 +42,6 @@ def ui_exit_request_authorized(
         return {"ok": False, "error": "desktop exit is only available from localhost"}
     if not expected_token:
         return {"ok": False, "error": "desktop exit token is not configured"}
-    if request_token != expected_token:
+    if not secrets.compare_digest(request_token or "", expected_token):
         return {"ok": False, "error": "invalid desktop exit token"}
     return {"ok": True}

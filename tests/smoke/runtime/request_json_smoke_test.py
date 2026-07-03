@@ -6,15 +6,17 @@ ensure_repo_root(__file__)
 
 import asyncio
 import json
+from types import SimpleNamespace
 
 import server as s
 from app.runtime.request_json import read_json_body
 
 
 class FakeRequest:
-    def __init__(self, body=None, *, raises: bool = False) -> None:
+    def __init__(self, body=None, *, raises: bool = False, host: str = "127.0.0.1") -> None:
         self.body = body
         self.raises = raises
+        self.client = SimpleNamespace(host=host)
 
     async def json(self):
         if self.raises:

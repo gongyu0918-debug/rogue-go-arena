@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import traceback
 from collections.abc import Awaitable, Callable, Mapping
@@ -34,30 +35,35 @@ async def run_websocket_game_session(
 ) -> None:
     await websocket.accept()
     websocket_closed = False
+    send_lock = asyncio.Lock()
 
     active_games.prune()
     game = active_games.get(game_id, touch=True)
 
     async def send(data: dict[str, Any]) -> None:
         nonlocal websocket_closed
-        if websocket_closed:
-            raise WebSocketDisconnect(code=1006)
-        try:
-            await websocket.send_text(json_dumps(data))
-            active_games.touch(game_id)
-        except WebSocketDisconnect:
-            websocket_closed = True
-            raise
-        except RuntimeError as exc:
-            message = str(exc)
-            if (
-                "websocket.close" in message
-                or "WebSocket is not connected" in message
-                or "response already completed" in message
-            ):
+        async with send_lock:
+            if websocket_closed:
+                raise WebSocketDisconnect(code=1006)
+            try:
+                await websocket.send_text(json_dumps(data))
+                active_games.touch(game_id)
+            except WebSocketDisconnect:
                 websocket_closed = True
-                raise WebSocketDisconnect(code=1006) from exc
-            raise
+                raise
+            except RuntimeError as exc:
+                message = str(exc)
+                if (
+                    "websocket.close" in message
+                    or "WebSocket is not connected" in message
+                    or "response already completed" in message
+                ):
+                    websocket_closed = True
+                    raise WebSocketDisconnect(code=1006) from exc
+                raise
+            except Exception:
+                websocket_closed = True
+                raise
 
     async def send_error(msg: str) -> None:
         await send({"type": "error", "message": msg})
@@ -109,7 +115,7 @@ async def run_websocket_game_session(
                 log_fn(f"[WS {game_id}] Action error ({action}): {e}")
                 traceback_fn()
                 try:
-                    await send_error(f"处理出错: {e}")
+                    await send_error("处理出错，请重试")
                 except Exception:
                     pass
 
@@ -118,6 +124,6 @@ async def run_websocket_game_session(
     except Exception as e:
         log_fn(f"[WS {game_id}] Fatal error: {e}")
         try:
-            await send({"type": "error", "message": f"服务器错误: {e}"})
+            await send({"type": "error", "message": "服务器错误，请重启游戏后再试"})
         except Exception:
             pass

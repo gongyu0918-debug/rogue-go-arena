@@ -71,6 +71,7 @@ async def main():
     await smoke_invalid_json_reports_error_and_keeps_session_open()
     await smoke_json_array_reports_error_and_keeps_session_open()
     await smoke_unknown_action_reports_error()
+    await smoke_action_exception_reports_sanitized_error()
     await smoke_stale_analysis_suppressed()
     await smoke_closed_socket_suppresses_later_sends()
     print("ws session smoke test: OK")
@@ -202,6 +203,36 @@ async def smoke_unknown_action_reports_error():
 
     assert websocket.sent == [{"type": "error", "message": "未知操作: missing_action"}]
     assert active_games.touches == ["session-1"]
+
+
+async def smoke_action_exception_reports_sanitized_error():
+    active_games = FakeActiveGames()
+    websocket = FakeWebSocket([json.dumps({"action": "boom"})])
+
+    async def analyze_position(game):
+        raise AssertionError("analysis should not run in this smoke")
+
+    def make_context(game, send, send_error, do_analysis, do_analysis_bg):
+        return FakeContext("session-1", game, send, do_analysis_bg)
+
+    async def handle_boom(_ctx, _data):
+        raise RuntimeError("secret filesystem path C:/Users/admin")
+
+    logs = []
+    await run_websocket_game_session(
+        websocket,
+        "session-1",
+        active_games=active_games,
+        action_handlers={"boom": handle_boom},
+        analyze_position=analyze_position,
+        make_context=make_context,
+        log_fn=logs.append,
+        traceback_fn=lambda: None,
+    )
+
+    assert websocket.sent == [{"type": "error", "message": "处理出错，请重试"}]
+    assert "secret filesystem path" not in websocket.sent[0]["message"]
+    assert logs and "secret filesystem path" in logs[0]
 
 
 async def smoke_stale_analysis_suppressed():

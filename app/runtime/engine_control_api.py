@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 import ipaddress
+import secrets
 from typing import Any
 
 
@@ -40,7 +41,7 @@ def control_request_authorized(
         return {"ok": False, "error": "control actions are only available from localhost"}
     if not expected_token:
         return {"ok": False, "error": "control token is not configured"}
-    if request_token != expected_token:
+    if not secrets.compare_digest(request_token or "", expected_token):
         return {"ok": False, "error": "invalid control token"}
     return {"ok": True}
 

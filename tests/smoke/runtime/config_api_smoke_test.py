@@ -6,7 +6,9 @@ ensure_repo_root(__file__)
 
 import asyncio
 import json
+from types import SimpleNamespace
 
+from fastapi import HTTPException
 import server as s
 from app.runtime.config_api import (
     balance_payload,
@@ -21,9 +23,10 @@ from app.runtime.config_routes import ConfigRoutesBinding, build_config_router
 
 
 class FakeRequest:
-    def __init__(self, body=None, *, raises: bool = False) -> None:
+    def __init__(self, body=None, *, raises: bool = False, host: str = "127.0.0.1") -> None:
         self.body = body
         self.raises = raises
+        self.client = SimpleNamespace(host=host)
 
     async def json(self):
         if self.raises:
@@ -187,7 +190,7 @@ async def smoke_config_router_preserves_paths_and_resolves_deps_late() -> None:
     assert await endpoint_for(router.routes, "/api/card-config", "POST")(
         FakeRequest({"config": {"cards": {}}})
     ) == {"ok": True, "saved": True}
-    assert await endpoint_for(router.routes, "/api/card-config/reset", "POST")() == {
+    assert await endpoint_for(router.routes, "/api/card-config/reset", "POST")(FakeRequest()) == {
         "ok": True,
         "reset": True,
     }
@@ -195,10 +198,18 @@ async def smoke_config_router_preserves_paths_and_resolves_deps_late() -> None:
     assert await endpoint_for(router.routes, "/api/balance", "POST")(
         FakeRequest({"values": {"x": 2}})
     ) == {"ok": True, "values": {"x": 2}}
-    assert await endpoint_for(router.routes, "/api/balance/reset", "POST")() == {
+    assert await endpoint_for(router.routes, "/api/balance/reset", "POST")(FakeRequest()) == {
         "ok": True,
         "reset": "server",
     }
+    try:
+        await endpoint_for(router.routes, "/api/balance", "POST")(
+            FakeRequest({"values": {"x": 3}}, host="192.168.1.30")
+        )
+    except HTTPException as exc:
+        assert exc.status_code == 403
+    else:
+        raise AssertionError("non-loopback config writes must be rejected")
 
     assert service.calls == [
         ("get_payload",),
@@ -243,7 +254,7 @@ async def smoke_server_config_router_resolves_runtime_deps_late() -> None:
         assert await endpoint_for(s.app.routes, "/api/card-config", "POST")(
             FakeRequest({"config": {"cards": {}}})
         ) == {"ok": True, "saved": True}
-        assert await endpoint_for(s.app.routes, "/api/card-config/reset", "POST")() == {
+        assert await endpoint_for(s.app.routes, "/api/card-config/reset", "POST")(FakeRequest()) == {
             "ok": True,
             "reset": True,
         }
@@ -251,7 +262,7 @@ async def smoke_server_config_router_resolves_runtime_deps_late() -> None:
         assert await endpoint_for(s.app.routes, "/api/balance", "POST")(
             FakeRequest({"values": {"y": 3}})
         ) == {"ok": True, "values": {"y": 3}}
-        assert await endpoint_for(s.app.routes, "/api/balance/reset", "POST")() == {
+        assert await endpoint_for(s.app.routes, "/api/balance/reset", "POST")(FakeRequest()) == {
             "ok": True,
             "reset": "patched",
         }

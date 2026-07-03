@@ -7,6 +7,22 @@ from typing import Any
 from app.runtime.ws_action_context import WebSocketActionContext
 
 
+def _normalize_load_position_move(ctx: WebSocketActionContext, move: Any, size: int) -> tuple[str, str] | None:
+    if not isinstance(move, (list, tuple)) or len(move) < 2:
+        return None
+    color = str(move[0]).upper()
+    gtp = str(move[1]).upper()
+    if color not in {"B", "W"}:
+        return None
+    if any(ch.isspace() for ch in color) or any(ch.isspace() for ch in gtp):
+        return None
+    if gtp == "PASS":
+        return color, "pass"
+    if ctx.gtp_to_coord(gtp, size) is None:
+        return None
+    return color, gtp
+
+
 async def handle_reconnect(ctx: WebSocketActionContext, data: dict) -> None:
     saved = ctx.active_games.get(ctx.game_id, touch=True)
     if saved:
@@ -71,6 +87,13 @@ async def handle_load_position(ctx: WebSocketActionContext, data: dict) -> None:
     size = int(data.get("size", 19))
     komi = float(data.get("komi", 7.5))
     moves_list = data.get("moves", [])
+    validated_moves = []
+    for move in moves_list:
+        normalized = _normalize_load_position_move(ctx, move, size)
+        if normalized is None:
+            await ctx.send_error("复盘棋谱包含无效着手")
+            return
+        validated_moves.append(normalized)
 
     if not ctx.engine.ready:
         if not await wait_for_engine_ready(ctx, "load_position"):
@@ -80,15 +103,14 @@ async def handle_load_position(ctx: WebSocketActionContext, data: dict) -> None:
         await ctx.run_in_executor(ctx.engine.send_command, f"boardsize {size}")
         await ctx.run_in_executor(ctx.engine.send_command, "clear_board")
         await ctx.run_in_executor(ctx.engine.send_command, f"komi {komi}")
-        for move in moves_list:
-            c, g = move[0], move[1]
+        for c, g in validated_moves:
             await ctx.run_in_executor(ctx.engine.send_command, f"play {c} {g}")
 
-        next_color = "B" if len(moves_list) % 2 == 0 else "W"
+        next_color = "B" if len(validated_moves) % 2 == 0 else "W"
         temp = ctx.GoGame(size, komi, 0, "B", "a3d")
         temp.current_player = next_color
-        for move in moves_list:
-            temp.moves.append((move[0], move[1]))
+        for move in validated_moves:
+            temp.moves.append(move)
         temp.rebuild_board()
 
         result = await ctx.do_analysis(temp)

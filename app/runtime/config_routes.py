@@ -4,8 +4,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 
+from app.runtime.engine_control_api import is_loopback_client
 from app.runtime.config_api import (
     balance_payload,
     card_config_payload,
@@ -28,6 +29,12 @@ class ConfigRoutesBinding:
 ConfigRoutesBindingProvider = Callable[[], ConfigRoutesBinding]
 
 
+def require_loopback_write(request: Request) -> None:
+    client_host = request.client.host if request.client else None
+    if not is_loopback_client(client_host):
+        raise HTTPException(status_code=403, detail="config writes are only available from localhost")
+
+
 def build_config_router(binding_provider: ConfigRoutesBindingProvider) -> APIRouter:
     router = APIRouter()
 
@@ -43,6 +50,7 @@ def build_config_router(binding_provider: ConfigRoutesBindingProvider) -> APIRou
 
     @router.post("/api/card-config")
     async def save_card_config_payload(request: Request):
+        require_loopback_write(request)
         binding = binding_provider()
         return await save_card_config_request(
             request,
@@ -50,7 +58,8 @@ def build_config_router(binding_provider: ConfigRoutesBindingProvider) -> APIRou
         )
 
     @router.post("/api/card-config/reset")
-    async def reset_card_config_payload():
+    async def reset_card_config_payload(request: Request):
+        require_loopback_write(request)
         binding = binding_provider()
         return reset_card_config_request(binding.card_config_service)
 
@@ -61,6 +70,7 @@ def build_config_router(binding_provider: ConfigRoutesBindingProvider) -> APIRou
 
     @router.post("/api/balance")
     async def save_balance_lab_payload(request: Request):
+        require_loopback_write(request)
         binding = binding_provider()
         return await save_balance_request(
             request,
@@ -68,7 +78,8 @@ def build_config_router(binding_provider: ConfigRoutesBindingProvider) -> APIRou
         )
 
     @router.post("/api/balance/reset")
-    async def reset_balance_lab_payload():
+    async def reset_balance_lab_payload(request: Request):
+        require_loopback_write(request)
         binding = binding_provider()
         return reset_balance_request(binding.reset_balance_overrides)
 

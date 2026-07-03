@@ -21,14 +21,15 @@ def sync_live_balance_globals(
     state_modules: Iterable[Any] = (),
     ws_action_keys: Iterable[str] = DEFAULT_WS_ACTION_BALANCE_KEYS,
 ) -> None:
+    action_modules = (ws_actions_module, *ws_action_modules)
     for key in gameplay_config.BALANCE_DEFAULTS:
         if key in target_globals:
             target_globals[key] = getattr(gameplay_config, key)
-        for module in state_modules:
+        for module in (*state_modules, *action_modules):
             if hasattr(module, key):
                 setattr(module, key, getattr(gameplay_config, key))
 
-    for module in (ws_actions_module, *ws_action_modules):
+    for module in action_modules:
         for key in ws_action_keys:
             if hasattr(module, key):
                 setattr(module, key, getattr(gameplay_config, key))
