@@ -275,9 +275,14 @@ class KataGoEngine:
                 self.mark_activity()
 
     def set_visits(self, visits: int):
-        self.current_visits = visits
         max_visits = 10000000 if visits == 0 else visits
-        self.send_command(f"kata-set-param maxVisits {max_visits}")
+        with self.command_lock:
+            self.mark_activity()
+            try:
+                self.current_visits = visits
+                return self._send_command_locked(f"kata-set-param maxVisits {max_visits}")
+            finally:
+                self.mark_activity()
 
     def analyze(
         self,

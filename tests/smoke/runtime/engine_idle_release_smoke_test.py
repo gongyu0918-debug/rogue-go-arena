@@ -103,6 +103,20 @@ def smoke_analyze_write_error_disables_engine() -> None:
     assert process.terminated is True
 
 
+def smoke_set_visits_sends_param_and_updates_current_visits() -> None:
+    engine = make_engine()
+    process = FakeProcess()
+    engine.process = process
+    engine.ready = True
+    engine.response_queue.put("=")
+
+    response = engine.set_visits(123)
+
+    assert response == "="
+    assert engine.current_visits == 123
+    assert process.stdin.commands == ["kata-set-param maxVisits 123"]
+
+
 def smoke_idle_timeout_settings_roundtrip() -> None:
     tmp_dir = Path("output") / "test-temp" / f"engine-idle-{uuid.uuid4().hex}"
     settings_path = tmp_dir / "settings.json"
@@ -205,6 +219,7 @@ def smoke_concurrent_start_requests_share_one_start_thread() -> None:
 def main() -> int:
     smoke_engine_stops_only_after_idle_timeout()
     smoke_analyze_write_error_disables_engine()
+    smoke_set_visits_sends_param_and_updates_current_visits()
     smoke_idle_timeout_settings_roundtrip()
     smoke_restart_from_stopped_marks_initializing_immediately()
     smoke_concurrent_start_requests_share_one_start_thread()

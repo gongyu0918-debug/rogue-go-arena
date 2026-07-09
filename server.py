@@ -3,6 +3,7 @@ rogue-go-arena server - KataGo-powered board game with FastAPI WebSocket backend
 """
 import argparse
 import asyncio
+import ipaddress
 import random
 import secrets
 import traceback
@@ -519,6 +520,16 @@ if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(line_buffering=True)
 
 # ─── CLI flags ───────────────────────────────────────────────────────────────
+def _is_loopback_bind_host(host: str) -> bool:
+    normalized = str(host or "").strip().lower()
+    if normalized == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(normalized).is_loopback
+    except ValueError:
+        return False
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--no-katago", action="store_true",
                     help="Disable KataGo (free-play / two-player only)")
@@ -526,7 +537,16 @@ parser.add_argument("--host", default="127.0.0.1",
                     help="Host interface to bind the HTTP/WebSocket server to")
 parser.add_argument("--port", default=8000, type=int,
                     help="Port to bind the HTTP/WebSocket server to")
+parser.add_argument("--allow-remote", action="store_true",
+                    help="Allow binding to non-loopback interfaces such as 0.0.0.0")
 args, _ = parser.parse_known_args()
+if not args.allow_remote and not _is_loopback_bind_host(args.host):
+    print(
+        "Refusing to bind to a non-loopback host without --allow-remote",
+        file=sys.stderr,
+        flush=True,
+    )
+    raise SystemExit(2)
 NO_KATAGO = args.no_katago
 
 if getattr(sys, 'frozen', False):

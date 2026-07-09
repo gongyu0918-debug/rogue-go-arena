@@ -12,6 +12,7 @@ from app.config.gameplay import (
 from app.gameplay.turn_modifiers import has_methodical_card
 from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_action_utils import board_point_from_data
+from app.runtime.gtp_safety import normalize_gtp_color
 from app.runtime.ws_session_actions import ensure_engine_ready_for_game
 from app.runtime.ws_ultimate_actions import handle_ultimate_play
 
@@ -37,6 +38,11 @@ async def handle_play(ctx: WebSocketActionContext, data: dict) -> None:
             await ctx.send_error("还没轮到你")
             return
         color = game.player_color
+
+    color = normalize_gtp_color(color)
+    if color is None:
+        await ctx.send_error("执棋颜色无效")
+        return
 
     if game.ultimate and not game.two_player:
         await handle_ultimate_play(ctx, game, data, color)

@@ -140,6 +140,38 @@ async def smoke_normal_new_game_initializes_engine_and_stores_game() -> None:
     assert ctx.background_games == [game]
 
 
+async def smoke_rejects_invalid_new_game_options_before_game_creation() -> None:
+    invalid_cases = [
+        ({"size": 999999, "two_player": True}, "棋盘尺寸无效"),
+        ({"handicap": 999, "two_player": True}, "让子设置无效"),
+        ({"player_color": "B\nquit", "two_player": True}, "执棋颜色无效"),
+    ]
+
+    for payload, error in invalid_cases:
+        ctx = FakeContext()
+
+        await handle_new_game(ctx, payload)
+
+        assert ctx.errors == [error]
+        assert ctx.active_games.pruned == 0
+        assert ctx.game is None
+        assert ctx.active_games.games == {}
+        assert ctx.engine.commands == []
+        assert ctx.sent == []
+
+
+async def smoke_allows_internal_five_by_five_rule_smoke_board() -> None:
+    ctx = FakeContext(engine=FakeEngine(ready=False))
+
+    await handle_new_game(ctx, {"size": 5, "two_player": True})
+
+    assert ctx.errors == []
+    assert ctx.game is ctx.active_games.games[ctx.game_id]
+    assert ctx.game.size == 5
+    assert ctx.engine.commands == []
+    assert ctx.sent[0]["type"] == "game_start"
+
+
 async def smoke_ultimate_new_game_sends_offer() -> None:
     ctx = FakeContext()
 
@@ -207,6 +239,8 @@ def smoke_new_game_action_annotations_resolve_runtime_context() -> None:
 async def main() -> None:
     await smoke_config_error_stops_before_game_creation()
     await smoke_normal_new_game_initializes_engine_and_stores_game()
+    await smoke_rejects_invalid_new_game_options_before_game_creation()
+    await smoke_allows_internal_five_by_five_rule_smoke_board()
     await smoke_ultimate_new_game_sends_offer()
     await smoke_two_player_rogue_new_game_uses_two_player_pool_without_engine()
     await smoke_challenge_new_game_applies_existing_loadout_and_skips_offer()

@@ -144,6 +144,20 @@ async def smoke_pass_completes_handicap_quest_and_runs_ai() -> None:
     assert ctx.background_games == [game]
 
 
+async def smoke_pass_rejects_unsafe_player_color_before_gtp_command() -> None:
+    game = make_game()
+    game.player_color = "B\nquit"
+    game.current_player = game.player_color
+    ctx = FakeContext(game)
+
+    await handle_pass(ctx, {})
+
+    assert ctx.errors == ["执棋颜色无效"]
+    assert game.moves == []
+    assert ctx.engine.commands == []
+    assert ctx.sent == []
+
+
 async def smoke_ultimate_pass_records_action_and_runs_ai() -> None:
     game = make_game()
     game.ultimate = True
@@ -380,6 +394,7 @@ def smoke_turn_action_annotations_resolve_runtime_context() -> None:
 async def main() -> None:
     await smoke_pass_records_two_player_pass_and_background_analysis()
     await smoke_pass_completes_handicap_quest_and_runs_ai()
+    await smoke_pass_rejects_unsafe_player_color_before_gtp_command()
     await smoke_ultimate_pass_records_action_and_runs_ai()
     await smoke_ultimate_quickthink_pass_finishes_turn()
     await smoke_ultimate_pass_force_scores_at_move_limit()

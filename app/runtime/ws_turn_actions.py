@@ -9,6 +9,7 @@ from app.config.gameplay import (
 from app.gameplay.engine_errors import is_engine_error_response
 from app.gameplay.turn_modifiers import has_methodical_card
 from app.runtime.ws_action_context import WebSocketActionContext
+from app.runtime.gtp_safety import normalize_gtp_color
 from app.runtime.ws_session_actions import ensure_engine_ready_for_game
 
 
@@ -31,6 +32,11 @@ async def handle_pass(ctx: WebSocketActionContext, data: dict) -> None:
         if not await ensure_engine_ready_for_game(ctx, game, "player_pass"):
             return
         color = game.player_color
+
+    color = normalize_gtp_color(color)
+    if color is None:
+        await ctx.send_error("执棋颜色无效")
+        return
 
     if game.ultimate and not game.two_player:
         if game.ultimate_player_card == "quickthink" and game.ultimate_quickthink_active:

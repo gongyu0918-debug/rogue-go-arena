@@ -11,7 +11,19 @@ from app.data.cards import (
     ultimate_card_summary,
 )
 from app.runtime.ws_action_context import WebSocketActionContext
+from app.runtime.gtp_safety import normalize_gtp_color
 from app.runtime.ws_session_actions import wait_for_engine_ready
+
+
+VALID_BOARD_SIZES = frozenset({5, 9, 13, 19})
+VALID_HANDICAPS = frozenset({0, 2, 3, 4, 5, 6, 7, 8, 9})
+
+
+def _payload_int(value: object, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
@@ -20,15 +32,10 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
         await ctx.send_error("卡牌配置加载失败：" + "；".join(config_errors[:6]))
         return
 
-    if not ctx.engine.ready and not data.get("two_player", False):
-        if not await wait_for_engine_ready(ctx, "game_start"):
-            return
-
-    ctx.active_games.prune()
-    size = int(data.get("size", 19))
+    size = _payload_int(data.get("size", 19), 19)
     komi = float(data.get("komi", 7.5))
-    handicap = int(data.get("handicap", 0))
-    player_color = data.get("player_color", "B")
+    handicap = _payload_int(data.get("handicap", 0), 0)
+    player_color = normalize_gtp_color(data.get("player_color", "B"))
     level = data.get("level", "a3d")
     two_player = bool(data.get("two_player", False))
     ai_observer = bool(data.get("ai_observer", False)) and not two_player
@@ -37,19 +44,33 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
     rogue_enabled = bool(data.get("rogue", False))
     ai_rogue_enabled = bool(data.get("ai_rogue", False)) and rogue_enabled and not two_player
     challenge_beta = bool(data.get("challenge_beta", False))
-    challenge_stage = int(data.get("challenge_stage", 0) or 0)
+    challenge_stage = _payload_int(data.get("challenge_stage", 0) or 0, 0)
     challenge_cards = [
         card_id for card_id in data.get("challenge_cards", [])
         if card_id in CHALLENGE_BETA_POOL
     ]
     challenge_limits = data.get("challenge_limits", {}) or {}
-    challenge_refreshes = int(data.get("challenge_refreshes", 0) or 0)
+    challenge_refreshes = _payload_int(data.get("challenge_refreshes", 0) or 0, 0)
     if challenge_beta:
         two_player = False
         ai_observer = False
         rogue_enabled = True
         ai_rogue_enabled = False
         handicap = CHALLENGE_BETA_HANDICAPS.get(challenge_stage, handicap)
+    if size not in VALID_BOARD_SIZES:
+        await ctx.send_error("棋盘尺寸无效")
+        return
+    if player_color is None:
+        await ctx.send_error("执棋颜色无效")
+        return
+    if handicap not in VALID_HANDICAPS:
+        await ctx.send_error("让子设置无效")
+        return
+    if not ctx.engine.ready and not two_player:
+        if not await wait_for_engine_ready(ctx, "game_start"):
+            return
+
+    ctx.active_games.prune()
     ai_style = str(data.get("ai_style", "balanced"))
     if ai_style not in AI_STYLE_OPTIONS:
         ai_style = "balanced"

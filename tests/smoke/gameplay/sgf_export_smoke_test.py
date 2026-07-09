@@ -74,6 +74,24 @@ def smoke_sgf_export_helper_preserves_missing_response() -> None:
     assert body_text(response) == "Game not found"
 
 
+def smoke_sgf_export_helper_sanitizes_filename_only() -> None:
+    game = object()
+    unsafe_id = 'bad"name/..\nnext'
+    store = FakeGameStore({unsafe_id: game})
+
+    response = build_sgf_export_response(
+        game_id=unsafe_id,
+        active_games=store,
+        generate_sgf=lambda _game: "(;GM[1])",
+    )
+
+    assert store.calls == [("prune",), ("get", unsafe_id, True)]
+    assert response.status_code == 200
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="rogue-go-arena_bad_name_next.sgf"'
+    )
+
+
 async def smoke_server_sgf_route_uses_shared_helper() -> None:
     game = object()
     store = FakeGameStore({"server-game": game})
@@ -117,6 +135,7 @@ async def smoke_server_sgf_route_uses_shared_helper() -> None:
 async def main() -> None:
     smoke_sgf_export_helper_preserves_found_response()
     smoke_sgf_export_helper_preserves_missing_response()
+    smoke_sgf_export_helper_sanitizes_filename_only()
     await smoke_server_sgf_route_uses_shared_helper()
     print("sgf export smoke test: OK")
 

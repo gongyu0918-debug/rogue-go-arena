@@ -227,6 +227,20 @@ async def smoke_engine_rejects_invalid_play_without_mutating_board() -> None:
     assert ctx.engine.commands == ["play B E5"]
 
 
+async def smoke_rejects_unsafe_player_color_before_gtp_play() -> None:
+    game = make_game()
+    game.player_color = "B\nquit"
+    game.current_player = game.player_color
+    ctx = FakeContext(game)
+
+    await handle_play(ctx, {"x": 4, "y": 4})
+
+    assert ctx.errors == ["执棋颜色无效"]
+    assert game.board[4][4] == 0
+    assert game.moves == []
+    assert ctx.engine.commands == []
+
+
 async def smoke_rogue_skip_ai_keeps_player_turn() -> None:
     game = make_game()
     game.rogue_card = "twin"
@@ -326,6 +340,7 @@ async def main() -> None:
     await smoke_ai_rogue_forbidden_point_is_rejected()
     await smoke_puppet_reserved_point_is_rejected()
     await smoke_engine_rejects_invalid_play_without_mutating_board()
+    await smoke_rejects_unsafe_player_color_before_gtp_play()
     await smoke_rogue_skip_ai_keeps_player_turn()
     await smoke_rogue_quickthink_bonus_skips_ai_once()
     await smoke_rogue_methodical_keeps_player_until_quota_is_used()
