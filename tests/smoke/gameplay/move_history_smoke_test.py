@@ -82,9 +82,24 @@ def test_ultimate_sanrensei_ignores_pass_invalid_and_opponent_moves() -> None:
     assert any("三连星" in message for message in result.messages)
 
 
+def test_rebuild_board_reports_illegal_replay_moves() -> None:
+    game = GoGame(size=5)
+    game.moves = [("W", "A2"), ("W", "B1"), ("B", "A1")]
+
+    assert game.rebuild_board() is False
+
+    try:
+        game.rebuild_board(strict=True)
+    except ValueError as exc:
+        assert "B A1" in str(exc)
+    else:
+        raise AssertionError("strict replay must reject the suicidal move")
+
+
 if __name__ == "__main__":
     test_player_non_pass_coords_filters_and_limits()
     test_server_wrapper_uses_shared_move_history_helper()
     test_rogue_sanrensei_ignores_pass_invalid_and_opponent_moves()
     test_ultimate_sanrensei_ignores_pass_invalid_and_opponent_moves()
+    test_rebuild_board_reports_illegal_replay_moves()
     print("move_history_smoke_test passed")

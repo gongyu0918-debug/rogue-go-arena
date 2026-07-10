@@ -271,6 +271,7 @@ async def smoke_disconnect_propagates_to_server_wrapper() -> None:
         return None
 
     def place_move(_game, _color, _gtp_move):
+        game.moves.append((_color, _gtp_move))
         return SimpleNamespace(coord=(3, 5))
 
     try:
@@ -295,6 +296,9 @@ async def smoke_disconnect_propagates_to_server_wrapper() -> None:
         assert exc.code == 1006
     else:
         raise AssertionError("WebSocketDisconnect should propagate to the server wrapper")
+    assert game.moves == [("B", "D4")]
+    assert game.current_player == "W"
+    assert game.history_pushes == 1
 
 
 async def smoke_finish_observer_double_pass() -> None:

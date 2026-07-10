@@ -11,6 +11,7 @@ import app.runtime.ws_actions as ws_actions
 import app.runtime.ws_ultimate_actions as ws_ultimate_actions
 from app.domain.coordinates import coord_to_gtp
 from app.domain.game_state import GoGame
+from app.data.cards import ULTIMATE_CARDS
 from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_ultimate_actions import (
     handle_ultimate_play,
@@ -111,6 +112,7 @@ def make_ultimate_game() -> GoGame:
     game = GoGame(size=9, komi=7.5, player_color="B", level="5k", two_player=False)
     game.ultimate = True
     game.current_player = "B"
+    game.ultimate_offer_cards = list(ULTIMATE_CARDS)
     return game
 
 
@@ -128,11 +130,16 @@ async def smoke_select_joseki_card_honors_runtime_target_count() -> None:
 
     assert game.ultimate_player_card == "joseki_burst"
     assert game.ultimate_ai_card == "meteor"
+    assert game.ultimate_offer_cards == []
     assert game.ultimate_joseki_targets == [(0, 0), (1, 1)]
     assert ctx.joseki_args == [(9, 2)]
     assert ctx.ai_pick_excludes == [("joseki_burst",)]
     assert [payload["type"] for payload in ctx.sent] == ["ultimate_cards_selected", "rogue_event"]
     assert ctx.background_games == [game]
+
+    await handle_ultimate_select_card(ctx, {"card_id": "meteor"})
+    assert ctx.errors == ["卡牌选择已失效，请使用当前卡牌报价"]
+    assert game.ultimate_player_card == "joseki_burst"
 
 
 async def smoke_chain_play_honors_runtime_extra_turn_chance() -> None:

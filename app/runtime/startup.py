@@ -644,6 +644,9 @@ class EngineStartupManager:
 
     def start_background(self, trigger: str, force_restart: bool = False) -> tuple[bool, str]:
         self._ensure_idle_monitor()
+        with self._state_lock:
+            if self._start_thread and self._start_thread.is_alive():
+                return False, "KataGo is already initializing"
         if force_restart:
             self._set_cpu_mode(False)
             self.engine.stop()

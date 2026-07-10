@@ -56,6 +56,9 @@ class WebSocketActionContext:
     diamond_points: Callable[..., list[tuple[int, int]]]
 
     def restore_game(self) -> Any:
-        if not self.game:
-            self.game = self.active_games.get(self.game_id, touch=True)
+        if self.active_games is None:
+            return self.game
+        stored_game = self.active_games.get(self.game_id, touch=True)
+        if stored_game is not None:
+            self.game = stored_game
         return self.game

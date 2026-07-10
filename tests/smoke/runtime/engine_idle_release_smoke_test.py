@@ -35,6 +35,18 @@ class BrokenStdin(FakeStdin):
         raise BrokenPipeError("broken fake stdin")
 
 
+class AutoResponseStdin(FakeStdin):
+    def __init__(self, engine: KataGoEngine) -> None:
+        super().__init__()
+        self.engine = engine
+
+    def write(self, payload: bytes) -> None:
+        super().write(payload)
+        command = self.commands[-1]
+        if not command.startswith("kata-analyze") and command != "stop":
+            self.engine.response_queue.put("=")
+
+
 class FakeProcess:
     def __init__(self) -> None:
         self.stdin = FakeStdin()
@@ -58,6 +70,12 @@ class BrokenWriteProcess(FakeProcess):
     def __init__(self) -> None:
         super().__init__()
         self.stdin = BrokenStdin()
+
+
+class AutoResponseProcess(FakeProcess):
+    def __init__(self, engine: KataGoEngine) -> None:
+        super().__init__()
+        self.stdin = AutoResponseStdin(engine)
 
 
 def make_engine() -> KataGoEngine:
@@ -117,6 +135,33 @@ def smoke_set_visits_sends_param_and_updates_current_visits() -> None:
     assert process.stdin.commands == ["kata-set-param maxVisits 123"]
 
 
+def smoke_foreground_command_preempts_background_analysis() -> None:
+    engine = make_engine()
+    process = AutoResponseProcess(engine)
+    engine.process = process
+    engine.ready = True
+    analysis_thread = threading.Thread(
+        target=engine.analyze,
+        args=("B",),
+        kwargs={"visits": 800, "duration": 2.0},
+    )
+    analysis_thread.start()
+    deadline = time.time() + 1.0
+    while "kata-analyze B 50" not in process.stdin.commands and time.time() < deadline:
+        time.sleep(0.01)
+    assert "kata-analyze B 50" in process.stdin.commands
+
+    started = time.perf_counter()
+    response = engine.send_command("play B E5", timeout=2.0)
+    elapsed = time.perf_counter() - started
+    analysis_thread.join(timeout=2.0)
+
+    assert response == "="
+    assert elapsed < 1.5
+    assert not analysis_thread.is_alive()
+    assert process.stdin.commands == ["kata-analyze B 50", "stop", "play B E5"]
+
+
 def smoke_idle_timeout_settings_roundtrip() -> None:
     tmp_dir = Path("output") / "test-temp" / f"engine-idle-{uuid.uuid4().hex}"
     settings_path = tmp_dir / "settings.json"
@@ -173,6 +218,8 @@ def smoke_restart_from_stopped_marks_initializing_immediately() -> None:
 
 def smoke_concurrent_start_requests_share_one_start_thread() -> None:
     engine = make_engine()
+    stop_calls = []
+    engine.stop = lambda: stop_calls.append("stop")
     paths = EnginePaths(
         base_dir=Path("."),
         cuda_exe=Path("katago_cuda.exe"),
@@ -203,10 +250,14 @@ def smoke_concurrent_start_requests_share_one_start_thread() -> None:
     manager._run_engine_startup = fake_startup
     first_started, first_reason = manager.start_background("first")
     second_started, second_reason = manager.start_background("second")
+    restart_started, restart_reason = manager.start_background("restart", force_restart=True)
     try:
         assert first_started is True, first_reason
         assert second_started is False
         assert second_reason == "KataGo is already initializing"
+        assert restart_started is False
+        assert restart_reason == "KataGo is already initializing"
+        assert stop_calls == []
         assert manager.snapshot()["phase"] == "initializing"
         assert starts == [] or starts == [("first", 1)]
     finally:
@@ -220,6 +271,7 @@ def main() -> int:
     smoke_engine_stops_only_after_idle_timeout()
     smoke_analyze_write_error_disables_engine()
     smoke_set_visits_sends_param_and_updates_current_visits()
+    smoke_foreground_command_preempts_background_analysis()
     smoke_idle_timeout_settings_roundtrip()
     smoke_restart_from_stopped_marks_initializing_immediately()
     smoke_concurrent_start_requests_share_one_start_thread()

@@ -34,7 +34,11 @@ async def handle_rogue_select_card(ctx: WebSocketActionContext, data: dict) -> N
             }
         )
     else:
+        if game.rogue_card is not None or card_id not in game.rogue_offer_cards:
+            await ctx.send_error("卡牌选择已失效，请使用当前卡牌报价")
+            return
         await ctx.activate_rogue_card(game, ctx.send, card_id)
+        game.rogue_offer_cards = []
     if game.ai_rogue_enabled and not game.two_player and not game.challenge_beta:
         ai_card_id = ctx.pick_ai_rogue_card(exclude=[card_id])
         await ctx.activate_ai_rogue_card(game, ctx.send, ai_card_id)

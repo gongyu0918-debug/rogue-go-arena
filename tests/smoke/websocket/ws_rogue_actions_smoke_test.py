@@ -10,6 +10,7 @@ from typing import get_type_hints
 import app.runtime.ws_actions as ws_actions
 import app.runtime.ws_rogue_actions as ws_rogue_actions
 from app.config.gameplay import ROGUE_SEAL_POINT_COUNT
+from app.data.cards import ROGUE_CARDS
 from app.domain.coordinates import coord_to_gtp
 from app.domain.game_state import GoGame
 from app.runtime.ws_action_context import WebSocketActionContext
@@ -99,6 +100,7 @@ class FakeContext:
 def make_game() -> GoGame:
     game = GoGame(size=9, komi=7.5, player_color="B", level="5k", two_player=False)
     game.current_player = "B"
+    game.rogue_offer_cards = list(ROGUE_CARDS)
     return game
 
 
@@ -114,8 +116,13 @@ async def smoke_select_card_activates_player_and_ai_cards() -> None:
     assert ctx.activated_cards == [(game, "puppet")]
     assert ctx.activated_ai_cards == [(game, "dice")]
     assert game.ai_rogue_card == "dice"
+    assert game.rogue_offer_cards == []
     assert ctx.ai_move_games == [game]
     assert ctx.background_games == [game]
+
+    await handle_rogue_select_card(ctx, {"card_id": "twin"})
+    assert ctx.errors == ["卡牌选择已失效，请使用当前卡牌报价"]
+    assert ctx.activated_cards == [(game, "puppet")]
 
 
 async def smoke_challenge_select_card_uses_offer_and_loadout() -> None:

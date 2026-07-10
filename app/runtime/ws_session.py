@@ -84,6 +84,12 @@ async def run_websocket_game_session(
             log_fn(f"[Analysis-bg] error: {ex}")
 
     context = make_context(game, send, send_error, do_analysis, do_analysis_bg)
+    engine = getattr(context, "engine", None)
+    connection_token = object()
+    context.connection_token = connection_token
+    connection_tokens = getattr(engine, "active_connection_tokens", None)
+    if isinstance(connection_tokens, set):
+        connection_tokens.add(connection_token)
 
     try:
         while True:
@@ -127,3 +133,15 @@ async def run_websocket_game_session(
             await send({"type": "error", "message": "服务器错误，请重启游戏后再试"})
         except Exception:
             pass
+    finally:
+        if isinstance(connection_tokens, set):
+            connection_tokens.discard(connection_token)
+        if (
+            engine is not None
+            and getattr(engine, "active_game_id", None) == game_id
+            and getattr(engine, "active_game_connection_token", None) == connection_token
+            and active_games.get(game_id) is None
+        ):
+            engine.active_game_id = None
+            engine.active_game_connection_token = None
+            engine.active_game_claimed_at = 0.0

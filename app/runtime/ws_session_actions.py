@@ -4,7 +4,82 @@ import asyncio
 import time
 from typing import Any
 
+from app.runtime.game_input_validation import (
+    VALID_BOARD_SIZES,
+    normalize_komi,
+    payload_int,
+)
 from app.runtime.ws_action_context import WebSocketActionContext
+
+
+async def claim_engine_session(ctx: WebSocketActionContext) -> bool:
+    if not getattr(ctx, "game_id", None):
+        return True
+    connection_token = getattr(ctx, "connection_token", None) or id(ctx)
+    connection_tokens = getattr(ctx.engine, "active_connection_tokens", None)
+    if not isinstance(connection_tokens, set):
+        connection_tokens = set()
+        ctx.engine.active_connection_tokens = connection_tokens
+    connection_tokens.add(connection_token)
+
+    def assign_owner() -> None:
+        ctx.engine.active_game_id = ctx.game_id
+        ctx.engine.active_game_connection_token = connection_token
+        ctx.engine.active_game_claimed_at = time.time()
+
+    def owner_state() -> tuple[str | None, object | None, Any, bool]:
+        owner_id = getattr(ctx.engine, "active_game_id", None)
+        owner_token = getattr(ctx.engine, "active_game_connection_token", None)
+        owner_game = ctx.active_games.get(owner_id) if owner_id else None
+        return owner_id, owner_token, owner_game, owner_token in connection_tokens
+
+    owner_id, owner_token, owner_game, owner_connected = owner_state()
+    if owner_id is None:
+        assign_owner()
+        return True
+    if owner_id == ctx.game_id and owner_token == connection_token:
+        ctx.engine.active_game_claimed_at = time.time()
+        return True
+    if getattr(owner_game, "game_over", False):
+        assign_owner()
+        return True
+    if owner_connected:
+        deadline = time.monotonic() + 0.75
+        while owner_connected and time.monotonic() < deadline:
+            await asyncio.sleep(0.05)
+            owner_connected = owner_token in connection_tokens
+
+    owner_id, owner_token, owner_game, owner_connected = owner_state()
+    if owner_id is None:
+        assign_owner()
+        return True
+    if owner_id == ctx.game_id and owner_token == connection_token:
+        ctx.engine.active_game_claimed_at = time.time()
+        return True
+    claim_age = time.time() - float(getattr(ctx.engine, "active_game_claimed_at", 0.0) or 0.0)
+    if (
+        getattr(owner_game, "game_over", False)
+        or (owner_game is not None and not owner_connected)
+        or (owner_game is None and claim_age > 120.0)
+    ):
+        assign_owner()
+        return True
+    await ctx.send_error("另一个窗口正在使用 AI 引擎，请先结束该对局")
+    return False
+
+
+def release_engine_session(ctx: WebSocketActionContext) -> None:
+    connection_token = getattr(ctx, "connection_token", None) or id(ctx)
+    if (
+        getattr(ctx.engine, "active_game_id", None) == ctx.game_id
+        and getattr(ctx.engine, "active_game_connection_token", None) == connection_token
+    ):
+        ctx.engine.active_game_id = None
+        ctx.engine.active_game_connection_token = None
+        ctx.engine.active_game_claimed_at = 0.0
+        connection_tokens = getattr(ctx.engine, "active_connection_tokens", None)
+        if isinstance(connection_tokens, set):
+            connection_tokens.discard(connection_token)
 
 
 def _normalize_load_position_move(ctx: WebSocketActionContext, move: Any, size: int) -> tuple[str, str] | None:
@@ -28,7 +103,7 @@ async def handle_reconnect(ctx: WebSocketActionContext, data: dict) -> None:
     if saved:
         ctx.game = saved
         await ctx.send({"type": "reconnected", **ctx.game.to_state()})
-        if not ctx.game.game_over and ctx.engine.ready:
+        if not ctx.game.game_over and ctx.engine.ready and await claim_engine_session(ctx):
             analysis = await ctx.do_analysis(ctx.game)
             await ctx.send({"type": "analysis", **analysis})
     else:
@@ -84,9 +159,18 @@ async def handle_set_level(ctx: WebSocketActionContext, data: dict) -> None:
 
 
 async def handle_load_position(ctx: WebSocketActionContext, data: dict) -> None:
-    size = int(data.get("size", 19))
-    komi = float(data.get("komi", 7.5))
+    size = payload_int(data.get("size", 19), 19)
+    komi = normalize_komi(data.get("komi", 7.5))
+    if size not in VALID_BOARD_SIZES:
+        await ctx.send_error("复盘棋盘尺寸无效")
+        return
+    if komi is None:
+        await ctx.send_error("复盘贴目设置无效")
+        return
     moves_list = data.get("moves", [])
+    if not isinstance(moves_list, (list, tuple)):
+        await ctx.send_error("复盘棋谱格式无效")
+        return
     validated_moves = []
     for move in moves_list:
         normalized = _normalize_load_position_move(ctx, move, size)
@@ -95,25 +179,43 @@ async def handle_load_position(ctx: WebSocketActionContext, data: dict) -> None:
             return
         validated_moves.append(normalized)
 
+    next_color = "B" if len(validated_moves) % 2 == 0 else "W"
+    temp = ctx.GoGame(size, komi, 0, "B", "a3d")
+    temp.current_player = next_color
+    temp.moves = list(validated_moves)
+    try:
+        temp.rebuild_board(strict=True)
+    except ValueError:
+        await ctx.send_error("复盘棋谱包含非法着手")
+        return
+
+    original_game = ctx.restore_game()
+    if not await claim_engine_session(ctx):
+        return
+
     if not ctx.engine.ready:
         if not await wait_for_engine_ready(ctx, "load_position"):
+            if original_game is None:
+                release_engine_session(ctx)
             return
 
     if ctx.engine.ready:
-        await ctx.run_in_executor(ctx.engine.send_command, f"boardsize {size}")
-        await ctx.run_in_executor(ctx.engine.send_command, "clear_board")
-        await ctx.run_in_executor(ctx.engine.send_command, f"komi {komi}")
-        for c, g in validated_moves:
-            await ctx.run_in_executor(ctx.engine.send_command, f"play {c} {g}")
-
-        next_color = "B" if len(validated_moves) % 2 == 0 else "W"
-        temp = ctx.GoGame(size, komi, 0, "B", "a3d")
-        temp.current_player = next_color
-        for move in validated_moves:
-            temp.moves.append(move)
-        temp.rebuild_board()
-
-        result = await ctx.do_analysis(temp)
+        try:
+            result = await ctx.do_analysis(temp)
+        finally:
+            if original_game is not None:
+                try:
+                    await ctx.sync_board_to_katago(original_game)
+                except Exception:
+                    try:
+                        await ctx.run_in_executor(ctx.engine.stop)
+                    finally:
+                        ctx.engine.ready = False
+                        try:
+                            ctx.start_engine_background("load_position_restore")
+                        except Exception:
+                            pass
+                    raise
         await ctx.send({"type": "analysis", **result})
 
 
@@ -185,6 +287,8 @@ async def ensure_engine_ready_for_game(
     *,
     sync_board: bool = True,
 ) -> bool:
+    if not await claim_engine_session(ctx):
+        return False
     if game.two_player:
         return True
     snapshot_fn = getattr(

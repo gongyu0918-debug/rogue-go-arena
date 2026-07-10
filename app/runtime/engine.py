@@ -34,6 +34,8 @@ class KataGoEngine:
         self.ownership_data: list = []
         self.analysis_lock = threading.Lock()
         self.command_lock = threading.Lock()
+        self.analysis_stop_requested = threading.Event()
+        self.analysis_stop_generation = 0
         self.is_analyzing = False
         self.current_visits = 800
         self.ready = False
@@ -41,6 +43,10 @@ class KataGoEngine:
         self.stderr_callback = None
         self.last_stderr_time = 0.0
         self.last_activity_time = 0.0
+        self.active_game_id: str | None = None
+        self.active_game_connection_token: object | None = None
+        self.active_game_claimed_at = 0.0
+        self.active_connection_tokens: set[object] = set()
 
     def mark_activity(self, now: float | None = None) -> None:
         self.last_activity_time = now if now is not None else time.time()
@@ -267,6 +273,7 @@ class KataGoEngine:
             return "? timeout"
 
     def send_command(self, cmd: str, timeout: float = 60.0) -> str:
+        self._request_analysis_stop()
         with self.command_lock:
             self.mark_activity()
             try:
@@ -276,6 +283,7 @@ class KataGoEngine:
 
     def set_visits(self, visits: int):
         max_visits = 10000000 if visits == 0 else visits
+        self._request_analysis_stop()
         with self.command_lock:
             self.mark_activity()
             try:
@@ -295,7 +303,13 @@ class KataGoEngine:
         if not self.process or self.process.poll() is not None:
             return [], []
 
+        with self.analysis_lock:
+            stop_generation = self.analysis_stop_generation
         with self.command_lock:
+            with self.analysis_lock:
+                if stop_generation != self.analysis_stop_generation:
+                    return [], []
+                self.analysis_stop_requested.clear()
             self.mark_activity()
             original_visits = self.current_visits
             analysis_max_visits = 10000000 if visits == 0 else visits
@@ -336,7 +350,7 @@ class KataGoEngine:
                 self._terminate_process()
                 return [], []
 
-            time.sleep(duration)
+            self.analysis_stop_requested.wait(duration)
 
             try:
                 if self.process and self.process.poll() is None:
@@ -370,6 +384,11 @@ class KataGoEngine:
             )
             self.mark_activity()
             return lines, ownership
+
+    def _request_analysis_stop(self) -> None:
+        with self.analysis_lock:
+            self.analysis_stop_generation += 1
+            self.analysis_stop_requested.set()
 
     def stop_if_idle(self, timeout_seconds: float, *, reason: str = "idle") -> bool:
         if timeout_seconds <= 0 or not self.is_alive() or not self.ready:

@@ -113,7 +113,11 @@ async def handle_ultimate_select_card(ctx: WebSocketActionContext, data: dict) -
     card_id = data.get("card_id", "")
     if card_id not in ULTIMATE_CARDS:
         return
+    if game.ultimate_player_card is not None or card_id not in game.ultimate_offer_cards:
+        await ctx.send_error("卡牌选择已失效，请使用当前卡牌报价")
+        return
     game.ultimate_player_card = card_id
+    game.ultimate_offer_cards = []
     reset_ultimate_effect_state(game)
     if card_id == "joseki_burst":
         game.ultimate_joseki_targets = ctx.pick_joseki_targets(game.size, ULTIMATE_JOSEKI_TARGET_COUNT)

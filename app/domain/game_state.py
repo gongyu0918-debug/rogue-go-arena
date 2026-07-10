@@ -35,6 +35,7 @@ class GoGame:
         # Rogue mode
         self.rogue_enabled: bool = False
         self.rogue_card: Optional[str] = None
+        self.rogue_offer_cards: list[str] = []
         self.rogue_uses: dict[str, int] = {}     # card_id → remaining uses
         self.rogue_seal_points: list[tuple] = []  # forbidden (x,y) for AI
         self.rogue_waiting_seal: bool = False      # waiting for seal point input
@@ -90,6 +91,7 @@ class GoGame:
         self.ultimate: bool = False
         self.ultimate_player_card: Optional[str] = None
         self.ultimate_ai_card: Optional[str] = None
+        self.ultimate_offer_cards: list[str] = []
         self.ultimate_move_count: int = 0          # total moves (both sides)
         self.ultimate_extra_turn: bool = False     # chain/double: extra turn flag
         self.ultimate_double_pending: bool = False # double: waiting for 2nd stone
@@ -259,15 +261,21 @@ class GoGame:
         self._history = history
         return True
 
-    def rebuild_board(self):
+    def rebuild_board(self, *, strict: bool = False) -> bool:
         self.board = [[0] * self.size for _ in range(self.size)]
         self.captures = {"B": 0, "W": 0}
+        valid = True
         for color, gtp in self.moves:
             if gtp.upper() == "PASS":
                 continue
             coord = gtp_to_coord(gtp, self.size)
-            if coord:
-                self.place_stone(coord[0], coord[1], color, skip_ko=True)
+            if coord is None or self.board[coord[1]][coord[0]] != 0:
+                valid = False
+            elif self.place_stone(coord[0], coord[1], color, skip_ko=True) < 0:
+                valid = False
+            if strict and not valid:
+                raise ValueError(f"Illegal move while rebuilding board: {color} {gtp}")
+        return valid
 
     def to_state(self) -> dict:
         return {

@@ -92,7 +92,15 @@ def main() -> int:
         return 0 if results.get("status") == "passed" else 1
     failures = [
         key
-        for key in ("normal", "rogue", "ultimate", "observer", "capture_rule", "ko_rule")
+        for key in (
+            "engine_owner",
+            "normal",
+            "rogue",
+            "ultimate",
+            "observer",
+            "capture_rule",
+            "ko_rule",
+        )
         if results.get(key, {}).get("status") != "passed"
     ]
     return 1 if failures else 0

@@ -17,6 +17,9 @@ class DummyEngine:
     def stop(self) -> None:
         return None
 
+    def idle_age(self) -> float:
+        return 0.0
+
 
 class OpenClFailsCpuWorksEngine:
     ready = False
@@ -48,6 +51,9 @@ class OpenClFailsCpuWorksEngine:
 
     def is_alive(self) -> bool:
         return self.alive
+
+    def idle_age(self) -> float:
+        return 0.0
 
     def stop(self) -> None:
         self.alive = False

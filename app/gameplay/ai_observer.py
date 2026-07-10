@@ -105,6 +105,8 @@ async def run_ai_observer_loop(
 
         placement = deps.place_ai_move_on_board(game, color, gtp_move)
         coord = placement.coord
+        game.current_player = "W" if color == "B" else "B"
+        game.push_history()
         await send_fn(
             {
                 "type": "ai_move",
@@ -114,8 +116,6 @@ async def run_ai_observer_loop(
                 "y": coord[1] if coord else None,
             }
         )
-        game.current_player = "W" if color == "B" else "B"
-        game.push_history()
         await send_fn({"type": "game_state", **game.to_state()})
         if await deps.finish_double_pass(game, send_fn):
             break

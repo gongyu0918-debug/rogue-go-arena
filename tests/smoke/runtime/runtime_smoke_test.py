@@ -101,6 +101,16 @@ async def recv_until(ws, predicate, *, timeout: float, transcript: list[dict]) -
             return msg
 
 
+async def end_game(ws, transcript: list[dict]) -> None:
+    await ws.send(json.dumps({"action": "resign"}))
+    await recv_until(
+        ws,
+        lambda message: message.get("type") == "game_over",
+        timeout=10,
+        transcript=transcript,
+    )
+
+
 async def normal_smoke(base_http: str, base_ws: str) -> dict:
     game_id = "runtime-normal-" + uuid.uuid4().hex[:8]
     transcript: list[dict] = []
@@ -133,21 +143,91 @@ async def normal_smoke(base_http: str, base_ws: str) -> dict:
             timeout=30,
             transcript=transcript,
         )
+        await ws.send(json.dumps({
+            "action": "load_position",
+            "size": 9,
+            "komi": 7.5,
+            "moves": [["B", "E5"]],
+        }))
+        review_analysis = await recv_until(
+            ws,
+            lambda message: message.get("type") == "analysis",
+            timeout=30,
+            transcript=transcript,
+        )
+        occupied = {(4, 4), (ai_move.get("x"), ai_move.get("y"))}
+        second_x, second_y = next(
+            point for point in ((0, 0), (8, 0), (0, 8), (8, 8))
+            if point not in occupied
+        )
+        await ws.send(json.dumps({"action": "play", "x": second_x, "y": second_y}))
+        second_ai_move = await recv_until(
+            ws,
+            lambda message: message.get("type") == "ai_move",
+            timeout=30,
+            transcript=transcript,
+        )
+        await end_game(ws, transcript)
 
     sgf = http_text(base_http, f"/sgf/{game_id}")
     player_gtp = coord_to_gtp(4, 4, 9)
     ai_gtp = ai_move.get("gtp") or ""
     sgf_has_player = f";B[{gtp_to_sgf(player_gtp, 9)}]" in sgf
     sgf_has_ai = f";W[{gtp_to_sgf(ai_gtp, 9)}]" in sgf if ai_gtp else False
+    review_restored = bool(review_analysis.get("analysis_ready")) and bool(second_ai_move.get("gtp"))
     return {
         "game_id": game_id,
         "player_move": player_gtp,
         "ai_move": ai_gtp,
         "analysis_top_moves": len(analysis.get("top_moves") or []),
         "analysis_ownership": len(analysis.get("ownership") or []),
+        "review_analysis_ready": bool(review_analysis.get("analysis_ready")),
+        "post_review_ai_move": second_ai_move.get("gtp"),
         "sgf_has_player": sgf_has_player,
         "sgf_has_ai": sgf_has_ai,
-        "status": "passed" if sgf_has_player and sgf_has_ai else "failed",
+        "status": "passed" if sgf_has_player and sgf_has_ai and review_restored else "failed",
+    }
+
+
+async def engine_owner_smoke(base_ws: str) -> dict:
+    first_id = "runtime-owner-first-" + uuid.uuid4().hex[:8]
+    second_id = "runtime-owner-second-" + uuid.uuid4().hex[:8]
+    first_transcript: list[dict] = []
+    second_transcript: list[dict] = []
+    payload = {
+        "action": "new_game",
+        "size": 9,
+        "komi": 7.5,
+        "handicap": 0,
+        "player_color": "B",
+        "level": "5k",
+        "two_player": False,
+        "rogue": False,
+        "ultimate": False,
+    }
+    async with websocket_connect(base_ws, first_id) as first_ws:
+        await first_ws.send(json.dumps(payload))
+        await recv_until(
+            first_ws,
+            lambda message: message.get("type") == "game_start",
+            timeout=20,
+            transcript=first_transcript,
+        )
+        async with websocket_connect(base_ws, second_id) as second_ws:
+            await second_ws.send(json.dumps({**payload, "size": 5}))
+            error = await recv_until(
+                second_ws,
+                lambda message: message.get("type") == "error",
+                timeout=10,
+                transcript=second_transcript,
+            )
+        await end_game(first_ws, first_transcript)
+    message = error.get("message") or ""
+    return {
+        "first_game_id": first_id,
+        "second_game_id": second_id,
+        "error": message,
+        "status": "passed" if "另一个窗口" in message else "failed",
     }
 
 
@@ -171,7 +251,14 @@ async def rogue_smoke(base_ws: str) -> dict:
                 "ultimate": False,
                 "challenge_beta": False,
             }))
-            await recv_until(ws, lambda m: m.get("type") == "game_start", timeout=20, transcript=transcript)
+            start = await recv_until(
+                ws,
+                lambda message: message.get("type") in {"game_start", "error"},
+                timeout=20,
+                transcript=transcript,
+            )
+            if start.get("type") == "error":
+                raise RuntimeError(f"rogue game start rejected: {start.get('message')}")
             offer = await recv_until(ws, lambda m: m.get("type") == "rogue_offer", timeout=20, transcript=transcript)
             cards = offer.get("cards") or []
             chosen = pick_rogue_smoke_card(cards)
@@ -206,6 +293,7 @@ async def rogue_smoke(base_ws: str) -> dict:
             if not accepted:
                 raise RuntimeError(f"rogue player move was never accepted: {last_error}")
             ai_move = saw_ai_move or await recv_until(ws, lambda m: m.get("type") == "ai_move", timeout=30, transcript=transcript)
+            await end_game(ws, transcript)
             return {
                 "game_id": game_id,
                 "offer_ids": [card.get("id") for card in cards],
@@ -271,6 +359,7 @@ async def ultimate_smoke(base_ws: str) -> dict:
         if chosen["id"] == "quickthink":
             await ws.send(json.dumps({"action": "ultimate_quickthink_end"}))
         ai_move = await recv_until(ws, lambda m: m.get("type") == "ai_move", timeout=30, transcript=transcript)
+        await end_game(ws, transcript)
 
     if not accepted:
         raise RuntimeError(f"ultimate player move was never accepted: {last_error}")
@@ -311,6 +400,7 @@ async def observer_smoke(base_ws: str) -> dict:
             timeout=20,
             transcript=transcript,
         )
+        await end_game(ws, transcript)
 
     passed = (
         ai_move.get("color") in {"B", "W"}
@@ -358,6 +448,7 @@ async def capture_smoke(base_ws: str) -> dict:
         for x, y in sequence:
             await ws.send(json.dumps({"action": "play", "x": x, "y": y}))
             last_state = await recv_until(ws, lambda m: m.get("type") == "game_state", timeout=10, transcript=transcript)
+        await end_game(ws, transcript)
 
     captures = last_state.get("captures") or {}
     board = last_state.get("board") or []
@@ -439,6 +530,7 @@ async def run_smoke(base_url: str) -> dict:
     results = {
         "status": http_json(base_url, "/status"),
         "gpu": http_json(base_url, "/gpu"),
+        "engine_owner": await engine_owner_smoke(ws_base),
         "normal": await normal_smoke(base_url, ws_base),
         "rogue": await rogue_smoke(ws_base),
         "ultimate": await ultimate_smoke(ws_base),
@@ -462,7 +554,15 @@ def main() -> int:
     print(json.dumps(results, ensure_ascii=False, indent=2))
 
     failures = [
-        key for key in ("normal", "rogue", "ultimate", "observer", "capture_rule", "ko_rule")
+        key for key in (
+            "engine_owner",
+            "normal",
+            "rogue",
+            "ultimate",
+            "observer",
+            "capture_rule",
+            "ko_rule",
+        )
         if results.get(key, {}).get("status") != "passed"
     ]
     return 1 if failures else 0

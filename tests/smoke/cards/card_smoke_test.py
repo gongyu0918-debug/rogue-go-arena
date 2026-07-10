@@ -93,6 +93,8 @@ class DummyEngine:
 def make_game(size=9):
     game = s.GoGame(size=size, komi=7.5, player_color="B", level="5k", two_player=False)
     game.current_player = game.player_color
+    game.rogue_offer_cards = list(card_data.ROGUE_CARDS)
+    game.ultimate_offer_cards = list(card_data.ULTIMATE_CARDS)
     return game
 
 

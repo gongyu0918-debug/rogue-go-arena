@@ -19,6 +19,7 @@ class FakeEngine:
         self.ready = ready
         self.commands = []
         self.visits = []
+        self.active_connection_tokens = set()
 
     def set_visits(self, visits: int) -> str:
         self.visits.append(visits)
@@ -42,10 +43,19 @@ class FakeActiveGames:
     def set(self, game_id: str, game: GoGame) -> None:
         self.games[game_id] = game
 
+    def get(self, game_id: str, *, touch: bool = False):
+        return self.games.get(game_id)
+
+
+class FailingActiveGames(FakeActiveGames):
+    def set(self, game_id: str, game: GoGame) -> None:
+        raise RuntimeError("simulated store failure")
+
 
 class FakeContext:
     def __init__(self, *, engine: FakeEngine | None = None, config_errors: list[str] | None = None) -> None:
         self.game_id = "new-game-actions"
+        self.connection_token = object()
         self.GoGame = GoGame
         self.engine = engine or FakeEngine()
         self.active_games = FakeActiveGames()
@@ -143,8 +153,12 @@ async def smoke_normal_new_game_initializes_engine_and_stores_game() -> None:
 async def smoke_rejects_invalid_new_game_options_before_game_creation() -> None:
     invalid_cases = [
         ({"size": 999999, "two_player": True}, "棋盘尺寸无效"),
+        ({"komi": float("nan"), "two_player": True}, "贴目设置无效"),
+        ({"komi": 1000, "two_player": True}, "贴目设置无效"),
         ({"handicap": 999, "two_player": True}, "让子设置无效"),
         ({"player_color": "B\nquit", "two_player": True}, "执棋颜色无效"),
+        ({"challenge_limits": "bad", "two_player": True}, "闯关次数设置无效"),
+        ({"challenge_cards": 7, "two_player": True}, "闯关卡牌设置无效"),
     ]
 
     for payload, error in invalid_cases:
@@ -172,6 +186,46 @@ async def smoke_allows_internal_five_by_five_rule_smoke_board() -> None:
     assert ctx.sent[0]["type"] == "game_start"
 
 
+async def smoke_rejects_a_second_game_using_the_shared_engine() -> None:
+    engine = FakeEngine()
+    first = FakeContext(engine=engine)
+    await handle_new_game(first, {"size": 9, "two_player": True})
+
+    second = FakeContext(engine=engine)
+    second.game_id = "other-window"
+    second.active_games = first.active_games
+    await handle_new_game(second, {"size": 5, "two_player": True})
+
+    assert second.game is None
+    assert second.errors == ["另一个窗口正在使用 AI 引擎，请先结束该对局"]
+    assert set(first.active_games.games) == {"new-game-actions"}
+
+    same_id = FakeContext(engine=engine)
+    same_id.active_games = first.active_games
+    await handle_new_game(same_id, {"size": 5, "two_player": True})
+
+    assert same_id.game is None
+    assert same_id.errors == ["另一个窗口正在使用 AI 引擎，请先结束该对局"]
+    assert first.active_games.games["new-game-actions"].size == 9
+
+
+async def smoke_releases_engine_claim_when_game_commit_fails() -> None:
+    engine = FakeEngine()
+    ctx = FakeContext(engine=engine)
+    ctx.active_games = FailingActiveGames()
+
+    try:
+        await handle_new_game(ctx, {"size": 9, "two_player": True})
+    except RuntimeError as exc:
+        assert "store failure" in str(exc)
+    else:
+        raise AssertionError("game store failure must propagate")
+
+    assert engine.active_game_id is None
+    assert engine.active_game_connection_token is None
+    assert ctx.connection_token not in engine.active_connection_tokens
+
+
 async def smoke_ultimate_new_game_sends_offer() -> None:
     ctx = FakeContext()
 
@@ -182,6 +236,7 @@ async def smoke_ultimate_new_game_sends_offer() -> None:
     assert ctx.ultimate_choice_calls == [3]
     assert [payload["type"] for payload in ctx.sent] == ["game_start", "ultimate_offer"]
     assert [card["id"] for card in ctx.sent[-1]["cards"]] == ["chain", "double", "meteor"]
+    assert ctx.game.ultimate_offer_cards == ["chain", "double", "meteor"]
     assert ctx.background_games == [ctx.game]
 
 
@@ -196,6 +251,9 @@ async def smoke_two_player_rogue_new_game_uses_two_player_pool_without_engine() 
     assert [payload["type"] for payload in ctx.sent] == ["game_start", "rogue_offer"]
     assert ctx.rogue_choice_calls[0][0] == 3
     assert ctx.rogue_choice_calls[0][1] is not None
+    assert ctx.game.rogue_offer_cards == [
+        card["id"] for card in ctx.sent[-1]["cards"]
+    ]
 
 
 async def smoke_challenge_new_game_applies_existing_loadout_and_skips_offer() -> None:
@@ -241,6 +299,8 @@ async def main() -> None:
     await smoke_normal_new_game_initializes_engine_and_stores_game()
     await smoke_rejects_invalid_new_game_options_before_game_creation()
     await smoke_allows_internal_five_by_five_rule_smoke_board()
+    await smoke_rejects_a_second_game_using_the_shared_engine()
+    await smoke_releases_engine_claim_when_game_commit_fails()
     await smoke_ultimate_new_game_sends_offer()
     await smoke_two_player_rogue_new_game_uses_two_player_pool_without_engine()
     await smoke_challenge_new_game_applies_existing_loadout_and_skips_offer()

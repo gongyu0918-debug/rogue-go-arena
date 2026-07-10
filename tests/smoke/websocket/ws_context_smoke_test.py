@@ -96,11 +96,12 @@ def smoke_grouped_deps_round_trip_to_flat_binding() -> None:
 
 def smoke_context_restore_uses_active_game_store() -> None:
     saved_game = object()
+    stale_game = object()
     active_games = FakeActiveGames(saved_game=saved_game)
     deps = make_deps(active_games)
     ctx = build_websocket_action_context(
         game_id="restore-session",
-        game=None,
+        game=stale_game,
         send=async_marker,
         send_error=async_marker,
         do_analysis=async_marker,
