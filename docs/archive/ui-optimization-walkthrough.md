@@ -1,5 +1,7 @@
 # rogue-go-arena UI Optimization Walkthrough
 
+> Historical implementation note retained for reference. Current UI and build behavior are documented in `README.md` and `docs/`.
+
 ## 1. Web Frontend (HTML/CSS) Enhancements
 **File Modified**: `static/index.html`
 - **Aesthetic Overhaul**: Implemented a Sleek Premium Dark/Glassmorphic Theme. Applied deep obsidian/navy backgrounds with subtle neon/gold accents, rounded corners, and smooth shadows to reflect an "Advanced AI" feel.

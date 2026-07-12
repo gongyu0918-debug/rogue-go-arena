@@ -6,6 +6,11 @@ from dataclasses import replace
 from pathlib import Path
 
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Rough card balance evaluator")
     parser.add_argument("--mode", choices=["rogue", "ultimate", "both"], default="both")

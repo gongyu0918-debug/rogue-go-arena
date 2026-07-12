@@ -42,7 +42,7 @@
   <img src="docs/assets/rogue-go-arena-hero-current.jpg" alt="Rogue Go Arena current dark wood board interface">
 </p>
 
-> `main` 是当前主力 WebView2 桌面版。原 HTML 浏览器版作为 [`html-main`](https://github.com/gongyu0918-debug/rogue-go-arena/tree/html-main) 维护分支保留，通用玩法、卡牌、服务端和 HTML UI 更新可从那里继承。
+> `main` 是当前主力 WebView2 桌面版。长期维护快照保留在 [`webview`](https://github.com/gongyu0918-debug/rogue-go-arena/tree/webview)，仅在通过同一套 smoke 后与主线同步。
 
 ## English
 
@@ -261,7 +261,9 @@ static/
   index.html       WebView2 加载的主游戏界面
   assets/          棋盘、木纹、棋子、工具栏图标
 docs/assets/       README 展示图
+docs/archive/      历史实现记录与迁移证据
 katago/            KataGo 配置和本地引擎文件位置
+tools/             不进入安装包的开发工具
 server.py          FastAPI 后端
 launcher.py        WebView2 桌面启动入口
 tests/smoke/       按子系统分类的烟测脚本
@@ -435,13 +437,13 @@ KataGo 目录约定见 [katago/README.md](katago/README.md)。
 ## 分支策略
 
 ```text
-html-main
-  HTML 浏览器版维护分支
-  承载共享玩法、卡牌、服务端和静态 UI 更新
-
 main
   WebView2 桌面主力版
-  在 html-main 之上增加桌面壳、打包和安装体验
+  承载玩法、卡牌、服务端、桌面壳和发布构建
+
+webview
+  WebView2 长期维护快照
+  仅从通过完整 smoke 的 main 同步
 ```
 
 ## 设计原则

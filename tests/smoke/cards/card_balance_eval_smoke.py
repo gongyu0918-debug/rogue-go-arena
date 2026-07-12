@@ -9,8 +9,8 @@ import sys
 
 sys.argv = ["card_balance_eval.py"]
 
-import card_balance_eval as balance  # noqa: E402
 import server as s  # noqa: E402
+from tools import card_balance_eval as balance  # noqa: E402
 
 
 def make_game(card_id: str | None = None) -> s.GoGame:
