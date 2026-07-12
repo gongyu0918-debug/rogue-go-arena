@@ -22,6 +22,8 @@ from pathlib import Path
 from tkinter import messagebox
 from urllib.parse import urlencode
 
+from app.runtime.windows_job import attach_kill_on_close_job, close_kill_on_close_job
+
 SERVER_PORT = 8000
 LOOPBACK_HOST = "127.0.0.1"
 SERVER_URL = f"http://{LOOPBACK_HOST}:{SERVER_PORT}"
@@ -293,17 +295,19 @@ def _shutdown_desktop_runtime(server_url: str = SERVER_URL) -> None:
 
 
 def _terminate_server_process(process: subprocess.Popen | None, timeout: float = 5.0) -> None:
-    if process is None or process.poll() is not None:
+    if process is None:
         return
-    try:
-        process.terminate()
-        process.wait(timeout=timeout)
-    except Exception:
+    if process.poll() is None:
         try:
-            process.kill()
+            process.terminate()
             process.wait(timeout=timeout)
         except Exception:
-            pass
+            try:
+                process.kill()
+                process.wait(timeout=timeout)
+            except Exception:
+                pass
+    close_kill_on_close_job(process)
 
 
 def _cleanup_started_server(server_url: str, process: subprocess.Popen | None) -> None:
@@ -420,7 +424,7 @@ def _start_server(port: int = SERVER_PORT) -> subprocess.Popen | None:
     try:
         env = os.environ.copy()
         env[CONTROL_TOKEN_ENV] = CONTROL_TOKEN
-        return subprocess.Popen(
+        process = subprocess.Popen(
             cmd,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
@@ -430,6 +434,8 @@ def _start_server(port: int = SERVER_PORT) -> subprocess.Popen | None:
             creationflags=_server_creationflags(),
             startupinfo=_server_startupinfo(),
         )
+        attach_kill_on_close_job(process)
+        return process
     except Exception as exc:
         try:
             messagebox.showerror("rogue-go-arena", f"启动失败: {exc}")

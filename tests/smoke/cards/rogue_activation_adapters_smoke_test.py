@@ -8,6 +8,7 @@ import asyncio
 from types import SimpleNamespace
 
 import server as s
+from app.config.gameplay import ROGUE_SEAL_POINT_COUNT
 from app.runtime.rogue_activation_adapters import (
     AiRogueCardActivationBinding,
     RogueCardActivationBinding,
@@ -201,6 +202,7 @@ async def smoke_player_activation_adapter_returns_result_and_sends() -> None:
             "name": "seal",
             "icon": "icon.png",
             "waiting_seal": True,
+            "rogue_seal_required": ROGUE_SEAL_POINT_COUNT,
             "state": "ok",
         },
     ]

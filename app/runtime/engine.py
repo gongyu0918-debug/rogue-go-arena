@@ -9,6 +9,8 @@ import time
 from pathlib import Path
 from typing import Callable, Optional
 
+from app.runtime.windows_job import attach_kill_on_close_job, close_kill_on_close_job
+
 
 class KataGoEngine:
     def __init__(
@@ -96,6 +98,7 @@ class KataGoEngine:
                 bufsize=0,
                 creationflags=0x08000000 if sys.platform == "win32" else 0,
             )
+            attach_kill_on_close_job(self.process, log_fn=self.log)
         except OSError as e:
             raise RuntimeError(f"Failed to launch {_exe.name}: {e}") from e
         threading.Thread(target=self._read_stdout, daemon=True).start()
@@ -246,6 +249,7 @@ class KataGoEngine:
                     stream.close()
             except Exception:
                 pass
+        close_kill_on_close_job(process)
         self.process = None
         self.ready = False
 

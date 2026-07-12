@@ -2,8 +2,8 @@
 
 ## Workspace
 
-- Primary workspace: `F:\Workspaces\rogue go project\rogue-go-arena`
-- Historical/source mirror: `F:\Workspaces\Playground\projects\apps\rogue-goai`
+- Use a clean clone of this repository as the primary workspace.
+- Treat historical mirrors and installed copies as read-only comparison targets.
 - Main branch is the local development line. React architecture work should happen on `refactor/react-card-architecture` until parity smoke is strong enough to merge.
 - Do not push, publish, rebuild the installer, or overwrite `F:\rogue-go-arena` unless explicitly asked.
 
