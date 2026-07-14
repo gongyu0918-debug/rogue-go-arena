@@ -1,5 +1,6 @@
 param(
     [string]$Version = (Get-Date -Format "yyyy.MM.dd"),
+    [string]$PythonExe = "",
     [string]$BuildDir = (Join-Path $PSScriptRoot "build"),
     [string]$DistDir = (Join-Path $PSScriptRoot "dist"),
     [string]$ReleaseDir = (Join-Path $PSScriptRoot "release")
@@ -27,6 +28,59 @@ function Resolve-Iscc {
         }
     }
     throw "ISCC.exe not found. Please install Inno Setup 6 first."
+}
+
+function Resolve-BuildPython {
+    param(
+        [string]$PreferredPython
+    )
+
+    $candidates = @()
+    if ($PreferredPython) {
+        $candidates += [pscustomobject]@{
+            Executable = $PreferredPython
+            Arguments = @()
+            Label = $PreferredPython
+        }
+    } else {
+        $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
+        if ($pythonCmd) {
+            $candidates += [pscustomobject]@{
+                Executable = $pythonCmd.Source
+                Arguments = @()
+                Label = $pythonCmd.Source
+            }
+        }
+
+        $pyCmd = Get-Command py -ErrorAction SilentlyContinue
+        if ($pyCmd) {
+            $candidates += [pscustomobject]@{
+                Executable = $pyCmd.Source
+                Arguments = @("-3.11")
+                Label = "$($pyCmd.Source) -3.11"
+            }
+        }
+    }
+
+    foreach ($candidate in $candidates) {
+        $prefixArgs = @($candidate.Arguments)
+        $previousErrorAction = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = "Continue"
+            & $candidate.Executable @prefixArgs -c "import PyInstaller" *> $null
+            $candidateExitCode = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $previousErrorAction
+        }
+        if ($candidateExitCode -eq 0) {
+            return $candidate
+        }
+    }
+
+    if ($PreferredPython) {
+        throw "The selected Python '$PreferredPython' cannot import PyInstaller. Install PyInstaller or choose another interpreter with -PythonExe."
+    }
+    throw "No Python interpreter with PyInstaller was found. Install PyInstaller or pass -PythonExe <path>."
 }
 
 function Enable-PythonWmiGuard {
@@ -87,6 +141,8 @@ Write-Host "==> Dist dir: $DistDir"
 Write-Host "==> Release dir: $ReleaseDir"
 
 Test-ReleaseKataGoAssets
+$buildPython = Resolve-BuildPython -PreferredPython $PythonExe
+Write-Host "==> Build Python: $($buildPython.Label)"
 
 if (Test-Path $DistDir) {
     Remove-Item -LiteralPath $DistDir -Recurse -Force
@@ -120,11 +176,12 @@ try {
     }
 
     Write-Host "==> Building launcher EXE"
-    python -m PyInstaller --noconfirm --distpath $DistDir --workpath $BuildDir rogue-go-arena.spec
+    $pythonPrefixArgs = @($buildPython.Arguments)
+    & $buildPython.Executable @pythonPrefixArgs -m PyInstaller --noconfirm --distpath $DistDir --workpath $BuildDir rogue-go-arena.spec
     Assert-NativeCommandSucceeded "PyInstaller launcher build"
 
     Write-Host "==> Building server EXE bundle"
-    python -m PyInstaller --noconfirm --distpath $DistDir --workpath $BuildDir rogue-go-arena-server.spec
+    & $buildPython.Executable @pythonPrefixArgs -m PyInstaller --noconfirm --distpath $DistDir --workpath $BuildDir rogue-go-arena-server.spec
     Assert-NativeCommandSucceeded "PyInstaller server build"
 
     $iscc = Resolve-Iscc
