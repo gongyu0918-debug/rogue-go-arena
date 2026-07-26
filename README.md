@@ -425,7 +425,7 @@ python -m PyInstaller --clean --noconfirm rogue-go-arena-server.spec
 构建 Windows 安装包：
 
 ```powershell
-.\build_windows_release.ps1 -Version 0.1.34
+.\build_windows_release.ps1 -Version 0.1.35
 ```
 
 脚本会自动选择已安装 PyInstaller 的 Python；也可用
