@@ -184,7 +184,11 @@ function pointerIsInsideActiveWoodSelect(target) {
   if (!activeWoodSelect) return false;
   const { wrap } = woodSelectParts(activeWoodSelect);
   const pop = ensureWoodSelectPopover();
-  return !!(wrap?.contains(target) || pop.contains(target));
+  return targetIsInside(wrap, target) || targetIsInside(pop, target);
+}
+
+function targetIsInside(container, target) {
+  return !!(container && target instanceof Node && container.contains(target));
 }
 
 document.addEventListener("mousedown", (e) => {
@@ -197,8 +201,9 @@ window.addEventListener("resize", () => {
   if (activeWoodSelect) placeWoodSelectMenu(activeWoodSelect);
 });
 
-document.addEventListener("scroll", () => {
-  if (activeWoodSelect) closeWoodSelectMenu();
+document.addEventListener("scroll", (event) => {
+  if (!activeWoodSelect || targetIsInside(woodSelectPopover, event.target)) return;
+  closeWoodSelectMenu();
 }, true);
 
 window.enhanceWoodSelects = enhanceWoodSelects;

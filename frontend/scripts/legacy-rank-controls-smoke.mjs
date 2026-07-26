@@ -105,6 +105,50 @@ try {
     assert(state.woodValue.includes("5级"), `${state.id}: wood select did not sync selected rank: ${state.woodValue}`);
   });
 
+  await page.locator("#btn-setup").click();
+  await page.locator("#setup-modal.show").waitFor({ state: "visible", timeout: 5000 });
+  await page.locator("#sel-level + .wood-select-button").click();
+
+  const rankPopover = page.locator(".wood-select-popover");
+  const rankPopoverBox = await rankPopover.boundingBox();
+  assert(rankPopoverBox, "rank popover did not open");
+  await page.mouse.move(rankPopoverBox.x + rankPopoverBox.width / 2, rankPopoverBox.y + rankPopoverBox.height / 2);
+  await page.mouse.wheel(0, 240);
+  await page.waitForTimeout(100);
+
+  const scrolledMenuState = await page.evaluate(() => {
+    const popover = document.querySelector(".wood-select-popover");
+    const button = document.querySelector("#sel-level + .wood-select-button");
+    return {
+      open: popover?.classList.contains("open") || false,
+      scrollTop: popover?.scrollTop || 0,
+      expanded: button?.getAttribute("aria-expanded") || "",
+    };
+  });
+
+  assert(scrolledMenuState.open, `rank menu closed after scrolling: ${JSON.stringify(scrolledMenuState)}`);
+  assert(scrolledMenuState.expanded === "true", `rank button collapsed after scrolling: ${JSON.stringify(scrolledMenuState)}`);
+  assert(scrolledMenuState.scrollTop > 0, `rank menu did not scroll: ${JSON.stringify(scrolledMenuState)}`);
+
+  await rankPopover.locator(".wood-select-option").filter({ hasText: /^10级$/ }).click();
+  const rankSelectionState = await page.evaluate(() => ({
+    value: document.querySelector("#sel-level")?.value || "",
+    label: document.querySelector("#sel-level + .wood-select-button .wood-select-value")?.textContent?.trim() || "",
+    menuOpen: document.querySelector(".wood-select-popover")?.classList.contains("open") || false,
+  }));
+
+  assert(rankSelectionState.value === "10k", `rank menu did not select 10k: ${JSON.stringify(rankSelectionState)}`);
+  assert(rankSelectionState.label.includes("10级"), `rank label did not sync after selection: ${JSON.stringify(rankSelectionState)}`);
+  assert(!rankSelectionState.menuOpen, `rank menu did not close after selection: ${JSON.stringify(rankSelectionState)}`);
+
+  await page.locator("#sel-level + .wood-select-button").click();
+  await page.evaluate(() => {
+    document.querySelector("#setup-modal")?.dispatchEvent(new Event("scroll"));
+  });
+  const externalScrollMenuOpen = await page.locator(".wood-select-popover").evaluate(popover => popover.classList.contains("open"));
+  assert(!externalScrollMenuOpen, "rank menu stayed open after its containing setup panel scrolled");
+  await page.locator("#setup-modal-close").click();
+
   await page.evaluate(async () => {
     await setLanguage("en");
   });
@@ -124,14 +168,14 @@ try {
 
   assert(englishState.htmlLang === "en", `language did not switch to English: ${englishState.htmlLang}`);
   assert(englishState.currentLang === "en", `currentLang did not switch: ${englishState.currentLang}`);
-  assert(englishState.value === "5k", `rank selection was not preserved after localization: ${englishState.value}`);
+  assert(englishState.value === "10k", `rank selection was not preserved after localization: ${englishState.value}`);
   assert(englishState.slowMarkedA1d === "1", "slow marker was not preserved after localization");
   assert(
     englishState.slowA1d.includes("⚠") && englishState.slowA1d.includes("Amateur 1 dan") && englishState.slowA1d.includes("(slower)"),
     `English slow label changed: ${englishState.slowA1d}`
   );
   assert(englishState.fast5k === "5 kyu", `English 5k label changed: ${englishState.fast5k}`);
-  assert(englishState.woodValue === "5 kyu", `English wood select value did not sync: ${englishState.woodValue}`);
+  assert(englishState.woodValue === "10 kyu", `English wood select value did not sync: ${englishState.woodValue}`);
 
   assert(errors.length === 0, `browser errors: ${errors.join("; ")}`);
   console.log(JSON.stringify({
