@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/gongyu0918-debug/rogue-goai/releases/latest"><strong>Download for Windows</strong></a>
+  <a href="https://github.com/gongyu0918-debug/rogue-go-arena/releases/latest"><strong>Download for Windows</strong></a>
   ·
   <a href="#快速开始">Quick Start</a>
   ·
@@ -31,7 +31,7 @@
   <img src="docs/assets/goai-hero.png" alt="GoAI dark wood board interface">
 </p>
 
-> `html-main` 是原 HTML 浏览器版维护分支。当前主力桌面版在 [`main`](https://github.com/gongyu0918-debug/rogue-goai/tree/main)，会在这个分支之上继承通用玩法、卡牌、服务端和 HTML UI 更新。
+> `html-main` 是 HTML 浏览器版维护分支；[`webview`](https://github.com/gongyu0918-debug/rogue-go-arena/tree/webview) 是默认 WebView2 桌面分支。两者保留各自已有卡牌规则，通用修复分别移植和验证。Godot 等历史分支已在本地归档，不再维护。
 
 ## 为什么值得玩
 
@@ -84,13 +84,13 @@ GoAI 把围棋从“引擎分析界面”推进到“可反复开局的策略游
 - `launcher.py` 启动后端，并优先用 Edge app-window 打开本地页面。
 - KataGo 继续作为独立 sidecar 引擎运行在 `katago/` 下。
 
-通用玩法、卡牌、规则、服务端和 HTML UI 修复优先进入这个分支；桌面主力版再从这里继承。
+通用修复在两条维护分支分别验证。两者已有卡牌规则并不完全相同，涉及玩法的同步需要单独评估。最近的兼容修复见 [维护记录](docs/compatibility-20260908.md)。
 
 ## 快速开始
 
 ### 下载 Windows 版本
 
-打开 [Latest Release](https://github.com/gongyu0918-debug/rogue-goai/releases/latest)，下载 `GoAI_Setup_*.exe`，安装后启动 GoAI。
+需要桌面安装版时，打开 [Latest Release](https://github.com/gongyu0918-debug/rogue-go-arena/releases/latest)，下载 `rogue-go-arena_WebView_Setup_*.exe`。本分支源码保留 HTML 浏览器入口。
 
 安装包会自动尝试可用引擎路径：
 
@@ -230,9 +230,9 @@ html-main
   HTML 浏览器版维护分支
   承载共享玩法、卡牌、服务端和静态 UI 更新
 
-main
+webview
   WebView2 桌面主力版
-  在 html-main 之上增加桌面壳、打包和安装体验
+  默认分支，维护桌面壳、打包和安装体验
 ```
 
 ## 设计原则

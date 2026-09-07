@@ -139,6 +139,7 @@ from app.data.cards import (
 )
 from app.domain.coordinates import coord_to_gtp, gtp_to_coord
 from app.domain.game_state import GoGame
+from app.runtime.board_sync import sync_board_to_katago_locked
 from app.runtime.engine import KataGoEngine
 from app.runtime.game_store import ActiveGameStore
 from app.runtime.startup import EnginePaths, EngineStartupManager
@@ -168,7 +169,7 @@ USER_DATA_DIR = Path(os.environ.get("LOCALAPPDATA", str(BASE_DIR))) / "GoAI"
 USER_KATAGO_DIR = USER_DATA_DIR / "katago"
 USER_KATAGO_HOME = USER_KATAGO_DIR / "KataGoData"
 USER_RUNTIME_CONFIG_DIR = USER_KATAGO_DIR / "runtime"
-SERVER_REV = "20260424-client-shell-rogue"
+SERVER_REV = "20260908-html-compat"
 KATAGO_EXE = BASE_DIR / "katago" / "katago.exe"             # CUDA build (legacy/optional)
 KATAGO_CUDA_EXE = BASE_DIR / "katago" / "katago_cuda.exe"   # CUDA (downloaded upgrade)
 KATAGO_OPENCL_EXE = BASE_DIR / "katago" / "katago_opencl.exe"  # OpenCL (any GPU)
@@ -1227,6 +1228,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         _record_ultimate_player_action(game)
                         game.moves.append((color, "pass"))
                         game.passed[color] = True
+                        game.ko_point = None
                         game.current_player = "W" if color == "B" else "B"
                         game.ultimate_double_pending = False
                         _finish_ultimate_quickthink_turn(game)
@@ -1241,10 +1243,13 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         continue
 
                     if engine.ready:
-                        await run_in_executor(
+                        response = await run_in_executor(
                             engine.send_command, f"play {color} pass")
+                        if await _report_ai_move_error(response, send):
+                            continue
                     game.moves.append((color, "pass"))
                     game.passed[color] = True
+                    game.ko_point = None
                     game.current_player = "W" if color == "B" else "B"
                     if game.rogue_card == "quickthink":
                         game.rogue_quickthink_stage = 0
@@ -1652,13 +1657,33 @@ def _choose_ai_style_move(game: GoGame, color: str, top_moves: list[dict], style
         if not coord:
             continue
         x, y = coord
-        if game.board[y][x] != 0:
+        if game.board[y][x] != 0 or not game.is_legal_move(x, y, color):
             continue
         score = _ai_style_target_score(game, color, coord, style)
         if best_score is None or score > best_score:
             best_score = score
             best_move = gtp
     return best_move
+
+
+async def _pick_and_play_ai_style_move(game: GoGame, color: str, visits: int, style: str) -> Optional[str]:
+    """Rank current legal analysis candidates and commit the selected move once."""
+    if style not in AI_STYLE_OPTIONS or style == "balanced":
+        return None
+    try:
+        lines, _ = await run_in_executor(
+            engine.analyze, color, max(80, min(visits // 2, 1000)),
+            50, 1.0, ["rootInfo", "true"],
+        )
+        analysis = engine.parse_analysis(lines, [], game.size, to_move_color=color)
+        chosen = _choose_ai_style_move(game, color, analysis.get("top_moves", []), style)
+    except Exception as exc:
+        _engine_log(f"AI style analysis failed: {exc}")
+        return None
+    if not chosen:
+        return None
+    response = await run_in_executor(engine.send_command, f"play {color} {chosen}")
+    return response if response.lstrip().startswith("?") else chosen
 
 
 def _collect_joseki_burst_points(
@@ -2797,25 +2822,8 @@ async def _apply_ai_rogue_response_effects(game: GoGame, send_fn,
 
 
 def _sync_board_to_katago_locked(game: GoGame):
-    """Reset KataGo board to match game.board using SGF loadsgf.
-    Must be called while holding engine.command_lock."""
-    sgf = f"(;GM[1]SZ[{game.size}]KM[{game.komi}]"
-    blacks, whites = [], []
-    for y in range(game.size):
-        for x in range(game.size):
-            if game.board[y][x] == 1:
-                blacks.append(f"{chr(ord('a') + x)}{chr(ord('a') + y)}")
-            elif game.board[y][x] == 2:
-                whites.append(f"{chr(ord('a') + x)}{chr(ord('a') + y)}")
-    if blacks:
-        sgf += "AB" + "".join(f"[{p}]" for p in blacks)
-    if whites:
-        sgf += "AW" + "".join(f"[{p}]" for p in whites)
-    sgf += ")"
-    tmp = os.path.join(BASE_DIR, "_ultimate_sync.sgf")
-    with open(tmp, "w") as f:
-        f.write(sgf)
-    engine._send_command_locked(f"loadsgf {tmp}")
+    """Preserve the board and validated move history under engine.command_lock."""
+    return sync_board_to_katago_locked(game, engine, base_dir=BASE_DIR)
 
 
 async def _sync_board_to_katago(game: GoGame):
@@ -3352,13 +3360,19 @@ async def _pick_nonpass_fallback_move(
     forbidden: Optional[set[tuple[int, int]]] = None,
 ) -> Optional[str]:
     forbidden = forbidden or set()
+    # genmove already committed the PASS being replaced. Restore the exact
+    # pre-pass history before searching, and put the PASS back if no move wins.
+    response = await run_in_executor(engine.send_command, "undo")
+    if response.lstrip().startswith("?"):
+        return response
     try:
-        lines, _ = engine.analyze(
+        lines, _ = await run_in_executor(
+            engine.analyze,
             color,
-            visits=max(100, min(visits, 1200)),
-            interval=50,
-            duration=1.5,
-            extra_args=["rootInfo", "true"],
+            max(100, min(visits, 1200)),
+            50,
+            1.5,
+            ["rootInfo", "true"],
         )
         result = engine.parse_analysis(lines, [], game.size, to_move_color=color)
         for item in result.get("top_moves", []):
@@ -3376,7 +3390,8 @@ async def _pick_nonpass_fallback_move(
                     return gtp
     except Exception as exc:
         _engine_log(f"non-pass fallback failed: {exc}")
-    return None
+    response = await run_in_executor(engine.send_command, f"play {color} pass")
+    return response if response.lstrip().startswith("?") else None
 
 
 async def _pick_ranked_legal_move(
@@ -3388,6 +3403,10 @@ async def _pick_ranked_legal_move(
     time_limit: float = 1.5,
 ) -> Optional[str]:
     forbidden = forbidden or set()
+    extra_args = ["rootInfo", "true"]
+    if forbidden:
+        vertices = ",".join(coord_to_gtp(x, y, game.size) for x, y in sorted(forbidden))
+        extra_args.extend(["avoid", color, vertices, "1"])
     try:
         lines, _ = await run_in_executor(
             engine.analyze,
@@ -3395,7 +3414,7 @@ async def _pick_ranked_legal_move(
             max(120, min(visits, 1400)),
             50,
             time_limit,
-            ["rootInfo", "true"],
+            extra_args,
         )
         result = engine.parse_analysis(lines, [], game.size, to_move_color=color)
         candidates = []
@@ -3448,43 +3467,48 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
             return resp.replace("=", "").strip()
 
     gtp_move = await run_in_executor(_gen)
+    if await _report_ai_move_error(gtp_move, send_fn):
+        return
     if gtp_move.upper() == "RESIGN":
         gtp_move = await _ai_move_no_resign(game, color)
+        if await _report_ai_move_error(gtp_move, send_fn):
+            return
 
     if forbidden and gtp_move.upper() not in ("PASS", "RESIGN"):
         coord = gtp_to_coord(gtp_move, game.size)
         if coord and coord in forbidden:
-            with engine.command_lock:
-                engine._send_command_locked("undo")
+            response = await run_in_executor(engine.send_command, "undo")
+            if await _report_ai_move_error(response, send_fn):
+                return
             ranked = await _pick_ranked_legal_move(game, color, visits, forbidden, time_limit=1.2)
-            gtp_move = ranked or "pass"
+            if ranked:
+                gtp_move = ranked
+            else:
+                response = await run_in_executor(engine.send_command, f"play {color} pass")
+                if await _report_ai_move_error(response, send_fn):
+                    return
+                gtp_move = "pass"
 
     if _is_suspicious_ai_pass(game, gtp_move, color):
         fallback_move = await _pick_nonpass_fallback_move(game, color, visits, forbidden)
         if fallback_move:
             _engine_log(f"Suspicious early PASS in ultimate mode, replaced with {fallback_move}")
             gtp_move = fallback_move
+    if await _report_ai_move_error(gtp_move, send_fn):
+        return
 
     coord = gtp_to_coord(gtp_move, game.size)
     if gtp_move.upper() != "PASS" and coord:
         x, y = coord
         if game.board[y][x] != 0:
-            import time as _time
-            rng = random.Random(_time.time_ns())
-            empties = [(sx, sy) for sy in range(game.size) for sx in range(game.size)
-                       if game.board[sy][sx] == 0
-                       and game.is_legal_move(sx, sy, color)]
-            if empties:
-                x, y = rng.choice(empties)
-                gtp_move = coord_to_gtp(x, y, game.size)
-                coord = (x, y)
-            else:
-                gtp_move = "pass"
-                coord = None
+            await _report_ai_move_error(f"? AI 返回已占用点 {gtp_move}，已停止落子", send_fn)
+            return
 
     # Ko guard: if the AI move violates ko, play elsewhere (ko threat)
     if gtp_move.upper() != "PASS" and coord and game.is_ko(coord[0], coord[1], color):
         gtp_move = await _ai_retry_avoiding_ko(game, color)
+        if await _report_ai_move_error(gtp_move, send_fn):
+            return
         coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
 
     if allow_double_bonus:
@@ -3497,6 +3521,7 @@ async def _ultimate_ai_move(game: GoGame, send_fn,
         game.passed[color] = False
     else:
         game.passed[color] = True
+        game.ko_point = None
     await _check_capture_foul(game, send_fn, color, captured, ultimate=True)
 
     await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color,
@@ -3574,9 +3599,12 @@ async def _ai_move(game: GoGame, send_fn):
     ai_move_count = sum(1 for c, _ in game.moves if c == color)
 
     if "dice" in rogue_cards and random.random() < ROGUE_DICE_PASS_CHANCE:
-        await run_in_executor(engine.send_command, f"play {color} pass")
+        response = await run_in_executor(engine.send_command, f"play {color} pass")
+        if await _report_ai_move_error(response, send_fn):
+            return
         game.moves.append((color, "pass"))
         game.passed[color] = True
+        game.ko_point = None
         game.current_player = game.player_color
         _prepare_player_turn_modifiers(game)
         game.push_history()
@@ -3612,10 +3640,13 @@ async def _ai_move(game: GoGame, send_fn):
                         return
 
     if "exchange" in rogue_cards and game.rogue_skip_ai:
+        response = await run_in_executor(engine.send_command, f"play {color} pass")
+        if await _report_ai_move_error(response, send_fn):
+            return
         game.rogue_skip_ai = False
-        await run_in_executor(engine.send_command, f"play {color} pass")
         game.moves.append((color, "pass"))
         game.passed[color] = True
+        game.ko_point = None
         game.current_player = game.player_color
         _prepare_player_turn_modifiers(game)
         game.push_history()
@@ -3841,11 +3872,7 @@ async def _ai_move(game: GoGame, send_fn):
     else:
         gtp_move = None
         if not rogue_cards and game.ai_style != "balanced":
-            try:
-                analysis = await do_analysis(game)
-                gtp_move = _choose_ai_style_move(game, color, analysis.get("top_moves", []), game.ai_style)
-            except Exception:
-                gtp_move = None
+            gtp_move = await _pick_and_play_ai_style_move(game, color, visits, game.ai_style)
         if not gtp_move:
             def _genmove_atomic():
                 with engine.command_lock:
@@ -3864,7 +3891,7 @@ async def _ai_move(game: GoGame, send_fn):
             if game.game_over:
                 return
             if "?" in resp:
-                print(f"[AI] genmove returned error: {resp}")
+                await _report_ai_move_error(resp, send_fn)
                 return
             gtp_move = resp.replace("=", "").strip()
 
@@ -3873,10 +3900,14 @@ async def _ai_move(game: GoGame, send_fn):
         if fallback_move:
             _engine_log(f"Suspicious early PASS in rogue/normal mode, replaced with {fallback_move}")
             gtp_move = fallback_move
+    if await _report_ai_move_error(gtp_move, send_fn):
+        return
 
     if gtp_move.upper() == "RESIGN":
         if rogue_cards:
             gtp_move = await _ai_move_no_resign(game, color)
+            if await _report_ai_move_error(gtp_move, send_fn):
+                return
         else:
             game.game_over = True
             game.winner = game.player_color
@@ -3906,6 +3937,8 @@ async def _ai_move(game: GoGame, send_fn):
         _pre_coord = gtp_to_coord(gtp_move, game.size)
         if _pre_coord and game.is_ko(_pre_coord[0], _pre_coord[1], color):
             gtp_move = await _ai_retry_avoiding_ko(game, color)
+            if await _report_ai_move_error(gtp_move, send_fn):
+                return
             slip_msg = None
 
     game.moves.append((color, gtp_move))
@@ -3919,6 +3952,7 @@ async def _ai_move(game: GoGame, send_fn):
     else:
         coord = None
         game.passed[color] = True
+        game.ko_point = None
 
     extra_board_change = False
     if card == "sansan_trap" and coord in _get_sansan_points(game.size):
@@ -4013,9 +4047,11 @@ async def _ai_move_avoid_points(game, color, visits, time_limit, forbidden):
                gtp_move.upper() not in forbidden_gtp_upper:
                 return gtp_move
 
-            # Move hit a sealed point — undo and try with reduced visits
-            if gtp_move.upper() not in ("PASS", "RESIGN"):
-                engine._send_command_locked("undo")
+            # PASS is a real GTP move too; RESIGN leaves history unchanged.
+            if gtp_move.upper() != "RESIGN":
+                undo_resp = engine._send_command_locked("undo")
+                if undo_resp.lstrip().startswith("?"):
+                    return undo_resp
             # Try a few times with randomization
             for attempt in range(5):
                 v = max(50, visits // (2 + attempt))
@@ -4026,8 +4062,10 @@ async def _ai_move_avoid_points(game, color, visits, time_limit, forbidden):
                 if m.upper() not in ("PASS", "RESIGN") and \
                    m.upper() not in forbidden_gtp_upper:
                     return m
-                if m.upper() not in ("PASS", "RESIGN"):
-                    engine._send_command_locked("undo")
+                if m.upper() != "RESIGN":
+                    undo_resp = engine._send_command_locked("undo")
+                    if undo_resp.lstrip().startswith("?"):
+                        return undo_resp
             return None
 
     picked = await run_in_executor(_analyze_and_pick)
@@ -4050,8 +4088,8 @@ async def _ai_move_avoid_points(game, color, visits, time_limit, forbidden):
                 r = engine._send_command_locked(f"play {color} {gtp}")
                 if "?" not in r:
                     return gtp
-            engine._send_command_locked(f"play {color} pass")
-            return "pass"
+            response = engine._send_command_locked(f"play {color} pass")
+            return response if response.lstrip().startswith("?") else "pass"
 
     return await run_in_executor(_last_resort)
 
@@ -4079,13 +4117,19 @@ async def _ai_move_avoid_points_allow_only(game, color, visits, time_limit,
                 resp = engine._send_command_locked(
                     f"genmove {color}", timeout=15)
                 m = resp.replace("=", "").strip()
+                if m.lstrip().startswith("?"):
+                    engine._send_command_locked("kata-set-param maxTime -1")
+                    return m
                 if m.upper() in ("PASS", "RESIGN"):
                     engine._send_command_locked("kata-set-param maxTime -1")
                     return m
                 if m.upper() in allowed_gtp:
                     engine._send_command_locked("kata-set-param maxTime -1")
                     return m
-                engine._send_command_locked("undo")
+                undo_resp = engine._send_command_locked("undo")
+                if undo_resp.lstrip().startswith("?"):
+                    engine._send_command_locked("kata-set-param maxTime -1")
+                    return undo_resp
 
             # Fallback: pick a random allowed point
             engine._send_command_locked("kata-set-param maxTime -1")
@@ -4150,73 +4194,55 @@ async def _ai_move_no_resign(game, color: str) -> str:
                 m = resp.replace("=", "").strip()
                 if m.upper() != "RESIGN":
                     return m
-                engine._send_command_locked("undo")
+                # RESIGN does not commit a move. Undo would erase the
+                # opponent's preceding move and its ko history.
             # All retries still resign → force pass
-            engine._send_command_locked(f"play {color} pass")
-            return "pass"
+            response = engine._send_command_locked(f"play {color} pass")
+            return response if response.lstrip().startswith("?") else "pass"
 
     return await run_in_executor(_retry)
 
 
 async def _ai_retry_avoiding_ko(game, color):
-    """When AI's genmove landed on a ko point, undo and pick a different move.
-
-    Retries ``genmove`` with progressively lower visits (more randomisation).
-    If all retries still hit the ko point, falls back to a random legal
-    non-ko point.  Only passes as an absolute last resort.
-    """
-
-    def _retry():
+    """Undo one rejected move and search legal alternatives excluding the ko."""
+    def _undo_rejected_move():
         with engine.command_lock:
-            # Undo the ko-violating genmove that KataGo already played
-            engine._send_command_locked("undo")
+            return engine._send_command_locked("undo")
 
-            for attempt in range(5):
-                v = max(50, 800 // (2 + attempt))
-                engine._send_command_locked(f"kata-set-param maxVisits {v}")
-                engine._send_command_locked(
-                    f"kata-set-param maxTime 3")
-                resp = engine._send_command_locked(
-                    f"genmove {color}", timeout=10)
-                engine._send_command_locked("kata-set-param maxTime -1")
-                m = resp.replace("=", "").strip()
-                if m.upper() in ("PASS", "RESIGN"):
-                    return m
-                c = gtp_to_coord(m, game.size)
-                if not c or not game.is_ko(c[0], c[1], color):
-                    return m
-                # Still hitting ko — undo and try again
-                engine._send_command_locked("undo")
+    response = await run_in_executor(_undo_rejected_move)
+    if response.lstrip().startswith("?"):
+        return response
+    forbidden = {(x, y) for y in range(game.size) for x in range(game.size)
+                 if game.is_ko(x, y, color)}
+    ranked = await _pick_ranked_legal_move(
+        game, color, engine.current_visits, forbidden, time_limit=3.0,
+    )
+    if ranked:
+        return ranked
+    # Without a searched candidate, pass instead of choosing an arbitrary point.
+    response = await run_in_executor(engine.send_command, f"play {color} pass")
+    return response if response.lstrip().startswith("?") else "pass"
 
-            # All retries failed — pick a random legal non-ko point
-            empties = [
-                (x, y)
-                for y in range(game.size) for x in range(game.size)
-                if game.board[y][x] == 0
-                and game.is_legal_move(x, y, color)
-            ]
-            random.shuffle(empties)
-            for ax, ay in empties:
-                gtp = coord_to_gtp(ax, ay, game.size)
-                r = engine._send_command_locked(f"play {color} {gtp}")
-                if "?" not in r:
-                    return gtp
 
-            # Absolute last resort — pass
-            engine._send_command_locked(f"play {color} pass")
-            return "pass"
-
-    return await run_in_executor(_retry)
+async def _report_ai_move_error(gtp_move, send_fn):
+    if not gtp_move.lstrip().startswith("?"):
+        return False
+    await send_fn({"type": "error", "message": gtp_move.lstrip()[1:].strip()})
+    return True
 
 
 async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
     """Finalize a rogue-forced AI move: update game state and send messages."""
     if game.game_over:
         return
+    if await _report_ai_move_error(gtp_move, send_fn):
+        return
 
     if gtp_move.upper() == "RESIGN":
         if card:
             gtp_move = await _ai_move_no_resign(game, color)
+            if await _report_ai_move_error(gtp_move, send_fn):
+                return
         else:
             game.game_over = True
             game.winner = game.player_color
@@ -4228,6 +4254,8 @@ async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
     # Ko guard: if the AI move violates ko, play elsewhere (ko threat)
     if coord and gtp_move.upper() != "PASS" and game.is_ko(coord[0], coord[1], color):
         gtp_move = await _ai_retry_avoiding_ko(game, color)
+        if await _report_ai_move_error(gtp_move, send_fn):
+            return
         coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
 
     game.moves.append((color, gtp_move))
@@ -4238,6 +4266,7 @@ async def _finish_ai_move(game, send_fn, color, card, gtp_move, rogue_msg=None):
         game.passed[color] = False
     else:
         game.passed[color] = True
+        game.ko_point = None
     await _check_capture_foul(game, send_fn, color, captured, ultimate=False)
 
     game.current_player = game.player_color
@@ -4282,15 +4311,8 @@ async def _generate_ai_style_move(game: GoGame, color: str, visits: int, time_li
     style = game.ai_style
     if game.ai_observer:
         style = game.ai_style_black if color == "B" else game.ai_style_white
-    chosen = None
-    if style != "balanced":
-        try:
-            analysis = await do_analysis(game)
-            chosen = _choose_ai_style_move(game, color, analysis.get("top_moves", []), style)
-        except Exception:
-            chosen = None
+    chosen = await _pick_and_play_ai_style_move(game, color, visits, style)
     if chosen:
-        await run_in_executor(engine.send_command, f"play {color} {chosen}")
         return chosen
 
     def _genmove_atomic():
@@ -4323,11 +4345,18 @@ async def _run_coach_turn_if_needed(game: GoGame, send_fn):
     time_limit = min(MAX_MOVE_TIME, 8.0)
     gtp_move = await _generate_ai_style_move(game, color, visits, time_limit)
     if gtp_move.upper() == "RESIGN":
+        response = await run_in_executor(engine.send_command, f"play {color} pass")
+        if await _report_ai_move_error(response, send_fn):
+            return
         gtp_move = "pass"
+    if await _report_ai_move_error(gtp_move, send_fn):
+        return
     coord = gtp_to_coord(gtp_move, game.size)
     # Ko guard: play elsewhere instead of passing
     if coord and gtp_move.upper() != "PASS" and game.is_ko(coord[0], coord[1], color):
         gtp_move = await _ai_retry_avoiding_ko(game, color)
+        if await _report_ai_move_error(gtp_move, send_fn):
+            return
         coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
     captured = 0
     game.moves.append((color, gtp_move))
@@ -4336,6 +4365,7 @@ async def _run_coach_turn_if_needed(game: GoGame, send_fn):
         game.passed[color] = False
     else:
         game.passed[color] = True
+        game.ko_point = None
     game.current_player = game.ai_color
     game.rogue_coach_moves_left = max(0, game.rogue_coach_moves_left - 1)
     await _check_capture_foul(game, send_fn, color, captured, ultimate=False)
@@ -4368,6 +4398,16 @@ async def _run_ai_observer_loop(game: GoGame, send_fn):
                 fallback_move = await _pick_nonpass_fallback_move(game, color, visits)
                 if fallback_move:
                     gtp_move = fallback_move
+            if await _report_ai_move_error(gtp_move, send_fn):
+                return
+            if gtp_move.upper() == "RESIGN":
+                game.game_over = True
+                game.winner = "W" if color == "B" else "B"
+                game.push_history()
+                await send_fn({"type": "game_state", **game.to_state()})
+                await send_fn({"type": "game_over", "winner": game.winner,
+                               "score": None, "reason": "ai_resign"})
+                return
             coord = gtp_to_coord(gtp_move, game.size)
             captured = 0
             game.moves.append((color, gtp_move))
@@ -4376,6 +4416,7 @@ async def _run_ai_observer_loop(game: GoGame, send_fn):
                 game.passed[color] = False
             else:
                 game.passed[color] = True
+                game.ko_point = None
             await send_fn({"type": "ai_move", "gtp": gtp_move, "color": color, "x": coord[0] if coord else None, "y": coord[1] if coord else None})
             game.current_player = "W" if color == "B" else "B"
             game.push_history()
