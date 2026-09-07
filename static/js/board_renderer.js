@@ -166,36 +166,33 @@ function drawMoveNumbers() {
   ctx.restore();
 }
 
-function roundedRectPath(x, y, w, h, r) {
-  const rr = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + rr, y);
-  ctx.arcTo(x + w, y, x + w, y + h, rr);
-  ctx.arcTo(x + w, y + h, x, y + h, rr);
-  ctx.arcTo(x, y + h, x, y, rr);
-  ctx.arcTo(x, y, x + w, y, rr);
-  ctx.closePath();
-}
+const HINT_PALETTE = Object.freeze({ fill: "#2ed878", border: "#16452b", bestRing: "#e3ffd1", text: "#052c16" });
 
 function drawHintPercentChip(cx, cy, pct, rank) {
-  const chipR = Math.max(12, CELL * 0.27);
-  const hue = rank === 0 ? 88 : 84 - rank * 4;
+  // Fit the whole marker inside one intersection, including the best-move ring.
+  // Opaque fill keeps the green identical over wood, territory, and stone previews.
+  const chipR = Math.min(18, CELL * 0.43);
+  const borderWidth = Math.min(1.5, CELL * 0.07);
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,.14)";
-  ctx.shadowBlur = CELL * 0.12;
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
   ctx.beginPath();
   ctx.arc(cx, cy, chipR, 0, Math.PI * 2);
-  ctx.fillStyle = `hsla(${hue}, 42%, 58%, 0.88)`;
+  if (rank === 0) {
+    ctx.strokeStyle = HINT_PALETTE.bestRing;
+    ctx.lineWidth = borderWidth * 2;
+    ctx.stroke();
+  }
+  ctx.fillStyle = HINT_PALETTE.fill;
   ctx.fill();
-  ctx.strokeStyle = `hsla(${hue}, 38%, 24%, 0.86)`;
-  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = HINT_PALETTE.border;
+  ctx.lineWidth = borderWidth;
   ctx.stroke();
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = "#1f3216";
-  ctx.font = `700 ${Math.max(9, Math.min(13, CELL * 0.24))}px "Microsoft YaHei", sans-serif`;
+  ctx.fillStyle = HINT_PALETTE.text;
+  ctx.font = `700 ${Math.max(9, Math.min(14, CELL * 0.3))}px "Microsoft YaHei", sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(`${pct}%`, cx, cy);
+  ctx.fillText(`${pct}%`, cx, cy, chipR * 2 - borderWidth * 3);
   ctx.restore();
 }
 
@@ -214,40 +211,7 @@ function drawHints() {
     if (board && board[m.y][m.x] !== 0) return;
     const cx = PAD + m.x * CELL;
     const cy = PAD + m.y * CELL;
-    const box = CELL * (i === 0 ? 0.56 : 0.5);
     const pct = Math.round(m.winrate * 100);
-
-    if (i > 0) {
-      ctx.save();
-      roundedRectPath(cx - box / 2, cy - box / 2, box, box, box * 0.14);
-      ctx.fillStyle = `rgba(229,219,198,${0.16 - i * 0.025})`;
-      ctx.fill();
-      ctx.strokeStyle = `rgba(106,78,39,${0.12 - i * 0.014})`;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.restore();
-    } else {
-      const r = CELL * 0.43;
-      const g = ctx.createRadialGradient(
-        cx - r * 0.35, cy - r * 0.35, r * 0.1,
-        cx, cy, r
-      );
-      g.addColorStop(0, "rgba(76,74,65,.92)");
-      g.addColorStop(0.55, "rgba(32,31,28,.94)");
-      g.addColorStop(1, "rgba(13,12,10,.94)");
-      ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,.28)";
-      ctx.shadowBlur = CELL * 0.3;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = g;
-      ctx.fill();
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = "rgba(226,204,154,.13)";
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      ctx.restore();
-    }
     drawHintPercentChip(cx, cy, pct, i);
   });
 }
@@ -295,27 +259,6 @@ function drawReviewHints() {
     const cy = PAD + m.y * CELL;
     const pct = Math.round(m.winrate * 100);
 
-    if (i === 0) {
-      const r = CELL * 0.43;
-      const g = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.1, cx, cy, r);
-      g.addColorStop(0, "rgba(76,74,65,.86)");
-      g.addColorStop(0.55, "rgba(32,31,28,.9)");
-      g.addColorStop(1, "rgba(13,12,10,.9)");
-      ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,.28)";
-      ctx.shadowBlur = CELL * 0.3;
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = g; ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.restore();
-    } else {
-      const box = CELL * 0.5;
-      ctx.save();
-      roundedRectPath(cx - box / 2, cy - box / 2, box, box, box * 0.14);
-      ctx.fillStyle = `rgba(229,219,198,${0.15 - i * 0.024})`;
-      ctx.fill();
-      ctx.restore();
-    }
     drawHintPercentChip(cx, cy, pct, i);
   });
 }
@@ -327,12 +270,6 @@ function render() {
   drawTerritory();
   drawStones();
   drawRogueMarks();
-  if (reviewMode) {
-    drawReviewHints();
-  } else {
-    drawHints();
-  }
-
   if (!reviewMode) {
     const canClick = twoPlayerMode ? (gameState && !gameState.game_over) : isMyTurn;
     const hoverColor = twoPlayerMode ? (gameState && gameState.current_player) || myColor : myColor;
@@ -353,6 +290,12 @@ function render() {
         }
       }
     }
+  }
+  // A translucent hover stone must not tint or obscure a recommendation.
+  if (reviewMode) {
+    drawReviewHints();
+  } else {
+    drawHints();
   }
   updateFinetuneUI();
 }
