@@ -54,6 +54,8 @@ async def handle_pass(ctx: WebSocketActionContext, data: dict) -> None:
         ctx.record_ultimate_player_action(game)
         game.moves.append((color, "pass"))
         game.passed[color] = True
+        game.ko_point = None
+        game.last_captured_points = []
         game.current_player = "W" if color == "B" else "B"
         game.ultimate_double_pending = False
         ctx.finish_ultimate_quickthink_turn(game)
@@ -71,6 +73,8 @@ async def handle_pass(ctx: WebSocketActionContext, data: dict) -> None:
         await ctx.run_in_executor(ctx.engine.send_command, f"play {color} pass")
     game.moves.append((color, "pass"))
     game.passed[color] = True
+    game.ko_point = None
+    game.last_captured_points = []
     game.current_player = "W" if color == "B" else "B"
     if game.rogue_card == "quickthink":
         game.rogue_quickthink_stage = 0

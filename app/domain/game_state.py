@@ -264,9 +264,13 @@ class GoGame:
     def rebuild_board(self, *, strict: bool = False) -> bool:
         self.board = [[0] * self.size for _ in range(self.size)]
         self.captures = {"B": 0, "W": 0}
+        self.ko_point = None
+        self.last_captured_points = []
         valid = True
         for color, gtp in self.moves:
             if gtp.upper() == "PASS":
+                self.ko_point = None
+                self.last_captured_points = []
                 continue
             coord = gtp_to_coord(gtp, self.size)
             if coord is None or self.board[coord[1]][coord[0]] != 0:

@@ -103,6 +103,8 @@ async def choose_ultimate_ai_move(
 
     if gtp_move.upper() != "PASS" and coord and game.is_ko(coord[0], coord[1], color):
         gtp_move = await retry_avoiding_ko(game, color)
+        if is_engine_error_response(gtp_move):
+            return UltimateAiMoveChoice("pass", None, engine_error_message(gtp_move))
         coord = gtp_to_coord(gtp_move, game.size) if gtp_move.upper() not in ("PASS", "RESIGN") else None
 
     return UltimateAiMoveChoice(gtp_move=gtp_move, coord=coord)

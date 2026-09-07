@@ -23,4 +23,6 @@ def place_auxiliary_ai_move_on_board(
         game.passed[color] = False
     else:
         game.passed[color] = True
+        game.ko_point = None
+        game.last_captured_points = []
     return AiMovePlacement(coord=coord, captured=captured)

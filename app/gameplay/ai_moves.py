@@ -454,6 +454,10 @@ class AiMoveService:
         time_limit: float = 1.5,
     ) -> Optional[str]:
         forbidden = forbidden or set()
+        extra_args = ["rootInfo", "true"]
+        if forbidden:
+            vertices = ",".join(self._coord_to_gtp(x, y, game.size) for x, y in sorted(forbidden))
+            extra_args.extend(["avoid", color, vertices, "1"])
         try:
             lines, _ = await self._run_in_executor(
                 self._engine.analyze,
@@ -461,7 +465,7 @@ class AiMoveService:
                 max(120, min(visits, 1400)),
                 50,
                 time_limit,
-                ["rootInfo", "true"],
+                extra_args,
             )
             result = self._engine.parse_analysis(lines, [], game.size, to_move_color=color)
             candidates = []
@@ -520,8 +524,10 @@ class AiMoveService:
                 ):
                     return gtp_move
 
-                if gtp_move.upper() not in ("PASS", "RESIGN"):
-                    self._engine._send_command_locked("undo")
+                if gtp_move.upper() != "RESIGN":
+                    undo_resp = self._engine._send_command_locked("undo")
+                    if undo_resp.lstrip().startswith("?"):
+                        return undo_resp
                 for attempt in range(5):
                     v = max(50, visits // (2 + attempt))
                     self._engine._send_command_locked(f"kata-set-param maxVisits {v}")
@@ -532,8 +538,10 @@ class AiMoveService:
                         and m.upper() not in forbidden_gtp_upper
                     ):
                         return m
-                    if m.upper() not in ("PASS", "RESIGN"):
-                        self._engine._send_command_locked("undo")
+                    if m.upper() != "RESIGN":
+                        undo_resp = self._engine._send_command_locked("undo")
+                        if undo_resp.lstrip().startswith("?"):
+                            return undo_resp
                 return None
 
         picked = await self._run_in_executor(_analyze_and_pick)
@@ -683,45 +691,37 @@ class AiMoveService:
                     m = resp.replace("=", "").strip()
                     if m.upper() != "RESIGN":
                         return m
-                    self._engine._send_command_locked("undo")
+                    # Resigning does not place a move; undo would remove the
+                    # opponent's preceding move and lose the ko history.
                 self._engine._send_command_locked(f"play {color} pass")
                 return "pass"
 
         return await self._run_in_executor(_retry)
 
     async def retry_avoiding_ko(self, game: Any, color: str) -> str:
-        def _retry():
+        def _undo_rejected_move():
             with self._engine.command_lock:
-                self._engine._send_command_locked("undo")
+                return self._engine._send_command_locked("undo")
 
-                for attempt in range(5):
-                    v = max(50, 800 // (2 + attempt))
-                    self._engine._send_command_locked(f"kata-set-param maxVisits {v}")
-                    self._engine._send_command_locked("kata-set-param maxTime 3")
-                    resp = self._engine._send_command_locked(f"genmove {color}", timeout=10)
-                    self._clear_max_time_locked()
-                    m = resp.replace("=", "").strip()
-                    if m.upper() in ("PASS", "RESIGN"):
-                        return m
-                    coord = self._gtp_to_coord(m, game.size)
-                    if not coord or not game.is_ko(coord[0], coord[1], color):
-                        return m
-                    self._engine._send_command_locked("undo")
+        response = await self._run_in_executor(_undo_rejected_move)
+        if response.lstrip().startswith("?"):
+            return response
 
-                empties = [
-                    (x, y)
-                    for y in range(game.size) for x in range(game.size)
-                    if game.board[y][x] == 0
-                    and game.is_legal_move(x, y, color)
-                ]
-                random.shuffle(empties)
-                for ax, ay in empties:
-                    gtp = self._coord_to_gtp(ax, ay, game.size)
-                    r = self._engine._send_command_locked(f"play {color} {gtp}")
-                    if "?" not in r:
-                        return gtp
+        forbidden = {
+            (x, y) for y in range(game.size) for x in range(game.size)
+            if game.is_ko(x, y, color)
+        }
+        ranked = await self.pick_ranked_legal_move(
+            game, color, self._engine.current_visits, forbidden, time_limit=3.0,
+        )
+        if ranked:
+            return ranked
 
-                self._engine._send_command_locked(f"play {color} pass")
-                return "pass"
+        # A constrained search can have no usable candidate. Passing is a valid
+        # outcome; an arbitrary empty point is not a searched ko threat.
+        def _pass():
+            with self._engine.command_lock:
+                response = self._engine._send_command_locked(f"play {color} pass")
+                return response if response.lstrip().startswith("?") else "pass"
 
-        return await self._run_in_executor(_retry)
+        return await self._run_in_executor(_pass)

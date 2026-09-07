@@ -182,6 +182,8 @@ async def finalize_forced_ai_pass(
     await run_engine_command(f"play {color} pass")
     game.moves.append((color, "pass"))
     game.passed[color] = True
+    game.ko_point = None
+    game.last_captured_points = []
     game.current_player = game.player_color
     prepare_player_turn_modifiers(game)
     game.push_history()
@@ -693,6 +695,8 @@ def apply_ai_move_to_board(
 
     if gtp_move.upper() == "PASS":
         game.passed[color] = True
+        game.ko_point = None
+        game.last_captured_points = []
         return AiMovePlacement(coord=None)
 
     coord = gtp_to_coord(gtp_move, game.size)
@@ -1029,6 +1033,9 @@ async def prepare_generated_ai_move(
         gtp_to_coord=gtp_to_coord,
         retry_avoiding_ko=retry_avoiding_ko,
     )
+    if is_engine_error_response(ko_result.gtp_move):
+        await send_fn({"type": "error", "message": engine_error_message(ko_result.gtp_move)})
+        return AiMovePreparation(ko_result.gtp_move, completed=True)
 
     return AiMovePreparation(
         ko_result.gtp_move,

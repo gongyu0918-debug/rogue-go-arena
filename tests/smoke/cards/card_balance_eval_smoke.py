@@ -6,6 +6,7 @@ ensure_repo_root(__file__)
 
 import asyncio
 import sys
+from unittest.mock import AsyncMock, patch
 
 sys.argv = ["card_balance_eval.py"]
 
@@ -90,9 +91,14 @@ async def exercise_ultimate_quickthink_window() -> None:
         s._ultimate_ai_move = fake_ai_move
         s.ULTIMATE_QUICKTHINK_SECONDS = 3
 
-        first = await balance.play_player_ultimate_turn(game)
-        second = await balance.play_player_ultimate_turn(game)
-        third = await balance.play_player_ultimate_turn(game)
+        # This is a turn-tempo test: move selection and the AI are already fake.
+        # Stub the engine sync boundary too instead of using an unstarted KataGo.
+        with patch.object(s, "_sync_board_to_katago", new_callable=AsyncMock) as sync_board:
+            first = await balance.play_player_ultimate_turn(game)
+            second = await balance.play_player_ultimate_turn(game)
+            third = await balance.play_player_ultimate_turn(game)
+            assert sync_board.await_count == 3
+            sync_board.assert_awaited_with(game)
 
         assert first == {"extra_turns": 1, "skipped_ai_turns": 1}
         assert second == {"extra_turns": 1, "skipped_ai_turns": 1}
@@ -127,7 +133,9 @@ async def exercise_ultimate_final_turn_tempo() -> None:
         balance.choose_legal_player_move = fake_choose
         s._ultimate_force_score = fake_force_score
 
-        tempo = await balance.play_player_ultimate_turn(game)
+        with patch.object(s, "_sync_board_to_katago", new_callable=AsyncMock) as sync_board:
+            tempo = await balance.play_player_ultimate_turn(game)
+            sync_board.assert_awaited_with(game)
         assert tempo == {"extra_turns": 0, "skipped_ai_turns": 0}
         assert game.game_over
     finally:

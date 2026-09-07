@@ -91,6 +91,8 @@ def apply_ultimate_ai_move_result(
         return captured
 
     game.passed[color] = True
+    game.ko_point = None
+    game.last_captured_points = []
     return 0
 
 

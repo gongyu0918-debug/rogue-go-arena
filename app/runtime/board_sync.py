@@ -6,21 +6,69 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from app.domain.coordinates import gtp_to_coord
+from app.domain.game_state import GoGame
+from app.domain.sgf import gtp_to_sgf
+
+
+def _matches_replayed_position(game: Any, board: list[list[int]], moves: list) -> bool:
+    replay = GoGame(size=game.size, komi=game.komi)
+    replay.board = [row[:] for row in board]
+    for color, move in moves:
+        if color not in {"B", "W"}:
+            return False
+        if move.upper() == "PASS":
+            replay.ko_point = None
+            continue
+        coord = gtp_to_coord(move, game.size)
+        if coord is None or replay.board[coord[1]][coord[0]] != 0:
+            return False
+        if replay.place_stone(*coord, color) < 0:
+            return False
+    return replay.board == game.board and replay.ko_point == getattr(game, "ko_point", None)
+
+
+def _sync_position(game: Any) -> tuple[list[list[int]], list]:
+    moves = list(getattr(game, "moves", []))
+    empty_board = [[0] * game.size for _ in range(game.size)]
+    if _matches_replayed_position(game, empty_board, moves):
+        return empty_board, moves
+
+    # Cards can change the board without a normal move. Keep that exact setup,
+    # but reconstruct and replay the latest ko capture so the engine sees its ban.
+    ko = getattr(game, "ko_point", None)
+    if ko is not None and moves:
+        color, move = moves[-1]
+        coord = gtp_to_coord(move, game.size)
+        if coord is not None and ko[2] == (2 if color == "B" else 1):
+            before_capture = [row[:] for row in game.board]
+            before_capture[coord[1]][coord[0]] = 0
+            before_capture[ko[1]][ko[0]] = ko[2]
+            if _matches_replayed_position(game, before_capture, [moves[-1]]):
+                return before_capture, [moves[-1]]
+    return game.board, []
+
 
 def build_board_sync_sgf(game: Any) -> str:
+    board, moves = _sync_position(game)
     sgf = f"(;GM[1]FF[4]CA[UTF-8]RU[chinese]SZ[{game.size}]KM[{game.komi}]"
+    first_player = moves[0][0] if moves else getattr(game, "current_player", None)
+    if first_player in {"B", "W"}:
+        sgf += f"PL[{first_player}]"
     blacks: list[str] = []
     whites: list[str] = []
     for y in range(game.size):
         for x in range(game.size):
-            if game.board[y][x] == 1:
+            if board[y][x] == 1:
                 blacks.append(f"{chr(ord('a') + x)}{chr(ord('a') + y)}")
-            elif game.board[y][x] == 2:
+            elif board[y][x] == 2:
                 whites.append(f"{chr(ord('a') + x)}{chr(ord('a') + y)}")
     if blacks:
         sgf += "AB" + "".join(f"[{point}]" for point in blacks)
     if whites:
         sgf += "AW" + "".join(f"[{point}]" for point in whites)
+    for color, move in moves:
+        sgf += f";{color}[{gtp_to_sgf(move, game.size)}]"
     return sgf + ")"
 
 
@@ -79,5 +127,7 @@ def sync_board_to_katago_locked(
         process_id=process_id,
     )
     Path(path).write_text(sgf, encoding="utf-8")
-    engine._send_command_locked(f"loadsgf {path}")
+    response = engine._send_command_locked(f"loadsgf {path}")
+    if response.lstrip().startswith("?"):
+        raise RuntimeError(f"KataGo board sync failed: {response}")
     return path
