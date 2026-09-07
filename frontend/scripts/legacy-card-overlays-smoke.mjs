@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import { launchBrowser } from "./smoke-browser.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const screenshotPath = path.join(repoRoot, "output", "legacy-card-overlays.png");
@@ -52,14 +52,6 @@ async function startStaticServer() {
     server,
     url: `http://127.0.0.1:${address.port}/?lang=zh`,
   };
-}
-
-async function launchBrowser() {
-  try {
-    return await chromium.launch({ channel: "msedge", headless: true });
-  } catch {
-    return chromium.launch({ headless: true });
-  }
 }
 
 const { server, url } = await startStaticServer();

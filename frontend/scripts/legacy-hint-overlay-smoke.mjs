@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import { launchBrowser } from "./smoke-browser.mjs";
 
 const urlArg = process.argv.find(arg => arg.startsWith("--url="));
 const targetUrl = urlArg ? urlArg.slice(6) : "http://127.0.0.1:8876/?lang=zh";
@@ -9,14 +9,6 @@ const viewports = [{ width: 900, height: 600 }, { width: 1366, height: 768 }, { 
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
-}
-
-async function launchBrowser() {
-  try {
-    return await chromium.launch({ channel: "msedge", headless: true });
-  } catch {
-    return chromium.launch({ headless: true });
-  }
 }
 
 async function inspectHints(page) {

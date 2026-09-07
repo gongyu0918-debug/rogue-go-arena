@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { launchBrowser } from "./smoke-browser.mjs";
 
 const DEFAULT_URL = "http://127.0.0.1:8876/";
 const urlArg = process.argv.find((arg) => arg.startsWith("--url="));
@@ -6,14 +6,6 @@ const targetUrl = withLanguageParam(
   urlArg ? urlArg.slice("--url=".length) : process.env.LEGACY_RUNTIME_HELPERS_URL || DEFAULT_URL,
   "zh"
 );
-
-async function launchBrowser() {
-  try {
-    return await chromium.launch({ channel: "msedge", headless: true });
-  } catch {
-    return chromium.launch({ headless: true });
-  }
-}
 
 function withLanguageParam(rawUrl, lang) {
   const url = new URL(rawUrl);

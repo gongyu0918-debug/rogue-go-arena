@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { launchBrowser } from "./smoke-browser.mjs";
 
 const DEFAULT_URL = "http://127.0.0.1:8876/";
 const urlArg = process.argv.find((arg) => arg.startsWith("--url="));
@@ -28,14 +28,6 @@ const expectedMessageTypes = [
   "ultimate_offer",
   "ultimate_cards_selected",
 ];
-
-async function launchBrowser() {
-  try {
-    return await chromium.launch({ channel: "msedge", headless: true });
-  } catch {
-    return chromium.launch({ headless: true });
-  }
-}
 
 function withLanguageParam(rawUrl, lang) {
   const url = new URL(rawUrl);

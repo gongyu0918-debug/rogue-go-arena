@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { launchBrowser } from "./smoke-browser.mjs";
 import { verifyVisualEffectRegressions } from "./legacy-visual-effects-regressions.mjs";
 
 const DEFAULT_URL = "http://127.0.0.1:8876/";
@@ -8,14 +8,6 @@ const targetUrl = withLanguageParam(
   "zh"
 );
 
-async function launchBrowser() {
-  try {
-    return await chromium.launch({ channel: "msedge", headless: true });
-  } catch {
-    return chromium.launch({ headless: true });
-  }
-}
-
 function withLanguageParam(rawUrl, lang) {
   const url = new URL(rawUrl);
   url.searchParams.set("lang", lang);
@@ -24,6 +16,14 @@ function withLanguageParam(rawUrl, lang) {
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+function assertRgbaColor(actual, expected, message) {
+  // WebView2 109 inserts a leading zero in alpha values stored in custom properties.
+  const match = actual.trim().match(/^rgba\(([^)]+)\)$/);
+  const channels = match?.[1].split(",").map(channel => Number(channel.trim()));
+  assert(channels?.length === expected.length && channels.every((channel, index) => channel === expected[index]),
+    `${message}: ${actual}`);
 }
 
 const browser = await launchBrowser();
@@ -267,9 +267,9 @@ try {
   assert(state.cardFxState.title.includes("傀儡"), `card banner title changed: ${state.cardFxState.title}`);
   assert(state.cardFxState.desc.length === 0, "card banner repeated the same title as its description");
   assert(state.cardFxState.particles === 12 && state.cardFxState.rings === 1, `card particle budget changed: ${JSON.stringify(state.cardFxState)}`);
-  assert(state.cardFxState.firstParticleCore === "rgba(196,170,255,.95)", `puppet particle core changed: ${state.cardFxState.firstParticleCore}`);
-  assert(state.cardFxState.firstParticleGlow === "rgba(112,78,255,.85)", `puppet particle glow changed: ${state.cardFxState.firstParticleGlow}`);
-  assert(state.cardFxState.ringColor === "rgba(196,170,255,.95)", `puppet ring color changed: ${state.cardFxState.ringColor}`);
+  assertRgbaColor(state.cardFxState.firstParticleCore, [196, 170, 255, .95], "puppet particle core changed");
+  assertRgbaColor(state.cardFxState.firstParticleGlow, [112, 78, 255, .85], "puppet particle glow changed");
+  assertRgbaColor(state.cardFxState.ringColor, [196, 170, 255, .95], "puppet ring color changed");
   assert(state.cardFxXssState.probe === 0 && state.cardFxXssState.images === 0, `card effect banner executed markup: ${JSON.stringify(state.cardFxXssState)}`);
   assert(state.godHandState.flashes === 1, `god hand flash did not spawn: ${state.godHandState.flashes}`);
   assert(state.fogState.veils === 1 && state.fogState.clouds === 3, `fog effect changed: ${JSON.stringify(state.fogState)}`);
@@ -282,6 +282,7 @@ try {
 
   console.log(JSON.stringify({
     ok: true,
+    browserVersion: browser.version(),
     animations: state.animationQueuedState.count,
     particles: state.cardFxState.particles,
     sparks: state.sparkState.count,

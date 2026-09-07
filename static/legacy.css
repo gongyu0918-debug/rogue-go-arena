@@ -42,6 +42,7 @@ body::after {
 }
 body::before {
   background: none;
+  -webkit-mask-image: none;
   mask-image: none;
 }
 body::after {
@@ -2121,6 +2122,8 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
     linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px),
     linear-gradient(180deg, rgba(255,255,255,.04) 1px, transparent 1px);
   background-size: 34px 34px;
+  /* Edge/WebView2 109 implements CSS masks with the WebKit prefix. */
+  -webkit-mask-image: radial-gradient(circle at center, black 12%, transparent 74%);
   mask-image: radial-gradient(circle at center, black 12%, transparent 74%);
   opacity: .22;
   animation: fogPulse 1.5s ease-out forwards;
@@ -2240,6 +2243,7 @@ body::after {
     linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
   background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(circle at center, transparent 0, black 78%);
   mask-image: radial-gradient(circle at center, transparent 0, black 78%);
   opacity: .35;
 }

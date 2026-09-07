@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { launchBrowser } from "./smoke-browser.mjs";
 
 const DEFAULT_URL = "http://127.0.0.1:8876/";
 const urlArg = process.argv.find((arg) => arg.startsWith("--url="));
@@ -6,14 +6,6 @@ const targetUrl = withLanguageParam(
   urlArg ? urlArg.slice("--url=".length) : process.env.LEGACY_BOOTSTRAP_URL || DEFAULT_URL,
   "zh"
 );
-
-async function launchBrowser() {
-  try {
-    return await chromium.launch({ channel: "msedge", headless: true });
-  } catch {
-    return chromium.launch({ headless: true });
-  }
-}
 
 function withLanguageParam(rawUrl, lang) {
   const url = new URL(rawUrl);
@@ -143,7 +135,7 @@ try {
   assert(initialState.stateGlobals.analysis.analysisReady === false, `analysis.analysis_ready default changed: ${JSON.stringify(initialState.stateGlobals)}`);
   assert(initialState.stateGlobals.analysisReady === false, `analysis ready default changed: ${JSON.stringify(initialState.stateGlobals)}`);
   assert(initialState.stateGlobals.winrateHistoryLength === 0, `winrate history default changed: ${JSON.stringify(initialState.stateGlobals)}`);
-  assert(initialState.stylesheetState.legacyStylesheetHref === "/static/legacy.css?v=20260603a", `legacy stylesheet link changed: ${JSON.stringify(initialState.stylesheetState)}`);
+  assert(/^\/static\/legacy\.css\?v=[\w.-]+$/.test(initialState.stylesheetState.legacyStylesheetHref), `versioned legacy stylesheet link missing: ${JSON.stringify(initialState.stylesheetState)}`);
   assert(initialState.stylesheetState.inlineStyleTags === 0, `index.html still has inline style tags: ${JSON.stringify(initialState.stylesheetState)}`);
   assert(initialState.stylesheetState.bodyDisplay === "flex", `legacy stylesheet did not apply body layout: ${JSON.stringify(initialState.stylesheetState)}`);
   assert(initialState.stylesheetState.boardContainerPosition === "relative", `legacy stylesheet did not apply board container layout: ${JSON.stringify(initialState.stylesheetState)}`);

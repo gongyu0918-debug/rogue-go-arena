@@ -132,13 +132,28 @@ async function delayedGpuDefaults(page, releaseGpu) {
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await page.mouse.wheel(0, 450);
   await page.waitForFunction(() => document.querySelector(".wood-select-popover.open")?.scrollTop > 0);
+  // Wheel scrolling is asynchronous in old Chromium. Compare after the input
+  // has settled so continued scrolling is not mistaken for a label-sync reset.
+  await menu.evaluate(element => new Promise(resolve => {
+    let last = element.scrollTop;
+    let stableFrames = 0;
+    const check = () => {
+      const current = element.scrollTop;
+      stableFrames = current === last ? stableFrames + 1 : 0;
+      last = current;
+      if (stableFrames >= 6) resolve();
+      else requestAnimationFrame(check);
+    };
+    requestAnimationFrame(check);
+  }));
   const scrollTop = await menu.evaluate(element => element.scrollTop);
   releaseGpu();
   await page.waitForFunction(() => document.querySelector("#sel-level option[value='a1d']")?.dataset.slowMarked === "1");
   assert(await page.locator("#sel-level").inputValue() === "10k", "late GPU response overwrote the user's rank selection");
   assert(await page.locator("#sel-level-black").inputValue() === "5k", "GPU default was not applied to an untouched rank");
   assert(await page.locator("#sel-level-white").inputValue() === "5k", "GPU default was not applied to the untouched white rank");
-  assert(await menu.evaluate(element => element.scrollTop) === scrollTop, "asynchronous option-label sync reset the open rank list scroll position");
+  const afterSyncScrollTop = await menu.evaluate(element => element.scrollTop);
+  assert(afterSyncScrollTop === scrollTop, `asynchronous option-label sync changed the open rank list scroll position: ${scrollTop} -> ${afterSyncScrollTop}`);
   const amateurIndex = await page.locator("#sel-level").evaluate(select => Array.from(select.options).findIndex(option => option.value === "a1d"));
   assert((await menu.locator(".wood-select-option").nth(amateurIndex).textContent()).includes("⚠"), "open menu labels did not refresh after GPU detection");
 }

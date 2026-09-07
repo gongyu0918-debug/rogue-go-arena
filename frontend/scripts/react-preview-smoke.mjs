@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { launchBrowser } from "./smoke-browser.mjs";
 
 const DEFAULT_URL = "http://127.0.0.1:8876/react-preview";
 const urlArg = process.argv.find((arg) => arg.startsWith("--url="));
@@ -23,7 +23,7 @@ function isCanvasNonblank(canvas) {
   return false;
 }
 
-const browser = await chromium.launch({ channel: "msedge", headless: true });
+const browser = await launchBrowser();
 const results = [];
 
 try {
