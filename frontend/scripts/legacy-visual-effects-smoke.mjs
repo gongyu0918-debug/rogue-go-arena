@@ -1,0 +1,292 @@
+import { launchBrowser } from "./smoke-browser.mjs";
+import { verifyVisualEffectRegressions } from "./legacy-visual-effects-regressions.mjs";
+
+const DEFAULT_URL = "http://127.0.0.1:8891/";
+const urlArg = process.argv.find((arg) => arg.startsWith("--url="));
+const targetUrl = withLanguageParam(
+  urlArg ? urlArg.slice("--url=".length) : process.env.LEGACY_VISUAL_EFFECTS_URL || DEFAULT_URL,
+  "zh"
+);
+
+function withLanguageParam(rawUrl, lang) {
+  const url = new URL(rawUrl);
+  url.searchParams.set("lang", lang);
+  return url.toString();
+}
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+function normalizedColor(value) {
+  return value.replace(/\s+/g, "").replace(/,0\./g, ",.");
+}
+
+const browser = await launchBrowser();
+const page = await browser.newPage({ viewport: { width: 1366, height: 768 }, deviceScaleFactor: 1 });
+const errors = [];
+
+page.on("pageerror", (error) => errors.push(error.message));
+page.on("console", (message) => {
+  if (message.type() === "error") errors.push(message.text());
+});
+
+try {
+  await page.goto(targetUrl, { waitUntil: "domcontentloaded" });
+  await page.locator("#board-canvas").waitFor({ state: "visible", timeout: 10000 });
+
+  const state = await page.evaluate(async () => {
+    const fxLayer = document.querySelector("#board-fx-layer");
+    const globalLayer = document.querySelector("#global-fx-layer");
+    const overlaySparks = document.querySelector("#overlay-sparks");
+    const clearFx = () => {
+      if (fxLayer) fxLayer.innerHTML = "";
+      if (globalLayer) globalLayer.innerHTML = "";
+      if (overlaySparks) overlaySparks.innerHTML = "";
+    };
+
+    const publicFns = [
+      typeof window.getAudioCtx,
+      typeof window.playStoneSound,
+      typeof window.playCaptureSound,
+      typeof window.playTimerWarningSound,
+      typeof window.addPlaceAnimation,
+      typeof window.addCaptureAnimation,
+      typeof window.triggerBoardIntro,
+      typeof window.attachButtonRipples,
+      typeof window.spawnOverlaySparks,
+      typeof window.inferEffectTheme,
+      typeof window.showCardEffectVisual,
+      typeof window.playGodHandFlash,
+      typeof window.playFogFlowEffect,
+      typeof window.playSanrenseiConstellation,
+      typeof window.playFiveInRowBurst,
+      typeof window.playLastStandPulse,
+      typeof window.triggerSignatureCardEffect,
+      typeof window.startAnimLoop,
+    ];
+
+    soundEnabled = false;
+    audioCtx = null;
+    playStoneSound();
+    playCaptureSound(2);
+    playTimerWarningSound();
+    const soundDisabledState = {
+      soundEnabled,
+      audioCtxIsNull: audioCtx === null,
+    };
+    soundEnabled = true;
+
+    const originalRender = render;
+    window.__visualFxSmoke = { renderCalls: 0 };
+    render = window.render = () => {
+      window.__visualFxSmoke.renderCalls += 1;
+    };
+    animations = [];
+    animFrameId = null;
+    addPlaceAnimation(1, 2);
+    addCaptureAnimation([[3, 4, "B"], [5, 6, "W"]]);
+    const animationQueuedState = {
+      count: animations.length,
+      hasPlace: animations.some(a => a.type === "place" && a.x === 1 && a.y === 2),
+      captureCount: animations.filter(a => a.type === "capture").length,
+      animFrameIsSet: animFrameId !== null,
+    };
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    animations = [];
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    const animationLoopState = {
+      renderCalls: window.__visualFxSmoke.renderCalls,
+      animFrameIsNull: animFrameId === null,
+    };
+    render = window.render = originalRender;
+
+    triggerBoardIntro();
+    const boardIntroState = {
+      played: boardIntroPlayed,
+      className: document.querySelector("#board-container")?.className || "",
+    };
+
+    const setupButton = document.querySelector("#btn-setup");
+    setupButton.dataset.rippleBound = "";
+    attachButtonRipples();
+    const rippleBound = setupButton.dataset.rippleBound === "1";
+    setupButton.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 8, clientY: 8 }));
+    const rippleCount = setupButton.querySelectorAll(".btn-ripple").length;
+
+    clearFx();
+    spawnOverlaySparks("victory");
+    const sparkState = {
+      count: document.querySelectorAll("#overlay-sparks .overlay-spark").length,
+    };
+
+    const themeState = {
+      puppet: inferEffectTheme("傀儡术发动").key,
+      fog: inferEffectTheme("Fog of War").key,
+      fallback: inferEffectTheme("unknown smoke event").key,
+    };
+    const themeCases = {
+      puppet: "傀儡术发动",
+      twin: "双子星辰",
+      exchange: "Swap Turn",
+      fog: "Fog of War",
+      seal: "封印",
+      god_hand: "神之一手",
+      sanrensei: "三连星",
+      corner_helper: "守角",
+      foolish_wisdom: "大智若愚",
+      five_in_row: "Five in a Row",
+      last_stand: "Last Stand",
+      mirror: "Mirror",
+      slip: "Butter",
+    };
+    const allThemeKeys = Object.fromEntries(
+      Object.entries(themeCases).map(([expectedKey, message]) => [expectedKey, inferEffectTheme(message).key])
+    );
+    const previousLang = currentLang;
+    // The HTML branch keeps its bilingual strings inline.
+    currentLang = "en";
+    const englishThemeTitle = inferEffectTheme("Puppet").title;
+    currentLang = previousLang;
+
+    clearFx();
+    showCardEffectVisual("傀儡术发动", "rogue");
+    const firstParticle = document.querySelector("#board-fx-layer .fx-particle");
+    const fxRing = document.querySelector("#board-fx-layer .fx-ring");
+    const cardFxState = {
+      bannerClass: document.querySelector("#board-fx-layer .fx-banner")?.className || "",
+      title: document.querySelector("#board-fx-layer .fx-banner-title")?.textContent || "",
+      desc: document.querySelector("#board-fx-layer .fx-banner-desc")?.textContent || "",
+      particles: document.querySelectorAll("#board-fx-layer .fx-particle").length,
+      rings: document.querySelectorAll("#board-fx-layer .fx-ring").length,
+      firstParticleCore: firstParticle?.style.getPropertyValue("--core") || "",
+      firstParticleGlow: firstParticle?.style.getPropertyValue("--glow") || "",
+      ringColor: fxRing?.style.getPropertyValue("--ring") || "",
+    };
+
+    clearFx();
+    window.__cardFxXssProbe = 0;
+    showCardEffectVisual("<img src=x onerror='window.__cardFxXssProbe=1'>", "rogue");
+    await new Promise(resolve => setTimeout(resolve, 20));
+    const cardFxXssState = {
+      probe: window.__cardFxXssProbe,
+      desc: document.querySelector("#board-fx-layer .fx-banner-desc")?.textContent || "",
+      images: document.querySelectorAll("#board-fx-layer .fx-banner-desc img").length,
+    };
+
+    clearFx();
+    playGodHandFlash();
+    const godHandState = {
+      flashes: document.querySelectorAll("#global-fx-layer .fx-godflash").length,
+    };
+
+    clearFx();
+    PAD = 20;
+    CELL = 30;
+    boardSize = 9;
+    gameState = { size: 9 };
+    rogueSeals = [[1, 1], [2, 2]];
+    playFogFlowEffect([[1, 1], [2, 2], [3, 3]]);
+    const fogState = {
+      veils: document.querySelectorAll("#board-fx-layer .fx-fog-veil").length,
+      clouds: document.querySelectorAll("#board-fx-layer .fx-fog-cloud").length,
+      gridMask: getComputedStyle(document.querySelector(".fx-fog-grid")).getPropertyValue("-webkit-mask-image"),
+      backgroundMask: getComputedStyle(document.body, "::after").getPropertyValue("-webkit-mask-image"),
+    };
+
+    clearFx();
+    playSanrenseiConstellation(false);
+    const starState = {
+      pulses: document.querySelectorAll("#board-fx-layer .fx-star-pulse").length,
+      links: document.querySelectorAll("#board-fx-layer .fx-star-link").length,
+    };
+
+    clearFx();
+    playFiveInRowBurst();
+    const fiveState = {
+      lines: document.querySelectorAll("#board-fx-layer .fx-five-line").length,
+    };
+
+    clearFx();
+    playLastStandPulse();
+    const lastStandState = {
+      pulses: document.querySelectorAll("#board-fx-layer .fx-last-stand-pulse").length,
+    };
+
+    clearFx();
+    triggerSignatureCardEffect("神之一手 Five in a Row");
+    const signatureState = {
+      flashes: document.querySelectorAll("#global-fx-layer .fx-godflash").length,
+      fiveLines: document.querySelectorAll("#board-fx-layer .fx-five-line").length,
+    };
+
+    return {
+      publicFns,
+      soundDisabledState,
+      animationQueuedState,
+      animationLoopState,
+      boardIntroState,
+      rippleBound,
+      rippleCount,
+      sparkState,
+      themeState,
+      allThemeKeys,
+      englishThemeTitle,
+      cardFxState,
+      cardFxXssState,
+      godHandState,
+      fogState,
+      starState,
+      fiveState,
+      lastStandState,
+      signatureState,
+    };
+  });
+
+  assert(state.publicFns.every(type => type === "function"), `visual effect globals missing: ${state.publicFns.join(", ")}`);
+  assert(state.soundDisabledState.soundEnabled === false, "sound disabled state did not persist during disabled sound calls");
+  assert(state.soundDisabledState.audioCtxIsNull, "disabled sound calls should not create AudioContext");
+  assert(state.animationQueuedState.count === 3, `animations were not queued: ${JSON.stringify(state.animationQueuedState)}`);
+  assert(state.animationQueuedState.hasPlace, "place animation missing");
+  assert(state.animationQueuedState.captureCount === 2, `capture animations missing: ${state.animationQueuedState.captureCount}`);
+  assert(state.animationQueuedState.animFrameIsSet, "animation loop was not scheduled");
+  assert(state.animationLoopState.renderCalls >= 1, `animation loop did not render: ${state.animationLoopState.renderCalls}`);
+  assert(state.animationLoopState.animFrameIsNull, "animation loop did not settle after clearing animations");
+  assert(state.boardIntroState.played && state.boardIntroState.className.includes("board-intro"), `board intro did not run: ${JSON.stringify(state.boardIntroState)}`);
+  assert(state.rippleBound, "button ripple binding was not attached");
+  assert(state.rippleCount >= 1, `button ripple was not spawned: ${state.rippleCount}`);
+  assert(state.sparkState.count === 16, `overlay sparks count changed: ${state.sparkState.count}`);
+  assert(state.themeState.puppet === "puppet" && state.themeState.fog === "fog" && state.themeState.fallback === "rogue", `effect theme inference changed: ${JSON.stringify(state.themeState)}`);
+  for (const [expectedKey, actualKey] of Object.entries(state.allThemeKeys)) {
+    assert(actualKey === expectedKey, `theme rule changed for ${expectedKey}: ${actualKey}`);
+  }
+  assert(state.englishThemeTitle === "Puppet unleashed", `theme title was not localized at call time: ${state.englishThemeTitle}`);
+  assert(state.cardFxState.bannerClass.includes("fx-puppet"), `card banner class changed: ${state.cardFxState.bannerClass}`);
+  assert(state.cardFxState.title.includes("傀儡"), `card banner title changed: ${state.cardFxState.title}`);
+  assert(state.cardFxState.desc.length === 0, "card banner repeated the same title as its description");
+  assert(state.cardFxState.particles === 12 && state.cardFxState.rings === 1, `card particle budget changed: ${JSON.stringify(state.cardFxState)}`);
+  assert(normalizedColor(state.cardFxState.firstParticleCore) === "rgba(196,170,255,.95)", `puppet particle core changed: ${state.cardFxState.firstParticleCore}`);
+  assert(normalizedColor(state.cardFxState.firstParticleGlow) === "rgba(112,78,255,.85)", `puppet particle glow changed: ${state.cardFxState.firstParticleGlow}`);
+  assert(normalizedColor(state.cardFxState.ringColor) === "rgba(196,170,255,.95)", `puppet ring color changed: ${state.cardFxState.ringColor}`);
+  assert(state.cardFxXssState.probe === 0 && state.cardFxXssState.images === 0, `card effect banner executed markup: ${JSON.stringify(state.cardFxXssState)}`);
+  assert(state.godHandState.flashes === 1, `god hand flash did not spawn: ${state.godHandState.flashes}`);
+  assert(state.fogState.veils === 1 && state.fogState.clouds === 3, `fog effect changed: ${JSON.stringify(state.fogState)}`);
+  assert(state.fogState.gridMask.includes("radial-gradient") && state.fogState.backgroundMask.includes("radial-gradient"),
+    `fog or background lost its gradient mask: ${JSON.stringify(state.fogState)}`);
+  assert(state.starState.pulses >= 5 && state.starState.links >= 4, `star constellation changed: ${JSON.stringify(state.starState)}`);
+  assert(state.fiveState.lines === 3, `five-in-row burst changed: ${state.fiveState.lines}`);
+  assert(state.lastStandState.pulses === 1, `last stand pulse changed: ${state.lastStandState.pulses}`);
+  assert(state.signatureState.flashes === 1 && state.signatureState.fiveLines === 3, `signature effect dispatch changed: ${JSON.stringify(state.signatureState)}`);
+  const regressions = await verifyVisualEffectRegressions(browser, targetUrl);
+  assert(errors.length === 0, `browser errors: ${errors.join("; ")}`);
+
+  console.log(JSON.stringify({
+    ok: true,
+    animations: state.animationQueuedState.count,
+    particles: state.cardFxState.particles,
+    sparks: state.sparkState.count,
+    regressions,
+  }, null, 2));
+} finally {
+  await browser.close();
+}

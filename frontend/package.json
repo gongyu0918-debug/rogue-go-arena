@@ -1,0 +1,14 @@
+{
+  "name": "rogue-go-arena-html-smoke",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "smoke:html-dropdowns": "node scripts/html-wood-select-smoke.mjs",
+    "smoke:html-hints": "node scripts/legacy-hint-overlay-smoke.mjs",
+    "smoke:html-effects": "node scripts/legacy-visual-effects-smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.59.1"
+  }
+}

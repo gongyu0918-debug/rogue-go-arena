@@ -1,0 +1,198 @@
+/* Transient board feedback. Keep effects local and leave the intersections readable. */
+.fx-stone-impact {
+  position: absolute;
+  width: var(--stone-size);
+  height: var(--stone-size);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.fx-place-impact {
+  border: 1px solid rgba(255, 241, 190, .72);
+  box-shadow: 0 1px 0 rgba(77, 43, 16, .36);
+  animation: stonePress 400ms cubic-bezier(.18, .65, .25, 1) both;
+}
+.fx-capture-impact {
+  border: 1px solid var(--stone-dust);
+  animation: captureRelease 520ms ease-out both;
+}
+.fx-capture-impact i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 5px;
+  border-radius: 40%;
+  background: var(--stone-dust);
+  animation: captureDust 560ms ease-out both;
+}
+@keyframes stonePress {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.65); }
+  24% { opacity: .85; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.55); }
+}
+@keyframes captureRelease {
+  0% { opacity: .62; transform: translate(-50%, -50%) scale(.86); }
+  32% { opacity: .38; transform: translate(-50%, -50%) scale(.65); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.15); }
+}
+@keyframes captureDust {
+  0%, 15% { opacity: 0; transform: translate(-50%, -50%) scale(.5); }
+  38% { opacity: .82; }
+  100% { opacity: 0; transform: translate(var(--dust-x), var(--dust-y)) rotate(75deg) scale(.35); }
+}
+
+.fx-banner {
+  top: 6px;
+  padding: 9px 13px;
+  border-radius: 11px;
+  border-color: rgba(215, 179, 102, .25);
+  background: linear-gradient(180deg, rgba(35, 27, 20, .95), rgba(18, 17, 17, .94));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .23);
+}
+.fx-banner-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border: 0;
+  border-radius: 8px;
+  font-size: 1.15rem;
+}
+.fx-card-burst {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.fx-card-burst .fx-particle,
+.fx-card-burst .fx-ring {
+  left: 0;
+  top: 0;
+}
+.fx-card-burst .fx-particle {
+  width: var(--size);
+  height: var(--size);
+  background: var(--core);
+  box-shadow: 0 0 5px var(--glow);
+  animation: cardParticle 760ms cubic-bezier(.15, .62, .28, 1) both;
+}
+.fx-card-burst .fx-particle--orbit {
+  width: calc(var(--size) * 1.8);
+  height: 2px;
+  animation-name: cardOrbitParticle;
+}
+.fx-card-burst .fx-particle--surge {
+  width: calc(var(--size) * 2.6);
+  height: 2px;
+  border-radius: 50%;
+}
+.fx-card-burst .fx-particle--ward {
+  border-radius: 1px;
+  background: transparent;
+  border: 1px solid var(--core);
+}
+.fx-card-burst .fx-particle--drift {
+  width: calc(var(--size) * .7);
+  border-radius: 70% 20%;
+}
+.fx-card-burst .fx-ring {
+  width: var(--ring-size);
+  height: var(--ring-size);
+  border-width: 1px;
+  box-shadow: none;
+  opacity: 0;
+  animation: cardRing 750ms ease-out both;
+}
+.fx-card-burst .fx-ring--orbit {
+  border-left-color: transparent;
+  border-right-color: transparent;
+  animation-name: cardOrbitRing;
+}
+.fx-card-burst .fx-ring--ward {
+  border-radius: 12%;
+  animation-name: cardWardRing;
+}
+.fx-card-burst .fx-ring--drift { border-style: dashed; }
+@keyframes cardParticle {
+  0% { opacity: 0; transform: translate(var(--fx-start-x), var(--fx-start-y)) rotate(var(--fx-angle)) scale(.3); }
+  22% { opacity: .85; }
+  100% { opacity: 0; transform: translate(var(--fx-x), var(--fx-y)) rotate(var(--fx-angle)) scale(.25); }
+}
+@keyframes cardOrbitParticle {
+  0% { opacity: 0; transform: translate(var(--fx-start-x), var(--fx-start-y)) rotate(var(--fx-angle)); }
+  22% { opacity: .8; }
+  54% { transform: translate(var(--fx-mid-x), var(--fx-mid-y)) rotate(calc(var(--fx-angle) + 45deg)); }
+  100% { opacity: 0; transform: translate(var(--fx-x), var(--fx-y)) rotate(calc(var(--fx-angle) + 100deg)) scale(.3); }
+}
+@keyframes cardRing {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.5); }
+  25% { opacity: .45; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); }
+}
+@keyframes cardOrbitRing {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(-30deg) scale(.7); }
+  25% { opacity: .52; }
+  100% { opacity: 0; transform: translate(-50%, -50%) rotate(110deg) scale(1.16); }
+}
+@keyframes cardWardRing {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(45deg) scale(1.3); }
+  30% { opacity: .58; }
+  100% { opacity: 0; transform: translate(-50%, -50%) rotate(45deg) scale(.75); }
+}
+
+/* Preserve geometry inside keyframes; animation transforms override inline transforms. */
+.fx-star-link { animation-name: constellationLink; }
+@keyframes constellationLink {
+  0% { opacity: 0; transform: translateY(-50%) rotate(var(--link-angle)) scaleX(.08); }
+  25% { opacity: .8; }
+  100% { opacity: 0; transform: translateY(-50%) rotate(var(--link-angle)) scaleX(1); }
+}
+.fx-five-line { animation-name: fiveDirectionSweep; }
+@keyframes fiveDirectionSweep {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--line-angle)) scaleX(.08); }
+  22% { opacity: .8; }
+  100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--line-angle)) scaleX(1.06); }
+}
+.fx-fog-cloud {
+  margin: -90px 0 0 -90px;
+  filter: none;
+}
+.fx-godflash {
+  background: radial-gradient(ellipse at center, rgba(255, 226, 142, .22), transparent 66%);
+  animation-duration: 900ms;
+}
+
+@media (min-width: 981px) {
+  .fx-banner {
+    left: 16px;
+    top: 18px;
+    min-width: 0;
+    max-width: min(24%, 260px);
+    transform: none;
+    animation: cardNotice 1800ms ease-out both;
+  }
+}
+@keyframes cardNotice {
+  0% { opacity: 0; transform: translateY(6px); }
+  14%, 76% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-banner { animation: none; }
+  .fx-card-burst,
+  .fx-stone-impact,
+  .fx-godflash,
+  .fx-fog-veil,
+  .fx-star-pulse,
+  .fx-star-link,
+  .fx-five-line,
+  .fx-last-stand-pulse,
+  .overlay-spark,
+  .btn-ripple { display: none; }
+  #board-container.board-intro,
+  #board-container.board-intro::before,
+  #board-container.board-intro::after,
+  #board-container.board-intro #board-canvas,
+  #board-container.board-intro .board-toolbar { animation: none; }
+}

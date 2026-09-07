@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 .venv/
 
+# Frontend smoke dependencies
+frontend/node_modules/
+
 # Build outputs
 build/
 dist/
