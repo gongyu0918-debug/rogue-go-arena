@@ -107,7 +107,7 @@ def main() -> int:
                     process.kill()
                     process.wait(timeout=8)
 
-    assert status["server_rev"] == "20260627-desktop-exit-button"
+    assert status["server_rev"] == "20260907-webview-0.1.36"
     assert status["no_katago"] is True
     assert denied_statuses == {
         "/stop_katago": 403,

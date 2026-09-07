@@ -153,6 +153,7 @@ async def smoke_player_activation_flow_sends_events_syncs_and_selects() -> None:
             "name": "name-seal",
             "icon": "icon",
             "waiting_seal": True,
+            "rogue_seal_required": 4,
             "state_marker": "ready",
             "komi": 0.5,
         },

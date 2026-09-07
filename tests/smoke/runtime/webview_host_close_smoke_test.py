@@ -9,18 +9,18 @@ import webview
 
 class HostCloseApi:
     def __init__(self) -> None:
-        self.window = None
+        self._window = None
         self.close_calls = 0
 
     def bind(self, window) -> None:
-        self.window = window
+        self._window = window
 
     def close_window(self) -> dict:
         self.close_calls += 1
         print("HOST_CLOSE_CALLED", flush=True)
-        if self.window is None:
+        if self._window is None:
             return {"ok": False, "error": "window unavailable"}
-        self.window.destroy()
+        self._window.destroy()
         return {"ok": True, "action": "window_destroy"}
 
 

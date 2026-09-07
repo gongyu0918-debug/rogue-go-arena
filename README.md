@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <img alt="Desktop branch" src="https://img.shields.io/badge/Branch-main-111111?style=for-the-badge">
+  <img alt="Desktop branch" src="https://img.shields.io/badge/Branch-webview-111111?style=for-the-badge">
   <img alt="WebView2" src="https://img.shields.io/badge/WebView2-desktop-0F6CBD?style=for-the-badge&logo=microsoftedge&logoColor=white">
   <img alt="Python 3.11" src="https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white">
   <img alt="Windows first" src="https://img.shields.io/badge/Windows-first-0078D6?style=for-the-badge&logo=windows&logoColor=white">
@@ -42,7 +42,7 @@
   <img src="docs/assets/rogue-go-arena-hero-current.jpg" alt="Rogue Go Arena current dark wood board interface">
 </p>
 
-> `main` 是当前主力 WebView2 桌面版。长期维护快照保留在 [`webview`](https://github.com/gongyu0918-debug/rogue-go-arena/tree/webview)，仅在通过同一套 smoke 后与主线同步。
+> [`webview`](https://github.com/gongyu0918-debug/rogue-go-arena/tree/webview) 是默认分支及 WebView2 桌面主力版；[`html-main`](https://github.com/gongyu0918-debug/rogue-go-arena/tree/html-main) 保留 HTML 浏览器版。Godot 等历史开发线只在本地归档，不再维护。
 
 ## English
 
@@ -425,7 +425,7 @@ python -m PyInstaller --clean --noconfirm rogue-go-arena-server.spec
 构建 Windows 安装包：
 
 ```powershell
-.\build_windows_release.ps1 -Version 0.1.35
+.\build_windows_release.ps1 -Version 0.1.36
 ```
 
 脚本会自动选择已安装 PyInstaller 的 Python；也可用
@@ -440,13 +440,13 @@ KataGo 目录约定见 [katago/README.md](katago/README.md)。
 ## 分支策略
 
 ```text
-main
+webview
   WebView2 桌面主力版
   承载玩法、卡牌、服务端、桌面壳和发布构建
 
-webview
-  WebView2 长期维护快照
-  仅从通过完整 smoke 的 main 同步
+html-main
+  HTML 浏览器维护版
+  共用改动需在该分支验证后同步；桌面专用改动不直接套用
 ```
 
 ## 设计原则
