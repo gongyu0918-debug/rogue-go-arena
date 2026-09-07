@@ -44,6 +44,8 @@
 
 > [`webview`](https://github.com/gongyu0918-debug/rogue-go-arena/tree/webview) 是默认分支及 WebView2 桌面主力版；[`html-main`](https://github.com/gongyu0918-debug/rogue-go-arena/tree/html-main) 保留 HTML 浏览器版。Godot 等历史开发线只在本地归档，不再维护。
 
+本轮下拉框、提示、特效和真实 Edge/WebView2 109 / 152 验证见 [兼容维护记录](docs/compatibility-0.1.37.md)。
+
 ## English
 
 Rogue Go Arena is a desktop Go arena built for people who want the reading depth of KataGo and the volatility of a roguelike run in the same match. You still play real Go on a 19×19 board, but Rogue cards can force AI moves, seal zones, spawn stones, shift komi, trigger hidden bursts, or turn a losing position into a playable comeback.
@@ -425,7 +427,7 @@ python -m PyInstaller --clean --noconfirm rogue-go-arena-server.spec
 构建 Windows 安装包：
 
 ```powershell
-.\build_windows_release.ps1 -Version 0.1.36
+.\build_windows_release.ps1 -Version 0.1.37
 ```
 
 脚本会自动选择已安装 PyInstaller 的 Python；也可用

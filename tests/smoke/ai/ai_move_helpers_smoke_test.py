@@ -18,9 +18,9 @@ def make_game(size: int = 9) -> GoGame:
     return GoGame(size=size, player_color="B")
 
 
-class FirstChoiceRng:
+class UnexpectedChoiceRng:
     def choice(self, items):
-        return items[0]
+        raise AssertionError("occupied AI response must not choose a local replacement")
 
 
 def test_snapshot_ai_turn_collects_move_counts_and_cards() -> None:
@@ -225,7 +225,7 @@ def test_resolve_occupied_ai_move_keeps_pass_and_empty_move() -> None:
     ) == ("A9", (0, 0))
 
 
-def test_resolve_occupied_ai_move_chooses_legal_empty_point() -> None:
+def test_resolve_occupied_ai_move_rejects_occupied_point() -> None:
     game = make_game()
     game.board[0][0] = 1
 
@@ -235,14 +235,14 @@ def test_resolve_occupied_ai_move_chooses_legal_empty_point() -> None:
         "A9",
         (0, 0),
         coord_to_gtp=s.coord_to_gtp,
-        rng=FirstChoiceRng(),
+        rng=UnexpectedChoiceRng(),
     )
 
-    assert coord == (1, 0)
-    assert gtp == "B9"
+    assert coord is None
+    assert gtp.startswith("?") and "A9" in gtp
 
 
-def test_resolve_occupied_ai_move_skips_illegal_empty_points() -> None:
+def test_resolve_occupied_ai_move_does_not_search_local_replacements() -> None:
     game = make_game()
     game.board[0][0] = 1
     game.is_legal_move = lambda x, y, _color: (x, y) != (1, 0)
@@ -253,27 +253,29 @@ def test_resolve_occupied_ai_move_skips_illegal_empty_points() -> None:
         "A9",
         (0, 0),
         coord_to_gtp=s.coord_to_gtp,
-        rng=FirstChoiceRng(),
+        rng=UnexpectedChoiceRng(),
     )
 
-    assert coord == (2, 0)
-    assert gtp == "C9"
+    assert coord is None
+    assert gtp.startswith("?") and "A9" in gtp
 
 
-def test_resolve_occupied_ai_move_passes_when_no_empty_point_exists() -> None:
+def test_resolve_occupied_ai_move_does_not_invent_a_pass_on_full_board() -> None:
     game = make_game(size=2)
     for y in range(game.size):
         for x in range(game.size):
             game.board[y][x] = 1
 
-    assert resolve_occupied_ai_move(
+    gtp, coord = resolve_occupied_ai_move(
         game,
         "W",
         "A2",
         (0, 0),
         coord_to_gtp=s.coord_to_gtp,
-        rng=FirstChoiceRng(),
-    ) == ("pass", None)
+        rng=UnexpectedChoiceRng(),
+    )
+    assert coord is None
+    assert gtp.startswith("?") and "A2" in gtp
 
 
 def test_suspicious_ai_pass_requires_pass() -> None:
@@ -325,9 +327,9 @@ if __name__ == "__main__":
     test_server_game_visits_resolves_engine_cpu_mode_late()
     test_server_game_visits_accepts_default_arguments()
     test_resolve_occupied_ai_move_keeps_pass_and_empty_move()
-    test_resolve_occupied_ai_move_chooses_legal_empty_point()
-    test_resolve_occupied_ai_move_skips_illegal_empty_points()
-    test_resolve_occupied_ai_move_passes_when_no_empty_point_exists()
+    test_resolve_occupied_ai_move_rejects_occupied_point()
+    test_resolve_occupied_ai_move_does_not_search_local_replacements()
+    test_resolve_occupied_ai_move_does_not_invent_a_pass_on_full_board()
     test_suspicious_ai_pass_requires_pass()
     test_suspicious_ai_pass_detects_early_open_board_pass()
     test_suspicious_ai_pass_allows_established_pass()

@@ -89,6 +89,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Verify ko sync using a real, locally installed KataGo engine.")
     parser.add_argument("--katago-dir", type=Path, default=ROOT / "katago")
     parser.add_argument("--backend", choices=("cuda", "opencl", "cpu"), default="cpu")
+    parser.add_argument("--rules-only", action="store_true")
     args = parser.parse_args()
     exe = args.katago_dir / f"katago_{args.backend}.exe"
     model = args.katago_dir / "model_b18.bin.gz"
@@ -107,11 +108,32 @@ def main() -> None:
                               coord_parser=gtp_to_coord)
         try:
             engine.start(startup_timeout=90)
-            results = [check_ko(engine, size, color, temp_dir, card_edit)
+            results = [] if args.rules_only else [check_ko(engine, size, color, temp_dir, card_edit)
                        for size in (5, 9, 19) for color in ("B", "W") for card_edit in (False, True)]
-            print(json.dumps({"ok": True, "backend": args.backend, "cases": results}, indent=2))
+            rule_results = [check_rules(engine, rule, komi, temp_dir, changed_komi)
+                            for rule, komi in (("chinese", 7.5), ("japanese", 6.5))
+                            for changed_komi in (False, True)]
+            print(json.dumps({"ok": True, "backend": args.backend, "cases": results,
+                              "rule_cases": rule_results}, indent=2))
         finally:
             engine.stop()
+
+
+def check_rules(engine: KataGoEngine, rule: str, komi: float, temp_dir: Path, changed_komi: bool) -> dict:
+    game = make_ko(9, "B", card_edit=changed_komi)
+    game.komi = komi
+    assert engine.send_command(f"kata-set-rules {rule}").startswith("=")
+    assert engine.send_command(f"komi {komi}").startswith("=")
+    before = json.loads(engine.send_command("kata-get-rules").lstrip("= "))
+    if changed_komi:
+        # Card effects may change komi; this must not switch the chosen ruleset.
+        game.komi = 6.5 if komi == 7.5 else 7.5
+    sync(engine, game, temp_dir)
+    after = json.loads(engine.send_command("kata-get-rules").lstrip("= "))
+    assert before == after, f"loadsgf changed {rule} rules: {before} -> {after}"
+    assert float(engine.send_command("get_komi").lstrip("= ")) == game.komi
+    return {"rule": rule, "initial_komi": komi, "komi_after_sync": game.komi,
+            "card_changed_komi": changed_komi, "rules_before": before, "rules_after": after}
 
 
 if __name__ == "__main__":

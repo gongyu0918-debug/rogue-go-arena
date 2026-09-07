@@ -641,7 +641,8 @@ async def smoke_quickthink_flow():
 
     old_engine = s.engine
     try:
-        s.engine = DummyEngine(["E5"])
+        # E5 belongs to the player; exercise turn transitions with a legal reply.
+        s.engine = DummyEngine(["D4"])
         sent = []
 
         async def send(payload):
@@ -670,7 +671,7 @@ async def smoke_quickthink_flow():
 
     old_engine = s.engine
     try:
-        s.engine = DummyEngine(["E5"])
+        s.engine = DummyEngine(["D4"])
         sent = []
 
         async def send(payload):

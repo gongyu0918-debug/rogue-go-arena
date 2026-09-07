@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import random
-import time
 from collections.abc import Awaitable, Iterable
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
@@ -192,6 +191,9 @@ def resolve_occupied_ai_move(
     coord_to_gtp: Callable[[int, int, int], str],
     rng: random.Random | None = None,
 ) -> tuple[str, Optional[tuple[int, int]]]:
+    # Keep the callback signature used by the runtime adapters. A replacement
+    # chosen only on the local board would not match KataGo's committed move.
+    del color, coord_to_gtp, rng
     if gtp_move.upper() == "PASS" or coord is None:
         return gtp_move, coord
 
@@ -199,18 +201,7 @@ def resolve_occupied_ai_move(
     if game.board[y][x] == 0:
         return gtp_move, coord
 
-    rng = random.Random(time.time_ns()) if rng is None else rng
-    empties = [
-        (sx, sy)
-        for sy in range(game.size)
-        for sx in range(game.size)
-        if game.board[sy][sx] == 0 and game.is_legal_move(sx, sy, color)
-    ]
-    if not empties:
-        return "pass", None
-
-    x, y = rng.choice(empties)
-    return coord_to_gtp(x, y, game.size), (x, y)
+    return f"? AI 返回已占用点 {gtp_move}，已停止落子", None
 
 
 def choose_tengen_target(game: Any, ai_move_count: int) -> Optional[AiTargetPlan]:

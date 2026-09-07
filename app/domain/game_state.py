@@ -315,7 +315,10 @@ class GoGame:
             "ai_rogue_seal_points": [[x, y] for x, y in self.ai_rogue_seal_points],
             "rogue_joseki_targets": [[x, y] for x, y in self.rogue_joseki_targets],
             "rogue_joseki_done": self.rogue_joseki_done,
-            "rogue_undo_disabled": self.rogue_card in {"no_regret", "quickthink"},
+            "rogue_undo_disabled": (
+                self.rogue_card in {"no_regret", "quickthink"}
+                or bool({"no_regret", "quickthink"}.intersection(self.challenge_cards))
+            ),
             "rogue_coach_moves_left": self.rogue_coach_moves_left,
             "rogue_quickthink_stage": self.rogue_quickthink_stage,
             "rogue_methodical_remaining": self.rogue_methodical_remaining,

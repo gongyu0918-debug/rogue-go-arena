@@ -51,7 +51,9 @@ def _sync_position(game: Any) -> tuple[list[list[int]], list]:
 
 def build_board_sync_sgf(game: Any) -> str:
     board, moves = _sync_position(game)
-    sgf = f"(;GM[1]FF[4]CA[UTF-8]RU[chinese]SZ[{game.size}]KM[{game.komi}]"
+    # Without RU, KataGo loadsgf retains its current rules. Komi can change
+    # during card effects without changing the rules chosen for this game.
+    sgf = f"(;GM[1]FF[4]CA[UTF-8]SZ[{game.size}]KM[{game.komi}]"
     first_player = moves[0][0] if moves else getattr(game, "current_player", None)
     if first_player in {"B", "W"}:
         sgf += f"PL[{first_player}]"

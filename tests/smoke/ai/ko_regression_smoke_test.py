@@ -23,7 +23,7 @@ from app.gameplay.ai_move_flow import (
     prepare_generated_ai_move,
     retry_ai_move_avoiding_ko,
 )
-from app.gameplay.ai_moves import AiMoveService
+from app.gameplay.ai_moves import AiMoveService, resolve_occupied_ai_move
 from app.gameplay.move_placement import place_auxiliary_ai_move_on_board
 from app.gameplay.turn_modifiers import apply_ultimate_ai_move_result
 from app.gameplay.ultimate_ai_flow import choose_ultimate_ai_move
@@ -211,6 +211,43 @@ class KoRegression(unittest.TestCase):
         engine.history = ["previous player move"]
         self.assertEqual(asyncio.run(service_for(engine).no_resign_move(make_ko_game(), "W")), "D4")
         self.assertEqual(engine.history, ["previous player move", "W D4"])
+
+    def test_occupied_response_stops_ultimate_choice(self):
+        game = make_ko_game()
+        retry = AsyncMock()
+        commands = AsyncMock()
+        choice = asyncio.run(choose_ultimate_ai_move(
+            game, color="W", visits=800, forbidden={(3, 5)},
+            generate_move=AsyncMock(return_value="A8"), no_resign_move=AsyncMock(),
+            undo_engine_move=lambda: self.fail("unexpected undo"),
+            restore_engine_pass=commands, play_engine_move=commands,
+            pick_ranked_legal_move=AsyncMock(), pick_nonpass_fallback_move=AsyncMock(),
+            retry_avoiding_ko=retry, is_suspicious_ai_pass=lambda *_args: False,
+            resolve_occupied_ai_move=resolve_occupied_ai_move,
+            gtp_to_coord=gtp_to_coord, coord_to_gtp=coord_to_gtp, log_fn=lambda _msg: None,
+        ))
+        self.assertIsNotNone(choice.error_message)
+        self.assertIsNone(choice.coord)
+        retry.assert_not_awaited()
+        commands.assert_not_awaited()
+
+    def test_occupied_response_does_not_advance_server_turn_or_card_effects(self):
+        import server as s
+
+        game = make_ko_game()
+        game.ultimate = True
+        game.ultimate_ai_card = "meteor"
+        before = game._snapshot_state()
+        send = AsyncMock()
+        effect = AsyncMock(return_value=False)
+        engine = RetryEngine(responses=["= A8"])
+        engine.ready = True
+        with patch.object(s, "engine", engine), patch.object(s, "run_in_executor", inline_executor), patch.object(s, "_sync_board_to_katago", AsyncMock()), patch.object(s, "_apply_ultimate_effect", effect):
+            asyncio.run(s._ultimate_ai_move(game, send))
+        self.assertEqual(game._snapshot_state(), before)
+        effect.assert_not_awaited()
+        self.assertEqual([call.args[0]["type"] for call in send.call_args_list], ["error"])
+        self.assertFalse(any(cmd.startswith("play ") or cmd == "undo" for cmd in engine.commands))
 
     def test_rejected_pass_is_undone_before_restricted_retry(self):
         engine = RetryEngine(responses=["= pass", "= D4"])
