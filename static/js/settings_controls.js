@@ -2,6 +2,8 @@
 
 const QUICKTHINK_CARD_ID = "quickthink";
 const ENGINE_IDLE_TIMEOUT_OPTIONS = [0, 120, 300, 600];
+let engineIdleTimeoutRevision = 0;
+let engineIdleTimeoutSave = Promise.resolve();
 
 function currentWinrate() {
   return analysis ? analysis.winrate : 0.5;
@@ -135,21 +137,21 @@ function setEngineIdleTimeoutSelect(seconds) {
 }
 
 async function syncEngineIdleTimeoutSetting() {
+  const revision = engineIdleTimeoutRevision;
   try {
     const resp = await fetch("/engine_idle_timeout", { headers: { "Accept": "application/json" } });
     if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
     const payload = await resp.json();
-    setEngineIdleTimeoutSelect(payload.seconds);
+    if (revision === engineIdleTimeoutRevision) setEngineIdleTimeoutSelect(payload.seconds);
   } catch (err) {
     console.warn("[Settings] engine idle timeout load failed", err);
   }
 }
 
-async function updateEngineIdleTimeoutSetting(value) {
-  const seconds = Number(value);
-  setEngineIdleTimeoutSelect(seconds);
+async function saveEngineIdleTimeoutSetting(seconds, revision) {
   try {
     const status = await refreshNetworkInfo().catch(() => null) || window.__rogueGoArenaNetworkStatus || {};
+    if (revision !== engineIdleTimeoutRevision) return;
     const headers = { "Content-Type": "application/json", "Accept": "application/json" };
     if (status.desktop_exit_token) {
       headers["X-Rogue-Go-Ui-Exit-Token"] = status.desktop_exit_token;
@@ -161,10 +163,19 @@ async function updateEngineIdleTimeoutSetting(value) {
     });
     if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
     const payload = await resp.json();
-    setEngineIdleTimeoutSelect(payload.seconds);
+    if (revision === engineIdleTimeoutRevision) setEngineIdleTimeoutSelect(payload.seconds);
   } catch (err) {
     console.warn("[Settings] engine idle timeout save failed", err);
   }
+}
+
+function updateEngineIdleTimeoutSetting(value) {
+  const seconds = Number(value);
+  const revision = ++engineIdleTimeoutRevision;
+  setEngineIdleTimeoutSelect(seconds);
+  // Serialize writes so an older request cannot finish after the latest choice.
+  engineIdleTimeoutSave = engineIdleTimeoutSave.then(() => saveEngineIdleTimeoutSetting(seconds, revision));
+  return engineIdleTimeoutSave;
 }
 
 function bindSettingsControls() {

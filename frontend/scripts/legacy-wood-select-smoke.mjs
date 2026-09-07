@@ -1,4 +1,5 @@
 import { chromium } from "playwright";
+import { runWoodSelectRegressions } from "./legacy-wood-select-regressions.mjs";
 
 const DEFAULT_URL = "http://127.0.0.1:8876/";
 const urlArg = process.argv.find((arg) => arg.startsWith("--url="));
@@ -157,7 +158,10 @@ try {
 
   await page.locator("#sel-komi + .wood-select-button").click();
   await page.locator(".wood-select-popover.open").waitFor({ state: "visible", timeout: 5000 });
-  await page.locator(".wood-select-popover.open .wood-select-option.disabled", { hasText: "Smoke Disabled" }).click();
+  const disabledOptionBox = await page.locator(".wood-select-popover.open .wood-select-option.disabled", { hasText: "Smoke Disabled" }).boundingBox();
+  assert(disabledOptionBox, "disabled option was not visible");
+  // A real pointer can hit disabled items; Playwright's locator.click intentionally refuses them.
+  await page.mouse.click(disabledOptionBox.x + disabledOptionBox.width / 2, disabledOptionBox.y + disabledOptionBox.height / 2);
   const disabledOptionState = await page.evaluate(() => {
     const button = document.querySelector("#sel-komi")?.closest(".wood-select")?.querySelector(".wood-select-button");
     return {
@@ -183,6 +187,8 @@ try {
   assert(!closedByOutsideClick.popoverOpen, "popover did not close on outside click");
   assert(closedByOutsideClick.ariaExpanded === "false", "aria-expanded did not reset after outside click");
   assert(errors.length === 0, `browser errors: ${errors.join("; ")}`);
+
+  await runWoodSelectRegressions(browser, targetUrl);
 
   console.log(JSON.stringify({ ok: true, selectedBoardSize: selectedState.value }, null, 2));
 } finally {

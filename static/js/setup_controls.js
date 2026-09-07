@@ -78,6 +78,7 @@ function openSetupModal() {
 }
 
 function closeSetupModal() {
+  closeWoodSelectMenu();
   document.getElementById("setup-modal").classList.remove("show");
 }
 
@@ -124,6 +125,7 @@ function newGameFromOverlay() {
 }
 
 function setMode(mode) {
+  closeWoodSelectMenu();
   startMode = mode;
   document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
   document.getElementById("mode-" + mode).classList.add("active");
@@ -168,7 +170,7 @@ function resetGameUiBeforeStart() {
   resetWinrateHistory();
   lastAiMove = null;
   previousBoard = null;
-  animations = [];
+  clearVisualEffects();
   reviewMode = false;
   sgfLoadedMode = false;
   document.getElementById("game-log").innerHTML = "";

@@ -51,7 +51,11 @@ try {
 
   await page.evaluate(() => {
     window.__inlineSmoke = { payloads: [], fullscreenRequests: 0, fullscreenExits: 0, reviewAnalysisRequests: 0, renders: 0 };
-    sendWS = window.sendWS = payload => { window.__inlineSmoke.payloads.push(payload); };
+    sendWS = window.sendWS = payload => {
+      window.__inlineSmoke.payloads.push(payload);
+      // This bindings-only smoke stubs transport, so complete preparation too.
+      if (payload.action === "new_game") hideStartProgress();
+    };
     connect = window.connect = () => {};
     document.documentElement.requestFullscreen = () => {
       window.__inlineSmoke.fullscreenRequests += 1;

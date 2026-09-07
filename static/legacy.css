@@ -1039,6 +1039,7 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   display: none;
   max-height: min(320px, 48vh);
   overflow-y: auto;
+  overscroll-behavior: contain;
   z-index: 5000;
   padding: 6px;
   border-radius: 14px;
@@ -1068,6 +1069,7 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   cursor: pointer;
 }
 .wood-select-option:hover,
+.wood-select-option.active,
 .wood-select-option[aria-selected="true"] {
   color: #fff5cb;
   background:
@@ -1079,6 +1081,13 @@ button:disabled { opacity: .38; cursor: default; transform: none; }
   cursor: default;
   font-weight: 700;
   letter-spacing: .06em;
+}
+.wood-select-option.active:not(.disabled) {
+  outline: 1px solid rgba(239,203,118,.8);
+  outline-offset: -1px;
+}
+.wood-select-option[hidden] {
+  display: none;
 }
 .curve-panel {
   margin-top: 14px;

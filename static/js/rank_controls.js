@@ -8,6 +8,7 @@ const RANK_SELECT_IDS = ["sel-level", "sel-level-black", "sel-level-white"];
 
 let rankSelects = [];
 let gpuSlowFrom = "";
+const userSelectedRankControls = new WeakSet();
 
 function createRankOption(rank, defaultRank) {
   const opt = document.createElement("option");
@@ -73,7 +74,12 @@ function refreshRankSelectLabels() {
 
 function applyGpuDefaultRank(defaultRank) {
   if (!defaultRank) return;
-  rankSelects.forEach(selectEl => { selectEl.value = defaultRank; });
+  rankSelects.forEach(selectEl => {
+    if (!userSelectedRankControls.has(selectEl)
+        && Array.from(selectEl.options).some(option => !option.disabled && option.value === defaultRank)) {
+      selectEl.value = defaultRank;
+    }
+  });
 }
 
 async function detectGPUForRankDefaults() {
@@ -93,6 +99,9 @@ async function detectGPUForRankDefaults() {
 function initializeRankControls() {
   rankSelects = RANK_SELECT_IDS.map(id => document.getElementById(id)).filter(Boolean);
   rankSelects.forEach(selectEl => populateRankSelect(selectEl));
+  rankSelects.forEach(selectEl => {
+    selectEl.addEventListener("change", () => userSelectedRankControls.add(selectEl));
+  });
   void detectGPUForRankDefaults();
 }
 

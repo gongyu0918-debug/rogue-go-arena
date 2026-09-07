@@ -9,6 +9,7 @@ function openSettingsDrawer() {
 }
 
 function closeSettingsDrawer() {
+  closeWoodSelectMenu();
   document.getElementById("settings-drawer")?.classList.remove("open");
 }
 
