@@ -1,4 +1,5 @@
 import { chromium } from "playwright";
+import { verifyVisualEffectRegressions } from "./legacy-visual-effects-regressions.mjs";
 
 const DEFAULT_URL = "http://127.0.0.1:8876/";
 const urlArg = process.argv.find((arg) => arg.startsWith("--url="));
@@ -264,8 +265,8 @@ try {
   assert(state.englishThemeTitle === "Puppet unleashed", `theme title was not localized at call time: ${state.englishThemeTitle}`);
   assert(state.cardFxState.bannerClass.includes("fx-puppet"), `card banner class changed: ${state.cardFxState.bannerClass}`);
   assert(state.cardFxState.title.includes("傀儡"), `card banner title changed: ${state.cardFxState.title}`);
-  assert(state.cardFxState.desc.length > 0, "card banner description missing");
-  assert(state.cardFxState.particles === 14 && state.cardFxState.rings === 1, `card particles changed: ${JSON.stringify(state.cardFxState)}`);
+  assert(state.cardFxState.desc.length === 0, "card banner repeated the same title as its description");
+  assert(state.cardFxState.particles === 12 && state.cardFxState.rings === 1, `card particle budget changed: ${JSON.stringify(state.cardFxState)}`);
   assert(state.cardFxState.firstParticleCore === "rgba(196,170,255,.95)", `puppet particle core changed: ${state.cardFxState.firstParticleCore}`);
   assert(state.cardFxState.firstParticleGlow === "rgba(112,78,255,.85)", `puppet particle glow changed: ${state.cardFxState.firstParticleGlow}`);
   assert(state.cardFxState.ringColor === "rgba(196,170,255,.95)", `puppet ring color changed: ${state.cardFxState.ringColor}`);
@@ -276,6 +277,7 @@ try {
   assert(state.fiveState.lines === 3, `five-in-row burst changed: ${state.fiveState.lines}`);
   assert(state.lastStandState.pulses === 1, `last stand pulse changed: ${state.lastStandState.pulses}`);
   assert(state.signatureState.flashes === 1 && state.signatureState.fiveLines === 3, `signature effect dispatch changed: ${JSON.stringify(state.signatureState)}`);
+  const regressions = await verifyVisualEffectRegressions(browser, targetUrl);
   assert(errors.length === 0, `browser errors: ${errors.join("; ")}`);
 
   console.log(JSON.stringify({
@@ -283,6 +285,7 @@ try {
     animations: state.animationQueuedState.count,
     particles: state.cardFxState.particles,
     sparks: state.sparkState.count,
+    regressions,
   }, null, 2));
 } finally {
   await browser.close();
