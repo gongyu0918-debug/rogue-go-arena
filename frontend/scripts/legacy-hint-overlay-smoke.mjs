@@ -13,7 +13,7 @@ function assert(condition, message) {
 
 async function inspectHints(page) {
   return page.evaluate(() => {
-    if (typeof clearVisualEffects === "function") clearVisualEffects();
+    clearVisualEffects();
     reviewMode = false;
     twoPlayerMode = true;
     showHints = false;
@@ -44,15 +44,20 @@ async function inspectHints(page) {
       for (let y = point.y - radius; y <= point.y + radius; y++) {
         for (let x = point.x - radius; x <= point.x + radius; x++) {
           const [r, g, b, a] = pixel(data, x, y);
-          if (g > r + 60 && g > b + 40 && a === 255) {
+          if (g > r + 12 && g > b + 35 && a > 200) {
             const key = `${r},${g},${b},${a}`;
             histogram.set(key, (histogram.get(key) || 0) + 1);
           }
         }
       }
-      const [color, count] = [...histogram].sort((a, b) => b[1] - a[1])[0] || ["", 0];
-      return { color, count };
+      const [color] = [...histogram].sort((a, b) => b[1] - a[1])[0] || [""];
+      return { color, count: [...histogram.values()].reduce((sum, count) => sum + count, 0) };
     };
+    // A transparent canvas exposes the source alpha; over wood the final pixel
+    // is opaque and its color legitimately varies with the background.
+    ctx.clearRect(0, 0, boardRenderSize, boardRenderSize);
+    drawHintPercentChip(PAD + 9 * CELL, PAD + 9 * CELL, 64, 1);
+    const isolatedColor = colorAt(snapshot(), centers[0]);
     render();
     const withoutHints = snapshot();
     showHints = true;
@@ -105,14 +110,13 @@ async function inspectHints(page) {
     render();
     const rect = canvas.getBoundingClientRect();
     return { cell: CELL, boardRenderDpr, canvasWidth: canvas.width, boardRenderSize, displayWidth: rect.width,
-      labels, normalColors, hoverColor, fineTuneColor, territoryColor, reviewColors, spillPixels, occupiedChanges };
+      labels, isolatedColor, normalColors, hoverColor, fineTuneColor, territoryColor, reviewColors, spillPixels, occupiedChanges };
   });
 }
 
 const browser = await launchBrowser();
 const results = [];
 const errors = [];
-let referenceColor = null;
 try {
   await mkdir(artifactDir, { recursive: true });
   for (const dpr of [1, 2]) {
@@ -133,11 +137,11 @@ try {
       const samples = [...state.normalColors, ...state.reviewColors, state.hoverColor, state.fineTuneColor, state.territoryColor];
       for (const sample of samples) {
         assert(sample.count >= 12 * dpr * dpr, `${name}: green is too faint or too small: ${JSON.stringify(sample)}`);
-        referenceColor ||= sample.color;
-        assert(sample.color === referenceColor, `${name}: green changed with size, rank, preview, territory, or review: ${JSON.stringify(sample)}`);
       }
-      const [r, g, b] = referenceColor.split(",").map(Number);
-      assert(g >= 190 && g - r >= 100 && g - b >= 60, `${name}: hint is no longer a distinct green: ${referenceColor}`);
+      const channels = state.isolatedColor.color.split(",").map(Number);
+      const expected = [151, 193, 103, 224]; // Previous muted green at 88% opacity.
+      assert(channels.length === 4 && channels.every((value, index) => Math.abs(value - expected[index]) <= 1),
+        `${name}: hint lost its muted color or transparency: ${state.isolatedColor.color}`);
       if (dpr === 1) {
         await page.screenshot({ path: `${artifactDir}hints-${name}.png` });
         await page.locator("#board-canvas").screenshot({ path: `${artifactDir}hints-board-${name}.png` });
@@ -147,10 +151,10 @@ try {
     await page.close();
   }
   assert(errors.length === 0, `hint browser errors: ${errors.join("; ")}`);
-  await writeFile(`${artifactDir}hint-overlay-report.json`, JSON.stringify({ referenceColor, cases: results }, null, 2));
-  console.log(JSON.stringify({ ok: true, referenceColor, cases: results.map(result => ({
+  await writeFile(`${artifactDir}hint-overlay-report.json`, JSON.stringify({ browserVersion: browser.version(), cases: results }, null, 2));
+  console.log(JSON.stringify({ ok: true, browserVersion: browser.version(), cases: results.map(result => ({
     viewport: result.viewport, cell: result.cell, canvasWidth: result.canvasWidth, displayWidth: result.displayWidth,
-    spillPixels: result.spillPixels, occupiedChanges: result.occupiedChanges,
+    isolatedColor: result.isolatedColor.color, spillPixels: result.spillPixels, occupiedChanges: result.occupiedChanges,
   })), screenshots: artifactDir }, null, 2));
 } finally {
   await browser.close();
