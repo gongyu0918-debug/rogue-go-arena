@@ -31,7 +31,8 @@
   const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
   let greenPixels = 0;
   for (let i = 0; i < pixels.length; i += 4) {
-    if (pixels[i] === 46 && pixels[i + 1] === 216 && pixels[i + 2] === 120 && pixels[i + 3] === 255) greenPixels++;
+    const [r, g, b, a] = pixels.slice(i, i + 4);
+    if (g > r + 12 && g > b + 35 && g <= 205 && a === 255) greenPixels++;
   }
   assert(greenPixels >= 30, "native hint green is missing or faint");
   const fog = document.createElement("div");

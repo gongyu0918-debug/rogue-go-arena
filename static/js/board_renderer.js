@@ -166,11 +166,11 @@ function drawMoveNumbers() {
   ctx.restore();
 }
 
-const HINT_PALETTE = Object.freeze({ fill: "#2ed878", border: "#16452b", bestRing: "#e3ffd1", text: "#052c16" });
+const HINT_PALETTE = Object.freeze({ fill: "hsla(88, 42%, 58%, 0.88)", border: "#16452b", bestRing: "#e3ffd1", text: "#052c16" });
 
 function drawHintPercentChip(cx, cy, pct, rank) {
   // Fit the whole marker inside one intersection, including the best-move ring.
-  // Opaque fill keeps the green identical over wood, territory, and stone previews.
+  // Restore the softer translucent green while keeping the marker within its cell.
   const chipR = Math.min(18, CELL * 0.43);
   const borderWidth = Math.min(1.5, CELL * 0.07);
   ctx.save();
