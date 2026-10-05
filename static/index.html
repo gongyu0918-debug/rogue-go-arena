@@ -2534,6 +2534,7 @@ header::before { display: none; }
 }
 
 </style>
+<link rel="stylesheet" href="/static/client-command-deck.css?v=20261005a">
 <link rel="stylesheet" href="/static/visual-effects.css?v=20260908a">
 </head>
 <body>
@@ -2552,6 +2553,7 @@ header::before { display: none; }
   </div>
 </header>
 
+<div class="client-command-frame">
 <section id="client-command-deck" class="client-command-deck" aria-label="GoAI client command deck">
   <div class="client-identity">
     <span class="client-title" id="client-title">GoAI</span>
@@ -2599,6 +2601,8 @@ header::before { display: none; }
     </select>
   </div>
 </section>
+</div>
+<script src="/static/js/client_command_deck.js?v=20261005a"></script>
 
 <div class="main-layout" style="justify-content: center;">
   <!-- Board -->
@@ -6078,7 +6082,9 @@ function handleMessage(msg) {
     }
 
     case "game_state": {
-      const oldBoard = previousBoard || (gameState ? gameState.board : null);
+      // Animate only changes to the displayed board. A local move is already
+      // visible; previousBoard is its rollback snapshot, not the visual baseline.
+      const oldBoard = gameState ? gameState.board : previousBoard;
       gameState = msg;
       syncChallengeSessionFromState(msg);
       isMyTurn = twoPlayerMode ? !msg.game_over : (msg.current_player === myColor);
