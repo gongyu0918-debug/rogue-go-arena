@@ -76,7 +76,9 @@ function logPlayerGameStart(msg) {
 }
 
 function handleGameStateMessage(msg) {
-  const oldBoard = previousBoard || (gameState ? gameState.board : null);
+  // Animate only changes to the displayed board. A local move is already
+  // visible; previousBoard is its rollback snapshot, not the visual baseline.
+  const oldBoard = gameState ? gameState.board : previousBoard;
   gameState = msg;
   syncChallengeSessionFromState(msg);
   isMyTurn = msg.ai_observer ? false : (twoPlayerMode ? !msg.game_over : (msg.current_player === myColor));

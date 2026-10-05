@@ -46,8 +46,33 @@
   assert(motionEnabled ? animations.length > 0 && animations.length <= 32 : animations.length === 0,
     "native placement animation did not follow the system motion preference");
   clearVisualEffects();
+  const originalSendWS = sendWS;
+  const originalPlace = addPlaceAnimation;
+  const originalSound = playStoneSound;
+  let placements = 0;
+  let sounds = 0;
+  try {
+    sendWS = () => {};
+    addPlaceAnimation = (...args) => { placements++; originalPlace(...args); };
+    playStoneSound = () => { sounds++; };
+    commitPlay(3, 3);
+    handleMessage({ ...gameState, type: "game_state", board: gameState.board.map(row => [...row]),
+      current_player: "W", move_number: 1 });
+    assert(placements === 1 && sounds === 1, "native confirmation replayed the local placement");
+  } finally {
+    sendWS = originalSendWS;
+    addPlaceAnimation = originalPlace;
+    playStoneSound = originalSound;
+  }
+  const deck = document.getElementById("client-command-deck");
+  const bounds = deck.getBoundingClientRect();
+  assert(getComputedStyle(deck).display === "flex" && getComputedStyle(deck).flexWrap === "nowrap",
+    "native command deck allowed multiple rows");
+  assert(bounds.right <= innerWidth && bounds.left >= 0, "native command deck overflowed");
+  clearVisualEffects();
   return { userAgent: navigator.userAgent, viewport: [innerWidth, innerHeight],
     dpr: devicePixelRatio, selectedSize: select.value, greenPixels, fogMask, motionEnabled,
+    placements, sounds, commandDeckScale: bounds.width / deck.offsetWidth,
     dropdownCount: document.querySelectorAll("select.wood-select-native").length,
     bridgeReady: typeof window.pywebview?.api?.close_window === "function" };
 })()

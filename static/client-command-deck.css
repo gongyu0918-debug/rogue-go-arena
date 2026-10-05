@@ -1,0 +1,49 @@
+/* Scale the complete command deck as one row instead of rearranging controls. */
+.client-command-frame {
+  width: min(var(--arena-stage-width, var(--goai-stage-width, 1180px)), calc(100% - 52px));
+  height: 54px;
+  margin: 10px auto 0;
+  overflow: clip;
+}
+.client-command-frame .client-command-deck {
+  width: 100%;
+  margin: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  overflow: visible;
+  white-space: nowrap;
+  transform-origin: top left;
+}
+.client-command-frame .client-identity { flex: 0 0 auto; }
+.client-command-frame .client-title { font-size: 1.3rem; }
+.client-command-frame .client-kicker { display: inline; }
+.client-command-frame .client-locale-controls { flex: 0 0 auto; }
+.client-command-frame #sound-toggle { flex: 0 0 auto; margin-left: auto; }
+.client-command-frame .desktop-exit-button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 6px 12px;
+  font-size: .76rem;
+}
+.client-command-frame .top-winrate-slot,
+.client-command-frame .top-winrate-slot.active {
+  position: static;
+  flex: 1 1 320px;
+  width: auto;
+  min-width: 180px;
+  max-width: 520px;
+  margin: 0 auto;
+  transform: none;
+  justify-content: center;
+}
+.client-command-frame #winrate-bar { height: 28px; }
+.client-command-frame .client-status-card { padding: 6px 11px; gap: 8px; }
+.client-command-frame .client-status-card .label,
+.client-command-frame .client-status-card:nth-child(3),
+.client-command-frame .client-status-card:nth-child(4) { display: inline-flex; }
+@media (max-width: 980px) {
+  .client-command-frame { width: calc(100% - 20px); }
+}
