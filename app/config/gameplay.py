@@ -388,25 +388,23 @@ def get_balance_editor_payload() -> dict:
 
 
 def save_balance_overrides(values: dict) -> dict:
-    from app.data.cards import export_active_card_config, save_card_config
+    """Save tuning values; like the card editor, they take effect from the next game."""
+    from app.data.cards import load_saved_card_config, save_card_config
 
     clean, errors = validate_balance_values(values, drop_defaults=False)
     if errors:
         return {"ok": False, "errors": errors, "payload": get_balance_editor_payload()}
-    config = export_active_card_config()
+    # Build on the saved config so edits still waiting for the next game are kept.
+    config, _path, _errors = load_saved_card_config()
     for key, value in clean.items():
         if key in config.get("tuning", {}):
             config["tuning"][key]["value"] = value
-    result = save_card_config(config)
-    if result.get("ok"):
-        apply_balance_values(clean)
+    result = save_card_config(config, apply=False)
     return {"ok": result.get("ok", False), "errors": result.get("errors", []), "payload": get_balance_editor_payload()}
 
 
 def reset_balance_overrides() -> dict:
-    from app.data.cards import get_gameplay_tuning_specs, get_gameplay_tuning_values, reset_card_config
+    from app.data.cards import reset_card_config
 
-    result = reset_card_config()
-    if result.get("ok"):
-        apply_balance_values(get_gameplay_tuning_values(), get_gameplay_tuning_specs())
+    result = reset_card_config(apply=False)
     return {"ok": result.get("ok", False), "errors": result.get("errors", []), "payload": get_balance_editor_payload()}

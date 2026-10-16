@@ -42,28 +42,18 @@ class CardConfigService:
         self._sync_balance_globals()
         return []
 
+    # Saving, resetting or opening the editor never touches the live config:
+    # a game in progress keeps its rules, and handle_new_game calls
+    # reload_live_config() so saved edits take effect from the next game.
+
     def get_payload(self) -> dict[str, Any]:
-        self.reload_live_config()
         return get_card_config_editor_payload()
 
     def get_schema(self) -> dict[str, Any]:
         return get_card_config_editor_payload().get("schema", {})
 
     def save_payload(self, config: Any) -> dict[str, Any]:
-        result = save_card_config(config)
-        return self._reload_after_write(result)
+        return save_card_config(config, apply=False)
 
     def reset_payload(self) -> dict[str, Any]:
-        result = reset_card_config()
-        return self._reload_after_write(result)
-
-    def _reload_after_write(self, result: dict[str, Any]) -> dict[str, Any]:
-        if result.get("ok"):
-            live_errors = self.reload_live_config()
-            if live_errors:
-                return {
-                    "ok": False,
-                    "errors": live_errors,
-                    "payload": get_card_config_editor_payload(),
-                }
-        return result
+        return reset_card_config(apply=False)

@@ -402,6 +402,22 @@ def get_card_config_paths() -> dict[str, str]:
     }
 
 
+def load_saved_card_config() -> tuple[dict[str, Any], Path, list[str]]:
+    """The config the next game will use (the saved file), without applying it."""
+    path = _active_config_path()
+    try:
+        config = _load_json(path)
+        if path != CARD_CONFIG_BASE_PATH:
+            config = _merge_base_defaults(config)
+    except Exception as exc:
+        return export_active_card_config(), path, [f"{path}: {exc}"]
+    return config, path, validate_card_config(config)
+
+
+def _strip_volatile(config: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in config.items() if key not in {"updated_at", "$schema"}}
+
+
 def get_card_config_editor_payload() -> dict[str, Any]:
     base_config: dict[str, Any] = {}
     schema: dict[str, Any] = {}
@@ -413,12 +429,17 @@ def get_card_config_editor_payload() -> dict[str, Any]:
         schema = _load_json(CARD_CONFIG_SCHEMA_PATH)
     except Exception as exc:
         schema = {"errors": [str(exc)]}
+    saved_config, saved_path, saved_errors = load_saved_card_config()
+    errors = saved_errors or list(CARD_CONFIG_ERRORS)
     return {
-        "ok": not CARD_CONFIG_ERRORS,
-        "source": "user" if CARD_CONFIG_SOURCE_PATH == CARD_CONFIG_USER_PATH else "base",
+        "ok": not errors,
+        "source": "user" if saved_path == CARD_CONFIG_USER_PATH else "base",
         "paths": get_card_config_paths(),
-        "errors": list(CARD_CONFIG_ERRORS),
-        "config": export_active_card_config(),
+        "errors": errors,
+        # The editor edits the saved config; games in progress keep the active one
+        # until the next new game reloads it.
+        "config": saved_config,
+        "pending_next_game": _strip_volatile(saved_config) != _strip_volatile(ACTIVE_CARD_CONFIG),
         "base_config": base_config,
         "schema": schema,
     }
@@ -436,11 +457,14 @@ def _write_card_config(path: Path, config: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def save_card_config(config: dict[str, Any]) -> dict[str, Any]:
+def save_card_config(config: dict[str, Any], *, apply: bool = True) -> dict[str, Any]:
+    """Validate and write the user config; with apply=False it waits for the next game."""
     errors = validate_card_config(config)
     if errors:
         return {"ok": False, "errors": errors, "payload": get_card_config_editor_payload()}
     _write_card_config(CARD_CONFIG_USER_PATH, config)
+    if not apply:
+        return {"ok": True, "errors": [], "payload": get_card_config_editor_payload()}
     reload_errors = reload_card_catalog()
     return {
         "ok": not reload_errors,
@@ -449,12 +473,14 @@ def save_card_config(config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def reset_card_config() -> dict[str, Any]:
+def reset_card_config(*, apply: bool = True) -> dict[str, Any]:
     if CARD_CONFIG_USER_PATH.exists():
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
         backup = CARD_CONFIG_USER_PATH.with_suffix(f".reset-{stamp}.bak.json")
         backup.write_text(CARD_CONFIG_USER_PATH.read_text(encoding="utf-8"), encoding="utf-8")
         CARD_CONFIG_USER_PATH.unlink()
+    if not apply:
+        return {"ok": True, "errors": [], "payload": get_card_config_editor_payload()}
     reload_errors = reload_card_catalog()
     return {
         "ok": not reload_errors,
