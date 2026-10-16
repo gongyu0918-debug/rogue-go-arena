@@ -33,11 +33,19 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
+; Pick the installer language from the Windows display language. When it is
+; not one of ours, fall back to the first [Languages] entry (English) and let
+; the player confirm it in the language dialog.
+LanguageDetectionMethod=uilanguage
+ShowLanguageDialog=auto
 
 [Languages]
-Name: "chinesesimplified"; MessagesFile: "{#RepoRoot}\ChineseSimplified.isl"
-Name: "chinesetraditional"; MessagesFile: "{#RepoRoot}\ChineseTraditional.isl"
+; English first: it is the fallback when no language matches. Traditional
+; before Simplified so zh-HK / zh-MO (matched by primary language only) get
+; Traditional; zh-CN, zh-TW and the others match exactly.
 Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "chinesetraditional"; MessagesFile: "{#RepoRoot}\ChineseTraditional.isl"
+Name: "chinesesimplified"; MessagesFile: "{#RepoRoot}\ChineseSimplified.isl"
 Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"

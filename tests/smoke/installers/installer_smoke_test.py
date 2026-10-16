@@ -60,6 +60,15 @@ def main() -> int:
         if f'Name: "{language}"' not in languages:
             missing.append(f"missing [Languages] entry for {language}")
 
+    setup = section(script, "Setup")
+    language_names = re.findall(r'^Name: "(\w+)"', languages, flags=re.MULTILINE)
+    if not language_names or language_names[0] != "english":
+        missing.append("English must be the first [Languages] entry (fallback when unsure)")
+    if "LanguageDetectionMethod=uilanguage" not in setup:
+        missing.append("installer must detect the Windows display language")
+    if "ShowLanguageDialog=auto" not in setup:
+        missing.append("language dialog should only appear when no language matches")
+
     keys = custom_message_keys(custom_messages)
     all_keys = set().union(*keys.values())
     for language in LANGUAGES:
