@@ -75,6 +75,14 @@ from app.config.gameplay import (
     reset_balance_overrides,
     save_balance_overrides,
 )
+from app.data import cards as card_data
+from app.gameplay.card_impact import (
+    ImpactSnapshot,
+    parse_raw_nn,
+    resolve_card_impact,
+    snapshot_game,
+    take_snapshot,
+)
 from app.data.cards import (
     get_gameplay_tuning_specs,
     get_gameplay_tuning_values,
@@ -1340,10 +1348,44 @@ def _player_rogue_move_effect_binding() -> PlayerRogueMoveEffectBinding:
     return build_player_rogue_move_effect_binding(_rogue_move_effect_dependencies())
 
 
+async def _measure_card_impact(game: GoGame, before: ImpactSnapshot):
+    """Raw-net evals of the pre-card and post-card positions, or None.
+
+    Both syncs and evals run under one engine lock so no other game can load
+    its board in between; the engine is left on the post-card position.
+    """
+    if not engine.ready:
+        return None
+
+    def _measure():
+        with engine.command_lock:
+            evals = []
+            for position in (snapshot_game(game, before), game):
+                _sync_board_to_katago_locked(position)
+                parsed = parse_raw_nn(engine._send_command_locked("kata-raw-nn 0", timeout=10.0))
+                if parsed is None:
+                    _sync_board_to_katago_locked(game)
+                    return None
+                evals.append(parsed)
+            return evals[0], evals[1]
+
+    try:
+        return await run_in_executor(_measure)
+    except Exception as exc:
+        log(f"[CardImpact] measure failed: {exc}")
+        return None
+
+
 async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
                                            x: int, y: int,
                                            color: str, captured: int):
     """Apply player-side rogue effects after a successful move."""
+    track_impact = (
+        not getattr(game, "two_player", False)
+        and color == getattr(game, "player_color", None)
+        and (getattr(game, "rogue_enabled", False) or getattr(game, "challenge_beta", False))
+    )
+    before = take_snapshot(game) if track_impact else None
     await apply_player_rogue_move_effects_adapter(
         game,
         send_fn,
@@ -1353,6 +1395,17 @@ async def _apply_player_rogue_move_effects(game: GoGame, send_fn,
         captured=captured,
         binding=_player_rogue_move_effect_binding(),
     )
+    if before is not None:
+        await resolve_card_impact(
+            game,
+            send_fn,
+            before,
+            color,
+            card_id=game.rogue_card,
+            forbidden=set(_get_ai_rogue_forbidden_points(game)),
+            measure=_measure_card_impact,
+            ultimate_twins=set(card_data.ULTIMATE_CARDS),
+        )
 
 
 def _ai_rogue_response_effect_binding() -> AiRogueResponseEffectBinding:

@@ -10,6 +10,7 @@ from app.config.gameplay import (
     ULTIMATE_QUICKTHINK_SECONDS,
 )
 from app.domain.coordinates import gtp_to_coord
+from app.gameplay.card_impact import evolution_state
 
 # ─── Game state ──────────────────────────────────────────────────────────────
 class GoGame:
@@ -68,6 +69,9 @@ class GoGame:
         self.rogue_coach_bonus_checked: bool = False
         self.rogue_quickthink_stage: int = 0
         self.rogue_fool_shapes: set[tuple[tuple[int, int], ...]] = set()
+        # Card evolution: impactful triggers charge the player's card.
+        self.rogue_evolution_charge: int = 0
+        self.rogue_evolution_level: int = 1
         # 让子棋任务: player passes 2 turns, then gets bonus turns
         self.rogue_handicap_passes: int = 0       # passes completed
         self.rogue_handicap_active: bool = False   # task completed, bonus active
@@ -322,6 +326,7 @@ class GoGame:
             "rogue_coach_moves_left": self.rogue_coach_moves_left,
             "rogue_quickthink_stage": self.rogue_quickthink_stage,
             "rogue_methodical_remaining": self.rogue_methodical_remaining,
+            "rogue_evolution": evolution_state(self),
             "rogue_quickthink_seconds": (
                 ROGUE_QUICKTHINK_FIRST_SECONDS
                 if self.rogue_quickthink_stage == 1

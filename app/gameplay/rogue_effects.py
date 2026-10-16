@@ -100,6 +100,8 @@ def reset_rogue_effect_state(
     game.rogue_coach_bonus_checked = False
     game.rogue_quickthink_stage = 0
     game.rogue_fool_shapes = set()
+    game.rogue_evolution_charge = 0
+    game.rogue_evolution_level = 1
     game.rogue_seal_points = []
     if reset_handicap:
         game.rogue_handicap_passes = 0
