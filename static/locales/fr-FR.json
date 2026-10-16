@@ -627,5 +627,40 @@
         "desc": "Si votre winrate passe sous 30 %, nettoie 30 pierres ennemies et ajoute 30 pierres amies sur tout le goban."
       }
     }
+  },
+  "eventTerms": {
+    "color.B": "Noir",
+    "color.W": "Blanc",
+    "corner.tl": "coin supérieur gauche",
+    "corner.tr": "coin supérieur droit",
+    "corner.bl": "coin inférieur gauche",
+    "corner.br": "coin inférieur droit",
+    "set.derivative": "Génération",
+    "set.trap": "Piège",
+    "set.zone": "Zone",
+    "set.restriction": "Restriction",
+    "set.active": "Actif",
+    "list.separator": ", "
+  },
+  "events": {
+    "card.attack_first.gift": "⚔ {card|card} : une pierre offerte en {point}. Encore {remaining} cette partie.",
+    "card.blackhole.sealed": "{card|card} : le centre est interdit à l'IA pour toute la partie.",
+    "card.capture_chain.streak": "⛓ {card|card} ×{streak} : {count} {count|pl:pierre bonus tombe:pierres bonus tombent} sur le goban. Encore {remaining} cette partie.",
+    "card.corner_helper.reinforced": "🏯 {card|card} : {count} {count|pl:pierre de renfort arrive:pierres de renfort arrivent} dans le coin.",
+    "card.defense_first.gift": "🛡 {card|card} : une pierre offerte en {point}. Encore {remaining} cette partie.",
+    "card.foolish_wisdom.bloom": "🪤 {card|card} : {shapes} {shapes|pl:forme lourde repérée:formes lourdes repérées}, {count} {count|pl:pierre bonus pousse:pierres bonus poussent}.",
+    "card.god_hand.burst": "✨ {card|card} ! {count} {count|pl:pierre jaillit:pierres jaillissent} autour du point caché.",
+    "card.golden_corner.sealed": "{card|card} : la zone {size}×{size} du {corner|corner} est interdite à l'IA pour toute la partie.",
+    "card.handicap_quest.reward": "{card|card} : récompense {done}/{max} (une tous les {interval} coups), l'IA passe une fois.",
+    "card.handicap_quest.started": "{card|card} : passez d'abord {passes} fois ; ensuite, tous les {interval} coups, l'IA doit passer une fois.",
+    "card.iron_wall.streak": "🧱 {card|card} ×{streak} : votre groupe le plus faible est renforcé en {point}. Encore {remaining} cette partie.",
+    "card.joseki_ocd.complete": "{card|card} accompli : {count} {count|pl:pierre comble:pierres comblent} les cibles restantes.",
+    "card.joseki_ocd.hit": "{card|card} : cible touchée ({hits}/{required})",
+    "card.joseki_ocd.targets": "{card|card} : {count} points cibles s'allument ({points|list}). Jouez-en {hits} et les {rest} autres se remplissent tout seuls.",
+    "card.momentum.streak": "🔥 {card|card} ×{streak} : une pierre de plus rejoint l'attaque en {point}. Encore {remaining} cette partie.",
+    "card.sanrensei.constellation": "✦ La constellation {stars|chain} s'illumine : une pierre offerte en {point}. Encore {remaining} cette partie.",
+    "card.sanrensei.opening": "✦ {card|card} s'allume : {count} {count|pl:pierre bonus se pose:pierres bonus se posent} sur les hoshi.",
+    "card.sansan_trap.sprung": "△ {card|card} déclenché en {point} : {count} {count|pl:pierre de riposte apparaît:pierres de riposte apparaissent} juste à côté.",
+    "card.sprout.gift": "{card|card} : une nouvelle pierre pousse en {point}, juste à côté de votre capture."
   }
 }

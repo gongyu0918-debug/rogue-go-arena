@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import WebSocket, WebSocketDisconnect
 
 from app.callback_types import SendFn
+from app.domain.event_text import with_event_keys
 
 SendErrorFn = Callable[[str], Awaitable[None]]
 AnalysisFn = Callable[[Any], Awaitable[dict[str, Any]]]
@@ -46,7 +47,8 @@ async def run_websocket_game_session(
             if websocket_closed:
                 raise WebSocketDisconnect(code=1006)
             try:
-                await websocket.send_text(json_dumps(data))
+                # Keyed messages also carry key/params next to the legacy Chinese text.
+                await websocket.send_text(json_dumps(with_event_keys(data)))
                 active_games.touch(game_id)
             except WebSocketDisconnect:
                 websocket_closed = True

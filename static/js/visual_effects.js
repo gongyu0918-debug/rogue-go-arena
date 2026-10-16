@@ -344,7 +344,7 @@ function spawnCardParticles(layer, theme) {
   mountVisualEffect(layer, burst, 1050);
 }
 
-function showCardEffectVisual(message, mode = "rogue") {
+function showCardEffectVisual(message, mode = "rogue", event = null) {
   const layer = document.getElementById("board-fx-layer");
   if (!layer || document.hidden) return;
   const theme = inferEffectTheme(message);
@@ -362,7 +362,7 @@ function showCardEffectVisual(message, mode = "rogue") {
   title.textContent = theme.title;
   const desc = document.createElement("div");
   desc.className = "fx-banner-desc";
-  desc.textContent = translateServerEventMessage(message);
+  desc.textContent = localizeServerEvent(message, event?.key, event?.params);
   copy.appendChild(title);
   if (desc.textContent !== title.textContent) copy.appendChild(desc);
   inner.append(icon, copy);

@@ -627,5 +627,40 @@
         "desc": "當我方勝率跌到 30% 以下時：全盤隨機清除對方 30 顆棋子，並隨機補下 30 顆己棋"
       }
     }
+  },
+  "eventTerms": {
+    "color.B": "黑棋",
+    "color.W": "白棋",
+    "corner.tl": "左上角",
+    "corner.tr": "右上角",
+    "corner.bl": "左下角",
+    "corner.br": "右下角",
+    "set.derivative": "衍生",
+    "set.trap": "陷阱",
+    "set.zone": "限位",
+    "set.restriction": "限制",
+    "set.active": "主動",
+    "list.separator": "、"
+  },
+  "events": {
+    "card.attack_first.gift": "⚔ {card|card}觸發：在 {point} 送你 1 子，本局還剩 {remaining} 次",
+    "card.blackhole.sealed": "{card|card}已鎖定中央區域，整局都不讓 AI 進入",
+    "card.capture_chain.streak": "⛓ {card|card} {streak} 連：額外落下 {count} 子，本局還剩 {remaining} 次",
+    "card.corner_helper.reinforced": "🏯 {card|card}在角上補強了 {count} 顆援軍",
+    "card.defense_first.gift": "🛡 {card|card}觸發：在 {point} 送你 1 子，本局還剩 {remaining} 次",
+    "card.foolish_wisdom.bloom": "🪤 {card|card}發動，認出 {shapes} 個愚形，額外長出 {count} 顆己方棋子",
+    "card.god_hand.burst": "✨ {card|card}發動，在暗點周圍爆發 {count} 顆同色棋子",
+    "card.golden_corner.sealed": "{card|card}已封鎖{corner|corner}的 {size}x{size} 區域，整局都不讓 AI 進入",
+    "card.handicap_quest.reward": "{card|card}獎勵：每滿 {interval} 手一次，目前進度 {done}/{max}，AI 將虛手一次",
+    "card.handicap_quest.started": "{card|card}開始：你需要先虛手 {passes} 次，之後每下滿 {interval} 手可再讓 AI 虛手一次",
+    "card.iron_wall.streak": "🧱 {card|card} {streak} 連守：在 {point} 補強最弱的棋塊，本局還剩 {remaining} 次",
+    "card.joseki_ocd.complete": "{card|card}完成，自動補上 {count} 顆同色棋子",
+    "card.joseki_ocd.hit": "定式命中（{hits}/{required}）",
+    "card.joseki_ocd.targets": "{card|card}點亮了 {count} 個目標點：{points|list}。下中其中 {hits} 個後，其餘 {rest} 個點會自動補上",
+    "card.momentum.streak": "🔥 {card|card} {streak} 連擊：在 {point} 追加 1 子，本局還剩 {remaining} 次",
+    "card.sanrensei.constellation": "✦ 星座 {stars|chain} 連成一線：在 {point} 補上 1 子，本局還剩 {remaining} 次",
+    "card.sanrensei.opening": "✦ {card|card}發動，自動在星位補上 {count} 子",
+    "card.sansan_trap.sprung": "△ {card|card}發動，在 {point} 旁反打 {count} 子",
+    "card.sprout.gift": "{card|card}觸發：在提子處附近的 {point} 長出一顆己方棋子"
   }
 }

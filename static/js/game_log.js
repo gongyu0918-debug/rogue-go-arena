@@ -20,9 +20,11 @@ function logRender(renderer) {
   renderGameLog();
 }
 
-function logServerEvent(message, prefix = "") {
+function logServerEvent(message, prefix = "", event = null) {
   const raw = String(message || "");
-  logRender(() => `${prefix}${translateServerEventMessage(raw)}`);
+  const key = event?.key;
+  const params = event?.params;
+  logRender(() => `${prefix}${localizeServerEvent(raw, key, params)}`);
 }
 
 function localizeLogText(text) {

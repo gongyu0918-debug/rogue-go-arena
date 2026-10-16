@@ -627,5 +627,40 @@
         "desc": "当我方胜率跌到 30% 以下时：全盘随机清除对方 30 颗棋子，并随机补下 30 颗己棋。"
       }
     }
+  },
+  "eventTerms": {
+    "color.B": "黑棋",
+    "color.W": "白棋",
+    "corner.tl": "左上角",
+    "corner.tr": "右上角",
+    "corner.bl": "左下角",
+    "corner.br": "右下角",
+    "set.derivative": "衍生",
+    "set.trap": "陷阱",
+    "set.zone": "限位",
+    "set.restriction": "限制",
+    "set.active": "主动",
+    "list.separator": "、"
+  },
+  "events": {
+    "card.attack_first.gift": "⚔ {card|card}触发：在 {point} 赠送 1 颗己棋，本局剩余 {remaining} 次",
+    "card.blackhole.sealed": "{card|card}已锁定中央区域，整局都会限制 AI 进入",
+    "card.capture_chain.streak": "⛓ {card|card} {streak} 连：额外落下 {count} 颗己棋，本局剩余 {remaining} 次",
+    "card.corner_helper.reinforced": "🏯 {card|card}补强了 {count} 颗角部援军",
+    "card.defense_first.gift": "🛡 {card|card}触发：在 {point} 赠送 1 颗己棋，本局剩余 {remaining} 次",
+    "card.foolish_wisdom.bloom": "🪤 {card|card}发动，识别到 {shapes} 个愚形，额外长出 {count} 颗己方棋子",
+    "card.god_hand.burst": "✨ {card|card}发动，在暗点周围爆发 {count} 颗同色棋",
+    "card.golden_corner.sealed": "{card|card}已封锁{corner|corner}的 {size}x{size} 区域，整局都会限制 AI 进入",
+    "card.handicap_quest.reward": "{card|card}奖励触发：每满 {interval} 手获得一次奖励，当前进度 {done}/{max}，AI 将虚手一次",
+    "card.handicap_quest.started": "{card|card}开始：你需要先虚手 {passes} 次，之后每下满 {interval} 手可再让 AI 虚手一次",
+    "card.iron_wall.streak": "🧱 {card|card} {streak} 连守：在 {point} 加固最弱棋块，本局剩余 {remaining} 次",
+    "card.joseki_ocd.complete": "{card|card}完成，自动补上 {count} 颗同色棋",
+    "card.joseki_ocd.hit": "定式命中 ({hits}/{required})",
+    "card.joseki_ocd.targets": "{card|card}已点亮 {count} 个目标点：{points|list}。命中其中 {hits} 个后会自动补上剩余 {rest} 个点位",
+    "card.momentum.streak": "🔥 {card|card} {streak} 连击：在 {point} 追加 1 颗己棋，本局剩余 {remaining} 次",
+    "card.sanrensei.constellation": "✦ 星座连线 {stars|chain} 点亮：在 {point} 补出 1 颗己棋，本局剩余 {remaining} 次",
+    "card.sanrensei.opening": "✦ {card|card}发动，自动补出 {count} 颗星位棋",
+    "card.sansan_trap.sprung": "△ {card|card}发动，在 {point} 相邻点反打 {count} 子",
+    "card.sprout.gift": "{card|card}触发：在提子处 3×3 范围的 {point} 额外长出一颗己方棋子"
   }
 }

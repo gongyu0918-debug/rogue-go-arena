@@ -82,6 +82,12 @@ export interface CardImpactPayload {
   lead_delta?: number;
 }
 
+/** Language-neutral message key sent next to the legacy Chinese text (app/domain/event_text.py). */
+export interface EventKey {
+  key?: string;
+  params?: Record<string, unknown>;
+}
+
 export type WsMessage =
   | ({ type: "game_start" } & GameStatePayload)
   | ({ type: "game_state" } & GameStatePayload)
@@ -90,7 +96,7 @@ export type WsMessage =
   | ({ type: "analysis" } & AnalysisPayload)
   | { type: "ai_move"; gtp: string; color: PlayerColor; x?: number | null; y?: number | null; [key: string]: unknown }
   | { type: "game_over"; winner: PlayerColor | "draw"; score?: string; reason?: string; [key: string]: unknown }
-  | { type: "error"; message: string }
+  | ({ type: "error"; message: string } & EventKey)
   | { type: "engine_not_ready"; message?: string; [key: string]: unknown }
   | { type: "level_set"; level: string }
   | { type: "rogue_offer"; cards: CardOffer[]; [key: string]: unknown }
@@ -98,7 +104,7 @@ export type WsMessage =
   | { type: "rogue_card_selected"; card_id: string; [key: string]: unknown }
   | { type: "rogue_ai_selected"; card_id: string; [key: string]: unknown }
   | { type: "ultimate_cards_selected"; player_card: string; ai_card: string; [key: string]: unknown }
-  | { type: "rogue_event"; msg: string; [key: string]: unknown }
+  | ({ type: "rogue_event"; msg: string } & EventKey)
   | { type: "rogue_uses_update"; uses: number }
   | { type: "rogue_seal_update"; points: MovePoint[]; [key: string]: unknown }
   | { type: "rogue_seal_done" }

@@ -32,6 +32,7 @@ from app.gameplay.effect_utils import (
     spawn_random_owned_stones,
 )
 from app.data.cards import challenge_card_category, challenge_category_counts
+from app.domain.event_text import CORNER_IDS, event_text
 from app.gameplay.turn_modifiers import get_player_bonus_forbidden_points
 
 
@@ -151,7 +152,7 @@ def apply_rogue_card_activation(
         game.rogue_waiting_seal = True
     elif card_id == "blackhole":
         game.rogue_seal_points = get_blackhole_points_fn(game.size)
-        messages.append("黑洞已锁定中央区域，整局都会限制 AI 进入")
+        messages.append(event_text("card.blackhole.sealed", "黑洞已锁定中央区域，整局都会限制 AI 进入", card="blackhole"))
     elif card_id == "golden_corner":
         corner = choose_corner()
         game.rogue_seal_points = get_golden_corner_points_fn(
@@ -160,30 +161,41 @@ def apply_rogue_card_activation(
             gameplay_config.ROGUE_GOLDEN_CORNER_SPAN,
         )
         corner_names = ["左上角", "右上角", "左下角", "右下角"]
-        messages.append(
-            f"黄金角已封锁 {corner_names[corner]} 的 "
-            f"{gameplay_config.ROGUE_GOLDEN_CORNER_SPAN}x"
-            f"{gameplay_config.ROGUE_GOLDEN_CORNER_SPAN} 区域，整局都会限制 AI 进入"
-        )
+        span = gameplay_config.ROGUE_GOLDEN_CORNER_SPAN
+        messages.append(event_text(
+            "card.golden_corner.sealed",
+            f"黄金角已封锁 {corner_names[corner]} 的 {span}x{span} 区域，整局都会限制 AI 进入",
+            card="golden_corner",
+            corner=CORNER_IDS[corner],
+            size=span,
+        ))
     elif card_id == "joseki_ocd":
         game.rogue_joseki_targets = pick_joseki_targets_fn(
             game.size,
             gameplay_config.ROGUE_JOSEKI_TARGET_COUNT,
         )
-        pts_str = ", ".join(
-            coord_to_gtp(px, py, game.size)
-            for px, py in game.rogue_joseki_targets
-        )
-        messages.append(
-            f"定式强迫症已点亮 {gameplay_config.ROGUE_JOSEKI_TARGET_COUNT} 个目标点：{pts_str}。"
-            f"命中其中 {gameplay_config.ROGUE_JOSEKI_REQUIRED_HITS} 个后会自动补上剩余 "
-            f"{gameplay_config.ROGUE_JOSEKI_TARGET_COUNT - gameplay_config.ROGUE_JOSEKI_REQUIRED_HITS} 个点位"
-        )
+        points = [coord_to_gtp(px, py, game.size) for px, py in game.rogue_joseki_targets]
+        count = gameplay_config.ROGUE_JOSEKI_TARGET_COUNT
+        hits = gameplay_config.ROGUE_JOSEKI_REQUIRED_HITS
+        messages.append(event_text(
+            "card.joseki_ocd.targets",
+            f"定式强迫症已点亮 {count} 个目标点：{', '.join(points)}。命中其中 {hits} 个后会自动补上剩余 {count - hits} 个点位",
+            card="joseki_ocd",
+            count=count,
+            points=points,
+            hits=hits,
+            rest=count - hits,
+        ))
     elif card_id == "handicap_quest":
-        messages.append(
-            f"让子任务开始：你需要先虚手 {gameplay_config.ROGUE_HANDICAP_REQUIRED_PASSES} 次，"
-            f"之后每下满 {gameplay_config.ROGUE_HANDICAP_BONUS_INTERVAL} 手可再让 AI 虚手一次"
-        )
+        passes = gameplay_config.ROGUE_HANDICAP_REQUIRED_PASSES
+        interval = gameplay_config.ROGUE_HANDICAP_BONUS_INTERVAL
+        messages.append(event_text(
+            "card.handicap_quest.started",
+            f"让子任务开始：你需要先虚手 {passes} 次，之后每下满 {interval} 手可再让 AI 虚手一次",
+            card="handicap_quest",
+            passes=passes,
+            interval=interval,
+        ))
     elif card_id == "god_hand":
         rng = make_rng()
         game.rogue_godhand_center = random_hidden_center_fn(game.size, 2, rng)
@@ -427,13 +439,17 @@ def _apply_supremacy_card(
     trigger_counts[color] = trigger_counts.get(color, 0) + 1
     last_trigger_indices[color] = window_entries[-1][0]
     bx, by = changed[0]
+    point = coord_to_gtp(bx, by, game.size)
     remaining = gameplay_config.ROGUE_SUPREMACY_MAX_TRIGGERS - trigger_counts[color]
     return RogueBoardEffectResult(
         True,
-        [
-            f"{message_name}触发：在 {coord_to_gtp(bx, by, game.size)} 赠送 1 颗己棋，"
-            f"本局剩余 {remaining} 次"
-        ],
+        [event_text(
+            f"card.{card_id}.gift",
+            f"{message_name}触发：在 {point} 赠送 1 颗己棋，本局剩余 {remaining} 次",
+            card=card_id,
+            point=point,
+            remaining=remaining,
+        )],
         [],
     )
 
@@ -563,12 +579,19 @@ def _apply_constellation(
             continue
         game.rogue_constellation_triggers = triggers + 1
         game.rogue_constellation_last_move = move_index
-        names = "-".join(coord_to_gtp(px, py, game.size) for px, py in stars)
+        star_points = [coord_to_gtp(px, py, game.size) for px, py in stars]
         where = coord_to_gtp(changed[0][0], changed[0][1], game.size)
         remaining = gameplay_config.ROGUE_CONSTELLATION_MAX_TRIGGERS - game.rogue_constellation_triggers
         return RogueBoardEffectResult(
             True,
-            [f"✦ 星座连线 {names} 点亮：在 {where} 补出 1 颗己棋，本局剩余 {remaining} 次"],
+            [event_text(
+                "card.sanrensei.constellation",
+                f"✦ 星座连线 {'-'.join(star_points)} 点亮：在 {where} 补出 1 颗己棋，本局剩余 {remaining} 次",
+                card="sanrensei",
+                stars=star_points,
+                point=where,
+                remaining=remaining,
+            )],
             [],
         )
     return RogueBoardEffectResult(False, [], [])
@@ -701,12 +724,17 @@ def _apply_streak_cards(
         remaining = gameplay_config.ROGUE_STREAK_MAX_TRIGGERS - triggers[key]
         modified = True
         where = coord_to_gtp(changed[0][0], changed[0][1], game.size)
+        params = {"card": card_id, "streak": streak, "remaining": remaining}
         if card_id == "momentum":
-            messages.append(f"🔥 乘胜追击 {streak} 连击：在 {where} 追加 1 颗己棋，本局剩余 {remaining} 次")
+            zh = f"🔥 乘胜追击 {streak} 连击：在 {where} 追加 1 颗己棋，本局剩余 {remaining} 次"
+            params["point"] = where
         elif card_id == "iron_wall":
-            messages.append(f"🧱 铁壁 {streak} 连守：在 {where} 加固最弱棋块，本局剩余 {remaining} 次")
+            zh = f"🧱 铁壁 {streak} 连守：在 {where} 加固最弱棋块，本局剩余 {remaining} 次"
+            params["point"] = where
         else:
-            messages.append(f"⛓ 连提 {streak} 连：额外落下 {len(changed)} 颗己棋，本局剩余 {remaining} 次")
+            zh = f"⛓ 连提 {streak} 连：额外落下 {len(changed)} 颗己棋，本局剩余 {remaining} 次"
+            params["count"] = len(changed)
+        messages.append(event_text(f"card.{card_id}.streak", zh, **params))
     return RogueBoardEffectResult(modified, messages, [])
 
 
@@ -790,16 +818,24 @@ def apply_player_rogue_board_effects(
         if changed:
             bx, by = changed[0]
             modified = True
-            messages.append(
-                f"萌芽触发：在提子处 3×3 范围的 {coord_to_gtp(bx, by, game.size)} 额外长出一颗己方棋子"
-            )
+            point = coord_to_gtp(bx, by, game.size)
+            messages.append(event_text(
+                "card.sprout.gift",
+                f"萌芽触发：在提子处 3×3 范围的 {point} 额外长出一颗己方棋子",
+                card="sprout",
+                point=point,
+            ))
 
     if rogue_has(game, "joseki_ocd") and not game.rogue_joseki_done:
         if (x, y) in game.rogue_joseki_targets:
             game.rogue_joseki_hits += 1
-            messages.append(
-                f"定式命中 ({game.rogue_joseki_hits}/{gameplay_config.ROGUE_JOSEKI_REQUIRED_HITS})"
-            )
+            messages.append(event_text(
+                "card.joseki_ocd.hit",
+                f"定式命中 ({game.rogue_joseki_hits}/{gameplay_config.ROGUE_JOSEKI_REQUIRED_HITS})",
+                card="joseki_ocd",
+                hits=game.rogue_joseki_hits,
+                required=gameplay_config.ROGUE_JOSEKI_REQUIRED_HITS,
+            ))
         if game.rogue_joseki_hits >= gameplay_config.ROGUE_JOSEKI_REQUIRED_HITS:
             game.rogue_joseki_done = True
             color_val = 1 if color == "B" else 2
@@ -811,7 +847,12 @@ def apply_player_rogue_board_effects(
             changed = set_points_to_color(game, remaining_targets, color)
             if changed:
                 modified = True
-            messages.append(f"定式强迫症完成，自动补上 {len(changed)} 颗同色棋")
+            messages.append(event_text(
+                "card.joseki_ocd.complete",
+                f"定式强迫症完成，自动补上 {len(changed)} 颗同色棋",
+                card="joseki_ocd",
+                count=len(changed),
+            ))
 
     if (
         rogue_has(game, "god_hand")
@@ -835,7 +876,12 @@ def apply_player_rogue_board_effects(
         changed = set_points_to_color(game, targets, color)
         if changed:
             modified = True
-        messages.append(f"✨ 神之一手发动，在暗点周围爆发 {len(changed)} 颗同色棋")
+        messages.append(event_text(
+            "card.god_hand.burst",
+            f"✨ 神之一手发动，在暗点周围爆发 {len(changed)} 颗同色棋",
+            card="god_hand",
+            count=len(changed),
+        ))
         trap_bonus_sources.append("神之一手")
 
     if (
@@ -857,9 +903,14 @@ def apply_player_rogue_board_effects(
         ) if nearby else []
         if changed:
             modified = True
-            messages.append(
-                f"△ 三三陷阱发动，在 {coord_to_gtp(x, y, game.size)} 相邻点反打 {len(changed)} 子"
-            )
+            point = coord_to_gtp(x, y, game.size)
+            messages.append(event_text(
+                "card.sansan_trap.sprung",
+                f"△ 三三陷阱发动，在 {point} 相邻点反打 {len(changed)} 子",
+                card="sansan_trap",
+                point=point,
+                count=len(changed),
+            ))
 
     if rogue_has(game, "corner_helper"):
         corner = find_corner_with_min_stones(
@@ -884,7 +935,12 @@ def apply_player_rogue_board_effects(
             if changed:
                 game.rogue_corner_helper_done.add(corner)
                 modified = True
-                messages.append(f"🏯 守角辅助补强了 {len(changed)} 颗角部援军")
+                messages.append(event_text(
+                    "card.corner_helper.reinforced",
+                    f"🏯 守角辅助补强了 {len(changed)} 颗角部援军",
+                    card="corner_helper",
+                    count=len(changed),
+                ))
 
     if rogue_has(game, "sanrensei") and not game.rogue_sanrensei_done:
         player_moves = player_non_pass_coords(
@@ -935,7 +991,12 @@ def apply_player_rogue_board_effects(
             game.rogue_constellation_last_move = len(player_non_pass_coords(game, color, gtp_to_coord))
             if changed:
                 modified = True
-            messages.append(f"✦ 三连星发动，自动补出 {len(changed)} 颗星位棋")
+            messages.append(event_text(
+                "card.sanrensei.opening",
+                f"✦ 三连星发动，自动补出 {len(changed)} 颗星位棋",
+                card="sanrensei",
+                count=len(changed),
+            ))
 
     if rogue_has(game, "sanrensei"):
         result = _apply_constellation(
@@ -978,9 +1039,13 @@ def apply_player_rogue_board_effects(
         if changed:
             modified = True
         if new_shapes:
-            messages.append(
-                f"🪤 大智若愚发动，识别到 {len(new_shapes)} 个愚形，额外长出 {len(changed)} 颗己方棋子"
-            )
+            messages.append(event_text(
+                "card.foolish_wisdom.bloom",
+                f"🪤 大智若愚发动，识别到 {len(new_shapes)} 个愚形，额外长出 {len(changed)} 颗己方棋子",
+                card="foolish_wisdom",
+                shapes=len(new_shapes),
+                count=len(changed),
+            ))
 
     if rogue_has(game, "defense_first"):
         result = _apply_defense_first(
@@ -1034,10 +1099,16 @@ def apply_player_rogue_board_effects(
         ):
             game.rogue_skip_ai = True
             game.rogue_handicap_bonuses += 1
-            messages.append(
-                f"让子任务奖励触发：每满 {gameplay_config.ROGUE_HANDICAP_BONUS_INTERVAL} 手获得一次奖励，"
-                f"当前进度 {game.rogue_handicap_bonuses}/{gameplay_config.ROGUE_HANDICAP_MAX_BONUSES}，AI 将虚手一次"
-            )
+            interval = gameplay_config.ROGUE_HANDICAP_BONUS_INTERVAL
+            done, most = game.rogue_handicap_bonuses, gameplay_config.ROGUE_HANDICAP_MAX_BONUSES
+            messages.append(event_text(
+                "card.handicap_quest.reward",
+                f"让子任务奖励触发：每满 {interval} 手获得一次奖励，当前进度 {done}/{most}，AI 将虚手一次",
+                card="handicap_quest",
+                interval=interval,
+                done=done,
+                max=most,
+            ))
 
     return RogueBoardEffectResult(
         modified=modified,
@@ -1166,8 +1237,12 @@ def apply_ai_rogue_response_board_effects(
     if not changed:
         return RogueBoardEffectResult(False, [], [])
 
-    message = (
-        f"三三陷阱发动，在 {coord_to_gtp(coord[0], coord[1], game.size)} "
-        f"相邻点反打 {len(changed)} 子"
+    point = coord_to_gtp(coord[0], coord[1], game.size)
+    message = event_text(
+        "card.sansan_trap.sprung",
+        f"三三陷阱发动，在 {point} 相邻点反打 {len(changed)} 子",
+        card="sansan_trap",
+        point=point,
+        count=len(changed),
     )
     return RogueBoardEffectResult(True, [message], [])

@@ -42,7 +42,7 @@ function handleGameStartMessage(msg) {
 
 function handleEngineNotReadyMessage(msg) {
   updateStartProgressForEngineNotReady(msg);
-  if (msg?.message) logServerEvent(msg.message);
+  if (msg?.message) logServerEvent(msg.message, "", msg);
 }
 
 function logStudyGameStart(msg) {
@@ -299,7 +299,7 @@ function handleReconnectFailedMessage() {
 function handleErrorMessage(msg) {
   hideStartProgress();
   quickthinkAwaitingAiMove = false;
-  logServerEvent(msg.message, "⚠ ");
+  logServerEvent(msg.message, "⚠ ", msg);
   setThinking(false);
   if (previousBoard && gameState) {
     gameState.board = previousBoard.map(row => [...row]);
@@ -394,9 +394,9 @@ function handleRogueSealDoneMessage() {
 }
 
 function handleRogueEventMessage(msg) {
-  showCardEffectVisual(msg.msg, "rogue");
+  showCardEffectVisual(msg.msg, "rogue", msg);
   triggerSignatureCardEffect(msg.msg);
-  logServerEvent(msg.msg);
+  logServerEvent(msg.msg, "", msg);
 }
 
 function handleRogueUsesUpdateMessage(msg) {

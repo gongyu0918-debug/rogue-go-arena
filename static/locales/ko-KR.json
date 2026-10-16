@@ -627,5 +627,40 @@
         "desc": "내 승률이 30% 아래로 떨어지면 전장 무작위로 상대 돌 30개를 지우고 내 돌 30개를 둡니다."
       }
     }
+  },
+  "eventTerms": {
+    "color.B": "흑",
+    "color.W": "백",
+    "corner.tl": "좌상귀",
+    "corner.tr": "우상귀",
+    "corner.bl": "좌하귀",
+    "corner.br": "우하귀",
+    "set.derivative": "파생",
+    "set.trap": "함정",
+    "set.zone": "구역",
+    "set.restriction": "제한",
+    "set.active": "능동",
+    "list.separator": ", "
+  },
+  "events": {
+    "card.attack_first.gift": "⚔ {card|card} 발동: {point}에 돌 1개 선물. 이번 판 남은 횟수 {remaining}",
+    "card.blackhole.sealed": "{card|card}: 중앙은 대국 내내 AI가 둘 수 없는 구역이 됩니다",
+    "card.capture_chain.streak": "⛓ {card|card} {streak}연속: 돌 {count}개가 추가로 놓입니다. 이번 판 남은 횟수 {remaining}",
+    "card.corner_helper.reinforced": "🏯 {card|card}: 귀에 지원군 돌 {count}개가 도착합니다",
+    "card.defense_first.gift": "🛡 {card|card} 발동: {point}에 돌 1개 선물. 이번 판 남은 횟수 {remaining}",
+    "card.foolish_wisdom.bloom": "🪤 {card|card}: 우형 {shapes}개를 찾아 돌 {count}개가 더 자랍니다",
+    "card.god_hand.burst": "✨ {card|card}! 숨은 급소 주변에 돌 {count}개가 쏟아집니다",
+    "card.golden_corner.sealed": "{card|card}: {corner|corner}의 {size}×{size} 구역에는 대국 내내 AI가 둘 수 없습니다",
+    "card.handicap_quest.reward": "{card|card} 보상({done}/{max}, {interval}수마다): AI가 한 번 패스합니다",
+    "card.handicap_quest.started": "{card|card} 시작: 먼저 {passes}번 패스하면, 이후 {interval}수마다 AI가 한 번씩 패스합니다",
+    "card.iron_wall.streak": "🧱 {card|card} {streak}연속 수비: 가장 약한 돌을 {point}에서 보강합니다. 이번 판 남은 횟수 {remaining}",
+    "card.joseki_ocd.complete": "{card|card} 완성: 남은 목표점에 돌 {count}개가 자동으로 놓입니다",
+    "card.joseki_ocd.hit": "{card|card}: 목표점 적중 ({hits}/{required})",
+    "card.joseki_ocd.targets": "{card|card}: 목표점 {count}곳이 빛납니다({points|list}). 그중 {hits}곳에 두면 나머지 {rest}곳이 저절로 채워집니다",
+    "card.momentum.streak": "🔥 {card|card} {streak}연타: {point}에 돌 1개 추가. 이번 판 남은 횟수 {remaining}",
+    "card.sanrensei.constellation": "✦ 별자리 {stars|chain} 점등: {point}에 돌 1개 추가. 이번 판 남은 횟수 {remaining}",
+    "card.sanrensei.opening": "✦ {card|card} 발동! 화점에 돌 {count}개를 추가합니다",
+    "card.sansan_trap.sprung": "△ {card|card} 발동! {point} 바로 옆에 반격의 돌 {count}개가 놓입니다",
+    "card.sprout.gift": "{card|card}: 따낸 자리 근처 {point}에 새 돌이 돋아납니다"
   }
 }

@@ -627,5 +627,40 @@
         "desc": "自分の勝率が30%未満になると、盤上の相手石30子をランダムに消し、自分の石30子をランダムに置きます。"
       }
     }
+  },
+  "eventTerms": {
+    "color.B": "黒",
+    "color.W": "白",
+    "corner.tl": "左上隅",
+    "corner.tr": "右上隅",
+    "corner.bl": "左下隅",
+    "corner.br": "右下隅",
+    "set.derivative": "派生",
+    "set.trap": "罠",
+    "set.zone": "封鎖",
+    "set.restriction": "制限",
+    "set.active": "能動",
+    "list.separator": "、"
+  },
+  "events": {
+    "card.attack_first.gift": "⚔ {card|card}発動：{point}に1子プレゼント。この対局であと{remaining}回",
+    "card.blackhole.sealed": "{card|card}：中央はAIが終局まで打てない領域になりました",
+    "card.capture_chain.streak": "⛓ {card|card} {streak}連続：石が{count}子追加されます。この対局であと{remaining}回",
+    "card.corner_helper.reinforced": "🏯 {card|card}：隅に援軍が{count}子到着",
+    "card.defense_first.gift": "🛡 {card|card}発動：{point}に1子プレゼント。この対局であと{remaining}回",
+    "card.foolish_wisdom.bloom": "🪤 {card|card}：愚形を{shapes}つ発見、石が{count}子増えました",
+    "card.god_hand.burst": "✨ {card|card}！隠れた急所の周りに{count}子が現れました",
+    "card.golden_corner.sealed": "{card|card}：{corner|corner}の{size}×{size}にはAIが終局まで打てません",
+    "card.handicap_quest.reward": "{card|card}報酬（{done}/{max}、{interval}手ごと）：AIが1回パスします",
+    "card.handicap_quest.started": "{card|card}開始：まず{passes}回パスすると、以後{interval}手ごとにAIを1回パスさせられます",
+    "card.iron_wall.streak": "🧱 {card|card} {streak}連続の守り：一番弱い石を{point}で補強。この対局であと{remaining}回",
+    "card.joseki_ocd.complete": "{card|card}達成：残りの目標点に{count}子が自動で置かれました",
+    "card.joseki_ocd.hit": "{card|card}：目標点に命中（{hits}/{required}）",
+    "card.joseki_ocd.targets": "{card|card}：目標点が{count}か所光りました（{points|list}）。そのうち{hits}か所に打てば、残り{rest}か所が自動で埋まります",
+    "card.momentum.streak": "🔥 {card|card} {streak}連撃：{point}に1子追加。この対局であと{remaining}回",
+    "card.sanrensei.constellation": "✦ 星座 {stars|chain} が輝きました：{point}に1子追加。この対局であと{remaining}回",
+    "card.sanrensei.opening": "✦ {card|card}発動！星に{count}子を追加",
+    "card.sansan_trap.sprung": "△ {card|card}発動！{point}の隣に反撃の石が{count}子現れました",
+    "card.sprout.gift": "{card|card}：石を取った跡の{point}に新しい石が芽吹きました"
   }
 }

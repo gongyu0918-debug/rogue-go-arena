@@ -627,5 +627,40 @@
         "desc": "If your winrate drops below 30%, clear 30 enemy stones and add 30 friendly stones across the entire board."
       }
     }
+  },
+  "eventTerms": {
+    "color.B": "Black",
+    "color.W": "White",
+    "corner.tl": "top-left corner",
+    "corner.tr": "top-right corner",
+    "corner.bl": "bottom-left corner",
+    "corner.br": "bottom-right corner",
+    "set.derivative": "Spawn",
+    "set.trap": "Trap",
+    "set.zone": "Zone",
+    "set.restriction": "Restriction",
+    "set.active": "Active",
+    "list.separator": ", "
+  },
+  "events": {
+    "card.attack_first.gift": "⚔ {card|card}: a free stone at {point}. {remaining} left this game.",
+    "card.blackhole.sealed": "{card|card}: the center is sealed off from the AI for the whole game.",
+    "card.capture_chain.streak": "⛓ {card|card} ×{streak}: {count} bonus {count|pl:stone drops:stones drop} onto the board. {remaining} left this game.",
+    "card.corner_helper.reinforced": "🏯 {card|card}: {count} reinforcement {count|pl:stone arrives:stones arrive} in the corner.",
+    "card.defense_first.gift": "🛡 {card|card}: a free stone at {point}. {remaining} left this game.",
+    "card.foolish_wisdom.bloom": "🪤 {card|card}: {shapes} ugly {shapes|pl:shape:shapes} spotted, {count} bonus {count|pl:stone grows:stones grow}.",
+    "card.god_hand.burst": "✨ {card|card}! {count} {count|pl:stone bursts:stones burst} out around the hidden point.",
+    "card.golden_corner.sealed": "{card|card}: the {size}×{size} area in the {corner|corner} is off-limits to the AI for the whole game.",
+    "card.handicap_quest.reward": "{card|card} reward ({done}/{max}, one every {interval} moves): the AI passes once.",
+    "card.handicap_quest.started": "{card|card} begins: pass {passes} {passes|pl:time:times} first; after that, every {interval} moves the AI must pass once more.",
+    "card.iron_wall.streak": "🧱 {card|card} ×{streak}: your weakest group is shored up at {point}. {remaining} left this game.",
+    "card.joseki_ocd.complete": "{card|card} complete: {count} {count|pl:stone fills:stones fill} the remaining targets.",
+    "card.joseki_ocd.hit": "{card|card}: target hit ({hits}/{required})",
+    "card.joseki_ocd.targets": "{card|card}: {count} target points light up ({points|list}). Play on any {hits} and the other {rest} fill themselves in.",
+    "card.momentum.streak": "🔥 {card|card} ×{streak}: one more stone joins the attack at {point}. {remaining} left this game.",
+    "card.sanrensei.constellation": "✦ Constellation {stars|chain} lights up: a free stone at {point}. {remaining} left this game.",
+    "card.sanrensei.opening": "✦ {card|card} ignites: {count} bonus {count|pl:stone lands:stones land} on the star points.",
+    "card.sansan_trap.sprung": "△ {card|card} sprung at {point}: {count} {count|pl:counter-stone appears:counter-stones appear} right beside it.",
+    "card.sprout.gift": "{card|card}: a new stone sprouts at {point}, right beside your capture."
   }
 }
