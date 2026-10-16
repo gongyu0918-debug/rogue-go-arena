@@ -110,9 +110,12 @@ function paintBoardBase(bCtx, W) {
   bCtx.fillStyle = edgeGrad;
   bCtx.fillRect(0, 0, W, W);
 
+  // The kaya texture is lit from the top-left; shade that corner so the four
+  // corners read evenly instead of the top-left glaring.
   const frameGrad = bCtx.createLinearGradient(0, 0, W, W);
-  frameGrad.addColorStop(0, "rgba(255, 245, 206, 0.08)");
-  frameGrad.addColorStop(1, "rgba(90, 52, 14, 0.14)");
+  frameGrad.addColorStop(0, "rgba(90, 52, 14, 0.24)");
+  frameGrad.addColorStop(0.5, "rgba(90, 52, 14, 0.06)");
+  frameGrad.addColorStop(1, "rgba(90, 52, 14, 0)");
   bCtx.fillStyle = frameGrad;
   bCtx.fillRect(0, 0, W, W);
 
