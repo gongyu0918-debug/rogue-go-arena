@@ -43,6 +43,8 @@ def parse_args() -> argparse.Namespace:
                         help="your side's strength: 'standard' (same as the AI) or a rank such as 10k")
     parser.add_argument("--set", nargs="*", default=[], metavar="KEY=VALUE",
                         help="override tuning constants for this run")
+    parser.add_argument("--quick-card", default="",
+                        help="play Quick Games with this card instead of runs (colours alternate; reported as stage 1)")
     parser.add_argument("--output", default="")
     return parser.parse_args()
 
@@ -55,7 +57,7 @@ import server as s  # noqa: E402
 from app.data.cards import CHALLENGE_BETA_POOL, ROGUE_DISABLED_CARDS  # noqa: E402
 from app.gameplay.card_komi import settle_card_komi  # noqa: E402
 from app.gameplay.card_selection import pick_challenge_beta_choices  # noqa: E402
-from app.gameplay.difficulty import difficulty_points  # noqa: E402
+from app.gameplay.difficulty import difficulty_points, komi_for_ai_points  # noqa: E402
 from app.gameplay.run_curve import game_target, run_stage_setup  # noqa: E402
 import app.config.gameplay as gameplay_config  # noqa: E402
 
@@ -143,6 +145,31 @@ async def play_stage(stage: int, deck: list[str]) -> dict:
             "margin": round(lead + target["points"], 1), "komi": game.komi, "moves": len(game.moves)}
 
 
+async def play_quick_game(card_id: str, player_color: str) -> dict:
+    """A Quick Game set up like the server: difficulty komi, then the card pick."""
+    ai_color = "W" if player_color == "B" else "B"
+    points = difficulty_points(ARGS.difficulty)
+    game = s.GoGame(size=19, komi=komi_for_ai_points(points, ai_color), handicap=0,
+                    player_color=player_color, level="standard", two_player=False)
+    game.rogue_enabled = True
+    game.difficulty_points = points
+    await ev.clear_engine_board(game.komi)
+    await s.run_in_executor(s.engine.send_command, f"kata-set-rules {game.rules}")
+    await s._activate_rogue_card(game, ev.noop_send, card_id)  # settles the card komi
+    while not game.game_over and len(game.moves) < ARGS.plies:
+        if game.current_player == game.ai_color:
+            await s._ai_move(game, ev.noop_send)
+        else:
+            await ev.play_player_rogue_turn(game, "engine")
+    analysis = await ev.analyze_top_moves(game, game.current_player, 500)
+    black = float(analysis.get("score", 0.0))
+    lead = black if player_color == "B" else -black
+    target = game_target(game)
+    return {"stage": 1, "deck": [card_id], "player_color": player_color, "lead": round(lead, 1),
+            "target": target["points"], "margin": round(lead + target["points"], 1), "komi": game.komi,
+            "moves": len(game.moves), "quickthink_windows": getattr(game, "rogue_quickthink_windows", 0)}
+
+
 async def main() -> None:
     exe, cfg, label = ev.choose_backend()
     model = s.engine_runtime.select_model()
@@ -151,9 +178,14 @@ async def main() -> None:
     rng = random.Random(ARGS.seed)
     results = []
     try:
+        if ARGS.quick_card:
+            ARGS.stages = [1]
         for stage in ARGS.stages:
-            for _ in range(ARGS.decks):
-                result = await play_stage(stage, draw_deck(stage, rng))
+            for game_index in range(ARGS.decks):
+                if ARGS.quick_card:
+                    result = await play_quick_game(ARGS.quick_card, "B" if game_index % 2 == 0 else "W")
+                else:
+                    result = await play_stage(stage, draw_deck(stage, rng))
                 results.append(result)
                 print(json.dumps(result), file=sys.stderr, flush=True)
     finally:
