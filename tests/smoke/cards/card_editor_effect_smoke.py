@@ -211,6 +211,8 @@ async def verify_every_rogue_offer(base_url: str, ws_base_url: str, config: dict
         fixture = copy.deepcopy(config)
         fixture["pools"]["two_player_rogue"] = [card_id]
         fixture["pools"]["rogue_featured"] = [card_id]
+        # Every card must stay offerable when the player has not disabled it.
+        fixture.setdefault("offers", {})["rogue_disabled"] = []
         result = post_json(base_url, "/api/card-config", {"config": fixture})
         assert result["ok"] is True
 
