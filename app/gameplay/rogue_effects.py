@@ -102,6 +102,9 @@ def reset_rogue_effect_state(
     game.rogue_coach_bonus_checked = False
     game.rogue_quickthink_stage = 0
     game.rogue_fool_shapes = set()
+    game.rogue_constellations = set()
+    game.rogue_constellation_triggers = 0
+    game.rogue_constellation_last_move = None
     game.rogue_streaks = {}
     game.rogue_streak_triggers = {}
     game.rogue_evolution_charge = 0
@@ -503,6 +506,74 @@ def _apply_attack_first(
     )
 
 
+def _constellations_through(game: Any, x: int, y: int, own: int) -> list[tuple[tuple[int, int], ...]]:
+    """Evenly spaced lines of three own stones through (x, y) with empty gaps."""
+    found: list[tuple[tuple[int, int], ...]] = []
+    for dx, dy in ((1, 0), (0, 1), (1, 1), (1, -1)):
+        for spacing in range(gameplay_config.ROGUE_CONSTELLATION_MIN_SPACING, gameplay_config.ROGUE_CONSTELLATION_MAX_SPACING + 1):
+            for offset in (0, 1, 2):
+                stars = tuple(
+                    (x + (k - offset) * spacing * dx, y + (k - offset) * spacing * dy)
+                    for k in range(3)
+                )
+                if not all(0 <= sx < game.size and 0 <= sy < game.size and game.board[sy][sx] == own for sx, sy in stars):
+                    continue
+                gaps = [
+                    (stars[0][0] + step * dx, stars[0][1] + step * dy)
+                    for step in range(1, 2 * spacing)
+                    if step % spacing
+                ]
+                if all(game.board[gy][gx] == 0 for gx, gy in gaps):
+                    found.append(tuple(sorted(stars)))
+    return found
+
+
+def _apply_constellation(
+    game: Any,
+    *,
+    x: int,
+    y: int,
+    color: str,
+    gtp_to_coord: CoordFormatter,
+    coord_to_gtp: CoordFormatter,
+) -> RogueBoardEffectResult:
+    """Three Stars beyond the opening: light up evenly spaced lines all game."""
+    triggers = getattr(game, "rogue_constellation_triggers", 0)
+    if triggers >= gameplay_config.ROGUE_CONSTELLATION_MAX_TRIGGERS:
+        return RogueBoardEffectResult(False, [], [])
+    move_index = len(player_non_pass_coords(game, color, gtp_to_coord))
+    last = getattr(game, "rogue_constellation_last_move", None)
+    if last is not None and move_index - last < gameplay_config.ROGUE_CONSTELLATION_COOLDOWN_MOVES:
+        return RogueBoardEffectResult(False, [], [])
+    seen = game.rogue_constellations
+    forbidden = get_player_bonus_forbidden_points(game, color)
+    for stars in _constellations_through(game, x, y, _color_value(color)):
+        if stars in seen:
+            continue
+        (ax, ay), _mid, (bx, by) = stars
+        steps = max(abs(bx - ax), abs(by - ay))
+        sx, sy = (bx - ax) // steps, (by - ay) // steps
+        line = [(ax + i * sx, ay + i * sy) for i in range(1, steps)]
+        # Prefer the centre of each gap, then the rest of the line.
+        centre = sorted(line, key=lambda p: min(abs(p[0] - s[0]) + abs(p[1] - s[1]) for s in stars), reverse=True)
+        targets = [p for p in centre if is_safe_bonus_point(game, p[0], p[1], color, forbidden)]
+        changed = spawn_bonus_points(game, targets[:1], color)
+        seen.add(stars)
+        if not changed:
+            continue
+        game.rogue_constellation_triggers = triggers + 1
+        game.rogue_constellation_last_move = move_index
+        names = "-".join(coord_to_gtp(px, py, game.size) for px, py in stars)
+        where = coord_to_gtp(changed[0][0], changed[0][1], game.size)
+        remaining = gameplay_config.ROGUE_CONSTELLATION_MAX_TRIGGERS - game.rogue_constellation_triggers
+        return RogueBoardEffectResult(
+            True,
+            [f"✦ 星座连线 {names} 点亮：在 {where} 补出 1 颗己棋，本局剩余 {remaining} 次"],
+            [],
+        )
+    return RogueBoardEffectResult(False, [], [])
+
+
 STREAK_CARDS = ("momentum", "iron_wall", "capture_chain")
 
 
@@ -860,9 +931,24 @@ def apply_player_rogue_board_effects(
                 random.shuffle(extra_pool)
                 changed.extend(spawn_bonus_points(game, extra_pool[:1], color))
             game.rogue_sanrensei_done = True
+            # The opening payoff also starts the constellation cooldown.
+            game.rogue_constellation_last_move = len(player_non_pass_coords(game, color, gtp_to_coord))
             if changed:
                 modified = True
             messages.append(f"✦ 三连星发动，自动补出 {len(changed)} 颗星位棋")
+
+    if rogue_has(game, "sanrensei"):
+        result = _apply_constellation(
+            game,
+            x=x,
+            y=y,
+            color=color,
+            gtp_to_coord=gtp_to_coord,
+            coord_to_gtp=coord_to_gtp,
+        )
+        if result.modified:
+            modified = True
+        messages.extend(result.messages)
 
     if rogue_has(game, "foolish_wisdom"):
         new_shapes = find_new_fool_shapes(game, color, game.rogue_fool_shapes)

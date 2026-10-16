@@ -69,6 +69,10 @@ class GoGame:
         self.rogue_coach_bonus_checked: bool = False
         self.rogue_quickthink_stage: int = 0
         self.rogue_fool_shapes: set[tuple[tuple[int, int], ...]] = set()
+        # Three Stars constellations (whole-game part of the card).
+        self.rogue_constellations: set[tuple[tuple[int, int], ...]] = set()
+        self.rogue_constellation_triggers: int = 0
+        self.rogue_constellation_last_move: Optional[int] = None
         # Streak combo cards, keyed "<card_id>:<color>".
         self.rogue_streaks: dict[str, int] = {}
         self.rogue_streak_triggers: dict[str, int] = {}

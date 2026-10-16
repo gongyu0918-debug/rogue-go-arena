@@ -400,7 +400,7 @@
       },
       "sanrensei": {
         "name": "Sanrensei",
-        "desc": "Si vos 3 premiers coups sont tous sur des hoshi, 2 autres hoshi vides reçoivent vos pierres."
+        "desc": "Si vos 3 premiers coups sont tous sur des hoshi, 2 autres hoshi vides reçoivent vos pierres. Toute la partie : quand trois de vos pierres s'alignent à intervalles égaux avec des points vides entre elles (comme des sauts d'un point), la constellation s'allume et ajoute 1 pierre sur cette ligne (au plus tous les 6 coups, 3 fois par partie)."
       },
       "no_regret": {
         "name": "Sans regret",

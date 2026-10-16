@@ -400,7 +400,7 @@
       },
       "sanrensei": {
         "name": "Sanrensei",
-        "desc": "Wenn deine ersten 3 Züge alle auf Hoshi liegen, erhalten 2 weitere leere Hoshi deine Steine."
+        "desc": "Wenn deine ersten 3 Züge alle auf Hoshi liegen, erhalten 2 weitere leere Hoshi deine Steine. Die ganze Partie: Stehen drei deiner Steine gleichmäßig verteilt in einer Linie mit freien Punkten dazwischen (wie Ein-Punkt-Sprünge), leuchtet das Sternbild auf und setzt 1 Stein auf diese Linie (höchstens alle 6 Züge, 3-mal pro Partie)."
       },
       "no_regret": {
         "name": "Keine Reue",

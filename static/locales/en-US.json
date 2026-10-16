@@ -400,7 +400,7 @@
       },
       "sanrensei": {
         "name": "Three Stars",
-        "desc": "If your first 2 moves both land on star points, the game auto-fills a 3rd star point stone and adds 2 nearby support stones."
+        "desc": "If your first 3 moves are all on star points, 2 additional empty star points receive your stones. All game long: when three of your stones line up evenly spaced with empty points between them (like one-space jumps), the constellation lights up and adds 1 stone on that line (at most every 6 moves, 3 times per game)."
       },
       "no_regret": {
         "name": "No Regrets",

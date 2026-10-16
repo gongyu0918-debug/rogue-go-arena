@@ -573,13 +573,13 @@
           "de-DE": "Sanrensei"
         },
         "desc": {
-          "zh-CN": "若你前三手都下在星位，则在额外两颗未落子星位赠送我方棋子。",
-          "en-US": "If your first 3 moves are all on star points, 2 additional empty star points receive your stones.",
-          "ja-JP": "最初の3手がすべて星なら、未着手の星2点に自分の石が追加されます。",
-          "ko-KR": "내 첫 3수가 모두 화점이면 비어 있는 화점 2곳에 내 돌이 추가됩니다.",
-          "zh-TW": "若你前三手都下在星位，則在額外兩顆未落子星位贈送我方棋子。",
-          "fr-FR": "Si vos 3 premiers coups sont tous sur des hoshi, 2 autres hoshi vides reçoivent vos pierres.",
-          "de-DE": "Wenn deine ersten 3 Züge alle auf Hoshi liegen, erhalten 2 weitere leere Hoshi deine Steine."
+          "zh-CN": "若你前三手都下在星位，则在额外两颗未落子星位赠送我方棋子。整局有效：你的三颗棋子在一条直线上等距排列、中间为空时（如一间跳），点亮星座并在线上补 1 颗己棋（至少间隔 6 手，每局最多 3 次）。",
+          "en-US": "If your first 3 moves are all on star points, 2 additional empty star points receive your stones. All game long: when three of your stones line up evenly spaced with empty points between them (like one-space jumps), the constellation lights up and adds 1 stone on that line (at most every 6 moves, 3 times per game).",
+          "ja-JP": "最初の3手がすべて星なら、未着手の星2点に自分の石が追加されます。対局中ずっと有効：自分の石3つが一直線に等間隔で並び、間が空いている時（一間トビなど）、星座が点灯しその線上に1子追加（最短6手おき、1局最大3回）。",
+          "ko-KR": "내 첫 3수가 모두 화점이면 비어 있는 화점 2곳에 내 돌이 추가됩니다. 대국 내내 유효: 내 돌 3개가 한 직선 위에 같은 간격으로 놓이고 사이가 비어 있으면(한칸 뜀 등) 별자리가 켜지며 그 선 위에 돌 1개를 추가합니다(최소 6수 간격, 한 판 최대 3회).",
+          "zh-TW": "若你前三手都下在星位，則在額外兩顆未落子星位贈送我方棋子。整局有效：你的三顆棋子在一條直線上等距排列、中間為空時（如一間跳），點亮星座並在線上補 1 顆己棋（至少間隔 6 手，每局最多 3 次）。",
+          "fr-FR": "Si vos 3 premiers coups sont tous sur des hoshi, 2 autres hoshi vides reçoivent vos pierres. Toute la partie : quand trois de vos pierres s'alignent à intervalles égaux avec des points vides entre elles (comme des sauts d'un point), la constellation s'allume et ajoute 1 pierre sur cette ligne (au plus tous les 6 coups, 3 fois par partie).",
+          "de-DE": "Wenn deine ersten 3 Züge alle auf Hoshi liegen, erhalten 2 weitere leere Hoshi deine Steine. Die ganze Partie: Stehen drei deiner Steine gleichmäßig verteilt in einer Linie mit freien Punkten dazwischen (wie Ein-Punkt-Sprünge), leuchtet das Sternbild auf und setzt 1 Stein auf diese Linie (höchstens alle 6 Züge, 3-mal pro Partie)."
         },
         "icon": "⭐"
       },
