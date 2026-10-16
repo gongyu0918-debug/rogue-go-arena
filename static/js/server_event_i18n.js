@@ -556,6 +556,13 @@ const SERVER_EVENT_SHARED = [
     ja: g => `🚫 待ったなし！AIの着手後、${g} に1子プレゼント`,
     ko: g => `🚫 무르기 금지! AI 착수 뒤 ${g}에 돌 1개를 선물합니다`,
   }],
+  [/^⚡ AI 反扑！你领先 (-?\d+) 目，AI 在 (.+) 追加 (\d+) 子，本局剩余 (\d+) 次$/, {
+    en: (lead, pts, n, left) => `⚡ AI rally! You lead by ${lead} points, so the AI adds ${n} stone(s) at ${pts.split("、").join(", ")}. ${left} rally(ies) left this game.`,
+    fr: (lead, pts, n, left) => `⚡ L'IA contre-attaque ! Vous menez de ${lead} points, l'IA ajoute ${n} pierre(s) en ${pts.split("、").join(", ")}. Encore ${left} cette partie.`,
+    de: (lead, pts, n, left) => `⚡ Die KI schlägt zurück! Du führst mit ${lead} Punkten, also setzt die KI ${n} Stein(e) auf ${pts.split("、").join(", ")}. Noch ${left}× in dieser Partie.`,
+    ja: (lead, pts, n, left) => `⚡ AIの反撃！あなたが${lead}目リードしているので、AIが${pts}に${n}子追加します。この対局であと${left}回`,
+    ko: (lead, pts, n, left) => `⚡ AI 반격! ${lead}집 앞서 있어서 AI가 ${pts.split("、").join(", ")}에 돌 ${n}개를 더 놓습니다. 이번 판 남은 횟수 ${left}`,
+  }],
   [/^AI 引擎数目失败：(.*)$/, {
     en: x => `The AI engine could not count the score: ${x}`,
     fr: x => `Le moteur IA n'a pas pu compter les points : ${x}`,

@@ -129,6 +129,8 @@ class GoGame:
         self.ultimate_fool_shapes: set[tuple[tuple[int, int], ...]] = set()
         self.ultimate_shadow_clone_links: list[dict] = []
         self.ai_observer: bool = False
+        self.ai_rally_count: int = 0
+        self.ai_rally_last_move: Optional[int] = None
         self.ai_style: str = "balanced"
         self.ai_level_black: str = level
         self.ai_level_white: str = level

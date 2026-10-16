@@ -195,6 +195,17 @@ CHALLENGE_ZONE_EXPAND_RADIUS = 1
 CHALLENGE_RESTRICTION_DECAY_CHANCE = 0.05
 CHALLENGE_ACTIVE_USE_BONUS = 1
 
+# AI rally: in Rogue games, when the player leads by a lot, the AI plays one
+# extra stone on its best point so big leads stay contested. The lead needed
+# drops (and the cap rises) in later challenge stages. A cap of 0 turns it off.
+AI_RALLY_LEAD = 15.0
+AI_RALLY_STAGE_STEP = 5.0
+AI_RALLY_MIN_LEAD = 8.0
+AI_RALLY_MIN_MOVES = 40
+AI_RALLY_COOLDOWN_MOVES = 16
+AI_RALLY_MAX_PER_GAME = 3
+AI_RALLY_STAGE_BONUS = 1
+
 
 BALANCE_TUNABLES = {
     "ROGUE_MAX_VISITS": {"group": "Engine", "card": "", "label": "Rogue 搜索上限", "min": 50, "max": 5000, "step": 50},
@@ -276,6 +287,13 @@ BALANCE_TUNABLES = {
     "CHALLENGE_ZONE_EXPAND_RADIUS": {"group": "Challenge", "card": "", "label": "闯关区域扩张半径", "min": 0, "max": 5, "step": 1},
     "CHALLENGE_RESTRICTION_DECAY_CHANCE": {"group": "Challenge", "card": "", "label": "闯关限制衰减概率", "min": 0, "max": 1, "step": 0.01},
     "CHALLENGE_ACTIVE_USE_BONUS": {"group": "Challenge", "card": "", "label": "闯关主动次数奖励", "min": 0, "max": 10, "step": 1},
+    "AI_RALLY_LEAD": {"group": "Rally", "card": "", "label": "AI 反扑领先阈值", "min": 0, "max": 100, "step": 0.5},
+    "AI_RALLY_STAGE_STEP": {"group": "Rally", "card": "", "label": "AI 反扑每关阈值降幅", "min": 0, "max": 50, "step": 0.5},
+    "AI_RALLY_MIN_LEAD": {"group": "Rally", "card": "", "label": "AI 反扑最低阈值", "min": 0, "max": 100, "step": 0.5},
+    "AI_RALLY_MIN_MOVES": {"group": "Rally", "card": "", "label": "AI 反扑最早手数", "min": 0, "max": 300, "step": 1},
+    "AI_RALLY_COOLDOWN_MOVES": {"group": "Rally", "card": "", "label": "AI 反扑间隔手数", "min": 2, "max": 200, "step": 1},
+    "AI_RALLY_MAX_PER_GAME": {"group": "Rally", "card": "", "label": "AI 反扑每局次数", "min": 0, "max": 20, "step": 1},
+    "AI_RALLY_STAGE_BONUS": {"group": "Rally", "card": "", "label": "AI 反扑每关加次", "min": 0, "max": 10, "step": 1},
 }
 
 BALANCE_DEFAULTS = {key: globals()[key] for key in BALANCE_TUNABLES}

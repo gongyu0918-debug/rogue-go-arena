@@ -801,6 +801,7 @@
     "ultimate.wall.column": "🧱 {card|ucard} ! {count} {count|pl:pierre s'élève:pierres s'élèvent} sur la colonne {column}.",
     "ultimate.wall.failed": "🧱 {card|ucard} : pas de muraille cette fois.",
     "ultimate.wall.row": "🧱 {card|ucard} ! {count} {count|pl:pierre s'élève:pierres s'élèvent} sur la rangée {row}.",
-    "ultimate.wildgrow.grow": "🌿 {card|ucard} ! {count} de vos pierres {count|pl:fait:font} pousser de nouvelles pierres."
+    "ultimate.wildgrow.grow": "🌿 {card|ucard} ! {count} de vos pierres {count|pl:fait:font} pousser de nouvelles pierres.",
+    "ai.rally": "⚡ L'IA contre-attaque ! Vous menez de {lead} {lead|pl:point:points}, l'IA ajoute {count} {count|pl:pierre:pierres} en {points|list}. Encore {remaining} cette partie."
   }
 }

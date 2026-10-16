@@ -3031,6 +3031,125 @@
       "max": 10,
       "step": 1,
       "value": 1
+    },
+    "AI_RALLY_LEAD": {
+      "group": "Rally",
+      "card": "",
+      "label": {
+        "zh-CN": "AI 反扑领先阈值",
+        "en-US": "AI Rally Lead Threshold",
+        "ja-JP": "AI反撃のリード閾値",
+        "ko-KR": "AI 반격 리드 기준",
+        "zh-TW": "AI 反撲領先門檻",
+        "fr-FR": "Riposte IA - avance déclenchante",
+        "de-DE": "KI-Gegenschlag - Vorsprungsschwelle"
+      },
+      "min": 0,
+      "max": 100,
+      "step": 0.5,
+      "value": 15.0
+    },
+    "AI_RALLY_STAGE_STEP": {
+      "group": "Rally",
+      "card": "",
+      "label": {
+        "zh-CN": "AI 反扑每关阈值降幅",
+        "en-US": "AI Rally Threshold Drop per Stage",
+        "ja-JP": "AI反撃 ステージごとの閾値低下",
+        "ko-KR": "AI 반격 단계별 기준 감소",
+        "zh-TW": "AI 反撲每關門檻降幅",
+        "fr-FR": "Riposte IA - baisse du seuil par étape",
+        "de-DE": "KI-Gegenschlag - Schwellensenkung pro Stufe"
+      },
+      "min": 0,
+      "max": 50,
+      "step": 0.5,
+      "value": 5.0
+    },
+    "AI_RALLY_MIN_LEAD": {
+      "group": "Rally",
+      "card": "",
+      "label": {
+        "zh-CN": "AI 反扑最低阈值",
+        "en-US": "AI Rally Minimum Threshold",
+        "ja-JP": "AI反撃 最低閾値",
+        "ko-KR": "AI 반격 최소 기준",
+        "zh-TW": "AI 反撲最低門檻",
+        "fr-FR": "Riposte IA - seuil minimal",
+        "de-DE": "KI-Gegenschlag - Mindestschwelle"
+      },
+      "min": 0,
+      "max": 100,
+      "step": 0.5,
+      "value": 8.0
+    },
+    "AI_RALLY_MIN_MOVES": {
+      "group": "Rally",
+      "card": "",
+      "label": {
+        "zh-CN": "AI 反扑最早手数",
+        "en-US": "AI Rally Earliest Move",
+        "ja-JP": "AI反撃 最早手数",
+        "ko-KR": "AI 반격 최소 수",
+        "zh-TW": "AI 反撲最早手數",
+        "fr-FR": "Riposte IA - coup le plus tôt",
+        "de-DE": "KI-Gegenschlag - frühester Zug"
+      },
+      "min": 0,
+      "max": 300,
+      "step": 1,
+      "value": 40
+    },
+    "AI_RALLY_COOLDOWN_MOVES": {
+      "group": "Rally",
+      "card": "",
+      "label": {
+        "zh-CN": "AI 反扑间隔手数",
+        "en-US": "AI Rally Cooldown (moves)",
+        "ja-JP": "AI反撃 間隔手数",
+        "ko-KR": "AI 반격 간격(수)",
+        "zh-TW": "AI 反撲間隔手數",
+        "fr-FR": "Riposte IA - délai (coups)",
+        "de-DE": "KI-Gegenschlag - Abstand (Züge)"
+      },
+      "min": 2,
+      "max": 200,
+      "step": 1,
+      "value": 16
+    },
+    "AI_RALLY_MAX_PER_GAME": {
+      "group": "Rally",
+      "card": "",
+      "label": {
+        "zh-CN": "AI 反扑每局次数（0 为关闭）",
+        "en-US": "AI Rallies per Game (0 = off)",
+        "ja-JP": "AI反撃 1局の回数（0で無効）",
+        "ko-KR": "AI 반격 판당 횟수(0이면 끔)",
+        "zh-TW": "AI 反撲每局次數（0 為關閉）",
+        "fr-FR": "Ripostes IA par partie (0 = désactivé)",
+        "de-DE": "KI-Gegenschläge pro Partie (0 = aus)"
+      },
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "value": 3
+    },
+    "AI_RALLY_STAGE_BONUS": {
+      "group": "Rally",
+      "card": "",
+      "label": {
+        "zh-CN": "AI 反扑每关加次",
+        "en-US": "AI Rallies Added per Stage",
+        "ja-JP": "AI反撃 ステージごとの追加回数",
+        "ko-KR": "AI 반격 단계별 추가 횟수",
+        "zh-TW": "AI 反撲每關加次",
+        "fr-FR": "Riposte IA - ripostes en plus par étape",
+        "de-DE": "KI-Gegenschlag - zusätzliche pro Stufe"
+      },
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "value": 1
     }
   }
 }

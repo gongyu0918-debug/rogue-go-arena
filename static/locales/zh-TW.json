@@ -801,6 +801,7 @@
     "ultimate.wall.column": "🧱 {card|ucard}發動！{column} 列築起 {count} 子",
     "ultimate.wall.failed": "🧱 {card|ucard}未能成形，這次沒有築起城牆",
     "ultimate.wall.row": "🧱 {card|ucard}發動！第 {row} 行築起 {count} 子",
-    "ultimate.wildgrow.grow": "🌿 {card|ucard}！{count} 顆棋子長出新子"
+    "ultimate.wildgrow.grow": "🌿 {card|ucard}！{count} 顆棋子長出新子",
+    "ai.rally": "⚡ AI 反撲！你領先 {lead} 目，AI 在 {points|list} 追加 {count} 子，本局還剩 {remaining} 次"
   }
 }

@@ -801,6 +801,7 @@
     "ultimate.wall.column": "🧱 {card|ucard}！{column}列に石が{count}子そびえ立ちます",
     "ultimate.wall.failed": "🧱 今回は{card|ucard}を築けませんでした",
     "ultimate.wall.row": "🧱 {card|ucard}！{row}段目に石が{count}子そびえ立ちます",
-    "ultimate.wildgrow.grow": "🌿 {card|ucard}！{count}子の石から新しい石が伸びました"
+    "ultimate.wildgrow.grow": "🌿 {card|ucard}！{count}子の石から新しい石が伸びました",
+    "ai.rally": "⚡ AIの反撃！あなたが{lead}目リードしているので、AIが{points|list}に{count}子追加します。この対局であと{remaining}回"
   }
 }

@@ -801,6 +801,7 @@
     "ultimate.wall.column": "🧱 {card|ucard}! {count} {count|pl:stone rises:stones rise} along column {column}.",
     "ultimate.wall.failed": "🧱 {card|ucard} failed to rise this time.",
     "ultimate.wall.row": "🧱 {card|ucard}! {count} {count|pl:stone rises:stones rise} along row {row}.",
-    "ultimate.wildgrow.grow": "🌿 {card|ucard}! {count} of your stones {count|pl:puts:put} out new shoots."
+    "ultimate.wildgrow.grow": "🌿 {card|ucard}! {count} of your stones {count|pl:puts:put} out new shoots.",
+    "ai.rally": "⚡ AI rally! You lead by {lead} {lead|pl:point:points}, so the AI adds {count} {count|pl:stone:stones} at {points|list}. {remaining} {remaining|pl:rally:rallies} left this game."
   }
 }

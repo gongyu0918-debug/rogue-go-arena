@@ -8,6 +8,7 @@ from app.domain.event_text import event_text
 import app.config.gameplay as gameplay_config
 
 from app.callback_types import EngineCommandFn, SendFn as AsyncSend
+from app.gameplay.ai_rally import plan_ai_rally, try_apply_ai_rally
 from app.gameplay.engine_errors import engine_error_message, is_engine_error_response
 from app.gameplay.move_placement import AiMovePlacement
 
@@ -1126,6 +1127,17 @@ async def apply_ai_move_placement_effects(
         extra_board_change = True
 
     if needs_sync or extra_board_change:
+        await sync_board_to_engine(game)
+
+    rally_due = color == getattr(game, "ai_color", None) and plan_ai_rally(game) is not None
+    if rally_due and engine_is_ready() and await try_apply_ai_rally(
+        game,
+        send_fn,
+        pick_best_point=pick_best_point,
+        spawn_bonus_points=spawn_bonus_points,
+        sync_board_to_engine=sync_board_to_engine,
+        coord_to_gtp=coord_to_gtp,
+    ):
         await sync_board_to_engine(game)
 
     return placement

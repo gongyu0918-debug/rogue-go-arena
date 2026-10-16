@@ -801,6 +801,7 @@
     "ultimate.wall.column": "🧱 {card|ucard}! {column}열에 돌 {count}개가 솟아오릅니다",
     "ultimate.wall.failed": "🧱 {card|ucard}: 이번에는 성벽이 세워지지 않았습니다",
     "ultimate.wall.row": "🧱 {card|ucard}! {row}번째 줄에 돌 {count}개가 솟아오릅니다",
-    "ultimate.wildgrow.grow": "🌿 {card|ucard}! 돌 {count}개에서 새 돌이 뻗어 나옵니다"
+    "ultimate.wildgrow.grow": "🌿 {card|ucard}! 돌 {count}개에서 새 돌이 뻗어 나옵니다",
+    "ai.rally": "⚡ AI 반격! {lead}집 앞서 있어서 AI가 {points|list}에 돌 {count}개를 더 놓습니다. 이번 판 남은 횟수 {remaining}"
   }
 }
