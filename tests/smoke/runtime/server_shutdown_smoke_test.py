@@ -107,7 +107,7 @@ def main() -> int:
                     process.kill()
                     process.wait(timeout=8)
 
-    assert status["server_rev"] == "20261013-webview-0.1.41"
+    assert status["server_rev"] == "20261015-webview-0.1.42"
     assert status["no_katago"] is True
     assert denied_statuses == {
         "/stop_katago": 403,

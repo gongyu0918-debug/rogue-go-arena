@@ -573,7 +573,7 @@ USER_KATAGO_PATHS = UserKataGoPaths(
     home_dir=USER_KATAGO_HOME,
     runtime_config_dir=USER_RUNTIME_CONFIG_DIR,
 )
-SERVER_REV = "20261013-webview-0.1.41"
+SERVER_REV = "20261015-webview-0.1.42"
 KATAGO_EXE = BASE_DIR / "katago" / "katago.exe"             # CUDA build (legacy/optional)
 KATAGO_CUDA_EXE = BASE_DIR / "katago" / "katago_cuda.exe"   # CUDA (downloaded upgrade)
 KATAGO_OPENCL_EXE = BASE_DIR / "katago" / "katago_opencl.exe"  # OpenCL (any GPU)
