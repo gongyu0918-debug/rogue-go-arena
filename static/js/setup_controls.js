@@ -21,7 +21,7 @@ const SETUP_ROW_DISPLAY_RULES = [
 const SETUP_ROGUE_VARIANT_HINTS = {
   ultimate: () => ui("当前玩法：大招对战。固定 19×19，用普通规则开局，你与 AI 各自带一张大招卡，20 手决胜。", "Current variant: Ultimate Duel. Fixed at 19x19 with standard rules, one ultimate card per side, and a 20-move showdown."),
   dual: () => ui("当前玩法：双人抽卡。固定 19×19，你先选 1 张 Rogue 卡，AI 也会从受限卡池获得 1 张。", "Current variant: Dual Draft. Fixed at 19x19. You pick 1 Rogue card, and the AI also receives 1 card from the restricted pool."),
-  solo: () => ui("当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡；难度决定贴目。", "Current variant: Solo Draft. Fixed at 19x19. Only you use a Rogue card; difficulty sets the komi."),
+  solo: () => ui("当前玩法：快速对局。一局 19×19，只有你带 1 张 Rogue 卡；难度决定贴目。", "Current variant: Quick Game. One 19x19 game where only you hold a Rogue card; difficulty sets the komi."),
 };
 
 const SETUP_MODE_HINTS = {
@@ -35,8 +35,8 @@ const SETUP_MODE_HINTS = {
     "Two Players: both sides are human, with board size, komi, handicap, and timing controls."
   ),
   challenge: () => ui(
-    "闯关：测试版默认执白，按当前关卡自动套用让子与卡组限制。",
-    "Challenge: beta mode defaults you to White and applies stage handicap and loadout rules automatically."
+    "闯关：连战 5 关，你执白。每关多选 1 张卡，AI 的让子和贴目逐关增加；难度会整体加减。",
+    "Challenge: a 5-stage run where you play White. You pick one more card each stage while the AI's handicap and komi grow; difficulty shifts the whole curve."
   ),
   normal: () => ui(
     "对局：选择难度即可。AI 强度固定，难度决定你得到几颗让子。想自己设置等级、让子和贴目，请勾选“高级”。",

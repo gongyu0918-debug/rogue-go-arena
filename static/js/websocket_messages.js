@@ -214,12 +214,19 @@ function logGameOverMessage(msg, scoreRaw, scoreKomi) {
   });
 }
 
+const RUN_STAGES = 5;
+
+function fillText(text, params) {
+  return Object.entries(params).reduce((out, [key, value]) => out.split(`{${key}}`).join(String(value)), text);
+}
+
 function handleChallengeGameOver(msg, youWin) {
   if (!gameState?.challenge_beta) return;
   const currentStage = gameState.challenge_stage || challengeSession.stage || 1;
-  if (youWin && currentStage === 1) {
+  if (youWin && currentStage < RUN_STAGES) {
+    const nextStage = currentStage + 1;
     challengeSession.active = true;
-    challengeSession.stage = 2;
+    challengeSession.stage = nextStage;
     challengeSession.cards = Array.isArray(gameState.challenge_cards) ? [...gameState.challenge_cards] : [];
     challengeSession.refreshes = (gameState.challenge_refreshes || 0) + 1;
     challengeSession.limits = {
@@ -231,18 +238,21 @@ function handleChallengeGameOver(msg, youWin) {
     updateChallengeInfo();
     setTimeout(() => {
       showConfirmModal(
-        ui("已通过第 1 关，进入第 2 关。你将执白并按让 2 子开局，同时再选 1 张卡。", "Stage 1 cleared. Start Stage 2 as White with a 2-stone handicap opening and one more card?"),
+        fillText(ui(
+          "第 {stage} 关通过！进入第 {next} 关（共 {total} 关）：AI 的先手优势更大，你也会再选 1 张卡。",
+          "Stage {stage} cleared! On to stage {next} of {total}: the AI gets a bigger head start, and you pick one more card."
+        ), { stage: currentStage, next: nextStage, total: RUN_STAGES }),
         () => {
           closeOverlay();
           document.getElementById("btn-new").click();
         }
       );
     }, 120);
-  } else if (youWin && currentStage >= 2) {
+  } else if (youWin) {
     challengeSession.cleared = true;
     challengeSession.active = true;
     updateChallengeInfo();
-    logI18n("闯关前两关已通关。", "Challenge cleared.", "チャレンジの最初の2面を突破しました。", "도전 첫 두 단계를 통과했습니다.");
+    log(fillText(ui("全部 {total} 关通关！", "Run complete: all {total} stages cleared!"), { total: RUN_STAGES }));
   }
 }
 

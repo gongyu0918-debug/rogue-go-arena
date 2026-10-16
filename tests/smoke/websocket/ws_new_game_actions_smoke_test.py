@@ -262,6 +262,28 @@ async def smoke_difficulty_sets_handicap_or_komi() -> None:
     assert (ctx.game.handicap, ctx.game.komi, ctx.game.player_color, ctx.game.difficulty) == (0, 6.5, "W", None)
 
 
+async def smoke_run_stages_follow_the_curve() -> None:
+    # Stage 4: the AI (Black) starts with 2 stones; the player is White whatever they sent.
+    ctx = FakeContext()
+    await handle_new_game(ctx, {"size": 19, "challenge_beta": True, "challenge_stage": 4,
+                                "player_color": "B", "komi": 7.5, "difficulty": "normal"})
+    await asyncio.sleep(0)
+    assert (ctx.game.handicap, ctx.game.komi, ctx.game.player_color) == (2, 4.5, "W")
+    assert ctx.game.level == gameplay_config.STANDARD_AI_LEVEL
+
+    # Stage 1 on Beginner: even game, the player gets 20 extra points of komi.
+    ctx = FakeContext()
+    await handle_new_game(ctx, {"size": 19, "challenge_beta": True, "challenge_stage": 1, "difficulty": "beginner"})
+    await asyncio.sleep(0)
+    assert (ctx.game.handicap, ctx.game.komi) == (0, 27.5)
+
+    # Out-of-range stages are clamped to the run.
+    ctx = FakeContext()
+    await handle_new_game(ctx, {"size": 19, "challenge_beta": True, "challenge_stage": 9})
+    await asyncio.sleep(0)
+    assert ctx.game.challenge_stage == 5
+
+
 async def smoke_archived_ultimate_is_refused() -> None:
     assert gameplay_config.ULTIMATE_ENABLED is False
     ctx = FakeContext()
@@ -375,6 +397,7 @@ async def main() -> None:
     await smoke_releases_engine_claim_when_game_commit_fails()
     await smoke_card_games_always_use_the_standard_ai()
     await smoke_difficulty_sets_handicap_or_komi()
+    await smoke_run_stages_follow_the_curve()
     await smoke_archived_ultimate_is_refused()
     await smoke_ultimate_new_game_sends_offer()
     await smoke_two_player_rogue_new_game_uses_two_player_pool_without_engine()

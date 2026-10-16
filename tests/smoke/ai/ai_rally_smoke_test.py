@@ -105,13 +105,23 @@ def smoke_rally_places_ai_stones_then_cools_down_and_caps() -> None:
 
 
 def main() -> None:
+    # Rally is off by default (cap 0); test its behaviour with a cap of 3.
+    assert gameplay_config.AI_RALLY_MAX_PER_GAME == 0
+    gameplay_config.AI_RALLY_MAX_PER_GAME = 3
+    try:
+        run_all()
+    finally:
+        gameplay_config.AI_RALLY_MAX_PER_GAME = 0
+    print("ai rally smoke test: OK")
+
+
+def run_all() -> None:
     smoke_close_games_are_left_alone()
     smoke_lead_is_read_from_the_players_side()
     smoke_needs_fresh_analysis_and_a_rogue_game()
     smoke_later_stages_rally_sooner_and_more_often()
     smoke_cap_zero_turns_it_off()
     smoke_rally_places_ai_stones_then_cools_down_and_caps()
-    print("ai rally smoke test: OK")
 
 
 if __name__ == "__main__":

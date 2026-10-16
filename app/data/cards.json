@@ -2052,10 +2052,6 @@
     }
   },
   "challenge": {
-    "handicaps": {
-      "1": 0,
-      "2": 2
-    },
     "categories": {
       "sanrensei": "derivative",
       "foolish_wisdom": "derivative",
@@ -3545,7 +3541,7 @@
       "min": 0,
       "max": 20,
       "step": 1,
-      "value": 3
+      "value": 0
     },
     "AI_RALLY_STAGE_BONUS": {
       "group": "Rally",
@@ -3699,6 +3695,176 @@
       "max": 9,
       "step": 1,
       "value": 2
+    },
+    "RUN_STAGE1_AI_STONES": {
+      "group": "Run",
+      "card": "",
+      "label": {
+        "zh-CN": "第 1 关：AI 让子数",
+        "zh-TW": "第 1 關：AI 讓子數",
+        "en-US": "Stage 1: AI handicap stones",
+        "ja-JP": "第1ステージ：AIの置き石",
+        "ko-KR": "1단계: AI 접바둑 돌",
+        "fr-FR": "Étape 1 : pierres de handicap de l'IA",
+        "de-DE": "Stufe 1: Vorgabesteine der KI"
+      },
+      "min": 0,
+      "max": 9,
+      "step": 1,
+      "value": 0
+    },
+    "RUN_STAGE1_KOMI_POINTS": {
+      "group": "Run",
+      "card": "",
+      "label": {
+        "zh-CN": "第 1 关：给 AI 的贴目",
+        "zh-TW": "第 1 關：給 AI 的貼目",
+        "en-US": "Stage 1: komi points for the AI",
+        "ja-JP": "第1ステージ：AIへのコミ",
+        "ko-KR": "1단계: AI에게 주는 덤",
+        "fr-FR": "Étape 1 : points de komi pour l'IA",
+        "de-DE": "Stufe 1: Komi-Punkte für die KI"
+      },
+      "min": -100,
+      "max": 100,
+      "step": 0.5,
+      "value": 0.0
+    },
+    "RUN_STAGE2_AI_STONES": {
+      "group": "Run",
+      "card": "",
+      "label": {
+        "zh-CN": "第 2 关：AI 让子数",
+        "zh-TW": "第 2 關：AI 讓子數",
+        "en-US": "Stage 2: AI handicap stones",
+        "ja-JP": "第2ステージ：AIの置き石",
+        "ko-KR": "2단계: AI 접바둑 돌",
+        "fr-FR": "Étape 2 : pierres de handicap de l'IA",
+        "de-DE": "Stufe 2: Vorgabesteine der KI"
+      },
+      "min": 0,
+      "max": 9,
+      "step": 1,
+      "value": 0
+    },
+    "RUN_STAGE2_KOMI_POINTS": {
+      "group": "Run",
+      "card": "",
+      "label": {
+        "zh-CN": "第 2 关：给 AI 的贴目",
+        "zh-TW": "第 2 關：給 AI 的貼目",
+        "en-US": "Stage 2: komi points for the AI",
+        "ja-JP": "第2ステージ：AIへのコミ",
+        "ko-KR": "2단계: AI에게 주는 덤",
+        "fr-FR": "Étape 2 : points de komi pour l'IA",
+        "de-DE": "Stufe 2: Komi-Punkte für die KI"
+      },
+      "min": -100,
+      "max": 100,
+      "step": 0.5,
+      "value": 5.0
+    },
+    "RUN_STAGE3_AI_STONES": {
+      "group": "Run",
+      "card": "",
+      "label": {
+        "zh-CN": "第 3 关：AI 让子数",
+        "zh-TW": "第 3 關：AI 讓子數",
+        "en-US": "Stage 3: AI handicap stones",
+        "ja-JP": "第3ステージ：AIの置き石",
+        "ko-KR": "3단계: AI 접바둑 돌",
+        "fr-FR": "Étape 3 : pierres de handicap de l'IA",
+        "de-DE": "Stufe 3: Vorgabesteine der KI"
+      },
+      "min": 0,
+      "max": 9,
+      "step": 1,
+      "value": 0
+    },
+    "RUN_STAGE3_KOMI_POINTS": {
+      "group": "Run",
+      "card": "",
+      "label": {
+        "zh-CN": "第 3 关：给 AI 的贴目",
+        "zh-TW": "第 3 關：給 AI 的貼目",
+        "en-US": "Stage 3: komi points for the AI",
+        "ja-JP": "第3ステージ：AIへのコミ",
+        "ko-KR": "3단계: AI에게 주는 덤",
+        "fr-FR": "Étape 3 : points de komi pour l'IA",
+        "de-DE": "Stufe 3: Komi-Punkte für die KI"
+      },
+      "min": -100,
+      "max": 100,
+      "step": 0.5,
+      "value": 10.0
+    },
+    "RUN_STAGE4_AI_STONES": {
+      "group": "Run",
+      "card": "",
+      "label": {
+        "zh-CN": "第 4 关：AI 让子数",
+        "zh-TW": "第 4 關：AI 讓子數",
+        "en-US": "Stage 4: AI handicap stones",
+        "ja-JP": "第4ステージ：AIの置き石",
+        "ko-KR": "4단계: AI 접바둑 돌",
+        "fr-FR": "Étape 4 : pierres de handicap de l'IA",
+        "de-DE": "Stufe 4: Vorgabesteine der KI"
+      },
+      "min": 0,
+      "max": 9,
+      "step": 1,
+      "value": 2
+    },
+    "RUN_STAGE4_KOMI_POINTS": {
+      "group": "Run",
+      "card": "",
+      "label": {
+        "zh-CN": "第 4 关：给 AI 的贴目",
+        "zh-TW": "第 4 關：給 AI 的貼目",
+        "en-US": "Stage 4: komi points for the AI",
+        "ja-JP": "第4ステージ：AIへのコミ",
+        "ko-KR": "4단계: AI에게 주는 덤",
+        "fr-FR": "Étape 4 : points de komi pour l'IA",
+        "de-DE": "Stufe 4: Komi-Punkte für die KI"
+      },
+      "min": -100,
+      "max": 100,
+      "step": 0.5,
+      "value": -4.0
+    },
+    "RUN_STAGE5_AI_STONES": {
+      "group": "Run",
+      "card": "",
+      "label": {
+        "zh-CN": "第 5 关：AI 让子数",
+        "zh-TW": "第 5 關：AI 讓子數",
+        "en-US": "Stage 5: AI handicap stones",
+        "ja-JP": "第5ステージ：AIの置き石",
+        "ko-KR": "5단계: AI 접바둑 돌",
+        "fr-FR": "Étape 5 : pierres de handicap de l'IA",
+        "de-DE": "Stufe 5: Vorgabesteine der KI"
+      },
+      "min": 0,
+      "max": 9,
+      "step": 1,
+      "value": 2
+    },
+    "RUN_STAGE5_KOMI_POINTS": {
+      "group": "Run",
+      "card": "",
+      "label": {
+        "zh-CN": "第 5 关：给 AI 的贴目",
+        "zh-TW": "第 5 關：給 AI 的貼目",
+        "en-US": "Stage 5: komi points for the AI",
+        "ja-JP": "第5ステージ：AIへのコミ",
+        "ko-KR": "5단계: AI에게 주는 덤",
+        "fr-FR": "Étape 5 : points de komi pour l'IA",
+        "de-DE": "Stufe 5: Komi-Punkte für die KI"
+      },
+      "min": -100,
+      "max": 100,
+      "step": 0.5,
+      "value": 7.0
     }
   }
 }

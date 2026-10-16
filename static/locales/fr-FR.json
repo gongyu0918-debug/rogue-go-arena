@@ -337,7 +337,12 @@
     "困难": "Difficile",
     "高级：手动设置等级、让子和贴目": "Avancé : régler à la main niveau, handicap et komi",
     "对局：选择难度即可。AI 强度固定，难度决定你得到几颗让子。想自己设置等级、让子和贴目，请勾选“高级”。": "Partie : choisissez simplement une difficulté. La force de l'IA est fixe ; la difficulté fixe vos pierres de handicap. Cochez Avancé pour régler vous-même niveau, handicap et komi.",
-    "当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡；难度决定贴目。": "Variante actuelle : tirage solo. Goban 19x19 fixe. Vous seul avez une carte Rogue ; la difficulté fixe le komi."
+    "快速对局": "Partie rapide",
+    "当前玩法：快速对局。一局 19×19，只有你带 1 张 Rogue 卡；难度决定贴目。": "Variante actuelle : partie rapide. Une partie en 19x19 où vous seul avez une carte Rogue ; la difficulté fixe le komi.",
+    "闯关：连战 5 关，你执白。每关多选 1 张卡，AI 的让子和贴目逐关增加；难度会整体加减。": "Défi : un parcours de 5 étapes où vous jouez Blanc. Vous prenez une carte de plus à chaque étape tandis que le handicap et le komi de l'IA augmentent ; la difficulté décale toute la courbe.",
+    "第 {stage} 关通过！进入第 {next} 关（共 {total} 关）：AI 的先手优势更大，你也会再选 1 张卡。": "Étape {stage} réussie ! Place à l'étape {next} sur {total} : l'IA part avec plus d'avance, et vous choisissez une carte de plus.",
+    "全部 {total} 关通关！": "Parcours terminé : les {total} étapes sont réussies !",
+    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "Étape {stage}/{total} | Cartes {cards} | Annuler {undo} Indice {hint} Coach {coach} Relance {refresh}"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",
@@ -367,8 +372,8 @@
   "wikiModes": [
     {
       "key": "solo",
-      "title": "Draft solo",
-      "desc": "Vous draftez 1 carte Rogue parmi 3 choix. L'IA joue selon les règles standards sans carte Rogue."
+      "title": "Partie rapide",
+      "desc": "Une seule partie : vous choisissez 1 carte Rogue parmi 3, l'IA n'en a pas. La difficulté fixe le komi."
     },
     {
       "key": "dual",
@@ -383,7 +388,7 @@
     {
       "key": "challenge",
       "title": "Défi",
-      "desc": "Le mode Défi superpose restrictions de pool, handicap et rafraîchissements pour des runs par étapes."
+      "desc": "Un parcours de 5 étapes avec Blanc : une carte de plus à chaque étape, le komi de l'IA augmente, et aux deux dernières étapes elle commence avec 2 pierres de handicap."
     }
   ],
   "cards": {

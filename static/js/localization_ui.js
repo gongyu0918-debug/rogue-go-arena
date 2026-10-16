@@ -268,7 +268,7 @@ function localizeSetupOptions() {
     ["absolute", "包干用时", "Absolute", "切れ負け", "절대 시간"]
   ]);
   setOptionText("sel-rogue-variant", [
-    ["solo", "单人抽卡", "Solo Draft", "ソロドラフト", "솔로 드래프트"],
+    ["solo", "快速对局", "Quick Game", "クイックゲーム", "빠른 대국"],
     ["dual", "双人抽卡", "Dual Draft", "デュアルドラフト", "듀얼 드래프트"],
     ["ultimate", "大招对战", "Ultimate Duel", "必殺デュエル", "궁극기 대전"]
   ]);

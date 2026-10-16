@@ -337,7 +337,12 @@
     "困难": "Hard",
     "高级：手动设置等级、让子和贴目": "Advanced: set rank, handicap and komi by hand",
     "对局：选择难度即可。AI 强度固定，难度决定你得到几颗让子。想自己设置等级、让子和贴目，请勾选“高级”。": "Game: just pick a difficulty. The AI's strength is fixed; difficulty sets how many handicap stones you get. Tick Advanced to set rank, handicap and komi yourself.",
-    "当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡；难度决定贴目。": "Current variant: Solo Draft. Fixed at 19x19. Only you use a Rogue card; difficulty sets the komi."
+    "快速对局": "Quick Game",
+    "当前玩法：快速对局。一局 19×19，只有你带 1 张 Rogue 卡；难度决定贴目。": "Current variant: Quick Game. One 19x19 game where only you hold a Rogue card; difficulty sets the komi.",
+    "闯关：连战 5 关，你执白。每关多选 1 张卡，AI 的让子和贴目逐关增加；难度会整体加减。": "Challenge: a 5-stage run where you play White. You pick one more card each stage while the AI's handicap and komi grow; difficulty shifts the whole curve.",
+    "第 {stage} 关通过！进入第 {next} 关（共 {total} 关）：AI 的先手优势更大，你也会再选 1 张卡。": "Stage {stage} cleared! On to stage {next} of {total}: the AI gets a bigger head start, and you pick one more card.",
+    "全部 {total} 关通关！": "Run complete: all {total} stages cleared!",
+    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "Stage {stage}/{total} | Cards {cards} | Undo {undo} Hint {hint} Coach {coach} Refresh {refresh}"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",
@@ -367,8 +372,8 @@
   "wikiModes": [
     {
       "key": "solo",
-      "title": "Solo Draft",
-      "desc": "You draft 1 Rogue card from 3 choices. The AI plays standard rules with no Rogue card of its own."
+      "title": "Quick Game",
+      "desc": "A single game: you draft 1 Rogue card from 3, and the AI has none. Difficulty sets the komi."
     },
     {
       "key": "dual",
@@ -383,7 +388,7 @@
     {
       "key": "challenge",
       "title": "Challenge",
-      "desc": "Challenge mode layers card-pool restrictions, handicap, and refresh counts for staged runs."
+      "desc": "A 5-stage run as White: you add a card each stage while the AI's komi grows, and in the last two stages it starts with 2 handicap stones."
     }
   ],
   "cards": {

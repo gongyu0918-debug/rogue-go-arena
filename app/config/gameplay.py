@@ -218,6 +218,19 @@ DIFFICULTY_EASY_STONES = 6
 DIFFICULTY_NORMAL_STONES = 4
 DIFFICULTY_HARD_STONES = 2
 
+# Run curve (see app/gameplay/run_curve.py): five stages; each gives the AI
+# handicap stones (0 or 2+) and komi points. About 0, 5, 10, 17, 28 points.
+RUN_STAGE1_AI_STONES = 0
+RUN_STAGE1_KOMI_POINTS = 0.0
+RUN_STAGE2_AI_STONES = 0
+RUN_STAGE2_KOMI_POINTS = 5.0
+RUN_STAGE3_AI_STONES = 0
+RUN_STAGE3_KOMI_POINTS = 10.0
+RUN_STAGE4_AI_STONES = 2
+RUN_STAGE4_KOMI_POINTS = -4.0
+RUN_STAGE5_AI_STONES = 2
+RUN_STAGE5_KOMI_POINTS = 7.0
+
 # AI rally: in Rogue games, when the player leads by a lot, the AI plays one
 # extra stone on its best point so big leads stay contested. The lead needed
 # drops (and the cap rises) in later challenge stages. A cap of 0 turns it off.
@@ -226,7 +239,7 @@ AI_RALLY_STAGE_STEP = 5.0
 AI_RALLY_MIN_LEAD = 8.0
 AI_RALLY_MIN_MOVES = 40
 AI_RALLY_COOLDOWN_MOVES = 16
-AI_RALLY_MAX_PER_GAME = 3
+AI_RALLY_MAX_PER_GAME = 0  # off by default; the run curve uses komi and stones instead
 AI_RALLY_STAGE_BONUS = 1
 
 
@@ -319,6 +332,16 @@ BALANCE_TUNABLES = {
     "DIFFICULTY_EASY_STONES": {"group": "Difficulty", "card": "", "label": "简单难度：普通对局让子数", "min": 0, "max": 9, "step": 1},
     "DIFFICULTY_NORMAL_STONES": {"group": "Difficulty", "card": "", "label": "普通难度：普通对局让子数", "min": 0, "max": 9, "step": 1},
     "DIFFICULTY_HARD_STONES": {"group": "Difficulty", "card": "", "label": "困难难度：普通对局让子数", "min": 0, "max": 9, "step": 1},
+    "RUN_STAGE1_AI_STONES": {"group": "Run", "card": "", "label": "第 1 关：AI 让子数", "min": 0, "max": 9, "step": 1},
+    "RUN_STAGE1_KOMI_POINTS": {"group": "Run", "card": "", "label": "第 1 关：给 AI 的贴目", "min": -100, "max": 100, "step": 0.5},
+    "RUN_STAGE2_AI_STONES": {"group": "Run", "card": "", "label": "第 2 关：AI 让子数", "min": 0, "max": 9, "step": 1},
+    "RUN_STAGE2_KOMI_POINTS": {"group": "Run", "card": "", "label": "第 2 关：给 AI 的贴目", "min": -100, "max": 100, "step": 0.5},
+    "RUN_STAGE3_AI_STONES": {"group": "Run", "card": "", "label": "第 3 关：AI 让子数", "min": 0, "max": 9, "step": 1},
+    "RUN_STAGE3_KOMI_POINTS": {"group": "Run", "card": "", "label": "第 3 关：给 AI 的贴目", "min": -100, "max": 100, "step": 0.5},
+    "RUN_STAGE4_AI_STONES": {"group": "Run", "card": "", "label": "第 4 关：AI 让子数", "min": 0, "max": 9, "step": 1},
+    "RUN_STAGE4_KOMI_POINTS": {"group": "Run", "card": "", "label": "第 4 关：给 AI 的贴目", "min": -100, "max": 100, "step": 0.5},
+    "RUN_STAGE5_AI_STONES": {"group": "Run", "card": "", "label": "第 5 关：AI 让子数", "min": 0, "max": 9, "step": 1},
+    "RUN_STAGE5_KOMI_POINTS": {"group": "Run", "card": "", "label": "第 5 关：给 AI 的贴目", "min": -100, "max": 100, "step": 0.5},
     "AI_RALLY_LEAD": {"group": "Rally", "card": "", "label": "AI 反扑领先阈值", "min": 0, "max": 100, "step": 0.5},
     "AI_RALLY_STAGE_STEP": {"group": "Rally", "card": "", "label": "AI 反扑每关阈值降幅", "min": 0, "max": 50, "step": 0.5},
     "AI_RALLY_MIN_LEAD": {"group": "Rally", "card": "", "label": "AI 反扑最低阈值", "min": 0, "max": 100, "step": 0.5},

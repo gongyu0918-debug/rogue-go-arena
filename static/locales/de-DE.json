@@ -337,7 +337,12 @@
     "困难": "Schwer",
     "高级：手动设置等级、让子和贴目": "Erweitert: Rang, Vorgabe und Komi selbst einstellen",
     "对局：选择难度即可。AI 强度固定，难度决定你得到几颗让子。想自己设置等级、让子和贴目，请勾选“高级”。": "Partie: Wähle einfach eine Schwierigkeit. Die Stärke der KI ist fest; die Schwierigkeit bestimmt deine Vorgabesteine. Mit „Erweitert“ stellst du Rang, Vorgabe und Komi selbst ein.",
-    "当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡；难度决定贴目。": "Aktuelle Variante: Solo-Draft. Fest 19x19. Nur du hast eine Rogue-Karte; die Schwierigkeit bestimmt das Komi."
+    "快速对局": "Schnelles Spiel",
+    "当前玩法：快速对局。一局 19×19，只有你带 1 张 Rogue 卡；难度决定贴目。": "Aktuelle Variante: Schnelles Spiel. Eine 19x19-Partie, nur du hast eine Rogue-Karte; die Schwierigkeit bestimmt das Komi.",
+    "闯关：连战 5 关，你执白。每关多选 1 张卡，AI 的让子和贴目逐关增加；难度会整体加减。": "Herausforderung: ein Lauf über 5 Stufen, du spielst Weiß. Pro Stufe wählst du eine Karte mehr, während Vorgabe und Komi der KI wachsen; die Schwierigkeit verschiebt die ganze Kurve.",
+    "第 {stage} 关通过！进入第 {next} 关（共 {total} 关）：AI 的先手优势更大，你也会再选 1 张卡。": "Stufe {stage} geschafft! Weiter zu Stufe {next} von {total}: Die KI bekommt mehr Vorsprung, und du wählst eine Karte mehr.",
+    "全部 {total} 关通关！": "Lauf geschafft: alle {total} Stufen gemeistert!",
+    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "Stufe {stage}/{total} | Karten {cards} | Zurück {undo} Tipp {hint} Coach {coach} Neu {refresh}"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",
@@ -367,8 +372,8 @@
   "wikiModes": [
     {
       "key": "solo",
-      "title": "Solo-Draft",
-      "desc": "Du draftest 1 Rogue-Karte aus 3 Optionen. Die KI spielt Standardregeln ohne eigene Rogue-Karte."
+      "title": "Schnelles Spiel",
+      "desc": "Eine einzelne Partie: Du wählst 1 von 3 Rogue-Karten, die KI hat keine. Die Schwierigkeit bestimmt das Komi."
     },
     {
       "key": "dual",
@@ -383,7 +388,7 @@
     {
       "key": "challenge",
       "title": "Herausforderung",
-      "desc": "Der Herausforderungsmodus kombiniert Pool-Beschränkungen, Vorgabe und Auffrischungen für gestufte Runs."
+      "desc": "Ein Lauf über 5 Stufen mit Weiß: Pro Stufe kommt eine Karte dazu, das Komi der KI steigt, und in den letzten beiden Stufen startet sie mit 2 Vorgabesteinen."
     }
   ],
   "cards": {

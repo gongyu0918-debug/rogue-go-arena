@@ -6,7 +6,6 @@ from collections.abc import Mapping
 import app.config.gameplay as gameplay_config
 from app.config.gameplay import AI_STYLE_OPTIONS, RANK_VISITS
 from app.data.cards import (
-    CHALLENGE_BETA_HANDICAPS,
     CHALLENGE_BETA_POOL,
     TWO_PLAYER_ROGUE_POOL,
     rogue_card_summary,
@@ -21,6 +20,7 @@ from app.runtime.game_input_validation import (
     payload_int,
 )
 from app.domain.event_text import event_text
+from app.gameplay.run_curve import clamp_stage, run_stage_setup
 from app.gameplay.difficulty import (
     difficulty_points,
     komi_for_ai_points,
@@ -82,7 +82,7 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
         ai_observer = False
         rogue_enabled = True
         ai_rogue_enabled = False
-        handicap = CHALLENGE_BETA_HANDICAPS.get(challenge_stage, handicap)
+        challenge_stage = clamp_stage(challenge_stage)
     if size not in VALID_BOARD_SIZES:
         await ctx.send_error(event_text("error.setup.invalid_board", "棋盘尺寸无效"))
         return
@@ -111,7 +111,11 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
     difficulty = normalize_difficulty(data.get("difficulty"))
     if two_player or ai_observer:
         difficulty = None
-    if difficulty and player_color is not None and not challenge_beta:
+    if challenge_beta:
+        # Runs: the player is White; the stage curve plus difficulty set the AI's head start.
+        run = run_stage_setup(challenge_stage, difficulty_points(difficulty) if difficulty else 0.0)
+        handicap, komi, player_color = run.handicap, run.komi, "W"
+    elif difficulty and player_color is not None:
         if rogue_enabled:
             ai_color = "W" if player_color == "B" else "B"
             komi = komi_for_ai_points(difficulty_points(difficulty), ai_color)

@@ -87,10 +87,16 @@ function challengeInfoShouldShow() {
 }
 
 function challengeInfoText() {
-  return ui(
-    `测试第${challengeSession.stage}关 | 卡牌${challengeSession.cards.length} | 悔棋${challengeSession.remaining.undo} 推荐${challengeSession.remaining.hint} 代下${challengeSession.remaining.coach} 刷新${challengeSession.refreshes}`,
-    `Beta S${challengeSession.stage} | Cards ${challengeSession.cards.length} | Undo ${challengeSession.remaining.undo} Hint ${challengeSession.remaining.hint} Coach ${challengeSession.remaining.coach} Refresh ${challengeSession.refreshes}`
+  const params = {
+    stage: challengeSession.stage, total: 5, cards: challengeSession.cards.length,
+    undo: challengeSession.remaining.undo, hint: challengeSession.remaining.hint,
+    coach: challengeSession.remaining.coach, refresh: challengeSession.refreshes,
+  };
+  const template = ui(
+    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}",
+    "Stage {stage}/{total} | Cards {cards} | Undo {undo} Hint {hint} Coach {coach} Refresh {refresh}"
   );
+  return Object.entries(params).reduce((out, [key, value]) => out.split(`{${key}}`).join(String(value)), template);
 }
 
 function updateChallengeInfo() {
