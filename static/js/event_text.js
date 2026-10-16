@@ -11,7 +11,8 @@
 //   rank          rank id ("5k", "a3d", "p2d") -> rankLabel()
 //   list          array -> joined with eventTerms list.separator
 //   chain         array -> joined with "–"
-//   pl:one:other  number -> the plural form for the active locale (Intl.PluralRules)
+//   pl:one:other  number -> the plural form for the active locale (Intl.PluralRules);
+//                 "#" inside a form stands for the number
 
 function eventPack() {
   return typeof localeCache === "object" ? localeCache[currentLang] || null : null;
@@ -39,7 +40,7 @@ const EVENT_PARAM_FORMATTERS = {
   rank: value => (typeof rankLabel === "function" ? rankLabel(value) : value),
   list: value => (Array.isArray(value) ? value : [value]).join(eventTerm("list.separator") ?? ", "),
   chain: value => (Array.isArray(value) ? value : [value]).join("–"),
-  pl: (value, one, other) => (eventPluralCategory(value) === "one" ? one : other),
+  pl: (value, one, other) => (eventPluralCategory(value) === "one" ? one : other).replace(/#/g, String(value)),
 };
 
 function renderEventTemplate(template, params = {}) {

@@ -10,6 +10,7 @@ from app.config.gameplay import (
     ULTIMATE_JOSEKI_TARGET_COUNT,
 )
 from app.data.cards import ULTIMATE_CARDS, get_ultimate_card
+from app.domain.event_text import event_text
 from app.gameplay.ultimate_effects import reset_ultimate_effect_state
 from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_action_utils import board_point_from_data
@@ -31,7 +32,8 @@ async def handle_ultimate_play(
     if game.ultimate_ai_card == "territory":
         cv_player = 1 if color == "B" else 2
         if (x, y) in ctx.ultimate_get_territory_forbidden(game, cv_player):
-            await ctx.send_error("这里已被绝对领地封锁，不能在 AI 的禁区内落子")
+            await ctx.send_error(event_text("ultimate.territory.blocked", "这里已被绝对领地封锁，不能在 AI 的禁区内落子",
+                                        card="territory"))
             return
 
     if game.board[y][x] != 0:
@@ -93,10 +95,12 @@ async def handle_ultimate_play(
         await ctx.ultimate_force_score(game, ctx.send)
         return
     if chain_bonus:
-        await ctx.send({"type": "rogue_event", "msg": "连珠棋触发成功，你可以继续落子"})
+        await ctx.send({"type": "rogue_event", "msg": event_text(
+            "ultimate.chain.extra", "连珠棋触发成功，你可以继续落子", card="chain")})
         return
     if double_bonus:
-        await ctx.send({"type": "rogue_event", "msg": "双刀流触发成功，你可以继续落子"})
+        await ctx.send({"type": "rogue_event", "msg": event_text(
+            "ultimate.double.extra", "双刀流触发成功，你可以继续落子", card="double")})
         return
 
     game.ultimate_extra_turn = False
@@ -153,8 +157,14 @@ async def handle_ultimate_select_card(ctx: WebSocketActionContext, data: dict) -
     if not await ensure_engine_ready_for_game(ctx, game, "ultimate_select_card"):
         return
     if card_id == "joseki_burst":
-        pts = ", ".join(ctx.coord_to_gtp(px, py, game.size) for px, py in game.ultimate_joseki_targets)
-        await ctx.send({"type": "rogue_event", "msg": f"定式爆发已点亮目标点：{pts}。命中其中 3 个后会触发爆发"})
+        points = [ctx.coord_to_gtp(px, py, game.size) for px, py in game.ultimate_joseki_targets]
+        await ctx.send({"type": "rogue_event", "msg": event_text(
+            "ultimate.joseki_burst.targets",
+            f"定式爆发已点亮目标点：{', '.join(points)}。命中其中 3 个后会触发爆发",
+            card="joseki_burst",
+            points=points,
+            hits=3,
+        )})
     if ctx.engine.ready and game.ai_color == game.current_player:
         await ctx.ultimate_ai_move(game, ctx.send)
     if not game.game_over and ctx.engine.ready:

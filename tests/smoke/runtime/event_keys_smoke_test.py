@@ -171,6 +171,12 @@ def main() -> None:
     jobs = []
     for key in sorted(calls_by_key):
         texts = [packs[loc]["events"][key] for loc in LOCALES if key in packs[loc].get("events", {})]
+        # French/German articles depend on the name's gender and change when a
+        # card is renamed, so card names stand without an article.
+        for loc in ("fr-FR", "de-DE"):
+            text = packs[loc].get("events", {}).get(key, "")
+            if re.search(r"(?i)(le|la|les|du|des|au|aux|der|die|das|dem|den|des)\s+\{card\|", text) or re.search(r"(?i)[dl]'\{card\|", text):
+                problems.append(f"{loc} {key}: article before a card name in {text!r}")
         # Korean particles depend on the preceding sound; a variable value (point,
         # number, card name) must not carry one. Colors (흑/백) and ranks end in a
         # consonant, so those placeholders may.

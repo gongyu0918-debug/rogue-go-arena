@@ -8,6 +8,7 @@ import time
 from typing import Any
 
 import app.config.gameplay as gameplay_config
+from app.domain.event_text import event_text
 from app.gameplay.effect_utils import (
     clear_random_enemy_stones,
     collect_joseki_burst_points,
@@ -100,13 +101,15 @@ def resolve_pending_shadow_links(
                 changed += 1
         if changed:
             modified = True
-            messages.append(
-                f"👥 影分身连线完成："
-                f"{coord_to_gtp(link['from'][0], link['from'][1], game.size)}"
-                f" 连到 "
-                f"{coord_to_gtp(link['to'][0], link['to'][1], game.size)}"
-                f"，铺开 {changed} 颗同色棋"
-            )
+            messages.append(event_text(
+                "ultimate.shadow_clone.linked",
+                f"👥 影分身连线完成：{coord_to_gtp(link['from'][0], link['from'][1], game.size)}"
+                f" 连到 {coord_to_gtp(link['to'][0], link['to'][1], game.size)}，铺开 {changed} 颗同色棋",
+                card="shadow_clone",
+                from_point=coord_to_gtp(link['from'][0], link['from'][1], game.size),
+                to_point=coord_to_gtp(link['to'][0], link['to'][1], game.size),
+                count=changed,
+            ))
 
     game.ultimate_shadow_clone_links = pending
     if modified:
@@ -137,7 +140,13 @@ def apply_ultimate_last_stand(
     return BoardEffectResult(
         modified=True,
         messages=[
-            f"🫀 起死回生发动，绝境反扑：清掉 {len(cleared)} 颗敌子，并补下 {len(changed)} 颗己棋"
+            event_text(
+                "ultimate.last_stand.rally",
+                f"🫀 起死回生发动，绝境反扑：清掉 {len(cleared)} 颗敌子，并补下 {len(changed)} 颗己棋",
+                card="last_stand",
+                cleared=len(cleared),
+                added=len(changed),
+            )
         ],
     )
 
@@ -185,7 +194,14 @@ def apply_ultimate_five_in_row(
     return BoardEffectResult(
         modified=True,
         messages=[
-            f"🎯 五子连珠爆发连锁 {chain_count} 次：随机清除 {total_cleared} 颗敌子，并补下 {total_spawned} 颗己棋"
+            event_text(
+                "ultimate.five_in_row.burst",
+                f"🎯 五子连珠爆发连锁 {chain_count} 次：随机清除 {total_cleared} 颗敌子，并补下 {total_spawned} 颗己棋",
+                card="five_in_row",
+                chains=chain_count,
+                cleared=total_cleared,
+                added=total_spawned,
+            )
         ],
     )
 
@@ -234,9 +250,13 @@ def apply_ultimate_foolish_wisdom_wave(
     has_more = bool(find_new_fool_shapes(game, color, game.ultimate_fool_shapes))
     return FoolishWisdomWaveResult(
         modified=bool(placed),
-        message=(
-            f"🪤 大智若愚第 {wave} 波发动，识别到 {len(pending_shapes)} 个愚形，"
-            f"生成 {len(placed)} 颗己方棋子"
+        message=event_text(
+            "ultimate.foolish_wisdom.wave",
+            f"🪤 大智若愚第 {wave} 波发动，识别到 {len(pending_shapes)} 个愚形，生成 {len(placed)} 颗己方棋子",
+            card="foolish_wisdom",
+            wave=wave,
+            shapes=len(pending_shapes),
+            count=len(placed),
         ),
         generated=len(placed),
         detected_shapes=len(pending_shapes),
@@ -287,7 +307,8 @@ def apply_ultimate_board_effect(
         placed = len(spawn_bonus_points(game, candidates[:5], color))
         if placed > 0:
             modified = True
-            messages.append(f"🦠 无限增生！生成 {placed} 颗棋子")
+            messages.append(event_text("ultimate.proliferate.bloom", f"🦠 无限增生！生成 {placed} 颗棋子",
+                                       card="proliferate", count=placed))
 
     elif card == "wildgrow":
         own_stones = [
@@ -312,7 +333,8 @@ def apply_ultimate_board_effect(
         grown = len(spawn_bonus_points(game, growth_targets, color))
         if grown > 0:
             modified = True
-            messages.append(f"🌿 狂野生长！{grown} 颗棋子生长出新子")
+            messages.append(event_text("ultimate.wildgrow.grow", f"🌿 狂野生长！{grown} 颗棋子生长出新子",
+                                       card="wildgrow", count=grown))
 
     elif card == "rejection":
         pushed = 0
@@ -344,7 +366,8 @@ def apply_ultimate_board_effect(
                 msg += f"挤走 {pushed} 子"
             if destroyed:
                 msg += f"{'，' if pushed else ''}摧毁 {destroyed} 子"
-            messages.append(msg)
+            messages.append(event_text("ultimate.rejection.repel", msg, card="rejection",
+                                       pushed=pushed, destroyed=destroyed))
 
     elif card == "plague":
         targets = [
@@ -356,7 +379,8 @@ def apply_ultimate_board_effect(
         converted = len(set_points_to_color(game, targets, color))
         if converted > 0:
             modified = True
-            messages.append(f"☠️ 瘟疫蔓延！感染 {converted} 颗敌子")
+            messages.append(event_text("ultimate.plague.spread", f"☠️ 瘟疫蔓延！感染 {converted} 颗敌子",
+                                       card="plague", count=converted))
 
     elif card == "meteor":
         enemies = [
@@ -372,7 +396,8 @@ def apply_ultimate_board_effect(
             destroyed += 1
         if destroyed > 0:
             modified = True
-            messages.append(f"☄️ 陨石雨！摧毁 {destroyed} 颗对方棋子")
+            messages.append(event_text("ultimate.meteor.strike", f"☄️ 陨石雨！摧毁 {destroyed} 颗对方棋子",
+                                       card="meteor", count=destroyed))
 
     elif card == "quantum":
         empties = [
@@ -389,7 +414,8 @@ def apply_ultimate_board_effect(
         ))
         if placed > 0:
             modified = True
-            messages.append(f"⚛️ 量子纠缠！在 {placed} 个位置出现棋子")
+            messages.append(event_text("ultimate.quantum.appear", f"⚛️ 量子纠缠！在 {placed} 个位置出现棋子",
+                                       card="quantum", count=placed))
 
     elif card == "devour":
         eaten = 0
@@ -400,7 +426,8 @@ def apply_ultimate_board_effect(
                     eaten += 1
         if eaten > 0:
             modified = True
-            messages.append(f"👹 吞噬之口！吃掉 {eaten} 颗对方棋子")
+            messages.append(event_text("ultimate.devour.eat", f"👹 吞噬之口！吃掉 {eaten} 颗对方棋子",
+                                       card="devour", count=eaten))
 
     elif card == "blackout":
         destroyed = 0
@@ -411,7 +438,8 @@ def apply_ultimate_board_effect(
                     destroyed += 1
                     modified = True
         if destroyed > 0:
-            messages.append(f"🌋 天崩地裂！十字清除 {destroyed} 颗敌子")
+            messages.append(event_text("ultimate.blackout.cross", f"🌋 天崩地裂！十字清除 {destroyed} 颗敌子",
+                                       card="blackout", count=destroyed))
 
     elif card == "magnet":
         own_stones = [
@@ -449,7 +477,7 @@ def apply_ultimate_board_effect(
             msg = f"🧲 磁力吸附！{moved} 子飞奔"
             if crushed:
                 msg += f"，碾碎 {crushed} 颗敌子"
-            messages.append(msg)
+            messages.append(event_text("ultimate.magnet.pull", msg, card="magnet", moved=moved, crushed=crushed))
 
     elif card == "necro":
         empties = [
@@ -470,7 +498,8 @@ def apply_ultimate_board_effect(
         converted = len(set_points_to_color(game, enemies[:2], color))
         if spawned + converted > 0:
             modified = True
-            messages.append(f"💀 亡灵召唤！召唤 {spawned} 子，转化 {converted} 子")
+            messages.append(event_text("ultimate.necro.raise", f"💀 亡灵召唤！召唤 {spawned} 子，转化 {converted} 子",
+                                       card="necro", spawned=spawned, converted=converted))
 
     elif card == "wall":
         if random.random() < gameplay_config.ULTIMATE_WALL_TRIGGER_CHANCE:
@@ -484,7 +513,8 @@ def apply_ultimate_board_effect(
                 ))
                 if placed > 0:
                     modified = True
-                    messages.append(f"🧱 万里长城发动！第 {size - y} 行筑起 {placed} 子")
+                    messages.append(event_text("ultimate.wall.row", f"🧱 万里长城发动！第 {size - y} 行筑起 {placed} 子",
+                                               card="wall", row=size - y, count=placed))
             else:
                 placed = len(spawn_bonus_points(
                     game,
@@ -494,9 +524,10 @@ def apply_ultimate_board_effect(
                 if placed > 0:
                     modified = True
                     cols = "ABCDEFGHJKLMNOPQRST"
-                    messages.append(f"🧱 万里长城发动！{cols[x]} 列筑起 {placed} 子")
+                    messages.append(event_text("ultimate.wall.column", f"🧱 万里长城发动！{cols[x]} 列筑起 {placed} 子",
+                                               card="wall", column=cols[x], count=placed))
         else:
-            messages.append("🧱 万里长城未能成型，这次没有筑起城墙")
+            messages.append(event_text("ultimate.wall.failed", "🧱 万里长城未能成型，这次没有筑起城墙", card="wall"))
 
     else:
         return None
@@ -547,9 +578,12 @@ def apply_ultimate_state_effect(
                     "from": (x, y),
                     "to": (tx, ty),
                 })
-                messages.append(
-                    f"👥 影分身！在 {coord_to_gtp(tx, ty, size)} 出现分身，下一回合会连成镜像线"
-                )
+                messages.append(event_text(
+                    "ultimate.shadow_clone.spawn",
+                    f"👥 影分身！在 {coord_to_gtp(tx, ty, size)} 出现分身，下一回合会连成镜像线",
+                    card="shadow_clone",
+                    point=coord_to_gtp(tx, ty, size),
+                ))
 
     elif card == "timewarp":
         if rng.random() < gameplay_config.ULTIMATE_TIMEWARP_TRIGGER_CHANCE:
@@ -569,7 +603,8 @@ def apply_ultimate_state_effect(
                     erased += 1
                     modified = True
             if erased > 0:
-                messages.append(f"⏳ 时空裂缝！抹去对方 {erased} 手棋")
+                messages.append(event_text("ultimate.timewarp.erase", f"⏳ 时空裂缝！抹去对方 {erased} 手棋",
+                                           card="timewarp", count=erased))
 
     elif card == "joseki_burst":
         if not game.ultimate_joseki_targets:
@@ -579,9 +614,13 @@ def apply_ultimate_state_effect(
             )
         if not game.ultimate_joseki_done and (x, y) in game.ultimate_joseki_targets:
             game.ultimate_joseki_hits += 1
-            messages.append(
-                f"定式爆发命中 ({game.ultimate_joseki_hits}/{gameplay_config.ULTIMATE_JOSEKI_REQUIRED_HITS})"
-            )
+            messages.append(event_text(
+                "ultimate.joseki_burst.hit",
+                f"定式爆发命中 ({game.ultimate_joseki_hits}/{gameplay_config.ULTIMATE_JOSEKI_REQUIRED_HITS})",
+                card="joseki_burst",
+                hits=game.ultimate_joseki_hits,
+                required=gameplay_config.ULTIMATE_JOSEKI_REQUIRED_HITS,
+            ))
         if (
             not game.ultimate_joseki_done
             and game.ultimate_joseki_hits >= gameplay_config.ULTIMATE_JOSEKI_REQUIRED_HITS
@@ -603,9 +642,13 @@ def apply_ultimate_state_effect(
             changed.extend(spawn_bonus_points(game, burst_points, color))
             if changed:
                 modified = True
-                messages.append(
-                    f"定式爆发完成：补满 {len(remaining_targets)} 个目标点，并额外爆发 {len(changed) - len(remaining_targets)} 颗棋子"
-                )
+                messages.append(event_text(
+                    "ultimate.joseki_burst.complete",
+                    f"定式爆发完成：补满 {len(remaining_targets)} 个目标点，并额外爆发 {len(changed) - len(remaining_targets)} 颗棋子",
+                    card="joseki_burst",
+                    targets=len(remaining_targets),
+                    count=len(changed) - len(remaining_targets),
+                ))
 
     elif card == "god_hand":
         if not game.ultimate_godhand_trigger:
@@ -639,7 +682,8 @@ def apply_ultimate_state_effect(
             ))
             if filled > 0:
                 modified = True
-            messages.append(f"✨ 神之一手发动，清空 {cleared} 颗敌子并洒下 {filled} 颗同色棋")
+            messages.append(event_text("ultimate.god_hand.flood", f"✨ 神之一手发动，清空 {cleared} 颗敌子并洒下 {filled} 颗同色棋",
+                                       card="god_hand", cleared=cleared, added=filled))
 
     elif card == "corner_helper":
         corner = None
@@ -670,7 +714,9 @@ def apply_ultimate_state_effect(
                 modified = True
             if cleared or placed:
                 game.ultimate_corner_helper_done.add(corner)
-                messages.append(f"🏯 守角要塞封锁角部，清空 {cleared} 子并筑边 {len(placed)} 子")
+                messages.append(event_text("ultimate.corner_helper.fortress",
+                                               f"🏯 守角要塞封锁角部，清空 {cleared} 子并筑边 {len(placed)} 子",
+                                               card="corner_helper", cleared=cleared, added=len(placed)))
 
     elif card == "sanrensei":
         if not game.ultimate_sanrensei_done:
@@ -697,7 +743,8 @@ def apply_ultimate_state_effect(
                 if changed:
                     modified = True
                 game.ultimate_sanrensei_done = True
-                messages.append(f"✦ 三连星爆发，清空 {cleared} 子并扩张 {len(changed)} 颗星位势力")
+                messages.append(event_text("ultimate.sanrensei.ignite", f"✦ 三连星爆发，清空 {cleared} 子并扩张 {len(changed)} 颗星位势力",
+                                               card="sanrensei", cleared=cleared, added=len(changed)))
 
     else:
         return None
@@ -786,7 +833,8 @@ async def apply_ultimate_card_effect(
     if total_generated > 0:
         await send_fn({
             "type": "rogue_event",
-            "msg": f"🪤 大智若愚连锁结束，本次共生成 {total_generated} 颗己方棋子",
+            "msg": event_text("ultimate.foolish_wisdom.done", f"🪤 大智若愚连锁结束，本次共生成 {total_generated} 颗己方棋子",
+                              card="foolish_wisdom", count=total_generated),
         })
 
     return modified

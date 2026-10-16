@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import app.config.gameplay as gameplay_config
+from app.domain.event_text import event_text
 from app.domain.coordinates import gtp_to_coord
 from app.gameplay.effect_utils import diamond_points, get_square_points
 
@@ -210,13 +211,13 @@ def choose_ultimate_ai_bonus_turn(
     if ai_card == "chain" and chain_random() < chain_chance:
         return UltimateAiBonusTurn(
             kind="chain",
-            message="AI 的连珠棋触发，AI 将继续落子",
+            message=event_text("ultimate.chain.ai_extra", "AI 的连珠棋触发，AI 将继续落子", card="chain"),
             next_allow_double_bonus=True,
         )
     if ai_card == "double" and allow_double_bonus:
         return UltimateAiBonusTurn(
             kind="double",
-            message="AI 的双刀流触发，AI 将继续落子",
+            message=event_text("ultimate.double.ai_extra", "AI 的双刀流触发，AI 将继续落子", card="double"),
             next_allow_double_bonus=False,
         )
     return None
