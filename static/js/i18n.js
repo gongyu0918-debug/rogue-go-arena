@@ -1,18 +1,48 @@
 // Language selection, locale packs, and small localization helpers.
 
-function normalizeLang(lang) {
-  const raw = String(lang || "").trim().toLowerCase();
+// Map a language tag to one of our UI languages, or null when we do not ship it.
+function recognizeLang(lang) {
+  const raw = String(lang || "").trim().toLowerCase().replace(/_/g, "-");
+  if (!raw) return null;
   if (raw.startsWith("zh-tw") || raw.startsWith("zh-hk") || raw.startsWith("zh-mo") || raw.startsWith("zh-hant") || raw === "zht") return "zht";
+  if (raw === "zh" || raw.startsWith("zh-")) return "zh";
   if (raw.startsWith("ja")) return "ja";
   if (raw.startsWith("ko") || raw.startsWith("kr")) return "ko";
   if (raw.startsWith("fr")) return "fr";
   if (raw.startsWith("de")) return "de";
   if (raw.startsWith("en")) return "en";
-  return "zh";
+  return null;
+}
+
+function normalizeLang(lang) {
+  return recognizeLang(lang) || "en";
+}
+
+// URL override, then the player's saved choice, then every system-preferred
+// language in order; English when none of them is one we ship.
+function detectLang(candidates) {
+  for (const candidate of candidates) {
+    const lang = recognizeLang(candidate);
+    if (lang) return lang;
+  }
+  return "en";
+}
+
+function readStoredLang() {
+  try {
+    return localStorage.getItem("rogue_go_arena_lang");
+  } catch {
+    return null;
+  }
 }
 
 const urlLang = new URLSearchParams(window.location.search).get("lang");
-let currentLang = normalizeLang(urlLang || localStorage.getItem("rogue_go_arena_lang") || navigator.language || "zh");
+let currentLang = detectLang([
+  urlLang,
+  readStoredLang(),
+  ...(Array.isArray(navigator.languages) ? navigator.languages : []),
+  navigator.language,
+]);
 const LOCALE_FILES = {
   zh: "zh-CN.json",
   zht: "zh-TW.json",

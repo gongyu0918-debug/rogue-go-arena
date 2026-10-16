@@ -437,7 +437,7 @@
     };
 
     const state = {
-      lang: normalizeLang(readStorage("card_editor_lang") || readStorage("rogue_go_arena_lang") || navigator.language || "zh"),
+      lang: detectLang([readStorage("card_editor_lang"), readStorage("rogue_go_arena_lang"), ...(navigator.languages || []), navigator.language]),
       tab: "rogue",
       query: "",
       filter: "all",
@@ -468,15 +468,25 @@
       const text = dict[state.lang]?.[key] || dict.en[key] || dict.zh[key] || key;
       return text.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? "");
     }
-    function normalizeLang(value) {
-      const raw = String(value || "").toLowerCase();
+    // Same rules as the game (static/js/i18n.js): first recognized language wins, else English.
+    function recognizeLang(value) {
+      const raw = String(value || "").trim().toLowerCase().replace(/_/g, "-");
+      if (!raw) return null;
       if (raw.startsWith("zh-tw") || raw.startsWith("zh-hk") || raw.startsWith("zh-mo") || raw.startsWith("zh-hant") || raw === "zht") return "zht";
+      if (raw === "zh" || raw.startsWith("zh-")) return "zh";
       if (raw.startsWith("en")) return "en";
       if (raw.startsWith("ja")) return "ja";
       if (raw.startsWith("ko") || raw.startsWith("kr")) return "ko";
       if (raw.startsWith("fr")) return "fr";
       if (raw.startsWith("de")) return "de";
-      return "zh";
+      return null;
+    }
+    function detectLang(candidates) {
+      for (const candidate of candidates) {
+        const lang = recognizeLang(candidate);
+        if (lang) return lang;
+      }
+      return "en";
     }
     function locale() { return localeMap[state.lang] || "zh-CN"; }
     // Card meta values (tier/category/complexity) are stored in Chinese; show them in the UI language.
