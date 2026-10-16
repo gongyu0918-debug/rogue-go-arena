@@ -81,6 +81,9 @@ for (const sample of [
   "黄金角已封锁 左上角 的 4x4 区域",
   "🛡 防御至上触发：在 D4 赠送 1 颗己棋，本局剩余 1 次",
   "⚔ 进攻至上触发：在 Q16 赠送 1 颗己棋，本局剩余 0 次",
+  "🔥 乘胜追击 3 连击：在 Q16 追加 1 颗己棋，本局剩余 4 次",
+  "🧱 铁壁 6 连守：在 D4 加固最弱棋块，本局剩余 3 次",
+  "⛓ 连提 3 连：额外落下 2 颗己棋，本局剩余 2 次",
   "🌫 战争迷雾残留：本回合随机封锁 1 个 AI 禁着点",
   "🧺 提子犯规触发！黑棋 提子达到 4 颗，在我方推荐点 D4 赠送 1 颗己棋",
   "△ 三三陷阱发动，在 D4 相邻点反打 2 子",
@@ -98,6 +101,8 @@ for (const sample of [
   expectNoCjk("fr", sample);
   expectNoCjk("de", sample);
 }}
+expect("en", "🔥 乘胜追击 3 连击：在 Q16 追加 1 颗己棋，本局剩余 4 次", "🔥 Momentum 3-hit streak: added 1 friendly stone at Q16. 4 trigger(s) remain.");
+expect("ja", "⛓ 连提 3 连：额外落下 2 颗己棋，本局剩余 2 次", "⛓ 連取り x3：味方の石を2子追加しました。残り2回");
 expect("en", "unmatched server event", "unmatched server event");
 
 console.log("legacy event i18n smoke test: OK");

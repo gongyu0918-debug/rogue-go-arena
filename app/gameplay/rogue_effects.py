@@ -21,6 +21,7 @@ from app.gameplay.effect_utils import (
     get_sansan_points,
     get_square_points,
     get_star_points,
+    is_safe_bonus_point,
     line_endpoints,
     player_non_pass_coords,
     pick_joseki_targets,
@@ -31,6 +32,7 @@ from app.gameplay.effect_utils import (
     spawn_random_owned_stones,
 )
 from app.data.cards import challenge_card_category, challenge_category_counts
+from app.gameplay.turn_modifiers import get_player_bonus_forbidden_points
 
 
 ShufflePointsFn = Callable[[list[tuple[int, int]]], None]
@@ -100,6 +102,8 @@ def reset_rogue_effect_state(
     game.rogue_coach_bonus_checked = False
     game.rogue_quickthink_stage = 0
     game.rogue_fool_shapes = set()
+    game.rogue_streaks = {}
+    game.rogue_streak_triggers = {}
     game.rogue_evolution_charge = 0
     game.rogue_evolution_level = 1
     game.rogue_seal_points = []
@@ -499,6 +503,142 @@ def _apply_attack_first(
     )
 
 
+STREAK_CARDS = ("momentum", "iron_wall", "capture_chain")
+
+
+def _touches(game: Any, x: int, y: int, value: int) -> bool:
+    return any(game.board[ny][nx] == value for nx, ny in game.neighbors(x, y))
+
+
+def _streak_key(card_id: str, color: str) -> str:
+    return f"{card_id}:{color}"
+
+
+def player_streaks(game: Any, color: str) -> dict[str, int]:
+    streaks = getattr(game, "rogue_streaks", {})
+    return {card_id: streaks.get(_streak_key(card_id, color), 0) for card_id in STREAK_CARDS if rogue_has(game, card_id)}
+
+
+def _safe_points(game: Any, points: list[tuple[int, int]], color: str) -> list[tuple[int, int]]:
+    forbidden = get_player_bonus_forbidden_points(game, color)
+    seen: set[tuple[int, int]] = set()
+    safe: list[tuple[int, int]] = []
+    for point in points:
+        if point not in seen and is_safe_bonus_point(game, point[0], point[1], color, forbidden):
+            safe.append(point)
+        seen.add(point)
+    random.shuffle(safe)
+    return safe
+
+
+def _momentum_points(game: Any, x: int, y: int, color: str) -> list[tuple[int, int]]:
+    """Empty points touching enemy stones near the attacking move."""
+    enemy = _enemy_value(color)
+    return _safe_points(game, [
+        (px, py)
+        for px, py in get_square_points(x, y, 2, game.size)
+        if game.board[py][px] == 0 and _touches(game, px, py, enemy)
+    ], color)
+
+
+def _iron_wall_points(game: Any, x: int, y: int, color: str) -> list[tuple[int, int]]:
+    """Liberties of the player's weakest group, falling back to points beside the move."""
+    own = _color_value(color)
+    seen: set[tuple[int, int]] = set()
+    groups: list[tuple[int, list[tuple[int, int]]]] = []
+    for gy in range(game.size):
+        for gx in range(game.size):
+            if game.board[gy][gx] != own or (gx, gy) in seen:
+                continue
+            group = game.get_group(gx, gy)
+            seen |= group
+            liberties = sorted({
+                (nx, ny)
+                for sx, sy in group
+                for nx, ny in game.neighbors(sx, sy)
+                if game.board[ny][nx] == 0
+            })
+            groups.append((len(liberties), liberties))
+    for _count, liberties in sorted(groups, key=lambda item: item[0]):
+        safe = _safe_points(game, liberties, color)
+        if safe:
+            return safe
+    return _safe_points(game, list(game.neighbors(x, y)), color)
+
+
+def _capture_chain_points(game: Any, x: int, y: int, color: str) -> list[tuple[int, int]]:
+    captured = list(getattr(game, "last_captured_points", [])) or [(x, y)]
+    return _safe_points(game, [
+        point
+        for cx, cy in captured
+        for point in get_square_points(cx, cy, 1, game.size)
+        if game.board[point[1]][point[0]] == 0
+    ], color)
+
+
+def _apply_streak_cards(
+    game: Any,
+    *,
+    x: int,
+    y: int,
+    color: str,
+    captured: int,
+    coord_to_gtp: CoordFormatter,
+) -> RogueBoardEffectResult:
+    """Streak combo cards: reward consecutive attacks, defences or captures.
+
+    Evaluated after the move is on the board. A move that does not continue a
+    streak resets it; every payout is capped per game.
+    """
+    enemy = _enemy_value(color)
+    own = _color_value(color)
+    attacking = captured > 0 or _touches(game, x, y, enemy)
+    qualifies = {
+        "momentum": attacking,
+        "iron_wall": not attacking and _touches(game, x, y, own),
+        "capture_chain": captured > 0,
+    }
+    streaks = game.rogue_streaks
+    triggers = game.rogue_streak_triggers
+    messages: list[str] = []
+    modified = False
+    for card_id in STREAK_CARDS:
+        if not rogue_has(game, card_id):
+            continue
+        key = _streak_key(card_id, color)
+        if not qualifies[card_id]:
+            streaks[key] = 0
+            continue
+        streak = streaks.get(key, 0) + 1
+        streaks[key] = streak
+        if triggers.get(key, 0) >= gameplay_config.ROGUE_STREAK_MAX_TRIGGERS:
+            continue
+        if card_id == "capture_chain":
+            if streak < 2:
+                continue
+            count = min(streak - 1, gameplay_config.ROGUE_CAPTURE_CHAIN_MAX_STONES)
+            points = _capture_chain_points(game, x, y, color)
+        elif streak % gameplay_config.ROGUE_STREAK_LENGTH == 0:
+            count = 1
+            points = (_momentum_points if card_id == "momentum" else _iron_wall_points)(game, x, y, color)
+        else:
+            continue
+        changed = spawn_bonus_points(game, points[:count], color)
+        if not changed:
+            continue
+        triggers[key] = triggers.get(key, 0) + 1
+        remaining = gameplay_config.ROGUE_STREAK_MAX_TRIGGERS - triggers[key]
+        modified = True
+        where = coord_to_gtp(changed[0][0], changed[0][1], game.size)
+        if card_id == "momentum":
+            messages.append(f"🔥 乘胜追击 {streak} 连击：在 {where} 追加 1 颗己棋，本局剩余 {remaining} 次")
+        elif card_id == "iron_wall":
+            messages.append(f"🧱 铁壁 {streak} 连守：在 {where} 加固最弱棋块，本局剩余 {remaining} 次")
+        else:
+            messages.append(f"⛓ 连提 {streak} 连：额外落下 {len(changed)} 颗己棋，本局剩余 {remaining} 次")
+    return RogueBoardEffectResult(modified, messages, [])
+
+
 def challenge_remaining(game: Any, key: str) -> int:
     return max(0, game.challenge_limits.get(key, 0) - game.challenge_usage.get(key, 0))
 
@@ -772,6 +912,19 @@ def apply_player_rogue_board_effects(
             game,
             color,
             gtp_to_coord=gtp_to_coord,
+            coord_to_gtp=coord_to_gtp,
+        )
+        if result.modified:
+            modified = True
+        messages.extend(result.messages)
+
+    if any(rogue_has(game, card_id) for card_id in STREAK_CARDS):
+        result = _apply_streak_cards(
+            game,
+            x=x,
+            y=y,
+            color=color,
+            captured=captured,
             coord_to_gtp=coord_to_gtp,
         )
         if result.modified:

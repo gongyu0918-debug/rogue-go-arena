@@ -178,8 +178,11 @@ function currentCardLabel() {
   if (ultimateMode) return `${getUltimateCardName(ultimatePlayerCard) || ui("待选大招", "Pick Ultimate")}`;
   if (!activeRogueCard) return ui("无卡牌", "No Card");
   const evolution = gameState?.rogue_evolution;
-  const name = getRogueCardName(activeRogueCard);
-  return evolution && typeof evolutionLabel === "function" ? `${name} · ${evolutionLabel(evolution)}` : name;
+  const parts = [getRogueCardName(activeRogueCard)];
+  if (evolution && typeof evolutionLabel === "function") parts.push(evolutionLabel(evolution));
+  const streak = gameState?.rogue_streaks?.[activeRogueCard];
+  if (streak) parts.push(`🔥${streak}`);
+  return parts.join(" · ");
 }
 
 function setEngineShellValue(engineValue, net, connected) {

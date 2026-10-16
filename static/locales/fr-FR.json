@@ -266,7 +266,9 @@
     "大招": "Ultime",
     "低": "Faible",
     "中": "Moyen",
-    "高": "Élevé"
+    "高": "Élevé",
+    "连击": "Combo",
+    "构筑": "Construction"
   },
   "wikiModes": [
     {
@@ -439,6 +441,18 @@
       "methodical": {
         "name": "Méthodique",
         "desc": "Chacun de vos tours se résout après 2 pierres jouées en séquence ; tous les 10 tours joueur, 1 pierre supplémentaire permet un tour à 3 pierres."
+      },
+      "momentum": {
+        "name": "Élan",
+        "desc": "Chaque coup au contact des pierres adverses (ou qui capture) prolonge la série. Toutes les 3 attaques d'affilée, une de vos pierres s'ajoute contre l'adversaire. Un coup sans contact remet la série à zéro. 5 fois max par partie."
+      },
+      "iron_wall": {
+        "name": "Mur de fer",
+        "desc": "Chaque coup qui se connecte à vos pierres sans toucher l'adversaire prolonge la série. Toutes les 3 défenses d'affilée, une pierre renforce une liberté de votre groupe le plus faible. Toucher l'adversaire ou jouer isolé remet à zéro. 5 fois max par partie."
+      },
+      "capture_chain": {
+        "name": "Chaîne de captures",
+        "desc": "Capturez à des tours consécutifs pour enchaîner : dès la 2e capture d'affilée, des pierres à vous tombent autour de la prise (1, puis 2). Un tour sans capture remet la chaîne à zéro. 5 fois max par partie."
       }
     },
     "ultimate": {

@@ -365,6 +365,40 @@ def try_spawn_bonus_stone(game: Any, x: int, y: int, color: str) -> bool:
     return True
 
 
+def is_safe_bonus_point(
+    game: Any,
+    x: int,
+    y: int,
+    color: str,
+    forbidden: set[tuple[int, int]] | frozenset[tuple[int, int]] = frozenset(),
+) -> bool:
+    """A gifted stone here would not capture, would not self-atari and is not forbidden."""
+    if (x, y) in forbidden or game.board[y][x] != 0 or game.is_ko(x, y, color):
+        return False
+    board_before = [row[:] for row in game.board]
+    captures_before = dict(game.captures)
+    ko_before = game.ko_point
+    captured_points_before = list(game.last_captured_points)
+    ok = False
+    try:
+        captured = game.place_stone(x, y, color)
+        if captured == 0:
+            group = game.get_group(x, y)
+            liberties = {
+                (nx, ny)
+                for gx, gy in group
+                for nx, ny in game.neighbors(gx, gy)
+                if game.board[ny][nx] == 0
+            }
+            ok = len(liberties) >= 2
+    finally:
+        game.board = board_before
+        game.captures = captures_before
+        game.ko_point = ko_before
+        game.last_captured_points = captured_points_before
+    return ok
+
+
 def spawn_bonus_points(game: Any, points: list[tuple[int, int]], color: str) -> list[tuple[int, int]]:
     return apply_magic_points(game, points, color, overwrite_enemy=False)
 

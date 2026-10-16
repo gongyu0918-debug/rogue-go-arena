@@ -6,7 +6,7 @@ const ROGUE_CARD_IDS = [
   "suboptimal","mirror","slip","blackhole","exchange","fog","gravity","golden_corner","sansan","shadow",
   "sprout","joseki_ocd","handicap_quest","god_hand","sansan_trap","corner_helper","sanrensei","no_regret",
   "quickthink","foolish_wisdom","five_in_row","coach_mode","capture_foul","last_stand","defense_first",
-  "attack_first","methodical",
+  "attack_first","methodical","momentum","iron_wall","capture_chain",
 ];
 
 const ULTIMATE_CARD_IDS = [
@@ -33,6 +33,9 @@ const ROGUE_CARD_META = {
   defense_first: { tier: "A", category: "构筑", complexity: "中" },
   attack_first: { tier: "A", category: "构筑", complexity: "中" },
   methodical: { tier: "A", category: "节奏", complexity: "高" },
+  momentum: { tier: "A", category: "连击", complexity: "低" },
+  iron_wall: { tier: "A", category: "连击", complexity: "低" },
+  capture_chain: { tier: "A", category: "连击", complexity: "中" },
 };
 
 const ULTIMATE_CARD_META = {

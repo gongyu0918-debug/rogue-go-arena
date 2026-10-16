@@ -69,6 +69,9 @@ class GoGame:
         self.rogue_coach_bonus_checked: bool = False
         self.rogue_quickthink_stage: int = 0
         self.rogue_fool_shapes: set[tuple[tuple[int, int], ...]] = set()
+        # Streak combo cards, keyed "<card_id>:<color>".
+        self.rogue_streaks: dict[str, int] = {}
+        self.rogue_streak_triggers: dict[str, int] = {}
         # Card evolution: impactful triggers charge the player's card.
         self.rogue_evolution_charge: int = 0
         self.rogue_evolution_level: int = 1
@@ -327,6 +330,11 @@ class GoGame:
             "rogue_quickthink_stage": self.rogue_quickthink_stage,
             "rogue_methodical_remaining": self.rogue_methodical_remaining,
             "rogue_evolution": evolution_state(self),
+            "rogue_streaks": {
+                key.split(":")[0]: value
+                for key, value in self.rogue_streaks.items()
+                if key.endswith(f":{self.player_color}")
+            },
             "rogue_quickthink_seconds": (
                 ROGUE_QUICKTHINK_FIRST_SECONDS
                 if self.rogue_quickthink_stage == 1

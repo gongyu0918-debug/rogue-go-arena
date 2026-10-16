@@ -266,7 +266,9 @@
     "大招": "Ultimate",
     "低": "Low",
     "中": "Medium",
-    "高": "High"
+    "高": "High",
+    "连击": "Combo",
+    "构筑": "Build"
   },
   "wikiModes": [
     {
@@ -439,6 +441,18 @@
       "methodical": {
         "name": "Methodical",
         "desc": "Each of your turns resolves after you play 2 stones in sequence; every 10th player turn grants 1 extra stone for a 3-stone turn."
+      },
+      "momentum": {
+        "name": "Momentum",
+        "desc": "Each move in contact with enemy stones (or that captures) builds a streak. Every 3rd attack in a row adds 1 of your stones next to the enemy. A non-contact move resets the streak. Up to 5 times per game."
+      },
+      "iron_wall": {
+        "name": "Iron Wall",
+        "desc": "Each move that connects to your own stones without touching the enemy builds a streak. Every 3rd defence in a row adds 1 stone on a liberty of your weakest group. Touching the enemy or playing alone resets it. Up to 5 times per game."
+      },
+      "capture_chain": {
+        "name": "Capture Chain",
+        "desc": "Capture on consecutive turns to chain: from the 2nd capture in a row, extra stones of yours drop around the captured spot (1, then 2). A turn without a capture resets the chain. Up to 5 times per game."
       }
     },
     "ultimate": {

@@ -266,7 +266,9 @@
     "大招": "Ultimativ",
     "低": "Niedrig",
     "中": "Mittel",
-    "高": "Hoch"
+    "高": "Hoch",
+    "连击": "Kombo",
+    "构筑": "Aufbau"
   },
   "wikiModes": [
     {
@@ -439,6 +441,18 @@
       "methodical": {
         "name": "Methodisch",
         "desc": "Jeder deiner Züge endet erst nach 2 nacheinander gesetzten Steinen; jeder 10. Spielerzug gewährt 1 Zusatzstein für einen 3-Stein-Zug."
+      },
+      "momentum": {
+        "name": "Schwung",
+        "desc": "Jeder Zug mit Kontakt zu gegnerischen Steinen (oder mit Schlagen) verlängert die Serie. Jeder 3. Angriff in Folge setzt 1 eigenen Stein neben den Gegner. Ein Zug ohne Kontakt setzt die Serie zurück. Höchstens 5-mal pro Partie."
+      },
+      "iron_wall": {
+        "name": "Eiserne Mauer",
+        "desc": "Jeder Zug, der an eigene Steine anschließt, ohne den Gegner zu berühren, verlängert die Serie. Jede 3. Verteidigung in Folge setzt 1 Stein auf eine Freiheit deiner schwächsten Gruppe. Kontakt zum Gegner oder ein isolierter Zug setzt zurück. Höchstens 5-mal pro Partie."
+      },
+      "capture_chain": {
+        "name": "Schlagkette",
+        "desc": "Schlage in aufeinanderfolgenden Zügen, um eine Kette zu bilden: ab dem 2. Schlagen in Folge fallen eigene Steine um die geschlagene Stelle (1, dann 2). Ein Zug ohne Schlagen setzt die Kette zurück. Höchstens 5-mal pro Partie."
       }
     },
     "ultimate": {

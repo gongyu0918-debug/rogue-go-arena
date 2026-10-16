@@ -793,6 +793,69 @@
           "de-DE": "Jeder deiner Züge endet erst nach 2 nacheinander gesetzten Steinen; jeder 10. Spielerzug gewährt 1 Zusatzstein für einen 3-Stein-Zug."
         },
         "icon": "📏"
+      },
+      "momentum": {
+        "name": {
+          "zh-CN": "乘胜追击",
+          "en-US": "Momentum",
+          "ja-JP": "勢い",
+          "ko-KR": "기세",
+          "zh-TW": "乘勝追擊",
+          "fr-FR": "Élan",
+          "de-DE": "Schwung"
+        },
+        "desc": {
+          "zh-CN": "连续落子贴住对方棋子（或提子）累积连击；每满 3 连击，在对方棋子旁追加 1 颗己棋。下一手脱离接触则连击清零，每局最多 5 次。",
+          "en-US": "Each move in contact with enemy stones (or that captures) builds a streak. Every 3rd attack in a row adds 1 of your stones next to the enemy. A non-contact move resets the streak. Up to 5 times per game.",
+          "ja-JP": "相手の石に接触する手（または石を取る手）を続けると連撃が溜まり、3連撃ごとに相手の石の隣へ自分の石が1子追加されます。接触しない手で連撃はリセット。1局最大5回。",
+          "ko-KR": "상대 돌에 붙이는 수(또는 따내는 수)를 이어 두면 연격이 쌓이고, 3연격마다 상대 돌 옆에 내 돌 1개가 추가됩니다. 접촉하지 않는 수를 두면 초기화. 한 판 최대 5회.",
+          "zh-TW": "連續落子貼住對方棋子（或提子）累積連擊；每滿 3 連擊，在對方棋子旁追加 1 顆己棋。下一手脫離接觸則連擊歸零，每局最多 5 次。",
+          "fr-FR": "Chaque coup au contact des pierres adverses (ou qui capture) prolonge la série. Toutes les 3 attaques d'affilée, une de vos pierres s'ajoute contre l'adversaire. Un coup sans contact remet la série à zéro. 5 fois max par partie.",
+          "de-DE": "Jeder Zug mit Kontakt zu gegnerischen Steinen (oder mit Schlagen) verlängert die Serie. Jeder 3. Angriff in Folge setzt 1 eigenen Stein neben den Gegner. Ein Zug ohne Kontakt setzt die Serie zurück. Höchstens 5-mal pro Partie."
+        },
+        "icon": "🔥"
+      },
+      "iron_wall": {
+        "name": {
+          "zh-CN": "铁壁",
+          "en-US": "Iron Wall",
+          "ja-JP": "鉄壁",
+          "ko-KR": "철벽",
+          "zh-TW": "鐵壁",
+          "fr-FR": "Mur de fer",
+          "de-DE": "Eiserne Mauer"
+        },
+        "desc": {
+          "zh-CN": "连续落子连接己方棋子且不贴对方，累积连守；每满 3 连守，在你最弱棋块的气上补 1 颗己棋。贴住对方或脱离己方则清零，每局最多 5 次。",
+          "en-US": "Each move that connects to your own stones without touching the enemy builds a streak. Every 3rd defence in a row adds 1 stone on a liberty of your weakest group. Touching the enemy or playing alone resets it. Up to 5 times per game.",
+          "ja-JP": "相手に接触せず自分の石につなぐ手を続けると連守が溜まり、3連守ごとに一番弱い石の呼吸点へ1子補強します。相手に接触するか孤立した手でリセット。1局最大5回。",
+          "ko-KR": "상대에 붙지 않고 내 돌에 잇는 수를 이어 두면 연수가 쌓이고, 3연수마다 가장 약한 돌무리의 활로에 1개를 보강합니다. 상대에 붙거나 떨어진 수를 두면 초기화. 한 판 최대 5회.",
+          "zh-TW": "連續落子連接己方棋子且不貼對方，累積連守；每滿 3 連守，在你最弱棋塊的氣上補 1 顆己棋。貼住對方或脫離己方則歸零，每局最多 5 次。",
+          "fr-FR": "Chaque coup qui se connecte à vos pierres sans toucher l'adversaire prolonge la série. Toutes les 3 défenses d'affilée, une pierre renforce une liberté de votre groupe le plus faible. Toucher l'adversaire ou jouer isolé remet à zéro. 5 fois max par partie.",
+          "de-DE": "Jeder Zug, der an eigene Steine anschließt, ohne den Gegner zu berühren, verlängert die Serie. Jede 3. Verteidigung in Folge setzt 1 Stein auf eine Freiheit deiner schwächsten Gruppe. Kontakt zum Gegner oder ein isolierter Zug setzt zurück. Höchstens 5-mal pro Partie."
+        },
+        "icon": "🧱"
+      },
+      "capture_chain": {
+        "name": {
+          "zh-CN": "连提",
+          "en-US": "Capture Chain",
+          "ja-JP": "連取り",
+          "ko-KR": "연속 따내기",
+          "zh-TW": "連提",
+          "fr-FR": "Chaîne de captures",
+          "de-DE": "Schlagkette"
+        },
+        "desc": {
+          "zh-CN": "连续两手及以上都提子时，在提子处周围额外落下己棋（第 2 连 1 颗，之后 2 颗）。不提子则清零，每局最多 5 次。",
+          "en-US": "Capture on consecutive turns to chain: from the 2nd capture in a row, extra stones of yours drop around the captured spot (1, then 2). A turn without a capture resets the chain. Up to 5 times per game.",
+          "ja-JP": "連続した手番で石を取ると連鎖。2連続目から取った場所の周りに自分の石が追加されます（1子、その後2子）。取らない手でリセット。1局最大5回。",
+          "ko-KR": "연속된 차례에 돌을 따내면 연쇄가 이어집니다. 2연속부터 따낸 자리 주변에 내 돌이 추가됩니다(1개, 이후 2개). 따내지 못하면 초기화. 한 판 최대 5회.",
+          "zh-TW": "連續兩手及以上都提子時，在提子處周圍額外落下己棋（第 2 連 1 顆，之後 2 顆）。不提子則歸零，每局最多 5 次。",
+          "fr-FR": "Capturez à des tours consécutifs pour enchaîner : dès la 2e capture d'affilée, des pierres à vous tombent autour de la prise (1, puis 2). Un tour sans capture remet la chaîne à zéro. 5 fois max par partie.",
+          "de-DE": "Schlage in aufeinanderfolgenden Zügen, um eine Kette zu bilden: ab dem 2. Schlagen in Folge fallen eigene Steine um die geschlagene Stelle (1, dann 2). Ein Zug ohne Schlagen setzt die Kette zurück. Höchstens 5-mal pro Partie."
+        },
+        "icon": "⛓"
       }
     },
     "ultimate": {
@@ -1419,6 +1482,21 @@
         "tier": "A",
         "category": "节奏",
         "complexity": "高"
+      },
+      "momentum": {
+        "tier": "A",
+        "category": "连击",
+        "complexity": "低"
+      },
+      "iron_wall": {
+        "tier": "A",
+        "category": "连击",
+        "complexity": "低"
+      },
+      "capture_chain": {
+        "tier": "A",
+        "category": "连击",
+        "complexity": "中"
       }
     },
     "ultimate": {
@@ -1469,7 +1547,10 @@
       "five_in_row",
       "defense_first",
       "attack_first",
-      "methodical"
+      "methodical",
+      "momentum",
+      "iron_wall",
+      "capture_chain"
     ],
     "ultimate_featured": [
       "corner_helper",
@@ -1502,7 +1583,10 @@
       "twin",
       "exchange",
       "capture_foul",
-      "last_stand"
+      "last_stand",
+      "momentum",
+      "iron_wall",
+      "capture_chain"
     ],
     "two_player_rogue": [
       "erosion",
@@ -1514,7 +1598,10 @@
       "sanrensei",
       "foolish_wisdom",
       "five_in_row",
-      "capture_foul"
+      "capture_foul",
+      "momentum",
+      "iron_wall",
+      "capture_chain"
     ],
     "ai_rogue": [
       "blackhole",
@@ -1562,7 +1649,10 @@
       "last_stand": 3,
       "capture_foul": 3,
       "joseki_ocd": 3,
-      "no_regret": 3
+      "no_regret": 3,
+      "momentum": 3,
+      "iron_wall": 3,
+      "capture_chain": 3
     }
   },
   "challenge": {
@@ -1585,7 +1675,10 @@
       "time_press": "restriction",
       "suboptimal": "restriction",
       "twin": "active",
-      "exchange": "active"
+      "exchange": "active",
+      "momentum": "derivative",
+      "iron_wall": "derivative",
+      "capture_chain": "derivative"
     },
     "allowed_categories": [
       "derivative",
