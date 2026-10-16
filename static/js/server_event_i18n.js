@@ -285,8 +285,7 @@ function translateServerEventMessageWestern(message, lang) {
     [/^蚕食反制：AI 提掉了 (\d+) 子，当前贴目变为 (.+)$/, (captured, komi) => pick(`Contre-erosion : l'IA capture ${captured} pierres, komi actuel ${komi}.`, `Erosion gekontert: Die KI schlaegt ${captured} Steine, Komi jetzt ${komi}.`)],
     [/^🐛 蚕食！AI 提 (\d+) 子，贴目变为 (.+)$/, (captured, komi) => pick(`🐛 Erosion : l'IA capture ${captured} pierres, komi actuel ${komi}.`, `🐛 Erosion: Die KI schlaegt ${captured} Steine, Komi jetzt ${komi}.`)],
   ];
-  const translated = translateServerEventByPatterns(message, patterns);
-  return translated === null ? translateServerEventMessageLegacy(message, true) : translated;
+  return translateServerEventByPatterns(message, patterns);
 }
 
 function translateServerEventMessageTraditional(message) {
@@ -350,13 +349,7 @@ function translateServerEventMessageTraditional(message) {
     .replace(/包干/g, "包乾");
 }
 
-function translateServerEventMessage(message) {
-  const source = String(message || "");
-  if (!source) return "";
-  if (currentLang === "en") return translateServerEventMessageLegacy(source);
-  if (currentLang === "fr" || currentLang === "de") return translateServerEventMessageWestern(source, currentLang);
-  if (currentLang === "zht") return translateServerEventMessageTraditional(source);
-  if (currentLang === "zh") return source;
+function translateServerEventMessageEastAsian(source) {
   const pick = (ja, ko) => currentLang === "ja" ? ja : ko;
   const translateCorner = (corner) => translateServerEventCorner(corner, currentLang);
   const translateColor = (color) => translateServerEventColor(color, currentLang);
@@ -470,7 +463,303 @@ function translateServerEventMessage(message) {
     [/^蚕食反制：AI 提掉了 (\d+) 子，当前贴目变为 (.+)$/, (captured, komi) => pick(`蚕食反制：AIが${captured}子を取り、コミは${komi}になりました`, `잠식 반격: AI가 ${captured}자를 따냈고 덤은 ${komi}입니다`)],
     [/^🐛 蚕食！AI 提 (\d+) 子，贴目变为 (.+)$/, (captured, komi) => pick(`🐛 蚕食！AIが${captured}子を取り、コミは${komi}になりました`, `🐛 잠식! AI가 ${captured}자를 따냈고 덤은 ${komi}입니다`)],
   ];
-  const translated = translateServerEventByPatterns(source, patterns);
-  return translated === null ? source : translated;
+  return translateServerEventByPatterns(source, patterns);
 }
 
+// Exact-match phrases from the locale packs (static messages with no values).
+function translateServerEventPhrase(source) {
+  if (typeof activeLocalePack !== "function") return null;
+  const pack = activeLocalePack();
+  if (!pack || pack.locale === "zh-CN") return null;
+  const value = pack.phrases?.[source];
+  return typeof value === "string" ? value : null;
+}
+
+const SERVER_EVENT_CARD_IDS = { "三三陷阱": "sansan_trap", "神之一手": "god_hand" };
+const SERVER_EVENT_SET_LABELS = {
+  "衍生": { en: "Spawn", fr: "Génération", de: "Erzeugung", ja: "派生", ko: "파생" },
+  "陷阱": { en: "Trap", fr: "Piège", de: "Falle", ja: "罠", ko: "함정" },
+  "限位": { en: "Zone", fr: "Zone", de: "Zone", ja: "封鎖", ko: "구역" },
+  "限制": { en: "Restriction", fr: "Restriction", de: "Einschränkung", ja: "制限", ko: "제한" },
+  "主动": { en: "Active", fr: "Actif", de: "Aktiv", ja: "能動", ko: "능동" },
+};
+const SERVER_EVENT_CN_DIGITS = { "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9 };
+
+function serverEventCardName(name) {
+  const id = SERVER_EVENT_CARD_IDS[name];
+  if (id && typeof getRogueCardName === "function") return getRogueCardName(id) || name;
+  return name;
+}
+
+function serverEventRankLabel(label) {
+  let rankId = null;
+  let m = label.match(/^(\d+)级$/);
+  if (m) rankId = `${m[1]}k`;
+  m = label.match(/^业余(\d+)段$/);
+  if (m) rankId = `a${m[1]}d`;
+  m = label.match(/^职业(.)段$/);
+  if (m && SERVER_EVENT_CN_DIGITS[m[1]]) rankId = `p${SERVER_EVENT_CN_DIGITS[m[1]]}d`;
+  return rankId && typeof rankLabel === "function" ? rankLabel(rankId) : label;
+}
+
+const SERVER_EVENT_LANGS = ["en", "fr", "de", "ja", "ko"];
+
+// Messages that carry values, with every UI language side by side. Used when a
+// language's own table above has no match (e.g. after the server wording changed).
+const SERVER_EVENT_SHARED = [
+  [/^🎭 傀儡术目标 (.+) 已被占用，AI 改为正常应手$/, {
+    en: g => `🎭 The Puppet target ${g} is already taken, so the AI plays its own move.`,
+    fr: g => `🎭 La cible de la Marionnette (${g}) est déjà occupée : l'IA joue son propre coup.`,
+    de: g => `🎭 Das Marionetten-Ziel ${g} ist schon besetzt – die KI spielt ihren eigenen Zug.`,
+    ja: g => `🎭 傀儡術の目標 ${g} にはすでに石があるため、AIは自分の手を打ちます`,
+    ko: g => `🎭 꼭두각시 목표 ${g}에 이미 돌이 있어 AI가 원래 수를 둡니다`,
+  }],
+  [/^🎭 傀儡术目标 (.+) 当前不合法，AI 改为正常应手$/, {
+    en: g => `🎭 The Puppet target ${g} isn't a legal move right now, so the AI plays its own move.`,
+    fr: g => `🎭 La cible de la Marionnette (${g}) n'est pas jouable pour l'instant : l'IA joue son propre coup.`,
+    de: g => `🎭 Das Marionetten-Ziel ${g} ist gerade kein legaler Zug – die KI spielt ihren eigenen Zug.`,
+    ja: g => `🎭 傀儡術の目標 ${g} は今は打てない点なので、AIは自分の手を打ちます`,
+    ko: g => `🎭 꼭두각시 목표 ${g}는 지금 둘 수 없는 자리라 AI가 원래 수를 둡니다`,
+  }],
+  [/^🎭 傀儡术目标 (.+) 执行失败，AI 改为正常应手$/, {
+    en: g => `🎭 The forced move at ${g} failed, so the AI plays its own move.`,
+    fr: g => `🎭 Le coup forcé en ${g} a échoué : l'IA joue son propre coup.`,
+    de: g => `🎭 Der erzwungene Zug auf ${g} ist fehlgeschlagen – die KI spielt ihren eigenen Zug.`,
+    ja: g => `🎭 ${g} への強制着手に失敗したため、AIは自分の手を打ちます`,
+    ko: g => `🎭 ${g} 강제 착수에 실패해 AI가 원래 수를 둡니다`,
+  }],
+  [/^🎭 傀儡术生效，AI 被迫落子于 (.+)$/, {
+    en: g => `🎭 Puppet strings pulled: the AI is forced to play ${g}.`,
+    fr: g => `🎭 Les fils se tendent : l'IA est forcée de jouer en ${g}.`,
+    de: g => `🎭 An den Fäden gezogen: Die KI muss auf ${g} spielen.`,
+    ja: g => `🎭 傀儡術発動！AIは ${g} に打たされました`,
+    ko: g => `🎭 꼭두각시 발동! AI가 ${g}에 억지로 둡니다`,
+  }],
+  [/^🌫 战争迷雾残留：本回合随机封锁 (\d+) 个 AI 禁着点$/, {
+    en: n => `🌫 The fog lingers: ${n} random point(s) are off-limits to the AI this turn.`,
+    fr: n => `🌫 Le brouillard persiste : ${n} point(s) interdit(s) à l'IA pour ce tour.`,
+    de: n => `🌫 Der Nebel bleibt: ${n} zufällige(r) Punkt(e) sind für die KI in diesem Zug gesperrt.`,
+    ja: n => `🌫 霧が晴れない：このターン、AIは${n}か所に打てません`,
+    ko: n => `🌫 안개가 남아 이번 차례 AI는 ${n}곳에 둘 수 없습니다`,
+  }],
+  [/^△? ?三三陷阱发动，在 (.+) (?:周围|相邻点)反打 (\d+) 子$/, {
+    en: (g, n) => `△ 3-3 Trap sprung at ${g}: ${n} counter-stone(s) appear next to it.`,
+    fr: (g, n) => `△ Piège san-san déclenché en ${g} : ${n} pierre(s) de riposte apparaissent à côté.`,
+    de: (g, n) => `△ San-san-Falle auf ${g} ausgelöst: ${n} Konterstein(e) erscheinen daneben.`,
+    ja: (g, n) => `△ 三々トラップ発動！${g} の隣に反撃の石が${n}子現れました`,
+    ko: (g, n) => `△ 삼삼 함정 발동! ${g} 옆에 반격의 돌 ${n}개가 놓입니다`,
+  }],
+  [/^🚫 永不悔棋发动，AI 落子后在 (.+) 赠送一子$/, {
+    en: g => `🚫 No Regrets: after the AI's move you get a free stone at ${g}.`,
+    fr: g => `🚫 Sans regret : après le coup de l'IA, une pierre vous est offerte en ${g}.`,
+    de: g => `🚫 Keine Reue: Nach dem KI-Zug bekommst du einen Stein auf ${g} geschenkt.`,
+    ja: g => `🚫 待ったなし！AIの着手後、${g} に1子プレゼント`,
+    ko: g => `🚫 무르기 금지! AI 착수 뒤 ${g}에 돌 1개를 선물합니다`,
+  }],
+  [/^AI 引擎数目失败：(.*)$/, {
+    en: x => `The AI engine could not count the score: ${x}`,
+    fr: x => `Le moteur IA n'a pas pu compter les points : ${x}`,
+    de: x => `Die KI-Engine konnte nicht auszählen: ${x}`,
+    ja: x => `AIエンジンが整地に失敗しました：${x}`,
+    ko: x => `AI 엔진이 계가에 실패했습니다: ${x}`,
+  }],
+  [/^AI 引擎落子失败：(.*)$/, {
+    en: x => `The AI engine failed to play: ${translateServerEventMessage(x)}`,
+    fr: x => `Le moteur IA n'a pas pu jouer : ${translateServerEventMessage(x)}`,
+    de: x => `Die KI-Engine konnte nicht ziehen: ${translateServerEventMessage(x)}`,
+    ja: x => `AIエンジンの着手に失敗しました：${translateServerEventMessage(x)}`,
+    ko: x => `AI 엔진 착수 실패: ${translateServerEventMessage(x)}`,
+  }],
+  [/^\? AI 返回已占用点 (.+)，已停止落子$/, {
+    en: g => `the AI chose an occupied point (${g}), so the move was stopped`,
+    fr: g => `l'IA a choisi un point déjà occupé (${g}) ; le coup est annulé`,
+    de: g => `die KI wählte einen besetzten Punkt (${g}); der Zug wurde gestoppt`,
+    ja: g => `AIがすでに石のある点（${g}）を選んだため、着手を中止しました`,
+    ko: g => `AI가 이미 돌이 있는 ${g}를 골라 착수를 멈췄습니다`,
+  }],
+  [/^🧺 提子犯规触发！(黑棋|白棋) 被罚 (\d+) 目$/, {
+    en: (c, n) => `🧺 Capture Foul! ${translateServerEventColor(c, "en")} is penalized ${n} points.`,
+    fr: (c, n) => `🧺 Faute de capture ! ${translateServerEventColor(c, "fr")} perd ${n} points.`,
+    de: (c, n) => `🧺 Fangfoul! ${translateServerEventColor(c, "de")} erhält ${n} Punkte Abzug.`,
+    ja: (c, n) => `🧺 取り石反則！${translateServerEventColor(c, "ja")}に${n}目のペナルティ`,
+    ko: (c, n) => `🧺 따냄 반칙! ${translateServerEventColor(c, "ko")} ${n}집 감점`,
+  }],
+  [/^🧺 提子犯规触发！(黑棋|白棋) 提子达到 (\d+) 颗，在我方推荐点 (.+) 赠送 1 颗己棋$/, {
+    en: (c, n, g) => `🧺 Capture Foul! ${translateServerEventColor(c, "en")} reached ${n} captures, so you get a free stone on the suggested point ${g}.`,
+    fr: (c, n, g) => `🧺 Faute de capture ! ${translateServerEventColor(c, "fr")} a pris ${n} pierres : une pierre vous est offerte sur le point conseillé ${g}.`,
+    de: (c, n, g) => `🧺 Fangfoul! ${translateServerEventColor(c, "de")} hat ${n} Steine geschlagen – du bekommst einen Stein auf dem empfohlenen Punkt ${g}.`,
+    ja: (c, n, g) => `🧺 取り石反則！${translateServerEventColor(c, "ja")}が${n}子取ったので、推奨点 ${g} に1子プレゼント`,
+    ko: (c, n, g) => `🧺 따냄 반칙! ${translateServerEventColor(c, "ko")}이 ${n}개를 따내 추천 자리 ${g}에 돌 1개를 선물합니다`,
+  }],
+  [/^🧺 提子犯规触发！(黑棋|白棋) 提子达到 (\d+) 颗(?:，但当前没有可用推荐点)?$/, {
+    en: (c, n) => `🧺 Capture Foul! ${translateServerEventColor(c, "en")} reached ${n} captures, but there's no suggested point to gift right now.`,
+    fr: (c, n) => `🧺 Faute de capture ! ${translateServerEventColor(c, "fr")} a pris ${n} pierres, mais aucun point conseillé n'est disponible.`,
+    de: (c, n) => `🧺 Fangfoul! ${translateServerEventColor(c, "de")} hat ${n} Steine geschlagen, aber gerade gibt es keinen empfohlenen Punkt.`,
+    ja: (c, n) => `🧺 取り石反則！${translateServerEventColor(c, "ja")}が${n}子取りましたが、今は推奨点がありません`,
+    ko: (c, n) => `🧺 따냄 반칙! ${translateServerEventColor(c, "ko")}이 ${n}개를 따냈지만 지금은 추천 자리가 없습니다`,
+  }],
+  [/^陷阱套装触发：(.+) 额外夺得一次落子权$/, {
+    en: s => `Trap set bonus: ${serverEventCardName(s)} wins you an extra move.`,
+    fr: s => `Bonus d'ensemble Piège : ${serverEventCardName(s)} vous offre un coup supplémentaire.`,
+    de: s => `Fallen-Set-Bonus: ${serverEventCardName(s)} schenkt dir einen Extrazug.`,
+    ja: s => `罠セット発動：${serverEventCardName(s)}で追加の1手を獲得`,
+    ko: s => `함정 세트 발동: ${serverEventCardName(s)} 덕분에 한 수 더 둡니다`,
+  }],
+  [/^限制套装触发：AI 临时下调至 (.+)$/, {
+    en: r => `Restriction set bonus: the AI drops to ${serverEventRankLabel(r)} for now.`,
+    fr: r => `Bonus d'ensemble Restriction : l'IA descend temporairement à ${serverEventRankLabel(r)}.`,
+    de: r => `Einschränkungs-Set-Bonus: Die KI sinkt vorübergehend auf ${serverEventRankLabel(r)}.`,
+    ja: r => `制限セット発動：AIの棋力が一時的に${serverEventRankLabel(r)}に下がりました`,
+    ko: r => `제한 세트 발동: AI 기력이 잠시 ${serverEventRankLabel(r)}으로 내려갑니다`,
+  }],
+  [/^闯关套装已激活：(.+)$/, Object.fromEntries(SERVER_EVENT_LANGS.map(lang => [lang, list => {
+    const labels = list.split(" / ").map(label => SERVER_EVENT_SET_LABELS[label]?.[lang] || label).join(" / ");
+    return {
+      en: `Challenge set bonuses active: ${labels}`,
+      fr: `Bonus d'ensemble actifs : ${labels}`,
+      de: `Aktive Set-Boni: ${labels}`,
+      ja: `チャレンジのセット効果が発動中：${labels}`,
+      ko: `도전 세트 효과 발동 중: ${labels}`,
+    }[lang];
+  }]))],
+  [/^🎓 代练上号：强化 AI 接管了一手，剩余 (\d+) 手$/, {
+    en: n => `🎓 Coach Login: the stronger AI played this move for you. ${n} move(s) left.`,
+    fr: n => `🎓 Connexion coach : l'IA renforcée a joué ce coup pour vous. Encore ${n} coup(s).`,
+    de: n => `🎓 Coach-Login: Die stärkere KI hat diesen Zug für dich gespielt. Noch ${n} Zug/Züge.`,
+    ja: n => `🎓 代打ち中：強化AIがこの手を打ちました。残り${n}手`,
+    ko: n => `🎓 대리 접속 중: 강화 AI가 이 수를 대신 뒀습니다. 남은 수 ${n}`,
+  }],
+  [/^🎓 代练上号追加触发：胜率仍低于 50%，额外再代打 (\d+) 手$/, {
+    en: n => `🎓 Coach overtime: your win rate is still under 50%, so the coach plays ${n} more move(s).`,
+    fr: n => `🎓 Prolongation du coach : votre taux de victoire reste sous 50 %, il joue encore ${n} coup(s).`,
+    de: n => `🎓 Coach-Verlängerung: Deine Siegchance liegt noch unter 50 %, er spielt ${n} weitere(n) Zug/Züge.`,
+    ja: n => `🎓 代打ち延長：勝率がまだ50%未満なので、さらに${n}手打ちます`,
+    ko: n => `🎓 대리 연장: 승률이 아직 50% 미만이라 ${n}수를 더 대신 둡니다`,
+  }],
+  [/^🎓 代练上号启动：接下来 (\d+) 手将由更强 AI 代打$/, {
+    en: n => `🎓 Coach Login: the stronger AI will play your next ${n} moves.`,
+    fr: n => `🎓 Connexion coach : l'IA renforcée jouera vos ${n} prochains coups.`,
+    de: n => `🎓 Coach-Login: Die stärkere KI spielt deine nächsten ${n} Züge.`,
+    ja: n => `🎓 代打ち開始：次の${n}手は強化AIが打ちます`,
+    ko: n => `🎓 대리 접속 시작: 다음 ${n}수는 강화 AI가 둡니다`,
+  }],
+  [/^黄金角已封锁 (.+) 的 (\d+)x(\d+) 区域(?:，整局都会限制 AI 进入)?$/, {
+    en: (c, a, b) => `Golden Corner: the ${a}x${b} area in the ${translateServerEventCorner(c, "en")} is sealed off from the AI for the whole game.`,
+    fr: (c, a, b) => `Coin doré : la zone ${a}x${b} du ${translateServerEventCorner(c, "fr")} est interdite à l'IA pour toute la partie.`,
+    de: (c, a, b) => `Goldene Ecke: Das ${a}x${b}-Gebiet im ${translateServerEventCorner(c, "de")} ist für die KI die ganze Partie gesperrt.`,
+    ja: (c, a, b) => `黄金の隅：${translateServerEventCorner(c, "ja")}の${a}x${b}にはAIが終局まで打てません`,
+    ko: (c, a, b) => `황금 귀: ${translateServerEventCorner(c, "ko")}의 ${a}x${b} 구역에는 대국 내내 AI가 둘 수 없습니다`,
+  }],
+  [/^定式强迫症已点亮 (\d+) 个目标点：(.*)。命中其中 (\d+) 个后会自动补上剩余 (\d+) 个点位$/, {
+    en: (n, pts, h, r) => `Joseki OCD: ${n} target points light up (${pts}). Hit any ${h} and the remaining ${r} fill in by themselves.`,
+    fr: (n, pts, h, r) => `Joseki compulsif : ${n} points cibles s'allument (${pts}). Jouez-en ${h} et les ${r} restants se remplissent tout seuls.`,
+    de: (n, pts, h, r) => `Joseki-Zwang: ${n} Zielpunkte leuchten auf (${pts}). Triff ${h} davon, dann füllen sich die übrigen ${r} von selbst.`,
+    ja: (n, pts, h, r) => `定石強迫：目標点が${n}か所光りました（${pts}）。そのうち${h}か所に打てば、残り${r}か所が自動で埋まります`,
+    ko: (n, pts, h, r) => `정석 강박: 목표점 ${n}곳이 빛납니다(${pts}). 그중 ${h}곳에 두면 나머지 ${r}곳이 자동으로 채워집니다`,
+  }],
+  [/^✦ 三连星发动，自动补出 (\d+) 颗星位棋$/, {
+    en: n => `✦ Three Stars ignite: ${n} bonus stone(s) land on the star points.`,
+    fr: n => `✦ Le Sanrensei s'allume : ${n} pierre(s) bonus sur les hoshi.`,
+    de: n => `✦ Sanrensei leuchtet: ${n} Bonusstein(e) auf den Hoshi.`,
+    ja: n => `✦ 三連星発動！星に${n}子を追加`,
+    ko: n => `✦ 삼연성 발동! 화점에 돌 ${n}개를 추가합니다`,
+  }],
+  [/^让子任务奖励触发：每满 (\d+) 手获得一次奖励，当前进度 (\d+)\/(\d+)，AI 将虚手一次$/, {
+    en: (n, a, b) => `Handicap Quest reward: one every ${n} moves, progress ${a}/${b}. The AI passes once.`,
+    fr: (n, a, b) => `Récompense de la quête de handicap : une tous les ${n} coups, progression ${a}/${b}. L'IA passe une fois.`,
+    de: (n, a, b) => `Vorgabe-Quest-Belohnung: alle ${n} Züge eine, Fortschritt ${a}/${b}. Die KI passt einmal.`,
+    ja: (n, a, b) => `置き石クエスト報酬：${n}手ごとに1回、進捗 ${a}/${b}。AIが1回パスします`,
+    ko: (n, a, b) => `접바둑 과제 보상: ${n}수마다 한 번, 진행 ${a}/${b}. AI가 한 번 패스합니다`,
+  }],
+  [/^💥 排异反应！(?:挤走 (\d+) 子)?(?:，)?(?:摧毁 (\d+) 子)?$/, Object.fromEntries(SERVER_EVENT_LANGS.map(lang => [lang, (pushed, destroyed) => {
+    const words = {
+      en: ["💥 Repulsion! ", p => `${p} stone(s) pushed away`, d => `${d} destroyed`, ", "],
+      fr: ["💥 Répulsion ! ", p => `${p} pierre(s) repoussée(s)`, d => `${d} détruite(s)`, ", "],
+      de: ["💥 Abstoßung! ", p => `${p} Stein(e) weggedrückt`, d => `${d} zerstört`, ", "],
+      ja: ["💥 排斥反応！", p => `${p}子を押し出し`, d => `${d}子を破壊`, "、"],
+      ko: ["💥 배척 반응! ", p => `${p}개를 밀어내고`, d => `${d}개를 파괴`, " "],
+    }[lang];
+    const parts = [pushed && words[1](pushed), destroyed && words[2](destroyed)].filter(Boolean);
+    return words[0] + parts.join(words[3]);
+  }]))],
+  [/^🧲 磁力吸附！(\d+) 子飞奔(?:，碾碎 (\d+) 颗敌子)?$/, {
+    en: (n, m) => `🧲 Magnet Pull! ${n} stone(s) rush in${m ? `, crushing ${m} enemy stone(s)` : ""}.`,
+    fr: (n, m) => `🧲 Attraction magnétique ! ${n} pierre(s) foncent${m ? `, écrasant ${m} pierre(s) adverse(s)` : ""}.`,
+    de: (n, m) => `🧲 Magnetzug! ${n} Stein(e) rasen heran${m ? ` und zermalmen ${m} gegnerische(n) Stein(e)` : ""}.`,
+    ja: (n, m) => `🧲 磁力吸着！${n}子が突進${m ? `、相手の石${m}子を粉砕` : ""}`,
+    ko: (n, m) => `🧲 자력 흡착! 돌 ${n}개가 돌진${m ? `해 상대 돌 ${m}개를 분쇄` : ""}`,
+  }],
+  [/^🧱 万里长城发动！([A-T]) 列筑起 (\d+) 子$/, {
+    en: (c, n) => `🧱 Great Wall! ${n} stones rise along column ${c}.`,
+    fr: (c, n) => `🧱 Grande muraille ! ${n} pierres s'élèvent sur la colonne ${c}.`,
+    de: (c, n) => `🧱 Große Mauer! ${n} Steine erheben sich in Spalte ${c}.`,
+    ja: (c, n) => `🧱 万里の長城！${c}列に${n}子がそびえ立ちます`,
+    ko: (c, n) => `🧱 만리장성! ${c}열에 돌 ${n}개가 솟아오릅니다`,
+  }],
+  [/^🔄 乾坤挪移：已将对方 (.+) 的棋子摆动到 (.+)$/, {
+    en: (a, b) => `🔄 Turn Steal: the enemy stone on ${a} moved to ${b}.`,
+    fr: (a, b) => `🔄 Vol de tour : la pierre adverse en ${a} est déplacée en ${b}.`,
+    de: (a, b) => `🔄 Zugdiebstahl: Der gegnerische Stein auf ${a} wurde nach ${b} versetzt.`,
+    ja: (a, b) => `🔄 手番奪取：相手の${a}の石を${b}へ移しました`,
+    ko: (a, b) => `🔄 차례 강탈: 상대의 ${a} 돌을 ${b}로 옮겼습니다`,
+  }],
+  [/^🏋️ 让子棋任务：还需虚手 (\d+) 次才能落子$/, {
+    en: n => `🏋️ Handicap Quest: pass ${n} more time(s) before you can play.`,
+    fr: n => `🏋️ Quête de handicap : passez encore ${n} fois avant de pouvoir jouer.`,
+    de: n => `🏋️ Vorgabe-Quest: Noch ${n}-mal passen, dann darfst du ziehen.`,
+    ja: n => `🏋️ 置き石クエスト：着手まであと${n}回パスしてください`,
+    ko: n => `🏋️ 접바둑 과제: 착수하려면 ${n}번 더 패스하세요`,
+  }],
+  [/^无效落子: (.+)$/, {
+    en: g => `Illegal move: ${g}`, fr: g => `Coup illégal : ${g}`, de: g => `Unzulässiger Zug: ${g}`,
+    ja: g => `打てない手です：${g}`, ko: g => `둘 수 없는 수: ${g}`,
+  }],
+  [/^该位置已有棋子: ?(.+)$/, {
+    en: g => `There's already a stone on ${g}.`, fr: g => `Il y a déjà une pierre en ${g}.`, de: g => `Auf ${g} liegt schon ein Stein.`,
+    ja: g => `${g} にはすでに石があります`, ko: g => `${g}에는 이미 돌이 있습니다`,
+  }],
+  [/^当前可刷新卡牌不足 (\d+) 张$/, {
+    en: n => `Not enough cards left to reroll (${n} needed).`, fr: n => `Pas assez de cartes pour relancer (il en faut ${n}).`,
+    de: n => `Nicht genug Karten zum Neuziehen (${n} nötig).`, ja: n => `引き直せるカードが${n}枚に足りません`, ko: n => `다시 뽑을 카드가 ${n}장보다 적습니다`,
+  }],
+  [/^未知操作: (.+)$/, {
+    en: x => `Unknown action: ${x}`, fr: x => `Action inconnue : ${x}`, de: x => `Unbekannte Aktion: ${x}`,
+    ja: x => `不明な操作：${x}`, ko: x => `알 수 없는 동작: ${x}`,
+  }],
+  [/^卡牌配置加载失败：(.*)$/, {
+    en: x => `Could not load the card config: ${x}`, fr: x => `Impossible de charger la configuration des cartes : ${x}`,
+    de: x => `Kartenkonfiguration konnte nicht geladen werden: ${x}`, ja: x => `カード設定を読み込めませんでした：${x}`, ko: x => `카드 설정을 불러오지 못했습니다: ${x}`,
+  }],
+];
+
+function translateServerEventShared(source, lang) {
+  for (const [pattern, byLang] of SERVER_EVENT_SHARED) {
+    const match = source.match(pattern);
+    if (match && byLang[lang]) return byLang[lang](...match.slice(1));
+  }
+  return null;
+}
+
+// Each language's own table first, then exact phrases from its locale pack, then
+// the shared table; French and German keep English as a last resort.
+function translateServerEventMessage(message) {
+  const source = String(message || "");
+  if (!source || currentLang === "zh") return source;
+  if (currentLang === "zht") return translateServerEventMessageTraditional(source);
+  let own = null;
+  if (currentLang === "en") {
+    const english = translateServerEventMessageLegacy(source, true);
+    own = english === source ? null : english;
+  } else if (currentLang === "fr" || currentLang === "de") {
+    own = translateServerEventMessageWestern(source, currentLang);
+  } else {
+    own = translateServerEventMessageEastAsian(source);
+  }
+  if (own !== null) return own;
+  const phrase = translateServerEventPhrase(source);
+  if (phrase !== null) return phrase;
+  const shared = translateServerEventShared(source, currentLang);
+  if (shared !== null) return shared;
+  if (currentLang === "fr" || currentLang === "de") return translateServerEventMessageLegacy(source, true);
+  return source;
+}
