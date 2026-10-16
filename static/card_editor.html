@@ -3,606 +3,471 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>rogue-go-arena Card Editor</title>
+  <title>rogue-go-arena Card Workshop</title>
   <link rel="icon" type="image/png" href="assets/rogue-go-arena-favicon.png?v=20260430a">
   <style>
     :root {
       color-scheme: dark;
       --bg: #120d09;
-      --panel: rgba(28, 20, 14, 0.9);
-      --panel-2: rgba(39, 29, 20, 0.88);
-      --line: rgba(226, 171, 83, 0.22);
-      --line-strong: rgba(237, 191, 105, 0.52);
+      --panel: rgba(30, 22, 15, 0.94);
+      --panel-2: rgba(44, 32, 22, 0.92);
+      --line: rgba(226, 171, 83, 0.2);
+      --line-strong: rgba(237, 191, 105, 0.5);
       --text: #f6ead7;
       --muted: #b9a891;
+      --faint: #8d7d68;
       --gold: #f0c567;
-      --green: #78c391;
-      --red: #e07062;
-      --blue: #8fb0df;
-      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+      --green: #7fd89b;
+      --red: #f08a7a;
+      --radius: 12px;
+      font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans", "Malgun Gothic", sans-serif;
     }
-
     * { box-sizing: border-box; }
-
+    [hidden] { display: none !important; }
     body {
       margin: 0;
       min-height: 100vh;
-      padding: 18px;
       color: var(--text);
       background:
-        radial-gradient(circle at 10% 6%, rgba(219, 151, 57, 0.13), transparent 24rem),
-        radial-gradient(circle at 92% 4%, rgba(90, 121, 146, 0.12), transparent 28rem),
-        repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 7px),
-        linear-gradient(135deg, #100a07 0%, #24150d 48%, #0f0b09 100%);
-      letter-spacing: 0;
+        radial-gradient(circle at 8% 0%, rgba(219, 151, 57, 0.14), transparent 26rem),
+        radial-gradient(circle at 96% 0%, rgba(90, 121, 146, 0.12), transparent 28rem),
+        linear-gradient(135deg, #100a07 0%, #22150d 50%, #0f0b09 100%);
+      background-attachment: fixed;
     }
-
-    button,
-    input,
-    textarea,
-    select {
-      font: inherit;
-    }
-
+    button, input, textarea, select { font: inherit; color: inherit; }
     button {
-      border: 1px solid var(--line-strong);
-      border-radius: 6px;
       min-height: 38px;
-      padding: 0 12px;
-      background: linear-gradient(180deg, rgba(81, 55, 29, 0.9), rgba(30, 22, 16, 0.96));
-      color: var(--text);
+      padding: 0 14px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: linear-gradient(180deg, rgba(81, 55, 29, 0.9), rgba(32, 23, 16, 0.96));
       cursor: pointer;
     }
-
-    button:hover { border-color: rgba(240, 197, 103, 0.86); }
-    button:disabled { opacity: 0.46; cursor: default; }
+    button:hover { border-color: rgba(240, 197, 103, 0.9); }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+    }
+    button:disabled { opacity: 0.45; cursor: default; }
     button.primary {
-      background: linear-gradient(180deg, rgba(223, 170, 74, 0.96), rgba(106, 70, 27, 0.98));
+      border-color: transparent;
+      background: linear-gradient(180deg, #f0c567, #b8862f);
       color: #1d1308;
       font-weight: 800;
     }
-
-    input,
-    textarea,
-    select {
+    button.ghost { background: transparent; border-color: var(--line); }
+    button.danger { border-color: rgba(240, 138, 122, 0.7); color: #ffd4cc; }
+    input, textarea, select {
       width: 100%;
-      border: 1px solid rgba(226, 171, 83, 0.2);
-      border-radius: 6px;
-      background: rgba(8, 10, 12, 0.78);
-      color: var(--text);
+      border: 1px solid rgba(226, 171, 83, 0.22);
+      border-radius: 8px;
+      background: rgba(8, 10, 12, 0.7);
       outline: none;
     }
+    input, select { min-height: 38px; padding: 0 10px; }
+    textarea { min-height: 84px; padding: 9px 10px; line-height: 1.5; resize: vertical; }
+    input:focus, textarea:focus, select:focus { border-color: rgba(240, 197, 103, 0.8); }
+    input[type="range"] { padding: 0; min-height: 28px; accent-color: var(--gold); background: transparent; border: 0; }
 
-    input,
-    select { min-height: 36px; padding: 0 10px; }
-    textarea { min-height: 74px; resize: vertical; padding: 9px 10px; line-height: 1.45; }
-    input:focus,
-    textarea:focus,
-    select:focus {
-      border-color: rgba(240, 197, 103, 0.78);
-      box-shadow: 0 0 0 2px rgba(240, 197, 103, 0.12);
+    .shell { width: min(1240px, 100%); margin: 0 auto; padding: 20px 16px 120px; display: grid; gap: 16px; }
+
+    header.top { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; justify-content: space-between; }
+    .brand h1 { margin: 0; font-size: clamp(24px, 3.4vw, 34px); color: var(--gold); line-height: 1.1; }
+    .brand p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+    .top-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .status-chip {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 7px 12px; border-radius: 999px; font-size: 13px;
+      border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); color: var(--muted);
     }
+    .status-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+    .status-chip.dirty::before { background: var(--gold); }
+    .status-chip.pending::before { background: #8fb0df; }
+    .lang-select { width: auto; min-width: 128px; }
 
-    input[type="checkbox"] {
-      width: auto;
-      min-height: auto;
-      accent-color: var(--gold);
+    .menu { position: relative; }
+    .menu-panel {
+      position: absolute; right: 0; top: calc(100% + 6px); z-index: 30;
+      display: grid; gap: 6px; min-width: 220px; padding: 8px;
+      border: 1px solid var(--line-strong); border-radius: var(--radius);
+      background: rgba(22, 16, 11, 0.98); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
     }
+    .menu-panel button { text-align: left; }
 
-    input[type="range"] {
-      padding: 0;
-      accent-color: var(--gold);
+    .notice {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 11px 14px; border-radius: var(--radius);
+      border: 1px solid rgba(143, 176, 223, 0.35); background: rgba(143, 176, 223, 0.1);
+      color: #dbe7f8; font-size: 14px; line-height: 1.5;
     }
-
-    .shell {
-      width: min(1380px, 100%);
-      margin: 0 auto;
-      display: grid;
-      gap: 14px;
-    }
-
-    .topbar {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 14px;
-      align-items: end;
-      padding-bottom: 13px;
-      border-bottom: 1px solid rgba(237, 191, 105, 0.34);
-    }
-
-    h1 {
-      margin: 0;
-      font-size: clamp(25px, 4vw, 40px);
-      line-height: 1.05;
-      color: var(--gold);
-    }
-
-    .subtitle {
-      margin-top: 6px;
-      color: var(--muted);
-      font-size: 13px;
-      overflow-wrap: anywhere;
-    }
-
-    .actions {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(86px, auto));
-      gap: 8px;
-      align-items: center;
-    }
-
-    .main {
-      display: grid;
-      grid-template-columns: 260px minmax(0, 1fr);
-      gap: 14px;
-      align-items: start;
-    }
-
-    .side,
-    .work {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
-      box-shadow: 0 16px 36px rgba(0,0,0,0.38);
-    }
-
-    .side {
-      position: sticky;
-      top: 14px;
-      padding: 13px;
-      display: grid;
-      gap: 13px;
-    }
-
-    .lang-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 7px;
-    }
-
-    .tab-grid {
-      display: grid;
-      gap: 7px;
-    }
-
-    .tab {
-      text-align: left;
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      box-shadow: none;
-    }
-
-    .tab.active {
-      border-color: rgba(240, 197, 103, 0.86);
-      background: linear-gradient(180deg, rgba(102, 69, 34, 0.94), rgba(39, 27, 17, 0.96));
-      color: var(--gold);
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-    }
-
-    .stat {
-      padding: 9px;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 6px;
-      background: rgba(255,255,255,0.04);
-    }
-
-    .stat b {
-      display: block;
-      color: var(--gold);
-      font-size: 22px;
-      line-height: 1;
-      margin-bottom: 3px;
-    }
-
-    .stat span {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .filters {
-      display: grid;
-      gap: 8px;
-    }
-
-    .path {
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.5;
-      overflow-wrap: anywhere;
-      border-top: 1px solid rgba(255,255,255,0.07);
-      padding-top: 11px;
-    }
-
-    .work {
-      overflow: hidden;
-      min-height: 640px;
-    }
-
-    .section-head {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 12px;
-      align-items: center;
-      padding: 12px 15px;
-      border-bottom: 1px solid var(--line);
-      background: rgba(0,0,0,0.2);
-    }
-
-    .section-head h2 {
-      margin: 0;
-      font-size: 18px;
-    }
-
-    .section-head span {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .list {
-      display: grid;
-    }
-
-    .card-row,
-    .tune-row {
-      display: grid;
-      gap: 12px;
-      padding: 14px 15px;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-      background: rgba(255,255,255,0.018);
-    }
-
-    .card-row {
-      grid-template-columns: minmax(200px, 0.82fr) minmax(260px, 1.2fr) minmax(220px, 0.76fr);
-    }
-
-    .tune-row {
-      grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.2fr) 104px;
-      align-items: center;
-    }
-
-    .card-row.changed,
-    .tune-row.changed {
-      background: linear-gradient(90deg, rgba(240, 197, 103, 0.1), rgba(255,255,255,0.018));
-    }
-
-    .identity {
-      display: grid;
-      grid-template-columns: 46px minmax(0, 1fr);
-      gap: 10px;
-      align-items: start;
-    }
-
-    .icon {
-      width: 46px;
-      height: 46px;
-      display: grid;
-      place-items: center;
-      border: 1px solid var(--line-strong);
-      border-radius: 7px;
-      background: rgba(0,0,0,0.3);
-      font-size: 22px;
-    }
-
-    .idline {
-      display: grid;
-      gap: 6px;
-      min-width: 0;
-    }
-
-    .idline strong {
-      font-size: 16px;
-      overflow-wrap: anywhere;
-    }
-
-    .mono {
-      color: #928472;
-      font: 12px Consolas, "Cascadia Mono", monospace;
-      overflow-wrap: anywhere;
-    }
-
-    .grid2 {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    .field {
-      display: grid;
-      gap: 5px;
-    }
-
-    .field label {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .checks {
-      display: grid;
-      gap: 8px;
-      align-content: start;
-    }
-
-    .checkline {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 13px;
-      min-height: 24px;
-    }
-
-    .pill {
-      display: inline-block;
-      width: max-content;
-      max-width: 100%;
-      padding: 3px 8px;
-      border-radius: 99px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.05);
-      color: var(--muted);
-      font-size: 11px;
-    }
-
-    .json-panel {
-      display: grid;
-      gap: 10px;
-      padding: 14px 15px;
-    }
-
-    .json-panel textarea {
-      min-height: 520px;
-      font: 12px/1.5 Consolas, "Cascadia Mono", monospace;
-      white-space: pre;
-      overflow: auto;
-    }
-
     .errorbox {
-      padding: 12px 15px;
-      border-bottom: 1px solid rgba(224, 112, 98, 0.32);
-      background: rgba(224, 112, 98, 0.12);
-      color: #ffd7d0;
-      font-size: 13px;
-      line-height: 1.5;
+      padding: 11px 14px; border-radius: var(--radius);
+      border: 1px solid rgba(240, 138, 122, 0.4); background: rgba(240, 138, 122, 0.12);
+      color: #ffd7d0; font-size: 13px; line-height: 1.55;
     }
 
-    .empty {
-      padding: 28px 16px;
-      color: var(--muted);
-      text-align: center;
+    nav.tabs { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+    nav.tabs button {
+      border: 0; border-bottom: 3px solid transparent; border-radius: 0;
+      background: transparent; color: var(--muted); padding: 0 14px; min-height: 44px; font-weight: 600;
     }
+    nav.tabs button .count { margin-left: 6px; color: var(--faint); font-weight: 400; }
+    nav.tabs button.active { color: var(--gold); border-bottom-color: var(--gold); }
+    nav.tabs .spacer { flex: 1; }
+
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .toolbar .search { flex: 1 1 260px; position: relative; }
+    .toolbar .search input { padding-left: 34px; min-height: 42px; }
+    .toolbar .search::before { content: "⌕"; position: absolute; left: 11px; top: 8px; color: var(--faint); font-size: 18px; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip {
+      min-height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px;
+      border: 1px solid var(--line); background: rgba(255, 255, 255, 0.03); color: var(--muted);
+    }
+    .chip.active { border-color: var(--gold); color: var(--gold); background: rgba(240, 197, 103, 0.1); }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    .section-intro { color: var(--muted); font-size: 14px; margin: 0; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 12px; }
+    .card-row {
+      display: grid; gap: 12px; align-content: start;
+      padding: 14px; border-radius: var(--radius);
+      border: 1px solid var(--line); background: var(--panel);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+    }
+    .card-row.off { opacity: 0.72; }
+    .card-row.open { grid-column: 1 / -1; border-color: var(--line-strong); background: var(--panel-2); }
+    .card-head { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+    .card-icon {
+      width: 48px; height: 48px; display: grid; place-items: center; font-size: 24px;
+      border-radius: 10px; border: 1px solid var(--line-strong); background: rgba(0, 0, 0, 0.3);
+    }
+    .card-title { min-width: 0; }
+    .card-title strong { display: block; font-size: 16px; overflow-wrap: anywhere; }
+    .card-title .mono { color: var(--faint); font: 12px Consolas, "Cascadia Mono", monospace; }
+    .card-desc { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .card-row.open .card-desc { display: none; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge {
+      padding: 2px 8px; border-radius: 999px; font-size: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.05); color: var(--muted);
+    }
+    .badge.tier { color: var(--gold); border-color: rgba(240, 197, 103, 0.4); }
+    .badge.edited { color: #1d1308; background: var(--gold); border-color: transparent; }
+    .badge.off { color: #ffd4cc; border-color: rgba(240, 138, 122, 0.5); }
+    .badge.often { color: var(--green); border-color: rgba(127, 216, 155, 0.45); }
+
+    .editor { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px; }
+    .editor h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }
+    .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .field { display: grid; gap: 5px; }
+    .field.wide { grid-column: 1 / -1; }
+    .field label { color: var(--muted); font-size: 13px; }
+    .hint { color: var(--faint); font-size: 12px; }
+    .switches { display: grid; gap: 4px; }
+    .switch {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      min-height: 40px; padding: 0 2px; font-size: 14px; cursor: pointer;
+    }
+    .switch input { appearance: none; -webkit-appearance: none; flex: 0 0 auto; width: 42px; height: 24px; min-height: 0; padding: 0;
+      border-radius: 999px; border: 1px solid var(--line-strong); background: rgba(0, 0, 0, 0.4); position: relative; cursor: pointer; }
+    .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: transform 140ms ease; }
+    .switch input:checked { background: rgba(240, 197, 103, 0.35); border-color: var(--gold); }
+    .switch input:checked::after { transform: translateX(18px); background: var(--gold); }
+    .segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+    .segmented button { border: 0; border-radius: 0; min-height: 34px; background: transparent; color: var(--muted); padding: 0 12px; }
+    .segmented button + button { border-left: 1px solid var(--line); }
+    .segmented button.active { background: rgba(240, 197, 103, 0.18); color: var(--gold); font-weight: 700; }
+    .freq { display: grid; gap: 6px; margin: 6px 0 4px; }
+    .card-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+    .tune-group { display: grid; gap: 8px; }
+    .tune-group > h2 { margin: 10px 0 0; font-size: 15px; color: var(--gold); display: flex; gap: 8px; align-items: center; }
+    .tune-list { display: grid; gap: 8px; }
+    .tune-row {
+      display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr) auto; gap: 14px; align-items: center;
+      padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--panel);
+    }
+    .tune-row.edited { border-color: rgba(240, 197, 103, 0.5); }
+    .tune-label strong { display: block; font-size: 15px; }
+    .tune-label .mono { color: var(--faint); font: 12px Consolas, "Cascadia Mono", monospace; overflow-wrap: anywhere; }
+    .tune-control { display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: 10px; align-items: center; }
+    .tune-control input[type="number"] { text-align: right; }
+    .tune-meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; color: var(--faint); font-size: 12px; grid-column: 1 / -1; }
+    .tune-meta .pct { color: var(--gold); font-weight: 700; }
+    details.advanced { grid-column: 1 / -1; }
+    details.advanced summary { cursor: pointer; color: var(--faint); font-size: 12px; }
+    details.advanced .fields { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 8px; }
+
+    .json-panel { display: grid; gap: 10px; }
+    .json-panel textarea { min-height: 60vh; font: 12px/1.5 Consolas, "Cascadia Mono", monospace; white-space: pre; overflow: auto; }
+    .empty { padding: 36px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius); }
+
+    .savebar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+      background: rgba(18, 12, 8, 0.96); border-top: 1px solid var(--line-strong);
+      box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.45);
+    }
+    .savebar-inner { width: min(1240px, 100%); margin: 0 auto; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+    .savebar-text { display: grid; gap: 2px; }
+    .savebar-text strong { font-size: 15px; }
+    .savebar-text span { color: var(--muted); font-size: 13px; }
+    .savebar-actions { display: flex; gap: 8px; }
 
     .toast {
-      position: fixed;
-      right: 20px;
-      bottom: 20px;
-      max-width: min(440px, calc(100vw - 40px));
-      padding: 12px 14px;
-      border: 1px solid var(--line-strong);
-      border-radius: 8px;
-      background: rgba(18, 12, 8, 0.96);
-      color: var(--text);
-      box-shadow: 0 14px 32px rgba(0,0,0,0.5);
-      opacity: 0;
-      transform: translateY(12px);
-      pointer-events: none;
-      transition: opacity 160ms ease, transform 160ms ease;
-      z-index: 20;
+      position: fixed; right: 16px; bottom: 96px; z-index: 40;
+      max-width: min(440px, calc(100vw - 32px)); padding: 12px 14px;
+      border: 1px solid var(--line-strong); border-radius: var(--radius);
+      background: rgba(18, 12, 8, 0.97); box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5);
+      opacity: 0; transform: translateY(10px); pointer-events: none; transition: opacity 160ms ease, transform 160ms ease;
     }
+    .toast.show { opacity: 1; transform: translateY(0); }
 
-    .toast.show {
-      opacity: 1;
-      transform: translateY(0);
+    @media (max-width: 820px) {
+      .editor { grid-template-columns: 1fr; }
+      .tune-row { grid-template-columns: 1fr; }
+      details.advanced .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
-
-    @media (max-width: 1050px) {
-      .topbar,
-      .main,
-      .card-row,
-      .tune-row {
-        grid-template-columns: 1fr;
-      }
-      .side { position: static; }
-      .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (max-width: 480px) {
+      .fields { grid-template-columns: 1fr; }
+      .savebar-actions { width: 100%; }
+      .savebar-actions button { flex: 1; }
     }
-
-    @media (max-width: 560px) {
-      body { padding: 12px; }
-      .grid2,
-      .stats,
-      .lang-grid {
-        grid-template-columns: 1fr;
-      }
+    @media (prefers-reduced-motion: reduce) {
+      .toast, .switch input::after { transition: none; }
     }
   </style>
 </head>
 <body>
   <main class="shell">
-    <header class="topbar">
-      <div>
-        <h1>rogue-go-arena Card Editor</h1>
-        <div class="subtitle" id="sourceLine"></div>
+    <header class="top">
+      <div class="brand">
+        <h1 id="pageTitle">Card Workshop</h1>
+        <p id="pageSubtitle"></p>
       </div>
-      <div class="actions">
-        <button class="primary" id="saveBtn" type="button"></button>
-        <button id="resetBtn" type="button"></button>
-        <button id="reloadBtn" type="button"></button>
-        <button id="exportBtn" type="button"></button>
-        <button id="applyJsonBtn" type="button"></button>
+      <div class="top-tools">
+        <span class="status-chip" id="statusChip" role="status"></span>
+        <label class="visually-hidden" for="langSelect" id="langLabel"></label>
+        <select class="lang-select" id="langSelect"></select>
+        <div class="menu">
+          <button type="button" class="ghost" id="moreBtn" aria-haspopup="true" aria-expanded="false"></button>
+          <div class="menu-panel" id="morePanel" hidden>
+            <button type="button" id="reloadBtn"></button>
+            <button type="button" id="exportBtn"></button>
+            <button type="button" id="resetBtn" class="danger"></button>
+          </div>
+        </div>
       </div>
     </header>
 
-    <section class="main">
-      <aside class="side">
-        <div class="lang-grid" id="langGrid"></div>
-        <div class="tab-grid" id="tabs"></div>
-        <button class="tab" id="advancedJsonBtn" type="button"></button>
-        <div class="stats">
-          <div class="stat"><b id="rogueCount">0</b><span id="rogueCountLabel"></span></div>
-          <div class="stat"><b id="ultimateCount">0</b><span id="ultimateCountLabel"></span></div>
-          <div class="stat"><b id="tuningCount">0</b><span id="tuningCountLabel"></span></div>
-          <div class="stat"><b id="changedCount">0</b><span id="changedCountLabel"></span></div>
-        </div>
-        <div class="filters">
-          <input id="searchBox" type="text">
-          <label class="checkline"><input id="changedOnly" type="checkbox"><span id="changedOnlyLabel"></span></label>
-        </div>
-        <div class="path" id="pathBox"></div>
-      </aside>
+    <div id="pendingNotice"></div>
+    <div id="errorBox"></div>
 
-      <section class="work">
-        <div class="section-head">
-          <div>
-            <h2 id="sectionTitle"></h2>
-            <span id="sectionSub"></span>
-          </div>
-          <span id="saveState"></span>
-        </div>
-        <div id="errorBox"></div>
-        <div id="content"></div>
-      </section>
-    </section>
+    <nav class="tabs" id="tabs" aria-label="sections"></nav>
+
+    <div class="toolbar" id="toolbar">
+      <div class="search">
+        <label class="visually-hidden" for="searchBox" id="searchLabel"></label>
+        <input id="searchBox" type="search" autocomplete="off">
+      </div>
+      <div class="chips" id="filterChips"></div>
+      <label class="visually-hidden"><input id="changedOnly" type="checkbox"><span id="changedOnlyLabel"></span></label>
+    </div>
+
+    <p class="section-intro" id="sectionSub"></p>
+    <section id="content" aria-live="polite"></section>
   </main>
-  <div class="toast" id="toast"></div>
+
+  <div class="savebar" id="savebar">
+    <div class="savebar-inner">
+      <div class="savebar-text">
+        <strong id="saveState"></strong>
+        <span id="saveNote"></span>
+      </div>
+      <div class="savebar-actions">
+        <button type="button" class="ghost" id="discardBtn"></button>
+        <button type="button" class="primary" id="saveBtn"></button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
 
   <script>
     const localeMap = { zh: "zh-CN", zht: "zh-TW", en: "en-US", ja: "ja-JP", ko: "ko-KR", fr: "fr-FR", de: "de-DE" };
-    const langLabels = { zh: "中文", zht: "繁體中文", en: "English", ja: "日本語", ko: "한국어", fr: "Français", de: "Deutsch" };
+    const langLabels = { zh: "简体中文", zht: "繁體中文", en: "English", ja: "日本語", ko: "한국어", fr: "Français", de: "Deutsch" };
+    const FREQ = { rare: 0.5, normal: 1, often: 3 };
+    const LOCALE_FILES = { zh: "zh-CN.json", zht: "zh-TW.json", en: "en-US.json", ja: "ja-JP.json", ko: "ko-KR.json", fr: "fr-FR.json", de: "de-DE.json" };
+    const metaLabels = {};
     const dict = {
       zh: {
-        save: "保存配置", reset: "恢复基准", reload: "重新加载", export: "导出 JSON", applyJson: "应用 JSON", advancedJson: "高级：明文 JSON",
-        rogue: "Rogue 卡", ultimate: "Ultimate 卡", tuning: "数值参数", json: "原始 JSON",
-        search: "搜索 ID、名称、描述、参数", changedOnly: "只看已修改", sourceBase: "当前使用基准配置",
-        sourceUser: "当前使用本机配置", rogueCount: "Rogue", ultimateCount: "Ultimate", tuningCount: "参数", changedCount: "改动",
-        name: "名称", desc: "说明", icon: "图标", uses: "使用次数", tier: "强度", category: "类别", complexity: "理解成本",
-        featured: "精选池", challenge: "闯关池", twoPlayer: "双人池", aiPool: "AI 池", challengeCategory: "闯关分类",
-        value: "数值", min: "最小", max: "最大", step: "步进", group: "分组", card: "卡牌", key: "键名",
-        saved: "已保存并重新加载", resetDone: "已恢复基准配置", jsonApplied: "JSON 已应用到表单", loadFailed: "载入失败",
-        saveFailed: "保存失败", noMatch: "没有匹配项", dirty: "已修改", base: "基准", user: "本机", active: "当前", schema: "Schema",
-        cardsSub: "编辑卡牌文本、图标、卡池和元信息", tuningSub: "编辑实际影响强度的数值参数", jsonSub: "明文配置视图，可直接粘贴完整 JSON"
-      },
-      en: {
-        save: "Save", reset: "Reset Base", reload: "Reload", export: "Export JSON", applyJson: "Apply JSON", advancedJson: "Advanced: Raw JSON",
-        rogue: "Rogue Cards", ultimate: "Ultimate Cards", tuning: "Tuning", json: "Raw JSON",
-        search: "Search ID, name, description, tuning", changedOnly: "Changed only", sourceBase: "Using base config",
-        sourceUser: "Using local config", rogueCount: "Rogue", ultimateCount: "Ultimate", tuningCount: "Tuning", changedCount: "Changed",
-        name: "Name", desc: "Description", icon: "Icon", uses: "Uses", tier: "Tier", category: "Category", complexity: "Read Cost",
-        featured: "Featured", challenge: "Challenge Pool", twoPlayer: "Two-player Pool", aiPool: "AI Pool", challengeCategory: "Challenge Category",
-        value: "Value", min: "Min", max: "Max", step: "Step", group: "Group", card: "Card", key: "Key",
-        saved: "Saved and reloaded", resetDone: "Base config restored", jsonApplied: "JSON applied to form", loadFailed: "Load failed",
-        saveFailed: "Save failed", noMatch: "No matches", dirty: "Changed", base: "Base", user: "Local", active: "Active", schema: "Schema",
-        cardsSub: "Edit card text, icon, pools, and metadata", tuningSub: "Edit numeric values that affect card strength", jsonSub: "Plain config view; paste a complete JSON file here"
-      },
-      ja: {
-        save: "保存", reset: "基準に戻す", reload: "再読込", export: "JSON出力", applyJson: "JSON適用", advancedJson: "上級：生JSON",
-        rogue: "Rogueカード", ultimate: "必殺カード", tuning: "調整値", json: "生JSON",
-        search: "ID、名前、説明、調整値を検索", changedOnly: "変更のみ", sourceBase: "基準設定を使用中",
-        sourceUser: "ローカル設定を使用中", rogueCount: "Rogue", ultimateCount: "必殺", tuningCount: "調整", changedCount: "変更",
-        name: "名前", desc: "説明", icon: "アイコン", uses: "使用回数", tier: "強さ", category: "カテゴリ", complexity: "理解コスト",
-        featured: "注目枠", challenge: "チャレンジ枠", twoPlayer: "二人枠", aiPool: "AI枠", challengeCategory: "チャレンジ分類",
-        value: "値", min: "最小", max: "最大", step: "刻み", group: "分類", card: "カード", key: "キー",
-        saved: "保存して再読込しました", resetDone: "基準設定に戻しました", jsonApplied: "JSONをフォームへ適用しました", loadFailed: "読込失敗",
-        saveFailed: "保存失敗", noMatch: "一致なし", dirty: "変更済み", base: "基準", user: "ローカル", active: "現在", schema: "Schema",
-        cardsSub: "カード文言、アイコン、プール、メタ情報を編集", tuningSub: "カード強度に効く数値を編集", jsonSub: "明文設定ビュー。完全なJSONを貼り付け可能"
-      },
-      ko: {
-        save: "저장", reset: "기준 복원", reload: "다시 불러오기", export: "JSON 내보내기", applyJson: "JSON 적용", advancedJson: "고급: 원본 JSON",
-        rogue: "Rogue 카드", ultimate: "궁극기 카드", tuning: "수치 조정", json: "원본 JSON",
-        search: "ID, 이름, 설명, 수치 검색", changedOnly: "변경만 보기", sourceBase: "기준 설정 사용 중",
-        sourceUser: "로컬 설정 사용 중", rogueCount: "Rogue", ultimateCount: "궁극기", tuningCount: "수치", changedCount: "변경",
-        name: "이름", desc: "설명", icon: "아이콘", uses: "사용 횟수", tier: "강도", category: "분류", complexity: "이해 비용",
-        featured: "추천 풀", challenge: "도전 풀", twoPlayer: "2인 풀", aiPool: "AI 풀", challengeCategory: "도전 분류",
-        value: "값", min: "최소", max: "최대", step: "단위", group: "그룹", card: "카드", key: "키",
-        saved: "저장 후 다시 불러왔습니다", resetDone: "기준 설정을 복원했습니다", jsonApplied: "JSON을 폼에 적용했습니다", loadFailed: "불러오기 실패",
-        saveFailed: "저장 실패", noMatch: "일치 항목 없음", dirty: "변경됨", base: "기준", user: "로컬", active: "현재", schema: "Schema",
-        cardsSub: "카드 문구, 아이콘, 풀, 메타 정보를 편집", tuningSub: "카드 강도에 영향을 주는 숫자 편집", jsonSub: "명시적 설정 보기. 완전한 JSON 붙여넣기 가능"
+        title: "卡牌工坊", subtitle: "调整卡牌文本、出现频率与数值，保存后从下一局开始生效。", lang: "语言",
+        rogue: "Rogue 卡", ultimate: "大招卡", tuning: "数值", json: "高级 JSON",
+        search: "搜索卡名、说明或参数", filterAll: "全部", filterChanged: "已改动", filterOff: "已关闭", changedOnly: "只看已修改",
+        statusClean: "已全部保存", statusDirty: "{n} 处未保存改动", statusPending: "已保存 · 下一局生效",
+        save: "保存改动", discard: "放弃改动", nextGameNote: "保存后从下一局开始生效，进行中的对局保持原规则。", noChanges: "没有未保存的改动",
+        pendingNotice: "已保存的改动会在你开始下一局时生效。当前进行中的对局不受影响。",
+        more: "更多 ▾", reload: "重新加载", reset: "恢复默认配置", resetConfirm: "再点一次确认恢复默认", export: "导出 JSON", applyJson: "应用 JSON 到表单",
+        edit: "编辑", done: "完成", revert: "还原此卡", name: "名称", icon: "图标", desc: "说明", uses: "使用次数", usesHint: "留空表示不限",
+        tier: "强度", category: "类别", complexity: "理解成本", details: "卡牌内容", appears: "出现在哪里",
+        offered: "抽卡时提供给你", freq: "出现频率", rare: "少见", normal: "普通", often: "常见", custom: "自定义",
+        featured: "精选（每次抽卡保底一张）", challenge: "闯关卡池", twoPlayer: "双人卡池", aiPool: "AI 卡池", challengeCategory: "闯关分类", none: "无",
+        edited: "已改动", off: "已关闭", oftenBadge: "常见",
+        cardsSub: "点开卡牌即可编辑。开关决定它是否出现在你的抽卡中。", ultimateSub: "点开大招卡即可编辑文本与卡池。",
+        tuningSub: "拖动滑块调整强度。概率类数值会显示为百分比。", jsonSub: "完整配置的原始 JSON，适合高级用户批量修改。",
+        defaultValue: "默认", resetValue: "还原", advanced: "高级", min: "最小", max: "最大", step: "步进", group: "分组", general: "通用",
+        noMatch: "没有匹配的结果", saved: "已保存，下一局生效", resetDone: "已恢复默认配置，下一局生效", discarded: "已放弃未保存的改动",
+        jsonApplied: "JSON 已应用到表单，记得保存", loadFailed: "载入失败", saveFailed: "保存失败", jsonInvalid: "JSON 格式错误"
       },
       zht: {
-        save: "儲存配置", reset: "恢復基準", reload: "重新載入", export: "匯出 JSON", applyJson: "套用 JSON", advancedJson: "進階：明文 JSON",
-        rogue: "Rogue 卡", ultimate: "Ultimate 卡", tuning: "數值參數", json: "原始 JSON",
-        search: "搜尋 ID、名稱、說明、參數", changedOnly: "只看已修改", sourceBase: "目前使用基準配置",
-        sourceUser: "目前使用本機配置", rogueCount: "Rogue", ultimateCount: "Ultimate", tuningCount: "參數", changedCount: "改動",
-        name: "名稱", desc: "說明", icon: "圖示", uses: "使用次數", tier: "強度", category: "類別", complexity: "理解成本",
-        featured: "精選池", challenge: "闖關池", twoPlayer: "雙人池", aiPool: "AI 池", challengeCategory: "闖關分類",
-        value: "數值", min: "最小", max: "最大", step: "步進", group: "分組", card: "卡牌", key: "鍵名",
-        saved: "已儲存並重新載入", resetDone: "已恢復基準配置", jsonApplied: "JSON 已套用到表單", loadFailed: "載入失敗",
-        saveFailed: "儲存失敗", noMatch: "沒有符合項目", dirty: "已修改", base: "基準", user: "本機", active: "目前", schema: "Schema",
-        cardsSub: "編輯卡牌文本、圖示、卡池和 meta 資訊", tuningSub: "編輯實際影響強度的數值參數", jsonSub: "明文配置視圖，可直接貼上完整 JSON"
+        title: "卡牌工坊", subtitle: "調整卡牌文字、出現頻率與數值，儲存後從下一局開始生效。", lang: "語言",
+        rogue: "Rogue 卡", ultimate: "大招卡", tuning: "數值", json: "進階 JSON",
+        search: "搜尋卡名、說明或參數", filterAll: "全部", filterChanged: "已改動", filterOff: "已關閉", changedOnly: "只看已修改",
+        statusClean: "已全部儲存", statusDirty: "{n} 處未儲存改動", statusPending: "已儲存 · 下一局生效",
+        save: "儲存改動", discard: "放棄改動", nextGameNote: "儲存後從下一局開始生效，進行中的對局保持原規則。", noChanges: "沒有未儲存的改動",
+        pendingNotice: "已儲存的改動會在你開始下一局時生效。目前進行中的對局不受影響。",
+        more: "更多 ▾", reload: "重新載入", reset: "恢復預設配置", resetConfirm: "再點一次確認恢復預設", export: "匯出 JSON", applyJson: "套用 JSON 到表單",
+        edit: "編輯", done: "完成", revert: "還原此卡", name: "名稱", icon: "圖示", desc: "說明", uses: "使用次數", usesHint: "留空表示不限",
+        tier: "強度", category: "類別", complexity: "理解成本", details: "卡牌內容", appears: "出現在哪裡",
+        offered: "抽卡時提供給你", freq: "出現頻率", rare: "少見", normal: "普通", often: "常見", custom: "自訂",
+        featured: "精選（每次抽卡保底一張）", challenge: "闖關卡池", twoPlayer: "雙人卡池", aiPool: "AI 卡池", challengeCategory: "闖關分類", none: "無",
+        edited: "已改動", off: "已關閉", oftenBadge: "常見",
+        cardsSub: "點開卡牌即可編輯。開關決定它是否出現在你的抽卡中。", ultimateSub: "點開大招卡即可編輯文字與卡池。",
+        tuningSub: "拖動滑桿調整強度。機率類數值會顯示為百分比。", jsonSub: "完整配置的原始 JSON，適合進階使用者批次修改。",
+        defaultValue: "預設", resetValue: "還原", advanced: "進階", min: "最小", max: "最大", step: "步進", group: "分組", general: "通用",
+        noMatch: "沒有符合的結果", saved: "已儲存，下一局生效", resetDone: "已恢復預設配置，下一局生效", discarded: "已放棄未儲存的改動",
+        jsonApplied: "JSON 已套用到表單，記得儲存", loadFailed: "載入失敗", saveFailed: "儲存失敗", jsonInvalid: "JSON 格式錯誤"
+      },
+      en: {
+        title: "Card Workshop", subtitle: "Tune card text, how often cards show up, and their numbers. Saved changes apply from your next game.", lang: "Language",
+        rogue: "Rogue cards", ultimate: "Ultimate cards", tuning: "Numbers", json: "Advanced JSON",
+        search: "Search card names, descriptions or settings", filterAll: "All", filterChanged: "Edited", filterOff: "Turned off", changedOnly: "Changed only",
+        statusClean: "All changes saved", statusDirty: "{n} unsaved changes", statusPending: "Saved · applies next game",
+        save: "Save changes", discard: "Discard", nextGameNote: "Saved changes apply from your next game; games in progress keep their rules.", noChanges: "No unsaved changes",
+        pendingNotice: "Your saved changes will apply when you start your next game. Any game in progress is not affected.",
+        more: "More ▾", reload: "Reload", reset: "Restore defaults", resetConfirm: "Click again to restore defaults", export: "Export JSON", applyJson: "Apply JSON to form",
+        edit: "Edit", done: "Done", revert: "Revert card", name: "Name", icon: "Icon", desc: "Description", uses: "Uses", usesHint: "Leave empty for no limit",
+        tier: "Tier", category: "Category", complexity: "Read cost", details: "Card content", appears: "Where it appears",
+        offered: "Offered to you in drafts", freq: "How often", rare: "Rare", normal: "Normal", often: "Often", custom: "Custom",
+        featured: "Featured (one guaranteed per draft)", challenge: "Challenge pool", twoPlayer: "Two-player pool", aiPool: "AI pool", challengeCategory: "Challenge category", none: "None",
+        edited: "Edited", off: "Off", oftenBadge: "Often",
+        cardsSub: "Open a card to edit it. The switch decides whether it shows up in your drafts.", ultimateSub: "Open an Ultimate card to edit its text and pools.",
+        tuningSub: "Drag a slider to change strength. Chances are shown as percentages.", jsonSub: "The full config as raw JSON, for bulk edits.",
+        defaultValue: "Default", resetValue: "Reset", advanced: "Advanced", min: "Min", max: "Max", step: "Step", group: "Group", general: "General",
+        noMatch: "Nothing matches", saved: "Saved. Applies from your next game.", resetDone: "Defaults restored. Applies from your next game.", discarded: "Unsaved changes discarded",
+        jsonApplied: "JSON applied to the form. Remember to save.", loadFailed: "Load failed", saveFailed: "Save failed", jsonInvalid: "Invalid JSON"
+      },
+      ja: {
+        title: "カード工房", subtitle: "カードの文言・出現頻率・数値を調整します。保存した変更は次の対局から有効です。", lang: "言語",
+        rogue: "Rogueカード", ultimate: "必殺カード", tuning: "数値", json: "上級 JSON",
+        search: "カード名・説明・設定を検索", filterAll: "すべて", filterChanged: "変更済み", filterOff: "オフ", changedOnly: "変更のみ",
+        statusClean: "すべて保存済み", statusDirty: "未保存の変更 {n} 件", statusPending: "保存済み・次局から有効",
+        save: "変更を保存", discard: "破棄", nextGameNote: "保存した変更は次の対局から有効。進行中の対局は元のルールのままです。", noChanges: "未保存の変更はありません",
+        pendingNotice: "保存した変更は次の対局を始めたときに有効になります。進行中の対局には影響しません。",
+        more: "その他 ▾", reload: "再読込", reset: "既定に戻す", resetConfirm: "もう一度押すと既定に戻します", export: "JSON出力", applyJson: "JSONをフォームに適用",
+        edit: "編集", done: "完了", revert: "このカードを戻す", name: "名前", icon: "アイコン", desc: "説明", uses: "使用回数", usesHint: "空欄で無制限",
+        tier: "強さ", category: "カテゴリ", complexity: "理解コスト", details: "カード内容", appears: "登場する場所",
+        offered: "ドラフトで提示する", freq: "出現頻度", rare: "まれ", normal: "普通", often: "よく出る", custom: "カスタム",
+        featured: "注目枠（毎回1枚保証）", challenge: "チャレンジ枠", twoPlayer: "二人対局枠", aiPool: "AI枠", challengeCategory: "チャレンジ分類", none: "なし",
+        edited: "変更済み", off: "オフ", oftenBadge: "よく出る",
+        cardsSub: "カードを開いて編集します。スイッチでドラフトに出すかを決めます。", ultimateSub: "必殺カードを開いて文言とプールを編集します。",
+        tuningSub: "スライダーで強さを調整。確率はパーセントで表示します。", jsonSub: "設定全体の生JSON。一括編集向けです。",
+        defaultValue: "既定", resetValue: "戻す", advanced: "詳細", min: "最小", max: "最大", step: "刻み", group: "分類", general: "共通",
+        noMatch: "一致する項目がありません", saved: "保存しました。次の対局から有効です。", resetDone: "既定に戻しました。次の対局から有効です。", discarded: "未保存の変更を破棄しました",
+        jsonApplied: "JSONをフォームに適用しました。保存を忘れずに。", loadFailed: "読込失敗", saveFailed: "保存失敗", jsonInvalid: "JSONが正しくありません"
+      },
+      ko: {
+        title: "카드 공방", subtitle: "카드 문구, 등장 빈도, 수치를 조정합니다. 저장한 변경은 다음 대국부터 적용됩니다.", lang: "언어",
+        rogue: "Rogue 카드", ultimate: "궁극기 카드", tuning: "수치", json: "고급 JSON",
+        search: "카드 이름, 설명, 설정 검색", filterAll: "전체", filterChanged: "변경됨", filterOff: "꺼짐", changedOnly: "변경만 보기",
+        statusClean: "모두 저장됨", statusDirty: "저장 안 된 변경 {n}개", statusPending: "저장됨 · 다음 대국부터",
+        save: "변경 저장", discard: "취소", nextGameNote: "저장한 변경은 다음 대국부터 적용되며, 진행 중인 대국은 기존 규칙을 유지합니다.", noChanges: "저장 안 된 변경 없음",
+        pendingNotice: "저장한 변경은 다음 대국을 시작할 때 적용됩니다. 진행 중인 대국에는 영향이 없습니다.",
+        more: "더보기 ▾", reload: "다시 불러오기", reset: "기본값 복원", resetConfirm: "한 번 더 누르면 기본값으로 복원", export: "JSON 내보내기", applyJson: "JSON을 폼에 적용",
+        edit: "편집", done: "완료", revert: "이 카드 되돌리기", name: "이름", icon: "아이콘", desc: "설명", uses: "사용 횟수", usesHint: "비우면 제한 없음",
+        tier: "강도", category: "분류", complexity: "이해 비용", details: "카드 내용", appears: "등장 위치",
+        offered: "드래프트에 제시", freq: "등장 빈도", rare: "드묾", normal: "보통", often: "자주", custom: "사용자 지정",
+        featured: "추천(매 드래프트 1장 보장)", challenge: "도전 풀", twoPlayer: "2인 풀", aiPool: "AI 풀", challengeCategory: "도전 분류", none: "없음",
+        edited: "변경됨", off: "꺼짐", oftenBadge: "자주",
+        cardsSub: "카드를 열어 편집하세요. 스위치로 드래프트 등장 여부를 정합니다.", ultimateSub: "궁극기 카드를 열어 문구와 풀을 편집하세요.",
+        tuningSub: "슬라이더로 강도를 조정합니다. 확률은 백분율로 표시됩니다.", jsonSub: "전체 설정의 원본 JSON. 일괄 편집용입니다.",
+        defaultValue: "기본", resetValue: "되돌리기", advanced: "고급", min: "최소", max: "최대", step: "단위", group: "그룹", general: "공통",
+        noMatch: "일치하는 항목 없음", saved: "저장했습니다. 다음 대국부터 적용됩니다.", resetDone: "기본값을 복원했습니다. 다음 대국부터 적용됩니다.", discarded: "저장 안 된 변경을 취소했습니다",
+        jsonApplied: "JSON을 폼에 적용했습니다. 저장을 잊지 마세요.", loadFailed: "불러오기 실패", saveFailed: "저장 실패", jsonInvalid: "잘못된 JSON"
       },
       fr: {
-        save: "Enregistrer", reset: "Restaurer la base", reload: "Recharger", export: "Exporter JSON", applyJson: "Appliquer JSON", advancedJson: "Avancé : JSON brut",
-        rogue: "Cartes Rogue", ultimate: "Cartes ultimes", tuning: "Paramètres", json: "JSON brut",
-        search: "Rechercher ID, nom, description ou paramètre", changedOnly: "Modifiés seulement", sourceBase: "Configuration de base active",
-        sourceUser: "Configuration locale active", rogueCount: "Rogue", ultimateCount: "Ultimate", tuningCount: "Paramètres", changedCount: "Modifiés",
-        name: "Nom", desc: "Description", icon: "Icône", uses: "Usages", tier: "Puissance", category: "Catégorie", complexity: "Complexité",
-        featured: "Pool vedette", challenge: "Pool défi", twoPlayer: "Pool deux joueurs", aiPool: "Pool IA", challengeCategory: "Catégorie défi",
-        value: "Valeur", min: "Min", max: "Max", step: "Pas", group: "Groupe", card: "Carte", key: "Clé",
-        saved: "Enregistré puis rechargé", resetDone: "Base restaurée", jsonApplied: "JSON appliqué au formulaire", loadFailed: "Chargement impossible",
-        saveFailed: "Enregistrement impossible", noMatch: "Aucun résultat", dirty: "Modifié", base: "Base", user: "Local", active: "Actif", schema: "Schema",
-        cardsSub: "Modifier textes, icônes, pools et meta des cartes", tuningSub: "Modifier les valeurs qui règlent la force des cartes", jsonSub: "Voir la configuration brute ou coller un JSON complet"
+        title: "Atelier des cartes", subtitle: "Réglez les textes, la fréquence d'apparition et les valeurs des cartes. Les changements enregistrés s'appliquent dès la partie suivante.", lang: "Langue",
+        rogue: "Cartes Rogue", ultimate: "Cartes ultimes", tuning: "Valeurs", json: "JSON avancé",
+        search: "Rechercher un nom, une description ou un réglage", filterAll: "Toutes", filterChanged: "Modifiées", filterOff: "Désactivées", changedOnly: "Modifiés seulement",
+        statusClean: "Tout est enregistré", statusDirty: "{n} modifications non enregistrées", statusPending: "Enregistré · partie suivante",
+        save: "Enregistrer", discard: "Annuler", nextGameNote: "Les changements enregistrés s'appliquent dès la partie suivante ; une partie en cours garde ses règles.", noChanges: "Aucune modification en attente",
+        pendingNotice: "Vos changements enregistrés s'appliqueront au début de votre prochaine partie. La partie en cours n'est pas affectée.",
+        more: "Plus ▾", reload: "Recharger", reset: "Rétablir les valeurs par défaut", resetConfirm: "Cliquez encore pour confirmer", export: "Exporter JSON", applyJson: "Appliquer le JSON au formulaire",
+        edit: "Modifier", done: "Terminé", revert: "Rétablir la carte", name: "Nom", icon: "Icône", desc: "Description", uses: "Usages", usesHint: "Vide = illimité",
+        tier: "Puissance", category: "Catégorie", complexity: "Complexité", details: "Contenu de la carte", appears: "Où elle apparaît",
+        offered: "Proposée dans vos tirages", freq: "Fréquence", rare: "Rare", normal: "Normale", often: "Fréquente", custom: "Personnalisée",
+        featured: "Vedette (une garantie par tirage)", challenge: "Pool défi", twoPlayer: "Pool deux joueurs", aiPool: "Pool IA", challengeCategory: "Catégorie défi", none: "Aucune",
+        edited: "Modifiée", off: "Désactivée", oftenBadge: "Fréquente",
+        cardsSub: "Ouvrez une carte pour la modifier. L'interrupteur décide si elle apparaît dans vos tirages.", ultimateSub: "Ouvrez une carte ultime pour modifier son texte et ses pools.",
+        tuningSub: "Faites glisser un curseur pour régler la puissance. Les probabilités s'affichent en pourcentage.", jsonSub: "La configuration complète en JSON brut, pour les modifications en masse.",
+        defaultValue: "Défaut", resetValue: "Rétablir", advanced: "Avancé", min: "Min", max: "Max", step: "Pas", group: "Groupe", general: "Général",
+        noMatch: "Aucun résultat", saved: "Enregistré. S'applique dès la partie suivante.", resetDone: "Valeurs par défaut rétablies dès la partie suivante.", discarded: "Modifications annulées",
+        jsonApplied: "JSON appliqué au formulaire. Pensez à enregistrer.", loadFailed: "Chargement impossible", saveFailed: "Enregistrement impossible", jsonInvalid: "JSON invalide"
       },
       de: {
-        save: "Speichern", reset: "Basis wiederherstellen", reload: "Neu laden", export: "JSON exportieren", applyJson: "JSON anwenden", advancedJson: "Erweitert: Rohes JSON",
-        rogue: "Rogue-Karten", ultimate: "Ultimative Karten", tuning: "Parameter", json: "Rohes JSON",
-        search: "ID, Name, Beschreibung oder Parameter suchen", changedOnly: "Nur Änderungen", sourceBase: "Aktive Basiskonfiguration",
-        sourceUser: "Aktive lokale Konfiguration", rogueCount: "Rogue", ultimateCount: "Ultimate", tuningCount: "Parameter", changedCount: "Änderungen",
-        name: "Name", desc: "Beschreibung", icon: "Icon", uses: "Nutzungen", tier: "Stärke", category: "Kategorie", complexity: "Komplexität",
-        featured: "Empfohlener Pool", challenge: "Herausforderungs-Pool", twoPlayer: "Zwei-Spieler-Pool", aiPool: "KI-Pool", challengeCategory: "Herausforderungskategorie",
-        value: "Wert", min: "Min", max: "Max", step: "Schritt", group: "Gruppe", card: "Karte", key: "Schlüssel",
-        saved: "Gespeichert und neu geladen", resetDone: "Basis wiederhergestellt", jsonApplied: "JSON auf Formular angewendet", loadFailed: "Laden fehlgeschlagen",
-        saveFailed: "Speichern fehlgeschlagen", noMatch: "Keine Treffer", dirty: "Geändert", base: "Basis", user: "Lokal", active: "Aktiv", schema: "Schema",
-        cardsSub: "Kartentexte, Icons, Pools und Meta bearbeiten", tuningSub: "Zahlenwerte bearbeiten, die Kartenstärke beeinflussen", jsonSub: "Rohe Konfiguration ansehen oder vollständiges JSON einfügen"
+        title: "Kartenwerkstatt", subtitle: "Kartentexte, Häufigkeit und Werte anpassen. Gespeicherte Änderungen gelten ab der nächsten Partie.", lang: "Sprache",
+        rogue: "Rogue-Karten", ultimate: "Ultimative Karten", tuning: "Werte", json: "Erweitert: JSON",
+        search: "Kartennamen, Beschreibungen oder Einstellungen suchen", filterAll: "Alle", filterChanged: "Geändert", filterOff: "Ausgeschaltet", changedOnly: "Nur Änderungen",
+        statusClean: "Alles gespeichert", statusDirty: "{n} ungespeicherte Änderungen", statusPending: "Gespeichert · ab nächster Partie",
+        save: "Änderungen speichern", discard: "Verwerfen", nextGameNote: "Gespeicherte Änderungen gelten ab der nächsten Partie; laufende Partien behalten ihre Regeln.", noChanges: "Keine ungespeicherten Änderungen",
+        pendingNotice: "Deine gespeicherten Änderungen gelten, sobald du die nächste Partie startest. Eine laufende Partie bleibt unverändert.",
+        more: "Mehr ▾", reload: "Neu laden", reset: "Standard wiederherstellen", resetConfirm: "Zum Bestätigen erneut klicken", export: "JSON exportieren", applyJson: "JSON ins Formular übernehmen",
+        edit: "Bearbeiten", done: "Fertig", revert: "Karte zurücksetzen", name: "Name", icon: "Icon", desc: "Beschreibung", uses: "Nutzungen", usesHint: "Leer = unbegrenzt",
+        tier: "Stärke", category: "Kategorie", complexity: "Komplexität", details: "Karteninhalt", appears: "Wo sie erscheint",
+        offered: "Dir beim Ziehen anbieten", freq: "Häufigkeit", rare: "Selten", normal: "Normal", often: "Häufig", custom: "Eigene",
+        featured: "Empfohlen (eine pro Ziehung garantiert)", challenge: "Herausforderungs-Pool", twoPlayer: "Zwei-Spieler-Pool", aiPool: "KI-Pool", challengeCategory: "Herausforderungskategorie", none: "Keine",
+        edited: "Geändert", off: "Aus", oftenBadge: "Häufig",
+        cardsSub: "Öffne eine Karte zum Bearbeiten. Der Schalter bestimmt, ob sie dir angeboten wird.", ultimateSub: "Öffne eine ultimative Karte, um Text und Pools zu bearbeiten.",
+        tuningSub: "Regler ziehen, um die Stärke zu ändern. Wahrscheinlichkeiten werden in Prozent angezeigt.", jsonSub: "Die gesamte Konfiguration als rohes JSON, für Massenänderungen.",
+        defaultValue: "Standard", resetValue: "Zurücksetzen", advanced: "Erweitert", min: "Min", max: "Max", step: "Schritt", group: "Gruppe", general: "Allgemein",
+        noMatch: "Keine Treffer", saved: "Gespeichert. Gilt ab der nächsten Partie.", resetDone: "Standard wiederhergestellt. Gilt ab der nächsten Partie.", discarded: "Ungespeicherte Änderungen verworfen",
+        jsonApplied: "JSON ins Formular übernommen. Speichern nicht vergessen.", loadFailed: "Laden fehlgeschlagen", saveFailed: "Speichern fehlgeschlagen", jsonInvalid: "Ungültiges JSON"
       }
     };
 
     const state = {
-      lang: normalizeLang(localStorage.getItem("card_editor_lang") || localStorage.getItem("rogue_go_arena_lang") || navigator.language || "zh"),
+      lang: normalizeLang(readStorage("card_editor_lang") || readStorage("rogue_go_arena_lang") || navigator.language || "zh"),
       tab: "rogue",
       query: "",
-      changedOnly: false,
+      filter: "all",
+      open: new Set(),
       payload: null,
       config: null,
+      saved: null,
       base: null,
-      originalText: "",
-      jsonDirty: false
+      jsonDirty: false,
+      resetArmed: false
     };
 
+    const $ = id => document.getElementById(id);
     const els = {
-      sourceLine: document.getElementById("sourceLine"),
-      saveBtn: document.getElementById("saveBtn"),
-      resetBtn: document.getElementById("resetBtn"),
-      reloadBtn: document.getElementById("reloadBtn"),
-      exportBtn: document.getElementById("exportBtn"),
-      applyJsonBtn: document.getElementById("applyJsonBtn"),
-      advancedJsonBtn: document.getElementById("advancedJsonBtn"),
-      langGrid: document.getElementById("langGrid"),
-      tabs: document.getElementById("tabs"),
-      searchBox: document.getElementById("searchBox"),
-      changedOnly: document.getElementById("changedOnly"),
-      changedOnlyLabel: document.getElementById("changedOnlyLabel"),
-      pathBox: document.getElementById("pathBox"),
-      sectionTitle: document.getElementById("sectionTitle"),
-      sectionSub: document.getElementById("sectionSub"),
-      saveState: document.getElementById("saveState"),
-      errorBox: document.getElementById("errorBox"),
-      content: document.getElementById("content"),
-      rogueCount: document.getElementById("rogueCount"),
-      ultimateCount: document.getElementById("ultimateCount"),
-      tuningCount: document.getElementById("tuningCount"),
-      changedCount: document.getElementById("changedCount"),
-      rogueCountLabel: document.getElementById("rogueCountLabel"),
-      ultimateCountLabel: document.getElementById("ultimateCountLabel"),
-      tuningCountLabel: document.getElementById("tuningCountLabel"),
-      changedCountLabel: document.getElementById("changedCountLabel"),
-      toast: document.getElementById("toast")
+      pageTitle: $("pageTitle"), pageSubtitle: $("pageSubtitle"), statusChip: $("statusChip"),
+      langSelect: $("langSelect"), langLabel: $("langLabel"), moreBtn: $("moreBtn"), morePanel: $("morePanel"),
+      reloadBtn: $("reloadBtn"), exportBtn: $("exportBtn"), resetBtn: $("resetBtn"),
+      pendingNotice: $("pendingNotice"), errorBox: $("errorBox"), tabs: $("tabs"),
+      toolbar: $("toolbar"), searchBox: $("searchBox"), searchLabel: $("searchLabel"), filterChips: $("filterChips"),
+      changedOnly: $("changedOnly"), changedOnlyLabel: $("changedOnlyLabel"),
+      sectionSub: $("sectionSub"), content: $("content"),
+      saveState: $("saveState"), saveNote: $("saveNote"), discardBtn: $("discardBtn"), saveBtn: $("saveBtn"), toast: $("toast")
     };
 
-    function t(key) { return dict[state.lang]?.[key] || dict.zh[key] || key; }
+    function readStorage(key) { try { return localStorage.getItem(key); } catch { return null; } }
+    function writeStorage(key, value) { try { localStorage.setItem(key, value); } catch { /* storage unavailable */ } }
+    function t(key, vars = {}) {
+      const text = dict[state.lang]?.[key] || dict.en[key] || dict.zh[key] || key;
+      return text.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? "");
+    }
     function normalizeLang(value) {
       const raw = String(value || "").toLowerCase();
       if (raw.startsWith("zh-tw") || raw.startsWith("zh-hk") || raw.startsWith("zh-mo") || raw.startsWith("zh-hant") || raw === "zht") return "zht";
@@ -614,87 +479,120 @@
       return "zh";
     }
     function locale() { return localeMap[state.lang] || "zh-CN"; }
+    // Card meta values (tier/category/complexity) are stored in Chinese; show them in the UI language.
+    async function loadMetaLabels(lang) {
+      if (metaLabels[lang]) return;
+      try {
+        const response = await fetch(`/static/locales/${LOCALE_FILES[lang]}`, { cache: "no-cache" });
+        metaLabels[lang] = response.ok ? (await response.json()).cardMeta || {} : {};
+      } catch { metaLabels[lang] = {}; }
+    }
+    function metaLabel(value) { return metaLabels[state.lang]?.[value] || value; }
+    function effectiveMeta(mode, id) {
+      return { ...(state.config.meta?.[`${mode}_defaults`] || {}), ...(state.config.meta?.[mode]?.[id] || {}) };
+    }
     function clone(value) { return JSON.parse(JSON.stringify(value)); }
+    function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
     function textOf(value) {
       if (typeof value === "string") return value;
       if (!value || typeof value !== "object") return "";
       return value[locale()] || value["zh-CN"] || value["en-US"] || Object.values(value).find(v => typeof v === "string") || "";
     }
-    function setLocalized(target, value) {
-      if (!target || typeof target !== "object") return;
-      target[locale()] = value;
-    }
     function escapeHtml(value) {
-      return String(value ?? "").replace(/[&<>"']/g, char => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
-      })[char]);
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[ch]);
     }
-    function inputValue(value) {
-      return escapeHtml(value ?? "");
-    }
-    function numberValue(value) {
-      const n = Number(value);
-      return Number.isFinite(n) ? escapeHtml(n) : "";
-    }
-    function isChanged(path) {
-      const active = getAt(state.config, path);
-      const base = getAt(state.base, path);
-      return JSON.stringify(active) !== JSON.stringify(base);
-    }
-    function getAt(root, path) {
-      return path.reduce((value, key) => value?.[key], root);
-    }
-    function setPool(poolName, cardId, enabled) {
-      const pool = state.config.pools[poolName] || (state.config.pools[poolName] = []);
-      const idx = pool.indexOf(cardId);
-      if (enabled && idx < 0) pool.push(cardId);
-      if (!enabled && idx >= 0) pool.splice(idx, 1);
-    }
-    function poolHas(poolName, cardId) {
-      return (state.config.pools[poolName] || []).includes(cardId);
-    }
-    function changedCount() {
-      if (!state.config || !state.base) return 0;
-      let count = 0;
-      for (const mode of ["rogue", "ultimate"]) {
-        for (const id of Object.keys(state.config.cards?.[mode] || {})) {
-          if (isChanged(["cards", mode, id]) || isChanged(["meta", mode, id])) count += 1;
-        }
-      }
-      for (const key of Object.keys(state.config.tuning || {})) {
-        if (isChanged(["tuning", key])) count += 1;
-      }
-      if (isChanged(["pools"])) count += 1;
-      if (isChanged(["challenge"])) count += 1;
-      return count;
-    }
-    function showToast(message) {
-      els.toast.textContent = message;
-      els.toast.classList.add("show");
-      window.clearTimeout(showToast.timer);
-      showToast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 2300);
-    }
+    function numberValue(value) { const n = Number(value); return Number.isFinite(n) ? escapeHtml(n) : ""; }
+    function getAt(root, path) { return path.reduce((value, key) => value?.[key], root); }
     function formatNumber(value, step) {
       const n = Number(value);
       if (!Number.isFinite(n)) return "";
       const decimals = Number(step) < 1 ? Math.min(4, String(step).split(".")[1]?.length || 2) : 0;
       return decimals ? n.toFixed(decimals).replace(/\.?0+$/, "") : String(Math.round(n));
     }
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => els.toast.classList.remove("show"), 2600);
+    }
 
+    // ---- config helpers -------------------------------------------------
+    function offers() {
+      if (!state.config.offers) state.config.offers = { rogue_disabled: [], rogue_weights: {} };
+      state.config.offers.rogue_disabled ||= [];
+      state.config.offers.rogue_weights ||= {};
+      return state.config.offers;
+    }
+    function isOffered(id) { return !(state.config.offers?.rogue_disabled || []).includes(id); }
+    function setOffered(id, on) {
+      const list = offers().rogue_disabled;
+      const idx = list.indexOf(id);
+      if (on && idx >= 0) list.splice(idx, 1);
+      if (!on && idx < 0) list.push(id);
+    }
+    function weightOf(id) { return Number(state.config.offers?.rogue_weights?.[id] ?? 1); }
+    function freqKey(id) {
+      const w = weightOf(id);
+      return Object.keys(FREQ).find(key => FREQ[key] === w) || "custom";
+    }
+    function setWeight(id, weight) {
+      const weights = offers().rogue_weights;
+      if (weight === 1) delete weights[id]; else weights[id] = weight;
+    }
+    function poolHas(pool, id) { return (state.config.pools?.[pool] || []).includes(id); }
+    function setPool(pool, id, on) {
+      const list = state.config.pools[pool] || (state.config.pools[pool] = []);
+      const idx = list.indexOf(id);
+      if (on && idx < 0) list.push(id);
+      if (!on && idx >= 0) list.splice(idx, 1);
+    }
+    function cardSnapshot(root, mode, id) {
+      if (!root) return null;
+      const pools = Object.fromEntries(Object.entries(root.pools || {}).map(([k, v]) => [k, (v || []).includes(id)]));
+      return {
+        card: root.cards?.[mode]?.[id],
+        meta: root.meta?.[mode]?.[id],
+        pools,
+        category: root.challenge?.categories?.[id],
+        disabled: (root.offers?.rogue_disabled || []).includes(id),
+        weight: root.offers?.rogue_weights?.[id] ?? 1
+      };
+    }
+    function cardEdited(mode, id) { return !same(cardSnapshot(state.config, mode, id), cardSnapshot(state.base, mode, id)); }
+    function tuneEdited(key) { return !same(state.config.tuning?.[key], state.base?.tuning?.[key]); }
+    function unsavedCount() {
+      if (!state.config || !state.saved) return 0;
+      let count = 0;
+      for (const mode of ["rogue", "ultimate"]) {
+        for (const id of Object.keys(state.config.cards?.[mode] || {})) {
+          if (!same(cardSnapshot(state.config, mode, id), cardSnapshot(state.saved, mode, id))) count += 1;
+        }
+      }
+      for (const key of Object.keys(state.config.tuning || {})) {
+        if (!same(state.config.tuning[key], state.saved.tuning?.[key])) count += 1;
+      }
+      const rest = cfg => { const copy = clone(cfg); delete copy.cards; delete copy.meta; delete copy.pools; delete copy.tuning; delete copy.offers; delete copy.challenge; delete copy.updated_at; return copy; };
+      if (!same(rest(state.config), rest(state.saved))) count += 1;
+      if (!same(state.config.challenge?.allowed_categories, state.saved.challenge?.allowed_categories)) count += 1;
+      return count;
+    }
+
+    // ---- server ---------------------------------------------------------
+    function adoptPayload(payload) {
+      state.payload = payload;
+      state.config = clone(payload.config);
+      state.saved = clone(payload.config);
+      state.base = clone(payload.base_config);
+      state.jsonDirty = false;
+    }
     async function loadPayload() {
       const response = await fetch("/api/card-config", { cache: "no-store" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      state.payload = await response.json();
-      state.config = clone(state.payload.config);
-      state.base = clone(state.payload.base_config);
-      state.originalText = JSON.stringify(state.config, null, 2);
-      state.jsonDirty = false;
+      adoptPayload(await response.json());
       render();
     }
-
     async function savePayload() {
-      const jsonArea = document.getElementById("jsonText");
-      if (state.tab === "json" && jsonArea && state.jsonDirty) applyJsonText();
+      if (state.tab === "json" && state.jsonDirty && !applyJsonText()) return;
       const response = await fetch("/api/card-config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -702,22 +600,14 @@
       });
       const result = await response.json();
       if (!response.ok || !result.ok) {
-        if (result.payload) {
-          state.payload = result.payload;
-        }
         renderErrors(result.errors || [t("saveFailed")]);
-        showToast((result.errors || [t("saveFailed")]).join("; "));
+        showToast(t("saveFailed"));
         return;
       }
-      state.payload = result.payload;
-      state.config = clone(result.payload.config);
-      state.base = clone(result.payload.base_config);
-      state.originalText = JSON.stringify(state.config, null, 2);
-      state.jsonDirty = false;
+      adoptPayload(result.payload);
       render();
       showToast(t("saved"));
     }
-
     async function resetPayload() {
       const response = await fetch("/api/card-config/reset", { method: "POST" });
       const result = await response.json();
@@ -725,24 +615,31 @@
         renderErrors(result.errors || [t("saveFailed")]);
         return;
       }
-      state.payload = result.payload;
-      state.config = clone(result.payload.config);
-      state.base = clone(result.payload.base_config);
-      state.originalText = JSON.stringify(state.config, null, 2);
-      state.jsonDirty = false;
+      adoptPayload(result.payload);
+      state.open.clear();
       render();
       showToast(t("resetDone"));
     }
-
-    function applyJsonText() {
-      const jsonArea = document.getElementById("jsonText");
-      if (!jsonArea) return;
-      state.config = JSON.parse(jsonArea.value);
+    function discardChanges() {
+      state.config = clone(state.saved);
       state.jsonDirty = false;
       render();
-      showToast(t("jsonApplied"));
+      showToast(t("discarded"));
     }
-
+    function applyJsonText() {
+      const area = $("jsonText");
+      if (!area) return true;
+      try {
+        state.config = JSON.parse(area.value);
+      } catch (error) {
+        showToast(`${t("jsonInvalid")}: ${error.message}`);
+        return false;
+      }
+      state.jsonDirty = false;
+      renderChrome();
+      showToast(t("jsonApplied"));
+      return true;
+    }
     function exportJson() {
       const blob = new Blob([JSON.stringify(state.config, null, 2) + "\n"], { type: "application/json" });
       const link = document.createElement("a");
@@ -752,308 +649,425 @@
       URL.revokeObjectURL(link.href);
     }
 
+    // ---- rendering ------------------------------------------------------
     function renderChrome() {
       document.documentElement.lang = locale();
-      els.saveBtn.textContent = t("save");
-      els.resetBtn.textContent = t("reset");
+      document.title = `rogue-go-arena · ${t("title")}`;
+      els.pageTitle.textContent = t("title");
+      els.pageSubtitle.textContent = t("subtitle");
+      els.langLabel.textContent = t("lang");
+      els.langSelect.innerHTML = Object.entries(langLabels).map(([key, label]) =>
+        `<option value="${key}"${key === state.lang ? " selected" : ""}>${label}</option>`).join("");
+      els.moreBtn.textContent = t("more");
       els.reloadBtn.textContent = t("reload");
       els.exportBtn.textContent = t("export");
-      els.applyJsonBtn.textContent = t("applyJson");
-      els.applyJsonBtn.style.display = state.tab === "json" ? "" : "none";
-      els.advancedJsonBtn.innerHTML = `<span>${t("advancedJson")}</span><span>{}</span>`;
-      els.advancedJsonBtn.classList.toggle("active", state.tab === "json");
+      els.resetBtn.textContent = state.resetArmed ? t("resetConfirm") : t("reset");
       els.searchBox.placeholder = t("search");
+      els.searchLabel.textContent = t("search");
       els.changedOnlyLabel.textContent = t("changedOnly");
-      els.rogueCountLabel.textContent = t("rogueCount");
-      els.ultimateCountLabel.textContent = t("ultimateCount");
-      els.tuningCountLabel.textContent = t("tuningCount");
-      els.changedCountLabel.textContent = t("changedCount");
-      const sourceText = state.payload?.source === "user" ? t("sourceUser") : t("sourceBase");
-      els.sourceLine.textContent = sourceText;
-      const paths = state.payload?.paths || {};
-      els.pathBox.innerHTML = [
-        `${t("base")}: ${escapeHtml(paths.base || "")}`,
-        `${t("user")}: ${escapeHtml(paths.user || "")}`,
-        `${t("active")}: ${escapeHtml(paths.active || "")}`,
-        `${t("schema")}: ${escapeHtml(paths.schema || "")}`,
-      ].join("<br>");
-      els.langGrid.innerHTML = Object.keys(langLabels).map(lang => (
-        `<button type="button" class="tab${state.lang === lang ? " active" : ""}" data-lang="${lang}"><span>${langLabels[lang]}</span></button>`
-      )).join("");
-      els.langGrid.querySelectorAll("button").forEach(btn => {
-        btn.addEventListener("click", () => {
-          state.lang = btn.dataset.lang;
-          localStorage.setItem("card_editor_lang", state.lang);
-          render();
-        });
-      });
-      const tabs = [
-        ["rogue", t("rogue"), Object.keys(state.config?.cards?.rogue || {}).length],
-        ["ultimate", t("ultimate"), Object.keys(state.config?.cards?.ultimate || {}).length],
-        ["tuning", t("tuning"), Object.keys(state.config?.tuning || {}).length],
-      ];
-      els.tabs.innerHTML = tabs.map(([key, label, count]) => (
-        `<button type="button" class="tab${state.tab === key ? " active" : ""}" data-tab="${key}"><span>${label}</span><span>${count}</span></button>`
-      )).join("");
-      els.tabs.querySelectorAll("button").forEach(btn => {
-        btn.addEventListener("click", () => {
-          state.tab = btn.dataset.tab;
-          state.jsonDirty = false;
-          render();
-        });
-      });
-      els.rogueCount.textContent = Object.keys(state.config?.cards?.rogue || {}).length;
-      els.ultimateCount.textContent = Object.keys(state.config?.cards?.ultimate || {}).length;
-      els.tuningCount.textContent = Object.keys(state.config?.tuning || {}).length;
-      els.changedCount.textContent = changedCount();
-      els.saveState.textContent = changedCount() > 0 ? t("dirty") : "";
+
+      const unsaved = unsavedCount();
+      const pending = !!state.payload?.pending_next_game;
+      els.statusChip.className = "status-chip" + (unsaved ? " dirty" : pending ? " pending" : "");
+      els.statusChip.textContent = unsaved ? t("statusDirty", { n: unsaved }) : pending ? t("statusPending") : t("statusClean");
+      els.saveState.textContent = unsaved ? t("statusDirty", { n: unsaved }) : t("noChanges");
+      els.saveNote.textContent = t("nextGameNote");
+      els.saveBtn.textContent = t("save");
+      els.discardBtn.textContent = t("discard");
+      const jsonPending = state.tab === "json" && state.jsonDirty;
+      els.saveBtn.disabled = !unsaved && !jsonPending;
+      els.discardBtn.disabled = !unsaved && !jsonPending;
+      els.pendingNotice.innerHTML = pending && !unsaved ? `<div class="notice">ⓘ <span>${escapeHtml(t("pendingNotice"))}</span></div>` : "";
+
+      const counts = {
+        rogue: Object.keys(state.config?.cards?.rogue || {}).length,
+        ultimate: Object.keys(state.config?.cards?.ultimate || {}).length,
+        tuning: Object.keys(state.config?.tuning || {}).length
+      };
+      els.tabs.innerHTML = ["rogue", "ultimate", "tuning"].map(key =>
+        `<button type="button" data-tab="${key}" class="${state.tab === key ? "active" : ""}" aria-current="${state.tab === key}">${t(key)}<span class="count">${counts[key]}</span></button>`
+      ).join("") + `<span class="spacer"></span><button type="button" data-tab="json" id="advancedJsonBtn" class="${state.tab === "json" ? "active" : ""}">${t("json")}</button>`;
+
+      const filters = state.tab === "rogue" ? ["all", "changed", "off"] : state.tab === "json" ? [] : ["all", "changed"];
+      els.toolbar.hidden = state.tab === "json";
+      els.filterChips.innerHTML = filters.map(key =>
+        `<button type="button" class="chip${state.filter === key ? " active" : ""}" data-filter="${key}" aria-pressed="${state.filter === key}">${t({ all: "filterAll", changed: "filterChanged", off: "filterOff" }[key])}</button>`
+      ).join("");
+      els.changedOnly.checked = state.filter === "changed";
     }
 
     function renderErrors(errors = state.payload?.errors || []) {
-      if (!errors.length) {
-        els.errorBox.innerHTML = "";
-        return;
-      }
-      els.errorBox.innerHTML = `<div class="errorbox">${errors.map(item => `<div>${escapeHtml(item)}</div>`).join("")}</div>`;
+      els.errorBox.innerHTML = errors.length
+        ? `<div class="errorbox">${errors.map(item => `<div>${escapeHtml(item)}</div>`).join("")}</div>`
+        : "";
     }
 
-    function itemMatches(values) {
+    function matches(values) {
       const query = state.query.trim().toLowerCase();
-      if (!query) return true;
-      return values.join(" ").toLowerCase().includes(query);
+      return !query || values.join(" ").toLowerCase().includes(query);
     }
 
     function renderCards(mode) {
       const cards = state.config.cards[mode] || {};
-      const metaMap = state.config.meta?.[mode] || {};
-      const baseCards = state.base.cards?.[mode] || {};
+      const meta = state.config.meta?.[mode] || {};
+      els.sectionSub.textContent = mode === "rogue" ? t("cardsSub") : t("ultimateSub");
       const rows = Object.entries(cards).filter(([id, card]) => {
-        const changed = JSON.stringify(card) !== JSON.stringify(baseCards[id]) || isChanged(["meta", mode, id]);
-        if (state.changedOnly && !changed) return false;
-        return itemMatches([id, textOf(card.name), textOf(card.desc), metaMap[id]?.tier, metaMap[id]?.category, metaMap[id]?.complexity]);
+        if (state.filter === "changed" && !cardEdited(mode, id)) return false;
+        if (state.filter === "off" && (mode !== "rogue" || isOffered(id))) return false;
+        return matches([id, textOf(card.name), textOf(card.desc), meta[id]?.tier, meta[id]?.category]);
       });
-      els.sectionTitle.textContent = mode === "rogue" ? t("rogue") : t("ultimate");
-      els.sectionSub.textContent = t("cardsSub");
       if (!rows.length) {
         els.content.innerHTML = `<div class="empty">${t("noMatch")}</div>`;
         return;
       }
-      els.content.innerHTML = `<div class="list">${rows.map(([id, card]) => cardRow(mode, id, card)).join("")}</div>`;
-      bindCardRows(mode);
+      // A narrow search (or an exact card id) opens the matching cards straight away.
+      const query = state.query.trim().toLowerCase();
+      const autoOpen = id => query !== "" && (rows.length <= 3 || id.toLowerCase() === query);
+      els.content.innerHTML = `<div class="card-grid">${rows.map(([id, card]) => cardTile(mode, id, card, autoOpen(id) || state.open.has(`${mode}:${id}`))).join("")}</div>`;
+      bindCards(mode);
     }
 
-    function cardRow(mode, id, card) {
-      const meta = state.config.meta?.[mode]?.[id] || {};
-      const changed = isChanged(["cards", mode, id]) || isChanged(["meta", mode, id]);
-      const category = state.config.challenge?.categories?.[id] || "";
+    function cardTile(mode, id, card, open) {
+      const meta = effectiveMeta(mode, id);
+      const offered = mode !== "rogue" || isOffered(id);
+      const freq = mode === "rogue" ? freqKey(id) : "normal";
+      const badges = [
+        meta.tier ? `<span class="badge tier">${escapeHtml(meta.tier)}</span>` : "",
+        meta.category ? `<span class="badge">${escapeHtml(metaLabel(meta.category))}</span>` : "",
+        !offered ? `<span class="badge off">${t("off")}</span>` : "",
+        offered && freq === "often" ? `<span class="badge often">${t("oftenBadge")}</span>` : "",
+        cardEdited(mode, id) ? `<span class="badge edited">${t("edited")}</span>` : ""
+      ].join("");
       return `
-        <article class="card-row${changed ? " changed" : ""}" data-id="${escapeHtml(id)}">
-          <div class="identity">
-            <div class="icon">${escapeHtml(card.icon || "?")}</div>
-            <div class="idline">
+        <article class="card-row${open ? " open" : ""}${offered ? "" : " off"}" data-id="${escapeHtml(id)}">
+          <div class="card-head">
+            <div class="card-icon" aria-hidden="true">${escapeHtml(card.icon || "?")}</div>
+            <div class="card-title">
               <strong>${escapeHtml(textOf(card.name) || id)}</strong>
               <span class="mono">${escapeHtml(id)}</span>
-              ${changed ? `<span class="pill">${t("dirty")}</span>` : ""}
             </div>
+            <button type="button" class="${open ? "ghost" : ""}" data-toggle aria-expanded="${open}">${open ? t("done") : t("edit")}</button>
           </div>
-          <div class="grid2">
-            <div class="field"><label>${t("name")}</label><input data-field="name" value="${escapeHtml(textOf(card.name))}"></div>
-            <div class="field"><label>${t("icon")}</label><input data-field="icon" value="${escapeHtml(card.icon || "")}"></div>
-            <div class="field" style="grid-column:1/-1"><label>${t("desc")}</label><textarea data-field="desc">${escapeHtml(textOf(card.desc))}</textarea></div>
-            <div class="field"><label>${t("uses")}</label><input data-field="uses" type="number" min="0" step="1" value="${numberValue(card.uses)}"></div>
-            <div class="field"><label>${t("tier")}</label><input data-meta="tier" value="${escapeHtml(meta.tier || "")}"></div>
-            <div class="field"><label>${t("category")}</label><input data-meta="category" value="${escapeHtml(meta.category || "")}"></div>
-            <div class="field"><label>${t("complexity")}</label><input data-meta="complexity" value="${escapeHtml(meta.complexity || "")}"></div>
-          </div>
-          <div class="checks">
-            <label class="checkline"><input type="checkbox" data-pool="${mode === "rogue" ? "rogue_featured" : "ultimate_featured"}" ${poolHas(mode === "rogue" ? "rogue_featured" : "ultimate_featured", id) ? "checked" : ""}>${t("featured")}</label>
-            ${mode === "rogue" ? `
-              <label class="checkline"><input type="checkbox" data-pool="challenge_beta" ${poolHas("challenge_beta", id) ? "checked" : ""}>${t("challenge")}</label>
-              <label class="checkline"><input type="checkbox" data-pool="two_player_rogue" ${poolHas("two_player_rogue", id) ? "checked" : ""}>${t("twoPlayer")}</label>
-              <label class="checkline"><input type="checkbox" data-pool="ai_rogue" ${poolHas("ai_rogue", id) ? "checked" : ""}>${t("aiPool")}</label>
-              <div class="field"><label>${t("challengeCategory")}</label><select data-challenge-category>
-                <option value=""></option>
-                ${(state.config.challenge?.allowed_categories || []).map(item => `<option value="${escapeHtml(item)}" ${category === item ? "selected" : ""}>${escapeHtml(item)}</option>`).join("")}
-              </select></div>
-            ` : `
-              <label class="checkline"><input type="checkbox" data-pool="ai_ultimate" ${poolHas("ai_ultimate", id) ? "checked" : ""}>${t("aiPool")}</label>
-            `}
-          </div>
-        </article>
-      `;
+          <div class="badges">${badges}</div>
+          <p class="card-desc">${escapeHtml(textOf(card.desc))}</p>
+          ${open ? cardEditor(mode, id, card, state.config.meta?.[mode]?.[id] || {}, meta) : ""}
+        </article>`;
     }
 
-    function bindCardRows(mode) {
+    function cardEditor(mode, id, card, meta, effective) {
+      const category = state.config.challenge?.categories?.[id] || "";
+      const freq = mode === "rogue" ? freqKey(id) : "normal";
+      const featuredPool = mode === "rogue" ? "rogue_featured" : "ultimate_featured";
+      const sw = (attr, label, checked) =>
+        `<label class="switch"><span>${label}</span><input type="checkbox" ${attr} ${checked ? "checked" : ""}></label>`;
+      return `
+        <div class="editor">
+          <div>
+            <h3>${t("details")}</h3>
+            <div class="fields">
+              <div class="field"><label>${t("name")}</label><input data-field="name" value="${escapeHtml(textOf(card.name))}"></div>
+              <div class="field"><label>${t("icon")}</label><input data-field="icon" value="${escapeHtml(card.icon || "")}"></div>
+              <div class="field wide"><label>${t("desc")}</label><textarea data-field="desc">${escapeHtml(textOf(card.desc))}</textarea></div>
+              <div class="field"><label>${t("uses")}</label><input data-field="uses" type="number" min="0" step="1" value="${numberValue(card.uses)}" placeholder="${escapeHtml(t("usesHint"))}"></div>
+              <div class="field"><label>${t("tier")}</label><input data-meta="tier" value="${escapeHtml(meta.tier || "")}" placeholder="${escapeHtml(effective.tier || "")}"></div>
+              <div class="field"><label>${t("category")}</label><input data-meta="category" value="${escapeHtml(meta.category || "")}" placeholder="${escapeHtml(effective.category || "")}"></div>
+              <div class="field"><label>${t("complexity")}</label><input data-meta="complexity" value="${escapeHtml(meta.complexity || "")}" placeholder="${escapeHtml(effective.complexity || "")}"></div>
+            </div>
+          </div>
+          <div>
+            <h3>${t("appears")}</h3>
+            <div class="switches">
+              ${mode === "rogue" ? `
+                ${sw("data-offered", t("offered"), isOffered(id))}
+                <div class="freq">
+                  <span class="hint">${t("freq")}</span>
+                  <div class="segmented" role="group" aria-label="${escapeHtml(t("freq"))}">
+                    ${["rare", "normal", "often"].map(key => `<button type="button" data-freq="${key}" class="${freq === key ? "active" : ""}" aria-pressed="${freq === key}" ${isOffered(id) ? "" : "disabled"}>${t(key)}</button>`).join("")}
+                    ${freq === "custom" ? `<button type="button" class="active" aria-pressed="true" disabled>${t("custom")} ×${escapeHtml(weightOf(id))}</button>` : ""}
+                  </div>
+                </div>` : ""}
+              ${sw(`data-pool="${featuredPool}"`, t("featured"), poolHas(featuredPool, id))}
+              ${mode === "rogue" ? `
+                ${sw('data-pool="challenge_beta"', t("challenge"), poolHas("challenge_beta", id))}
+                ${sw('data-pool="two_player_rogue"', t("twoPlayer"), poolHas("two_player_rogue", id))}
+                ${sw('data-pool="ai_rogue"', t("aiPool"), poolHas("ai_rogue", id))}
+                <div class="field"><label>${t("challengeCategory")}</label><select data-challenge-category>
+                  <option value="">${t("none")}</option>
+                  ${(state.config.challenge?.allowed_categories || []).map(item => `<option value="${escapeHtml(item)}" ${category === item ? "selected" : ""}>${escapeHtml(item)}</option>`).join("")}
+                </select></div>` : sw('data-pool="ai_ultimate"', t("aiPool"), poolHas("ai_ultimate", id))}
+            </div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button type="button" class="ghost" data-revert ${cardEdited(mode, id) ? "" : "disabled"}>${t("revert")}</button>
+        </div>`;
+    }
+
+    function bindCards(mode) {
       els.content.querySelectorAll(".card-row").forEach(row => {
         const id = row.dataset.id;
+        const key = `${mode}:${id}`;
         const card = state.config.cards[mode][id];
+        row.querySelector("[data-toggle]").addEventListener("click", () => {
+          if (row.classList.contains("open")) state.open.delete(key); else state.open.add(key);
+          renderCards(mode);
+        });
         row.querySelectorAll("[data-field]").forEach(input => {
           input.addEventListener("input", () => {
             const field = input.dataset.field;
             if (field === "name" || field === "desc") {
               if (!card[field] || typeof card[field] !== "object") card[field] = {};
-              setLocalized(card[field], input.value);
+              card[field][locale()] = input.value;
+              if (field === "name") row.querySelector(".card-title strong").textContent = input.value || id;
             } else if (field === "uses") {
               if (input.value === "") delete card.uses;
               else card.uses = Math.max(0, Math.round(Number(input.value) || 0));
             } else {
               card[field] = input.value;
+              row.querySelector(".card-icon").textContent = input.value || "?";
             }
             renderChrome();
           });
         });
         row.querySelectorAll("[data-meta]").forEach(input => {
           input.addEventListener("input", () => {
+            state.config.meta ||= {};
+            state.config.meta[mode] ||= {};
             const meta = state.config.meta[mode][id] || (state.config.meta[mode][id] = {});
             meta[input.dataset.meta] = input.value;
             renderChrome();
           });
         });
+        row.querySelector("[data-offered]")?.addEventListener("change", event => {
+          setOffered(id, event.target.checked);
+          state.open.add(key);
+          rerender();
+        });
+        row.querySelectorAll("[data-freq]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            setWeight(id, FREQ[btn.dataset.freq]);
+            state.open.add(key);
+            rerender();
+          });
+        });
         row.querySelectorAll("[data-pool]").forEach(input => {
           input.addEventListener("change", () => {
             setPool(input.dataset.pool, id, input.checked);
-            renderCards(mode);
+            state.open.add(key);
+            rerender();
           });
         });
-        const category = row.querySelector("[data-challenge-category]");
-        if (category) {
-          category.addEventListener("change", () => {
-            if (!state.config.challenge.categories) state.config.challenge.categories = {};
-            if (category.value) state.config.challenge.categories[id] = category.value;
-            else delete state.config.challenge.categories[id];
-            renderCards(mode);
-          });
-        }
+        row.querySelector("[data-challenge-category]")?.addEventListener("change", event => {
+          state.config.challenge.categories ||= {};
+          if (event.target.value) state.config.challenge.categories[id] = event.target.value;
+          else delete state.config.challenge.categories[id];
+          state.open.add(key);
+          rerender();
+        });
+        row.querySelector("[data-revert]")?.addEventListener("click", () => revertCard(mode, id));
       });
     }
 
+    function revertCard(mode, id) {
+      const base = cardSnapshot(state.base, mode, id);
+      if (!base) return;
+      state.config.cards[mode][id] = clone(base.card);
+      state.config.meta ||= {};
+      state.config.meta[mode] ||= {};
+      if (base.meta) state.config.meta[mode][id] = clone(base.meta); else delete state.config.meta[mode][id];
+      for (const [pool, on] of Object.entries(base.pools)) setPool(pool, id, on);
+      if (mode === "rogue") {
+        state.config.challenge.categories ||= {};
+        if (base.category) state.config.challenge.categories[id] = base.category; else delete state.config.challenge.categories[id];
+        setOffered(id, !base.disabled);
+        setWeight(id, Number(base.weight));
+      }
+      rerender();
+    }
+
+    function tuningGroups(entries) {
+      const groups = new Map();
+      for (const entry of entries) {
+        const spec = entry[1];
+        const cardName = spec.card ? textOf(state.config.cards?.rogue?.[spec.card]?.name || state.config.cards?.ultimate?.[spec.card]?.name) : "";
+        const groupKey = spec.card ? `${spec.group || ""}:${spec.card}` : `${spec.group || ""}:`;
+        const icon = state.config.cards?.rogue?.[spec.card]?.icon || state.config.cards?.ultimate?.[spec.card]?.icon || "⚙";
+        const label = spec.card ? `${spec.group ? spec.group + " · " : ""}${cardName || spec.card}` : (spec.group || t("general"));
+        if (!groups.has(groupKey)) groups.set(groupKey, { label, icon, entries: [] });
+        groups.get(groupKey).entries.push(entry);
+      }
+      return [...groups.values()];
+    }
+
     function renderTuning() {
-      const entries = Object.entries(state.config.tuning || {}).filter(([key, spec]) => {
-        const changed = isChanged(["tuning", key]);
-        if (state.changedOnly && !changed) return false;
-        return itemMatches([key, textOf(spec.label), spec.group, spec.card]);
-      });
-      els.sectionTitle.textContent = t("tuning");
       els.sectionSub.textContent = t("tuningSub");
+      const entries = Object.entries(state.config.tuning || {}).filter(([key, spec]) => {
+        if (state.filter === "changed" && !tuneEdited(key)) return false;
+        return matches([key, textOf(spec.label), spec.group, spec.card, textOf(state.config.cards?.rogue?.[spec.card]?.name)]);
+      });
       if (!entries.length) {
         els.content.innerHTML = `<div class="empty">${t("noMatch")}</div>`;
         return;
       }
-      els.content.innerHTML = `<div class="list">${entries.map(([key, spec]) => {
-        const changed = isChanged(["tuning", key]);
-        const value = Number(spec.value);
-        return `
-          <article class="tune-row${changed ? " changed" : ""}" data-key="${escapeHtml(key)}">
-            <div>
-              <strong>${escapeHtml(textOf(spec.label) || key)}</strong>
-              <div class="mono">${escapeHtml(key)}</div>
-              <div><span class="pill">${escapeHtml(spec.group || "")}</span> ${spec.card ? `<span class="pill">${escapeHtml(spec.card)}</span>` : ""}</div>
-            </div>
-            <div class="grid2">
-              <div class="field"><label>${t("value")}</label><input data-tune="value" type="range" min="${numberValue(spec.min)}" max="${numberValue(spec.max)}" step="${numberValue(spec.step)}" value="${numberValue(value)}"></div>
-              <div class="field"><label>${t("value")}</label><input data-tune-number type="number" min="${numberValue(spec.min)}" max="${numberValue(spec.max)}" step="${numberValue(spec.step)}" value="${inputValue(formatNumber(value, spec.step))}"></div>
+      els.content.innerHTML = tuningGroups(entries).map(group => `
+        <section class="tune-group">
+          <h2><span aria-hidden="true">${escapeHtml(group.icon)}</span>${escapeHtml(group.label)}</h2>
+          <div class="tune-list">${group.entries.map(([key, spec]) => tuneRow(key, spec)).join("")}</div>
+        </section>`).join("");
+      bindTuning();
+    }
+
+    function isChance(spec) { return Number(spec.min) >= 0 && Number(spec.max) === 1 && Number(spec.step ?? 1) < 1; }
+
+    function tuneRow(key, spec) {
+      const value = Number(spec.value);
+      const base = state.base?.tuning?.[key];
+      return `
+        <article class="tune-row${tuneEdited(key) ? " edited" : ""}" data-key="${escapeHtml(key)}">
+          <div class="tune-label">
+            <strong>${escapeHtml(textOf(spec.label) || key)}</strong>
+            <span class="mono">${escapeHtml(key)}</span>
+          </div>
+          <div class="tune-control">
+            <input data-tune="value" type="range" aria-label="${escapeHtml(textOf(spec.label) || key)}" min="${numberValue(spec.min)}" max="${numberValue(spec.max)}" step="${numberValue(spec.step)}" value="${numberValue(value)}">
+            <input data-tune-number type="number" aria-label="${escapeHtml(textOf(spec.label) || key)}" min="${numberValue(spec.min)}" max="${numberValue(spec.max)}" step="${numberValue(spec.step)}" value="${escapeHtml(formatNumber(value, spec.step))}">
+          </div>
+          <button type="button" class="ghost" data-reset-tune ${tuneEdited(key) ? "" : "disabled"}>${t("resetValue")}</button>
+          <div class="tune-meta">
+            ${isChance(spec) ? `<span class="pct" data-pct>${Math.round(value * 1000) / 10}%</span>` : ""}
+            ${base ? `<span>${t("defaultValue")}: ${escapeHtml(formatNumber(base.value, base.step))}</span>` : ""}
+            <span>${t("min")} ${escapeHtml(formatNumber(spec.min, spec.step))} – ${t("max")} ${escapeHtml(formatNumber(spec.max, spec.step))}</span>
+          </div>
+          <details class="advanced">
+            <summary>${t("advanced")}</summary>
+            <div class="fields">
               <div class="field"><label>${t("min")}</label><input data-tune="min" type="number" step="any" value="${numberValue(spec.min)}"></div>
               <div class="field"><label>${t("max")}</label><input data-tune="max" type="number" step="any" value="${numberValue(spec.max)}"></div>
               <div class="field"><label>${t("step")}</label><input data-tune="step" type="number" step="any" value="${numberValue(spec.step ?? 1)}"></div>
               <div class="field"><label>${t("group")}</label><input data-tune="group" value="${escapeHtml(spec.group || "")}"></div>
             </div>
-            <button type="button" data-reset-tune>${t("reset")}</button>
-          </article>
-        `;
-      }).join("")}</div>`;
-      bindTuningRows();
+          </details>
+        </article>`;
     }
 
-    function bindTuningRows() {
+    function bindTuning() {
       els.content.querySelectorAll(".tune-row").forEach(row => {
         const key = row.dataset.key;
         const spec = state.config.tuning[key];
+        const range = row.querySelector('[data-tune="value"]');
+        const number = row.querySelector("[data-tune-number]");
+        const pct = row.querySelector("[data-pct]");
+        const reflect = () => {
+          row.classList.toggle("edited", tuneEdited(key));
+          row.querySelector("[data-reset-tune]").disabled = !tuneEdited(key);
+          if (pct) pct.textContent = `${Math.round(Number(spec.value) * 1000) / 10}%`;
+          renderChrome();
+        };
         row.querySelectorAll("[data-tune]").forEach(input => {
           input.addEventListener("input", () => {
             const field = input.dataset.tune;
-            if (field === "value" || field === "min" || field === "max" || field === "step") {
-              spec[field] = input.value === "" && field !== "value" ? null : Number(input.value);
-            } else {
-              spec[field] = input.value;
-            }
-            const number = row.querySelector("[data-tune-number]");
-            const range = row.querySelector('[data-tune="value"]');
-            if (field === "value" && number) number.value = formatNumber(spec.value, spec.step);
-            if (field === "value" && range) range.value = String(spec.value);
-            renderChrome();
+            if (field === "group") spec.group = input.value;
+            else spec[field] = input.value === "" && field !== "value" ? null : Number(input.value);
+            if (field === "value") number.value = formatNumber(spec.value, spec.step);
+            reflect();
           });
         });
-        const number = row.querySelector("[data-tune-number]");
-        if (number) {
-          number.addEventListener("input", () => {
-            spec.value = Number(number.value);
-            const range = row.querySelector('[data-tune="value"]');
-            if (range) range.value = String(spec.value);
-            renderChrome();
-          });
-        }
-        const reset = row.querySelector("[data-reset-tune]");
-        if (reset) {
-          reset.addEventListener("click", () => {
-            state.config.tuning[key] = clone(state.base.tuning[key]);
-            renderTuning();
-          });
-        }
+        number.addEventListener("input", () => {
+          spec.value = Number(number.value);
+          range.value = String(spec.value);
+          reflect();
+        });
+        row.querySelector("[data-reset-tune]").addEventListener("click", () => {
+          state.config.tuning[key] = clone(state.base.tuning[key]);
+          renderTuning();
+          renderChrome();
+        });
       });
     }
 
     function renderJson() {
-      els.sectionTitle.textContent = t("json");
       els.sectionSub.textContent = t("jsonSub");
       els.content.innerHTML = `
         <div class="json-panel">
-          <textarea id="jsonText" spellcheck="false">${escapeHtml(JSON.stringify(state.config, null, 2))}</textarea>
-        </div>
-      `;
-      const area = document.getElementById("jsonText");
-      area.addEventListener("input", () => {
-        state.jsonDirty = true;
-      });
+          <textarea id="jsonText" spellcheck="false" aria-label="JSON">${escapeHtml(JSON.stringify(state.config, null, 2))}</textarea>
+          <div><button type="button" id="applyJsonBtn">${t("applyJson")}</button></div>
+        </div>`;
+      $("jsonText").addEventListener("input", () => { state.jsonDirty = true; renderChrome(); });
+      $("applyJsonBtn").addEventListener("click", applyJsonText);
     }
 
     function renderContent() {
       if (!state.config) return;
-      if (state.tab === "rogue") renderCards("rogue");
-      else if (state.tab === "ultimate") renderCards("ultimate");
+      if (state.tab === "rogue" || state.tab === "ultimate") renderCards(state.tab);
       else if (state.tab === "tuning") renderTuning();
       else renderJson();
     }
+    function rerender() { renderChrome(); renderContent(); }
+    function render() { renderChrome(); renderErrors(); renderContent(); }
 
-    function render() {
-      renderChrome();
-      renderErrors();
-      renderContent();
-    }
-
+    // ---- events ---------------------------------------------------------
+    els.tabs.addEventListener("click", event => {
+      const btn = event.target.closest("[data-tab]");
+      if (!btn) return;
+      if (state.tab === "json" && state.jsonDirty && btn.dataset.tab !== "json" && !applyJsonText()) return;
+      state.tab = btn.dataset.tab;
+      state.filter = "all";
+      render();
+    });
+    els.filterChips.addEventListener("click", event => {
+      const btn = event.target.closest("[data-filter]");
+      if (!btn) return;
+      state.filter = btn.dataset.filter;
+      rerender();
+    });
+    els.changedOnly.addEventListener("change", event => {
+      state.filter = event.target.checked ? "changed" : "all";
+      rerender();
+    });
     els.searchBox.addEventListener("input", event => {
       state.query = event.target.value;
       renderContent();
     });
-    els.changedOnly.addEventListener("change", event => {
-      state.changedOnly = event.target.checked;
-      renderContent();
-    });
-    els.saveBtn.addEventListener("click", () => savePayload().catch(error => showToast(error.message)));
-    els.resetBtn.addEventListener("click", () => resetPayload().catch(error => showToast(error.message)));
-    els.reloadBtn.addEventListener("click", () => loadPayload().catch(error => showToast(`${t("loadFailed")}: ${error.message}`)));
-    els.exportBtn.addEventListener("click", exportJson);
-    els.advancedJsonBtn.addEventListener("click", () => {
-      state.tab = "json";
-      state.jsonDirty = false;
+    els.langSelect.addEventListener("change", async () => {
+      state.lang = els.langSelect.value;
+      writeStorage("card_editor_lang", state.lang);
+      await loadMetaLabels(state.lang);
       render();
     });
-    els.applyJsonBtn.addEventListener("click", () => {
-      try { applyJsonText(); } catch (error) { showToast(error.message); }
+    els.moreBtn.addEventListener("click", () => {
+      const open = els.morePanel.hidden;
+      els.morePanel.hidden = !open;
+      els.moreBtn.setAttribute("aria-expanded", String(open));
+      if (!open) { state.resetArmed = false; renderChrome(); }
+    });
+    document.addEventListener("click", event => {
+      if (!event.target.closest(".menu") && !els.morePanel.hidden) {
+        els.morePanel.hidden = true;
+        els.moreBtn.setAttribute("aria-expanded", "false");
+        state.resetArmed = false;
+        renderChrome();
+      }
+    });
+    els.reloadBtn.addEventListener("click", () => {
+      els.morePanel.hidden = true;
+      loadPayload().catch(error => showToast(`${t("loadFailed")}: ${error.message}`));
+    });
+    els.exportBtn.addEventListener("click", () => { els.morePanel.hidden = true; exportJson(); });
+    els.resetBtn.addEventListener("click", () => {
+      if (!state.resetArmed) { state.resetArmed = true; renderChrome(); return; }
+      state.resetArmed = false;
+      els.morePanel.hidden = true;
+      resetPayload().catch(error => showToast(error.message));
+    });
+    els.saveBtn.addEventListener("click", () => savePayload().catch(error => showToast(`${t("saveFailed")}: ${error.message}`)));
+    els.discardBtn.addEventListener("click", discardChanges);
+    window.addEventListener("beforeunload", event => {
+      if (unsavedCount() > 0) { event.preventDefault(); event.returnValue = ""; }
     });
 
-    loadPayload().catch(error => {
-      showToast(`${t("loadFailed")}: ${error.message}`);
-    });
+    loadMetaLabels(state.lang)
+      .then(loadPayload)
+      .catch(error => showToast(`${t("loadFailed")}: ${error.message}`));
   </script>
 </body>
 </html>
