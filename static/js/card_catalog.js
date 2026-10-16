@@ -52,10 +52,41 @@ const CARD_ART_IDS = new Set([
   "suboptimal","mirror","slip","blackhole","exchange","fog","gravity","golden_corner","sansan","shadow",
   "sprout","joseki_ocd","handicap_quest","god_hand","sansan_trap","corner_helper","sanrensei","no_regret",
   "quickthink","foolish_wisdom","five_in_row","coach_mode","capture_foul","last_stand","defense_first",
-  "attack_first","methodical","chain","proliferate",
+  "attack_first","methodical","momentum","iron_wall","capture_chain","chain","proliferate",
   "double","wildgrow","rejection","territory","shadow_clone","plague","meteor","quantum","devour","timewarp",
   "blackout","magnet","necro","wall","joseki_burst",
 ]);
+
+// One plain type per Rogue card; the only tag on the pick screen.
+const ROGUE_CARD_KINDS = {
+  gift: ["sprout","joseki_ocd","god_hand","sansan_trap","corner_helper","sanrensei","no_regret",
+    "foolish_wisdom","five_in_row","capture_foul","last_stand","defense_first","attack_first"],
+  combo: ["momentum","iron_wall","capture_chain"],
+  active: ["puppet","twin","exchange","coach_mode"],
+  hinder: ["tengen","dice","seal","nerf","time_press","lowline","suboptimal","mirror","slip",
+    "blackhole","fog","gravity","golden_corner","sansan","shadow"],
+  tempo: ["quickthink","methodical","handicap_quest"],
+  komi: ["erosion","komi_relief"],
+};
+const ROGUE_KIND_BY_ID = Object.fromEntries(
+  Object.entries(ROGUE_CARD_KINDS).flatMap(([kind, ids]) => ids.map(id => [id, kind]))
+);
+const CARD_KIND_LABELS = {
+  gift: ["白送棋子", "Free stones"],
+  combo: ["连击", "Combo"],
+  active: ["主动技能", "Active skill"],
+  hinder: ["干扰 AI", "Hinders the AI"],
+  tempo: ["节奏", "Tempo"],
+  komi: ["贴目", "Komi"],
+};
+const CARD_ART_VERSION = "20261012a";
+
+function getCardKindMarkup(card, mode) {
+  const kind = mode === "rogue" ? ROGUE_KIND_BY_ID[card.id] : null;
+  if (!kind) return "";
+  const [zh, en] = CARD_KIND_LABELS[kind];
+  return `<span class="card-kind kind-${kind}">${escapeHtml(ui(zh, en))}</span>`;
+}
 
 function getCardMeta(cardId, mode) {
   const active = activeLocalePack()?.cards?.[mode]?.[cardId];
@@ -65,14 +96,15 @@ function getCardMeta(cardId, mode) {
 
 function getTranslatedCard(card, mode) {
   const localeCode = { zh: "zh-CN", zht: "zh-TW", en: "en-US", ja: "ja-JP", ko: "ko-KR", fr: "fr-FR", de: "de-DE" }[currentLang] || "zh-CN";
+  const meta = getCardMeta(card.id, mode);
   if (card?.i18n) {
     const name = card.i18n.name?.[localeCode] || card.i18n.name?.["zh-CN"] || card.name;
     const desc = card.i18n.desc?.[localeCode] || card.i18n.desc?.["zh-CN"] || card.desc;
-    return { ...card, name, desc };
+    const summary = card.i18n.summary?.[localeCode] || meta?.summary || card.i18n.summary?.["zh-CN"] || "";
+    return { ...card, name, desc, summary };
   }
-  const meta = getCardMeta(card.id, mode);
   if (!meta) return card;
-  return { ...card, name: meta.name, desc: meta.desc };
+  return { ...card, name: meta.name, desc: meta.desc, summary: meta.summary || "" };
 }
 
 function localizeCardMetaValue(value) {
@@ -101,7 +133,7 @@ function getCardMetaMarkup(card, mode) {
 
 function getCardIconMarkup(card) {
   if (CARD_ART_IDS.has(card.id)) {
-    return `<div class="rc-icon rc-icon-art" style="background-image:url('assets/icons/cards-tech/${encodeURIComponent(card.id)}.png')"></div>`;
+    return `<div class="rc-icon rc-icon-art" style="background-image:url('assets/icons/cards-medal/${encodeURIComponent(card.id)}.png?v=${CARD_ART_VERSION}')"></div>`;
   }
   return `<div class="rc-icon">${escapeHtml(card.icon)}</div>`;
 }

@@ -2815,3 +2815,121 @@ header::before { display: none; }
   }
 }
 
+
+/* Card pick screen: art, name, one plain type, a one-line summary in full,
+   and the full rules behind "How it works". Nothing is truncated. */
+.card-draft-modal {
+  width: min(980px, 94vw);
+  max-width: 980px !important;
+  max-height: 94vh;
+  overflow-y: auto;
+}
+.card-draft-modal {
+  scrollbar-color: rgba(212,175,55,.45) rgba(0,0,0,.25);
+}
+.card-draft-modal #rogue-cards,
+.card-draft-modal #ultimate-cards {
+  gap: 16px !important;
+  align-items: start !important;
+}
+.draft-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-height: 0;
+  padding: 22px 18px 16px;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+}
+.draft-card:focus-visible {
+  border-color: #f5dd93;
+  box-shadow: 0 0 0 3px rgba(245,221,147,.7), 0 18px 32px rgba(0,0,0,.38);
+}
+.draft-card .rc-icon {
+  width: 124px;
+  height: 124px;
+  margin: 0 auto 4px;
+  border-radius: 50%;
+  font-size: 3.4rem;
+  background-color: #0a0e12;
+  box-shadow:
+    0 0 0 2px rgba(222,184,92,.62),
+    0 0 0 6px rgba(9,11,13,.92),
+    0 0 0 7px rgba(70,230,215,.3),
+    0 12px 26px rgba(0,0,0,.5);
+}
+.draft-card .rc-icon.rc-icon-art {
+  width: 124px;
+  height: 124px;
+  background-size: cover;
+}
+.draft-card .rc-name {
+  margin: 0;
+  color: #f7e9c3;
+  font-size: 1.24rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.card-kind {
+  display: inline-block;
+  padding: 3px 11px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: .76rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  line-height: 1.3;
+  background: rgba(0,0,0,.28);
+}
+.card-kind.kind-gift   { color: #ffd36b; }
+.card-kind.kind-combo  { color: #ff9e6b; }
+.card-kind.kind-active { color: #6fe3d4; }
+.card-kind.kind-hinder { color: #c4a8ff; }
+.card-kind.kind-tempo  { color: #8fc8ff; }
+.card-kind.kind-komi   { color: #d6d0c4; }
+.draft-card .rc-summary {
+  margin: 2px 0 0;
+  color: #f3efe4;
+  font-size: 1.02rem;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.overlay-modal .modal-content .draft-card .rc-more {
+  margin-top: auto;
+  padding: 6px 10px;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: none;
+  color: #9fded4;
+  font-size: .84rem;
+  font-weight: 600;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.overlay-modal .modal-content .draft-card button.rc-more:hover:not(:disabled),
+.overlay-modal .modal-content .draft-card button.rc-more:focus-visible {
+  color: #d8fff8;
+  background: rgba(111,227,212,.1);
+  box-shadow: none;
+  outline: 2px solid rgba(111,227,212,.5);
+  outline-offset: 1px;
+}
+.draft-card .rc-rules {
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0,0,0,.32);
+  color: #d0d7de;
+  font-size: .88rem;
+  line-height: 1.55;
+  text-align: left;
+  overflow-wrap: anywhere;
+}

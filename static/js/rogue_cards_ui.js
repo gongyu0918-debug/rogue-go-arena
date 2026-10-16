@@ -57,6 +57,54 @@ function renderRogueWiki() {
   }).join("");
 }
 
+// One offer card: art, name, type, a one-line summary, and the full rules
+// behind "How it works" (never truncated). Clicking the card or pressing
+// Enter/Space picks it; the details button only expands.
+function buildDraftCard(card, mode, container, onPick) {
+  const c = getTranslatedCard(card, mode);
+  const cls = mode === "ultimate" ? "ultimate-card" : "rogue-card";
+  const summary = c.summary || c.desc || "";
+  const hasRules = !!(c.summary && c.desc && c.desc !== c.summary);
+  const rulesId = `draft-rules-${mode}-${card.id}`;
+  const div = document.createElement("div");
+  div.className = `${cls} draft-card`;
+  div.tabIndex = 0;
+  div.setAttribute("role", "button");
+  div.setAttribute("aria-label", `${c.name}: ${summary}`);
+  div.innerHTML = `${getCardIconMarkup(c)}
+    <div class="rc-name">${escapeHtml(c.name)}</div>
+    ${getCardKindMarkup(c, mode)}
+    <p class="rc-summary">${escapeHtml(summary)}</p>
+    ${hasRules ? `<button type="button" class="rc-more" aria-expanded="false" aria-controls="${rulesId}">${escapeHtml(ui("玩法说明", "How it works"))}</button>
+    <p class="rc-rules" id="${rulesId}" hidden>${escapeHtml(c.desc)}</p>` : ""}`;
+  const more = div.querySelector(".rc-more");
+  if (more) {
+    more.addEventListener("click", event => {
+      event.stopPropagation();
+      const rules = div.querySelector(".rc-rules");
+      const open = rules.hidden;
+      rules.hidden = !open;
+      more.setAttribute("aria-expanded", String(open));
+      more.textContent = open ? ui("收起说明", "Hide details") : ui("玩法说明", "How it works");
+    });
+    more.addEventListener("keydown", event => event.stopPropagation());
+  }
+  const pick = () => {
+    if (div.classList.contains("selected")) return;
+    container.querySelectorAll(`.${cls}`).forEach(other => other.classList.remove("selected"));
+    div.classList.add("selected");
+    onPick(c);
+  };
+  div.addEventListener("click", pick);
+  div.addEventListener("keydown", event => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      pick();
+    }
+  });
+  return div;
+}
+
 function showRogueCards(cards, meta = {}) {
   rogueOfferCards = Array.isArray(cards) ? cards.map(c => ({ ...c })) : [];
   const inChallenge = !!meta.challenge_beta;
@@ -86,20 +134,10 @@ function showRogueCards(cards, meta = {}) {
   const container = document.getElementById("rogue-cards");
   container.innerHTML = "";
   rogueOfferCards.forEach(c0 => {
-    const c = getTranslatedCard(c0, "rogue");
-    const div = document.createElement("div");
-    div.className = "rogue-card";
-    div.innerHTML = `${getCardIconMarkup(c)}
-      ${getCardMetaMarkup(c, "rogue")}
-      <div class="rc-name">${escapeHtml(c.name)}</div>
-      <div class="rc-desc">${escapeHtml(c.desc)}</div>`;
-    div.onclick = () => {
-      container.querySelectorAll(".rogue-card").forEach(card => card.classList.remove("selected"));
-      div.classList.add("selected");
+    container.appendChild(buildDraftCard(c0, "rogue", container, c => {
       showCardEffectVisual(c0.name || c.name, "rogue");
       setTimeout(() => sendWS({ action: "rogue_select_card", card_id: c0.id }), 160);
-    };
-    container.appendChild(div);
+    }));
   });
   document.getElementById("rogue-overlay").classList.add("show");
   syncClientShell();
@@ -198,20 +236,10 @@ function showUltimateCards(cards) {
   if (!container) return;
   container.innerHTML = "";
   ultimateOfferCards.forEach(c0 => {
-    const c = getTranslatedCard(c0, "ultimate");
-    const div = document.createElement("div");
-    div.className = "ultimate-card";
-    div.innerHTML = `${getCardIconMarkup(c)}
-      ${getCardMetaMarkup(c, "ultimate")}
-      <div class="rc-name">${escapeHtml(c.name)}</div>
-      <div class="rc-desc">${escapeHtml(c.desc)}</div>`;
-    div.onclick = () => {
-      container.querySelectorAll(".ultimate-card").forEach(card => card.classList.remove("selected"));
-      div.classList.add("selected");
+    container.appendChild(buildDraftCard(c0, "ultimate", container, c => {
       showCardEffectVisual(c0.name || c.name, "ultimate");
       setTimeout(() => sendWS({ action: "ultimate_select_card", card_id: c0.id }), 160);
-    };
-    container.appendChild(div);
+    }));
   });
   const overlay = document.getElementById("ultimate-overlay");
   overlay.classList.add("show");
