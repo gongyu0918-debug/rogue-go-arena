@@ -546,8 +546,8 @@
       },
       "quickthink": {
         "name": "Réflexe rapide",
-        "desc": "Un tour sur 4, vous avez 2 secondes : jouez à temps pour un coup bonus (8 par partie au plus). Trop lent ce tour-là : vous passez. Suggestions et annulation désactivées.",
-        "summary": "Un tour sur 4 : jouez en moins de 2 secondes pour un coup bonus (8 par partie) ; trop lent, vous passez. Ni indices ni annulation."
+        "desc": "Un tour sur 5, vous avez 2 secondes : jouez à temps pour un coup bonus (4 par partie au plus). Trop lent ce tour-là : vous passez. Suggestions et annulation désactivées.",
+        "summary": "Un tour sur 5 : jouez en moins de 2 secondes pour un coup bonus (4 par partie) ; trop lent, vous passez. Ni indices ni annulation."
       },
       "foolish_wisdom": {
         "name": "Sagesse lourde",

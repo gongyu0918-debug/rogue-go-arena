@@ -883,25 +883,25 @@
           "de-DE": "Schnelles Denken"
         },
         "desc": {
-          "zh-CN": "每 4 回合有一次机会：2 秒内落子可再下一手（每局最多 8 次）；这一回合超时就算虚手。禁用推荐点与悔棋。",
-          "en-US": "Every 4th turn you get 2 seconds: move in time for a bonus move (up to 8 per game). Too slow on that turn and you pass. Hints and undo are disabled.",
-          "ja-JP": "4ターンに1回、2秒以内に着手するともう1手打てます（1局最大8回）。そのターンに時間切れならパス扱い。ヒントと待ったは使用不可。",
-          "ko-KR": "4차례마다 한 번, 2초 안에 두면 한 수를 더 둡니다(판당 최대 8회). 그 차례에 시간을 넘기면 패스가 됩니다. 추천점과 되돌리기는 비활성화됩니다.",
-          "zh-TW": "每 4 回合有一次機會：2 秒內落子可再下一手（每局最多 8 次）；這一回合超時就算虛手。禁用推薦點與悔棋。",
-          "fr-FR": "Un tour sur 4, vous avez 2 secondes : jouez à temps pour un coup bonus (8 par partie au plus). Trop lent ce tour-là : vous passez. Suggestions et annulation désactivées.",
-          "de-DE": "Jeden 4. Zug hast du 2 Sekunden: Ziehst du rechtzeitig, bekommst du einen Bonuszug (höchstens 8 pro Partie). Zu langsam in diesem Zug heißt Passen. Tipps und Zurücknehmen sind deaktiviert."
+          "zh-CN": "每 5 回合有一次机会：2 秒内落子可再下一手（每局最多 4 次）；这一回合超时就算虚手。禁用推荐点与悔棋。",
+          "en-US": "Every 5th turn you get 2 seconds: move in time for a bonus move (up to 4 per game). Too slow on that turn and you pass. Hints and undo are disabled.",
+          "ja-JP": "5ターンに1回、2秒以内に着手するともう1手打てます（1局最大4回）。そのターンに時間切れならパス扱い。ヒントと待ったは使用不可。",
+          "ko-KR": "5차례마다 한 번, 2초 안에 두면 한 수를 더 둡니다(판당 최대 4회). 그 차례에 시간을 넘기면 패스가 됩니다. 추천점과 되돌리기는 비활성화됩니다.",
+          "zh-TW": "每 5 回合有一次機會：2 秒內落子可再下一手（每局最多 4 次）；這一回合超時就算虛手。禁用推薦點與悔棋。",
+          "fr-FR": "Un tour sur 5, vous avez 2 secondes : jouez à temps pour un coup bonus (4 par partie au plus). Trop lent ce tour-là : vous passez. Suggestions et annulation désactivées.",
+          "de-DE": "Jeden 5. Zug hast du 2 Sekunden: Ziehst du rechtzeitig, bekommst du einen Bonuszug (höchstens 4 pro Partie). Zu langsam in diesem Zug heißt Passen. Tipps und Zurücknehmen sind deaktiviert."
         },
         "summary": {
-          "zh-CN": "每 4 回合一次：2 秒内落子可再下一手（每局 8 次），超时算虚手；不能用提示和悔棋。",
-          "en-US": "Every 4th turn: move within 2 seconds for a bonus move (8 per game); too slow and you pass. No hints or undo.",
-          "ja-JP": "4ターンに1回：2秒以内に打つともう1手（1局8回）。遅れるとパス。ヒントと待ったは使えません。",
-          "ko-KR": "4차례마다: 2초 안에 두면 한 수 더(판당 8회), 늦으면 패스. 힌트와 무르기는 못 써요.",
-          "zh-TW": "每 4 回合一次：2 秒內落子可再下一手（每局 8 次），超時算虛手；不能用提示和悔棋。",
-          "fr-FR": "Un tour sur 4 : jouez en moins de 2 secondes pour un coup bonus (8 par partie) ; trop lent, vous passez. Ni indices ni annulation.",
-          "de-DE": "Jeden 4. Zug: Zieh in 2 Sekunden für einen Bonuszug (8 pro Partie); zu langsam heißt Passen. Keine Tipps, kein Zurück."
+          "zh-CN": "每 5 回合一次：2 秒内落子可再下一手（每局 4 次），超时算虚手；不能用提示和悔棋。",
+          "en-US": "Every 5th turn: move within 2 seconds for a bonus move (4 per game); too slow and you pass. No hints or undo.",
+          "ja-JP": "5ターンに1回：2秒以内に打つともう1手（1局4回）。遅れるとパス。ヒントと待ったは使えません。",
+          "ko-KR": "5차례마다: 2초 안에 두면 한 수 더(판당 4회), 늦으면 패스. 힌트와 무르기는 못 써요.",
+          "zh-TW": "每 5 回合一次：2 秒內落子可再下一手（每局 4 次），超時算虛手；不能用提示和悔棋。",
+          "fr-FR": "Un tour sur 5 : jouez en moins de 2 secondes pour un coup bonus (4 par partie) ; trop lent, vous passez. Ni indices ni annulation.",
+          "de-DE": "Jeden 5. Zug: Zieh in 2 Sekunden für einen Bonuszug (4 pro Partie); zu langsam heißt Passen. Keine Tipps, kein Zurück."
         },
         "icon": "⚡",
-        "value_points": 363.5
+        "value_points": 67.0
       },
       "foolish_wisdom": {
         "name": {
@@ -4045,7 +4045,7 @@
       "min": 1,
       "max": 20,
       "step": 1,
-      "value": 4
+      "value": 5
     },
     "ROGUE_QUICKTHINK_MAX_BONUS": {
       "group": "Rogue",
@@ -4062,7 +4062,7 @@
       "min": 0,
       "max": 100,
       "step": 1,
-      "value": 8
+      "value": 4
     }
   }
 }
