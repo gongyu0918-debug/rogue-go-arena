@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
-from app.config.gameplay import ROGUE_SEAL_POINT_COUNT
+from app.config import gameplay as gameplay_config
 from app.callback_types import SendFn
 
 GetCardFn = Callable[[str], dict[str, Any]]
@@ -70,7 +70,7 @@ async def activate_rogue_card_event(
         "name": card_def["name"],
         "icon": card_def["icon"],
         "waiting_seal": card_id == "seal",
-        "rogue_seal_required": ROGUE_SEAL_POINT_COUNT if card_id == "seal" else 0,
+        "rogue_seal_required": gameplay_config.ROGUE_SEAL_POINT_COUNT if card_id == "seal" else 0,
         **game.to_state(),
     })
     return result

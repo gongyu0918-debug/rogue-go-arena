@@ -4,7 +4,7 @@ import random
 import time
 from typing import Optional
 
-from app.config.gameplay import CHALLENGE_STAGE_BIAS_WEIGHT
+from app.config import gameplay as gameplay_config
 from app.data.cards import (
     CHALLENGE_BETA_POOL,
     ROGUE_FEATURED_CARDS,
@@ -47,7 +47,7 @@ def pick_challenge_beta_choices(
     for card_id in base_pool:
         category = challenge_card_category(card_id)
         if category and counts.get(category, 0) > 0:
-            weights[card_id] += CHALLENGE_STAGE_BIAS_WEIGHT * counts[category]
+            weights[card_id] += gameplay_config.CHALLENGE_STAGE_BIAS_WEIGHT * counts[category]
 
     choices = _weighted_unique_sample(base_pool, n, weights, rng)
     if choices and not any(card in ROGUE_FEATURED_CARDS for card in choices):
