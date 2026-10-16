@@ -7,7 +7,8 @@ const SETUP_ROW_DISPLAY_RULES = [
   { id: "row-handicap", display: ({ isWatch, isChallenge, isRogue }) => (isWatch || isChallenge || isRogue) ? "none" : "flex" },
   { id: "row-rules", display: ({ isChallenge }) => isChallenge ? "none" : "flex" },
   { id: "row-time", display: () => "flex" },
-  { id: "row-level", display: ({ isWatch }) => isWatch ? "none" : "flex" },
+  { id: "row-advanced-rank", display: ({ isNormal }) => isNormal ? "flex" : "none" },
+  { id: "row-level", display: ({ isNormal }) => (isNormal && advancedRankChosen()) ? "flex" : "none" },
   { id: "row-level-black", display: ({ isWatch }) => isWatch ? "flex" : "none" },
   { id: "row-level-white", display: ({ isWatch }) => isWatch ? "flex" : "none" },
   { id: "row-style", display: ({ isTwo, isWatch, isChallenge }) => (!isTwo && !isWatch && !isChallenge) ? "flex" : "none" },
@@ -44,6 +45,18 @@ const SETUP_MODE_HINTS = {
 function getRogueVariantMode() {
   const value = document.getElementById("sel-rogue-variant")?.value || "solo";
   return value === "ultimate" && !ultimateAvailable() ? "solo" : value;
+}
+
+// Normal games use the standard AI unless the player opts into picking a rank.
+const ADVANCED_RANK_KEY = "rogue_go_arena_advanced_rank";
+
+function advancedRankChosen() {
+  return !!document.getElementById("chk-advanced-rank")?.checked;
+}
+
+function selectedAiLevel(mode = startMode) {
+  if (mode === "normal" && advancedRankChosen()) return document.getElementById("sel-level").value;
+  return "standard";
 }
 
 function getSetupModeContext(mode = startMode) {
@@ -217,7 +230,7 @@ function startGameFromSetup() {
   const aiStyle = document.getElementById("sel-ai-style")?.value || "balanced";
   const aiStyleBlack = document.getElementById("sel-ai-style-black")?.value || aiStyle;
   const aiStyleWhite = document.getElementById("sel-ai-style-white")?.value || aiStyle;
-  const aiLevelDefault = document.getElementById("sel-level").value;
+  const aiLevelDefault = selectedAiLevel();
   const aiLevelBlack = document.getElementById("sel-level-black")?.value || aiLevelDefault;
   const aiLevelWhite = document.getElementById("sel-level-white")?.value || aiLevelDefault;
 
@@ -287,6 +300,15 @@ function startGameFromSetup() {
 }
 
 function bindSetupControls() {
+  const advanced = document.getElementById("chk-advanced-rank");
+  if (advanced) {
+    try { advanced.checked = localStorage.getItem(ADVANCED_RANK_KEY) === "1"; } catch (_) {}
+    advanced.addEventListener("change", () => {
+      try { localStorage.setItem(ADVANCED_RANK_KEY, advanced.checked ? "1" : "0"); } catch (_) {}
+      updateVariantOptionRows();
+    });
+  }
+
   document.getElementById("sel-rogue-variant")?.addEventListener("change", () => {
     updateVariantOptionRows();
     refreshSetupModeHint();

@@ -328,7 +328,9 @@
     "玩法说明": "Comment ça marche",
     "收起说明": "Masquer les détails",
     "选这张": "Choisir cette carte",
-    "这里汇总 Rogue AI 的玩法、闯关路线，以及所有 Rogue 卡牌的效果说明。": "Cet index présente les variantes Rogue AI, les parcours de défi et l'effet de chaque carte Rogue."
+    "这里汇总 Rogue AI 的玩法、闯关路线，以及所有 Rogue 卡牌的效果说明。": "Cet index présente les variantes Rogue AI, les parcours de défi et l'effet de chaque carte Rogue.",
+    "标准 AI": "IA standard",
+    "高级：自选 AI 等级": "Avancé : choisir le niveau de l'IA"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",

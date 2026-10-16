@@ -2816,6 +2816,20 @@ header::before { display: none; }
 }
 
 
+.setup-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #cfd6dd;
+  font-size: .86rem;
+}
+.setup-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: #d4af37;
+}
+
 /* Card pick screen: art, name, one plain type, a one-line summary in full,
    and the full rules behind "How it works". Nothing is truncated. */
 .card-draft-modal {

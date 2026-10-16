@@ -114,6 +114,7 @@ function langObjectValue(value) {
 
 function rankLabel(rankId) {
   if (!rankId) return "";
+  if (rankId === "standard") return ui("标准 AI", "Standard AI");
   const kyuMatch = String(rankId).match(/^(\d+)k$/);
   if (kyuMatch) {
     const n = kyuMatch[1];

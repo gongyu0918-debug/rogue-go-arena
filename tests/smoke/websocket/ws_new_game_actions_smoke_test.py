@@ -227,6 +227,20 @@ async def smoke_releases_engine_claim_when_game_commit_fails() -> None:
     assert ctx.connection_token not in engine.active_connection_tokens
 
 
+async def smoke_card_games_always_use_the_standard_ai() -> None:
+    standard = gameplay_config.STANDARD_AI_LEVEL
+    for payload, expected in (
+        ({"size": 19, "rogue": True, "level": "a9d"}, standard),
+        ({"size": 19, "level": "5k"}, "5k"),
+        ({"size": 19, "level": "nonsense"}, standard),
+        ({"size": 19}, standard),
+    ):
+        ctx = FakeContext()
+        await handle_new_game(ctx, payload)
+        await asyncio.sleep(0)
+        assert ctx.game.level == expected, (payload, ctx.game.level)
+
+
 async def smoke_archived_ultimate_is_refused() -> None:
     assert gameplay_config.ULTIMATE_ENABLED is False
     ctx = FakeContext()
@@ -338,6 +352,7 @@ async def main() -> None:
     await smoke_allows_internal_five_by_five_rule_smoke_board()
     await smoke_rejects_a_second_game_using_the_shared_engine()
     await smoke_releases_engine_claim_when_game_commit_fails()
+    await smoke_card_games_always_use_the_standard_ai()
     await smoke_archived_ultimate_is_refused()
     await smoke_ultimate_new_game_sends_offer()
     await smoke_two_player_rogue_new_game_uses_two_player_pool_without_engine()

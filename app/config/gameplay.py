@@ -39,7 +39,15 @@ RANK_VISITS = {
     "p9d": 0,
 }
 
+# The standard AI: one fixed, economical strength used by Rogue, Quick Game,
+# runs and normal games (unless a rank is picked under Advanced). Difficulty
+# comes from komi and handicap stones, not from the AI's search. 200 visits
+# costs about 0.1 s a move on a mid-range GPU; cost rises steeply past ~300.
+STANDARD_AI_LEVEL = "standard"
+STANDARD_AI_VISITS = 200
+
 RANK_LABELS = {
+    STANDARD_AI_LEVEL: "标准 AI",
     "18k": "18级",
     "17k": "17级",
     "16k": "16级",
@@ -211,6 +219,7 @@ AI_RALLY_STAGE_BONUS = 1
 
 
 BALANCE_TUNABLES = {
+    "STANDARD_AI_VISITS": {"group": "Engine", "card": "", "label": "标准 AI 搜索量", "min": 20, "max": 5000, "step": 10},
     "ROGUE_MAX_VISITS": {"group": "Engine", "card": "", "label": "Rogue 搜索上限", "min": 50, "max": 5000, "step": 50},
     "ULTIMATE_MAX_VISITS": {"group": "Engine", "card": "", "label": "Ultimate 搜索上限", "min": 50, "max": 5000, "step": 50},
     "CPU_MAX_VISITS": {"group": "Engine", "card": "", "label": "CPU 搜索上限", "min": 20, "max": 2000, "step": 10},

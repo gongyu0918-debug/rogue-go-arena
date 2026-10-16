@@ -45,7 +45,9 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
     komi = normalize_komi(data.get("komi", 7.5))
     handicap = payload_int(data.get("handicap", 0), 0)
     player_color = normalize_gtp_color(data.get("player_color", "B"))
-    level = data.get("level", "a3d")
+    level = str(data.get("level", gameplay_config.STANDARD_AI_LEVEL))
+    if level not in RANK_VISITS:
+        level = gameplay_config.STANDARD_AI_LEVEL
     two_player = bool(data.get("two_player", False))
     ai_observer = bool(data.get("ai_observer", False)) and not two_player
     if ai_observer:
@@ -95,11 +97,14 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
     ai_style = str(data.get("ai_style", "balanced"))
     if ai_style not in AI_STYLE_OPTIONS:
         ai_style = "balanced"
+    if rogue_enabled or challenge_beta:
+        # Card games always face the standard AI; difficulty comes from komi and stones.
+        level = gameplay_config.STANDARD_AI_LEVEL
     ai_level_black = str(data.get("ai_level_black", level))
-    if ai_level_black not in RANK_VISITS:
+    if ai_level_black not in RANK_VISITS and ai_level_black != gameplay_config.STANDARD_AI_LEVEL:
         ai_level_black = level
     ai_level_white = str(data.get("ai_level_white", level))
-    if ai_level_white not in RANK_VISITS:
+    if ai_level_white not in RANK_VISITS and ai_level_white != gameplay_config.STANDARD_AI_LEVEL:
         ai_level_white = level
     ai_style_black = str(data.get("ai_style_black", ai_style))
     if ai_style_black not in AI_STYLE_OPTIONS:

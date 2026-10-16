@@ -187,6 +187,7 @@ function localizeOverlays() {
   setText("#label-komi", ui("贴目", "Komi", "コミ", "덤"));
   setText("#label-rules", ui("规则", "Rules", "ルール", "규칙"));
   setText("#label-level", ui("等级", "Rank", "棋力", "기력"));
+  setText("#label-advanced-rank", ui("高级：自选 AI 等级", "Advanced: choose the AI's rank", "上級者向け：AIの棋力を選ぶ", "고급: AI 기력 직접 선택"));
   setText("#label-level-black", ui("黑棋等级", "Black Rank", "黒の棋力", "흑 기력"));
   setText("#label-level-white", ui("白棋等级", "White Rank", "白の棋力", "백 기력"));
   setText("#label-style", ui("AI行为", "AI Behavior", "AIの棋風", "AI 행마"));

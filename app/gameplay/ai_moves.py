@@ -68,7 +68,10 @@ def compute_game_visits(
     *,
     cpu_mode: bool = False,
 ) -> int:
-    raw = gameplay_config.RANK_VISITS.get(level, 800)
+    if level == gameplay_config.STANDARD_AI_LEVEL:
+        raw = gameplay_config.STANDARD_AI_VISITS
+    else:
+        raw = gameplay_config.RANK_VISITS.get(level, 800)
     visits = gameplay_config.MAX_GAME_VISITS if raw == 0 else min(raw, gameplay_config.MAX_GAME_VISITS)
     if mode == "rogue":
         visits = min(visits, gameplay_config.ROGUE_MAX_VISITS)
@@ -107,7 +110,17 @@ def parse_genmove_analyze_move(response: str) -> Optional[str]:
     return None
 
 
+def standard_rank_equivalent() -> str:
+    """The strongest real rank searching fewer visits than the standard AI."""
+    weaker = [rank for rank in RANK_ORDER if 0 < gameplay_config.RANK_VISITS[rank] < gameplay_config.STANDARD_AI_VISITS]
+    return weaker[-1] if weaker else RANK_ORDER[0]
+
+
 def weaken_rank(level: str, steps: int = 1) -> str:
+    if level == gameplay_config.STANDARD_AI_LEVEL:
+        if steps <= 0:
+            return level
+        level, steps = standard_rank_equivalent(), steps - 1
     try:
         idx = RANK_ORDER.index(level)
     except ValueError:

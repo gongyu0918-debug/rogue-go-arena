@@ -2085,6 +2085,23 @@
     ]
   },
   "tuning": {
+    "STANDARD_AI_VISITS": {
+      "group": "Engine",
+      "card": "",
+      "label": {
+        "zh-CN": "标准 AI 搜索量",
+        "zh-TW": "標準 AI 搜尋量",
+        "en-US": "Standard AI Visits",
+        "ja-JP": "標準AIの探索数",
+        "ko-KR": "표준 AI 탐색 수",
+        "fr-FR": "IA standard - visites",
+        "de-DE": "Standard-KI - Visits"
+      },
+      "min": 20,
+      "max": 5000,
+      "step": 10,
+      "value": 200
+    },
     "ROGUE_MAX_VISITS": {
       "group": "Engine",
       "card": "",
