@@ -72,6 +72,8 @@ class GoGame:
         self.rogue_coach_moves_left: int = 0
         self.rogue_coach_bonus_checked: bool = False
         self.rogue_quickthink_stage: int = 0
+        self.rogue_quickthink_windows: int = 0
+        self.rogue_quickthink_wait: int = 0
         # Quick Think deadline (time.monotonic), armed when the prompt is visible.
         self.rogue_quickthink_armed_key: str = ""
         self.rogue_quickthink_deadline: Optional[float] = None

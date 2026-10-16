@@ -144,6 +144,10 @@ ROGUE_QUICKTHINK_FIRST_SECONDS = 2
 # Network grace added to the Quick Think deadline once the prompt is visible.
 ROGUE_QUICKTHINK_GRACE_SECONDS = 0.35
 ROGUE_QUICKTHINK_SECOND_SECONDS = 1
+# The bonus window opens at most every N player turns (1 = every turn) and at
+# most this many times per game (0 = no cap). See app/gameplay/quickthink_window.py.
+ROGUE_QUICKTHINK_COOLDOWN_TURNS = 4
+ROGUE_QUICKTHINK_MAX_BONUS = 8
 ROGUE_SANSAN_TRAP_STONES = 1
 ROGUE_SEAL_POINT_COUNT = 4
 ROGUE_FIVE_IN_ROW_SUPPORT_STONES = 0
@@ -301,6 +305,8 @@ BALANCE_TUNABLES = {
     "ROGUE_NO_REGRET_CHANCE": {"group": "Rogue", "card": "no_regret", "label": "永不悔棋白送概率", "min": 0, "max": 1, "step": 0.01},
     "ROGUE_QUICKTHINK_FIRST_SECONDS": {"group": "Rogue", "card": "quickthink", "label": "快速思考首段秒数", "min": 1, "max": 30, "step": 1},
     "ROGUE_QUICKTHINK_SECOND_SECONDS": {"group": "Rogue", "card": "quickthink", "label": "快速思考连击秒数", "min": 0.1, "max": 30, "step": 0.1},
+    "ROGUE_QUICKTHINK_COOLDOWN_TURNS": {"group": "Rogue", "card": "quickthink", "label": "快速思考：每几回合开一次窗口", "min": 1, "max": 20, "step": 1},
+    "ROGUE_QUICKTHINK_MAX_BONUS": {"group": "Rogue", "card": "quickthink", "label": "快速思考：每局追加手上限（0 为不限）", "min": 0, "max": 100, "step": 1},
     "ROGUE_SANSAN_TRAP_STONES": {"group": "Rogue", "card": "sansan_trap", "label": "三三陷阱反生子", "min": 0, "max": 40, "step": 1},
     "ROGUE_SEAL_POINT_COUNT": {"group": "Rogue", "card": "seal", "label": "封印点数量", "min": 1, "max": 20, "step": 1},
     "ROGUE_FIVE_IN_ROW_SUPPORT_STONES": {"group": "Rogue", "card": "five_in_row", "label": "五子连珠援军", "min": 0, "max": 30, "step": 1},

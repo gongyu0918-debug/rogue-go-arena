@@ -10,6 +10,7 @@ import app.config.gameplay as gameplay_config
 from app.domain.event_text import event_text
 from app.domain.coordinates import gtp_to_coord
 from app.gameplay.effect_utils import diamond_points, get_square_points
+from app.gameplay.quickthink_window import arm_quickthink_window
 
 
 @dataclass(frozen=True)
@@ -178,8 +179,8 @@ def prepare_player_turn_modifiers(
     if game.two_player or game.current_player != game.player_color:
         return
     refresh_ai_rogue_player_turn_fn(game)
-    if game.rogue_card == "quickthink" and game.rogue_quickthink_stage == 0:
-        game.rogue_quickthink_stage = 1
+    if game.rogue_card == "quickthink":
+        arm_quickthink_window(game)
     prepare_methodical_turn(game)
     if game.ultimate and game.ultimate_player_card == "quickthink" and not game.ultimate_quickthink_active:
         game.ultimate_quickthink_token += 1

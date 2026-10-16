@@ -546,8 +546,8 @@
       },
       "quickthink": {
         "name": "Quick Think",
-        "desc": "Play within 2 seconds to open a 1-second combo window. Timeout becomes a pass, and hints plus undo are disabled.",
-        "summary": "Move within 2 seconds for a bonus move; too slow and you pass. No hints or undo."
+        "desc": "Every 4th turn you get 2 seconds: move in time for a bonus move (up to 8 per game). Too slow on that turn and you pass. Hints and undo are disabled.",
+        "summary": "Every 4th turn: move within 2 seconds for a bonus move (8 per game); too slow and you pass. No hints or undo."
       },
       "foolish_wisdom": {
         "name": "Wise Fool",

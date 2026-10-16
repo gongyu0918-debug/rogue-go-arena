@@ -546,8 +546,8 @@
       },
       "quickthink": {
         "name": "Schnelles Denken",
-        "desc": "Spiele innerhalb von 2 Sekunden, um ein 1-Sekunden-Combofenster zu öffnen. Timeout wird Pass; Empfehlungen und Rücknahme sind deaktiviert.",
-        "summary": "Zieh innerhalb von 2 Sekunden für einen Bonuszug; zu langsam heißt Passen. Keine Tipps, kein Zurück."
+        "desc": "Jeden 4. Zug hast du 2 Sekunden: Ziehst du rechtzeitig, bekommst du einen Bonuszug (höchstens 8 pro Partie). Zu langsam in diesem Zug heißt Passen. Tipps und Zurücknehmen sind deaktiviert.",
+        "summary": "Jeden 4. Zug: Zieh in 2 Sekunden für einen Bonuszug (8 pro Partie); zu langsam heißt Passen. Keine Tipps, kein Zurück."
       },
       "foolish_wisdom": {
         "name": "Schwere Weisheit",

@@ -883,22 +883,22 @@
           "de-DE": "Schnelles Denken"
         },
         "desc": {
-          "zh-CN": "2 秒内落子可追加 1 秒连击窗口；超时虚手，禁用推荐点与悔棋。",
-          "en-US": "Play within 2 seconds to open a 1-second combo window. Timeout becomes a pass, and hints plus undo are disabled.",
-          "ja-JP": "2秒以内に着手すると1秒の連撃窓が開きます。時間切れはパス扱いで、ヒントと待ったは使用不可。",
-          "ko-KR": "2초 안에 두면 1초 연속 착수 창이 열립니다. 시간 초과는 패스가 되며 추천점과 되돌리기는 비활성화됩니다.",
-          "zh-TW": "2 秒內落子可追加 1 秒連擊視窗；超時虛手，禁用推薦點與悔棋。",
-          "fr-FR": "Jouez en 2 secondes pour ouvrir une fenêtre combo de 1 seconde. En cas d'expiration : passe ; suggestions et annulation sont désactivées.",
-          "de-DE": "Spiele innerhalb von 2 Sekunden, um ein 1-Sekunden-Combofenster zu öffnen. Timeout wird Pass; Empfehlungen und Rücknahme sind deaktiviert."
+          "zh-CN": "每 4 回合有一次机会：2 秒内落子可再下一手（每局最多 8 次）；这一回合超时就算虚手。禁用推荐点与悔棋。",
+          "en-US": "Every 4th turn you get 2 seconds: move in time for a bonus move (up to 8 per game). Too slow on that turn and you pass. Hints and undo are disabled.",
+          "ja-JP": "4ターンに1回、2秒以内に着手するともう1手打てます（1局最大8回）。そのターンに時間切れならパス扱い。ヒントと待ったは使用不可。",
+          "ko-KR": "4차례마다 한 번, 2초 안에 두면 한 수를 더 둡니다(판당 최대 8회). 그 차례에 시간을 넘기면 패스가 됩니다. 추천점과 되돌리기는 비활성화됩니다.",
+          "zh-TW": "每 4 回合有一次機會：2 秒內落子可再下一手（每局最多 8 次）；這一回合超時就算虛手。禁用推薦點與悔棋。",
+          "fr-FR": "Un tour sur 4, vous avez 2 secondes : jouez à temps pour un coup bonus (8 par partie au plus). Trop lent ce tour-là : vous passez. Suggestions et annulation désactivées.",
+          "de-DE": "Jeden 4. Zug hast du 2 Sekunden: Ziehst du rechtzeitig, bekommst du einen Bonuszug (höchstens 8 pro Partie). Zu langsam in diesem Zug heißt Passen. Tipps und Zurücknehmen sind deaktiviert."
         },
         "summary": {
-          "zh-CN": "2 秒内落子可多下一手，超时就算虚手；不能用提示和悔棋。",
-          "en-US": "Move within 2 seconds for a bonus move; too slow and you pass. No hints or undo.",
-          "ja-JP": "2秒以内に打つともう1手。遅れるとパスになります。ヒントと待ったは使えません。",
-          "ko-KR": "2초 안에 두면 한 수 더, 늦으면 패스가 돼요. 힌트와 무르기는 못 써요.",
-          "zh-TW": "2 秒內落子可多下一手，超時就算虛手；不能用提示和悔棋。",
-          "fr-FR": "Jouez en moins de 2 secondes pour un coup bonus ; trop lent, vous passez. Ni indices ni annulation.",
-          "de-DE": "Zieh innerhalb von 2 Sekunden für einen Bonuszug; zu langsam heißt Passen. Keine Tipps, kein Zurück."
+          "zh-CN": "每 4 回合一次：2 秒内落子可再下一手（每局 8 次），超时算虚手；不能用提示和悔棋。",
+          "en-US": "Every 4th turn: move within 2 seconds for a bonus move (8 per game); too slow and you pass. No hints or undo.",
+          "ja-JP": "4ターンに1回：2秒以内に打つともう1手（1局8回）。遅れるとパス。ヒントと待ったは使えません。",
+          "ko-KR": "4차례마다: 2초 안에 두면 한 수 더(판당 8회), 늦으면 패스. 힌트와 무르기는 못 써요.",
+          "zh-TW": "每 4 回合一次：2 秒內落子可再下一手（每局 8 次），超時算虛手；不能用提示和悔棋。",
+          "fr-FR": "Un tour sur 4 : jouez en moins de 2 secondes pour un coup bonus (8 par partie) ; trop lent, vous passez. Ni indices ni annulation.",
+          "de-DE": "Jeden 4. Zug: Zieh in 2 Sekunden für einen Bonuszug (8 pro Partie); zu langsam heißt Passen. Keine Tipps, kein Zurück."
         },
         "icon": "⚡",
         "value_points": 363.5
@@ -4029,6 +4029,40 @@
       "max": 100,
       "step": 0.5,
       "value": 12.0
+    },
+    "ROGUE_QUICKTHINK_COOLDOWN_TURNS": {
+      "group": "Rogue",
+      "card": "quickthink",
+      "label": {
+        "zh-CN": "快速思考：每几回合开一次窗口",
+        "zh-TW": "快速思考：每幾回合開一次視窗",
+        "en-US": "Quick Think: window every N turns",
+        "ja-JP": "クイック思考：何ターンごとに窓を開くか",
+        "ko-KR": "빠른 생각: 몇 차례마다 창이 열리는지",
+        "fr-FR": "Réflexion éclair : fenêtre tous les N tours",
+        "de-DE": "Schnelles Denken: Fenster alle N Züge"
+      },
+      "min": 1,
+      "max": 20,
+      "step": 1,
+      "value": 4
+    },
+    "ROGUE_QUICKTHINK_MAX_BONUS": {
+      "group": "Rogue",
+      "card": "quickthink",
+      "label": {
+        "zh-CN": "快速思考：每局追加手上限（0 为不限）",
+        "zh-TW": "快速思考：每局追加手上限（0 為不限）",
+        "en-US": "Quick Think: bonus moves per game (0 = no cap)",
+        "ja-JP": "クイック思考：1局の追加手上限（0で無制限）",
+        "ko-KR": "빠른 생각: 판당 추가 수 상한(0이면 무제한)",
+        "fr-FR": "Réflexion éclair : coups bonus par partie (0 = illimité)",
+        "de-DE": "Schnelles Denken: Bonuszüge pro Partie (0 = unbegrenzt)"
+      },
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "value": 8
     }
   }
 }

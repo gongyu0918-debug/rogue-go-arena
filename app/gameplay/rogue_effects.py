@@ -33,6 +33,7 @@ from app.gameplay.effect_utils import (
 )
 from app.data.cards import challenge_card_category, challenge_category_counts
 from app.domain.event_text import CORNER_IDS, event_text
+from app.gameplay.quickthink_window import arm_quickthink_window
 from app.gameplay.turn_modifiers import get_player_bonus_forbidden_points
 
 
@@ -102,6 +103,8 @@ def reset_rogue_effect_state(
     game.rogue_coach_moves_left = 0
     game.rogue_coach_bonus_checked = False
     game.rogue_quickthink_stage = 0
+    game.rogue_quickthink_windows = 0
+    game.rogue_quickthink_wait = 0
     game.rogue_fool_shapes = set()
     game.rogue_constellations = set()
     game.rogue_constellation_triggers = 0
@@ -206,7 +209,7 @@ def apply_rogue_card_activation(
             game.size,
         )
     elif card_id == "quickthink" and game.current_player == game.player_color:
-        game.rogue_quickthink_stage = 1
+        arm_quickthink_window(game)
     elif card_id == "methodical" and game.current_player == game.player_color:
         game.rogue_methodical_turns[game.player_color] += 1
         turn_count = game.rogue_methodical_turns[game.player_color]
@@ -316,7 +319,7 @@ def apply_challenge_rogue_loadout(
                 game.size,
             )
         elif card_id == "quickthink" and game.current_player == game.player_color:
-            game.rogue_quickthink_stage = 1
+            arm_quickthink_window(game)
         elif card_id == "coach_mode":
             game.rogue_uses.setdefault("coach_mode", 1 + use_bonus)
 
