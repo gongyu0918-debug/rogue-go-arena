@@ -23,6 +23,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--rogue-cards", nargs="*", default=None)
     parser.add_argument("--ultimate-cards", nargs="*", default=None)
     parser.add_argument("--rogue-strategy", choices=["engine", "guided"], default="guided")
+    parser.add_argument("--set", nargs="*", default=[], metavar="KEY=VALUE",
+                        help="override tuning constants for this run (e.g. the values before a change)")
     return parser.parse_args()
 
 
@@ -32,6 +34,14 @@ ARGS = parse_args()
 sys.argv = [sys.argv[0]]
 
 import server as s  # noqa: E402
+import app.config.gameplay as _gameplay_config  # noqa: E402
+
+for _pair in ARGS.set:
+    _key, _, _raw = _pair.partition("=")
+    if _key not in _gameplay_config.BALANCE_DEFAULTS:
+        raise SystemExit(f"unknown tuning constant: {_key}")
+    _default = _gameplay_config.BALANCE_DEFAULTS[_key]
+    setattr(_gameplay_config, _key, int(_raw) if isinstance(_default, int) and not isinstance(_default, bool) else float(_raw))
 from app.gameplay.card_balance_scoring import (  # noqa: E402
     CardBalanceInputs,
     MoveEligibilitySample,
