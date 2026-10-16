@@ -3756,7 +3756,7 @@
       "min": -100,
       "max": 100,
       "step": 0.5,
-      "value": 0.0
+      "value": 10.0
     },
     "RUN_STAGE2_AI_STONES": {
       "group": "Run",
@@ -3790,7 +3790,7 @@
       "min": -100,
       "max": 100,
       "step": 0.5,
-      "value": 5.0
+      "value": 15.0
     },
     "RUN_STAGE3_AI_STONES": {
       "group": "Run",
@@ -3807,7 +3807,7 @@
       "min": 0,
       "max": 9,
       "step": 1,
-      "value": 0
+      "value": 2
     },
     "RUN_STAGE3_KOMI_POINTS": {
       "group": "Run",
@@ -3841,7 +3841,7 @@
       "min": 0,
       "max": 9,
       "step": 1,
-      "value": 2
+      "value": 3
     },
     "RUN_STAGE4_KOMI_POINTS": {
       "group": "Run",
@@ -3858,7 +3858,7 @@
       "min": -100,
       "max": 100,
       "step": 0.5,
-      "value": -4.0
+      "value": 15.0
     },
     "RUN_STAGE5_AI_STONES": {
       "group": "Run",
@@ -3875,7 +3875,7 @@
       "min": 0,
       "max": 9,
       "step": 1,
-      "value": 2
+      "value": 5
     },
     "RUN_STAGE5_KOMI_POINTS": {
       "group": "Run",
@@ -3892,7 +3892,7 @@
       "min": -100,
       "max": 100,
       "step": 0.5,
-      "value": 7.0
+      "value": 15.0
     },
     "CARD_KOMI_SHARE": {
       "group": "Difficulty",
@@ -3909,7 +3909,7 @@
       "min": 0,
       "max": 2,
       "step": 0.05,
-      "value": 0.5
+      "value": 1.0
     },
     "CARD_KOMI_MAX": {
       "group": "Difficulty",
@@ -3926,7 +3926,7 @@
       "min": 0,
       "max": 100,
       "step": 0.5,
-      "value": 15.0
+      "value": 60.0
     },
     "CARD_DEFAULT_POINTS": {
       "group": "Difficulty",

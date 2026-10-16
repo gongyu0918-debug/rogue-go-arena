@@ -399,7 +399,7 @@
     {
       "key": "challenge",
       "title": "Défi",
-      "desc": "Un parcours de 5 étapes avec Blanc : une carte de plus à chaque étape, le komi de l'IA augmente, et aux deux dernières étapes elle commence avec 2 pierres de handicap."
+      "desc": "Un parcours de 5 étapes avec Blanc : une carte de plus à chaque étape, le komi de l'IA augmente, et dès l'étape 3 elle commence avec des pierres de handicap (2, 3, puis 5). Plus vos cartes sont fortes, plus l'IA reçoit de komi."
     }
   ],
   "cards": {

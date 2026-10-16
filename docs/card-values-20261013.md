@@ -1,8 +1,9 @@
 # Card values (2026-10-13)
 
 `value_points` in `app/data/cards.json` comes from this measurement. The AI
-receives `CARD_KOMI_SHARE` (50%) of the value of the cards you hold as komi,
-capped at `CARD_KOMI_MAX` (15) per game; negative values count as 0.
+receives `CARD_KOMI_SHARE` of the value of the cards you hold as komi, capped
+at `CARD_KOMI_MAX` per game; negative values count as 0. The run calibration
+(docs/run-curve-calibration-20261013.md) set these to 100% and 60.
 
 ## Method
 

@@ -16,8 +16,8 @@ def main() -> None:
     setups = [run_stage_setup(stage) for stage in range(1, RUN_STAGES + 1)]
     points = [round(s.ai_points, 1) for s in setups]
     assert points == sorted(points) and len(set(points)) == RUN_STAGES, f"each stage must be harder: {points}"
-    assert points[0] == 0, "stage 1 is an even game"
-    assert setups[0].handicap == 0 and setups[0].komi == 7.5
+    assert setups[0].handicap == 0, "stage 1 has no AI stones"
+    assert setups[0].komi == 7.5 - setups[0].stage_points
     for s in setups:
         assert s.handicap in VALID_HANDICAPS
         if s.handicap:

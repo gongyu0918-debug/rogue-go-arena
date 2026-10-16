@@ -220,22 +220,23 @@ DIFFICULTY_HARD_STONES = 2
 
 # Card-strength komi (see app/gameplay/card_komi.py): the AI gets this share
 # of the measured value_points of the cards you hold, up to the maximum.
-CARD_KOMI_SHARE = 0.5
-CARD_KOMI_MAX = 15.0
+CARD_KOMI_SHARE = 1.0
+CARD_KOMI_MAX = 60.0
 CARD_DEFAULT_POINTS = 12.0
 
 # Run curve (see app/gameplay/run_curve.py): five stages; each gives the AI
-# handicap stones (0 or 2+) and komi points. About 0, 5, 10, 17, 28 points.
+# handicap stones (0 or 2+) and komi points. About 10, 15, 31, 50, 78 points before
+# cards (calibrated by self-play, see docs/run-curve-calibration-20261013.md).
 RUN_STAGE1_AI_STONES = 0
-RUN_STAGE1_KOMI_POINTS = 0.0
+RUN_STAGE1_KOMI_POINTS = 10.0
 RUN_STAGE2_AI_STONES = 0
-RUN_STAGE2_KOMI_POINTS = 5.0
-RUN_STAGE3_AI_STONES = 0
+RUN_STAGE2_KOMI_POINTS = 15.0
+RUN_STAGE3_AI_STONES = 2
 RUN_STAGE3_KOMI_POINTS = 10.0
-RUN_STAGE4_AI_STONES = 2
-RUN_STAGE4_KOMI_POINTS = -4.0
-RUN_STAGE5_AI_STONES = 2
-RUN_STAGE5_KOMI_POINTS = 7.0
+RUN_STAGE4_AI_STONES = 3
+RUN_STAGE4_KOMI_POINTS = 15.0
+RUN_STAGE5_AI_STONES = 5
+RUN_STAGE5_KOMI_POINTS = 15.0
 
 # AI rally: in Rogue games, when the player leads by a lot, the AI plays one
 # extra stone on its best point so big leads stay contested. The lead needed

@@ -22,3 +22,13 @@ python tools/card_art/draw_streak_art.py static/assets/icons/cards-medal
 
 Check `card-art-sheet.png` by eye, then bump `CARD_ART_VERSION` in
 `static/js/card_catalog.js`.
+
+## Run curve check
+
+`tools/run_curve_eval.py` plays self-play runs with typical decks at every
+stage and reports whether results stay level from stage to stage (see
+docs/run-curve-calibration-20261013.md). Run from the repository root:
+
+```powershell
+python tools/run_curve_eval.py --stages 1 2 3 4 5 --decks 5 --plies 200
+```

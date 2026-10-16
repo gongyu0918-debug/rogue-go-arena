@@ -12,6 +12,7 @@ import app.runtime.ws_actions as ws_actions
 from app.domain.coordinates import gtp_to_coord
 from app.domain.game_state import GoGame
 from app.runtime.ws_action_context import WebSocketActionContext
+from app.gameplay.run_curve import run_stage_setup
 from app.runtime.ws_new_game_actions import handle_new_game
 
 
@@ -263,19 +264,21 @@ async def smoke_difficulty_sets_handicap_or_komi() -> None:
 
 
 async def smoke_run_stages_follow_the_curve() -> None:
-    # Stage 4: the AI (Black) starts with 2 stones; the player is White whatever they sent.
+    # Stage 4: the AI (Black) starts with stones; the player is White whatever they sent.
+    expected = run_stage_setup(4)
     ctx = FakeContext()
     await handle_new_game(ctx, {"size": 19, "challenge_beta": True, "challenge_stage": 4,
                                 "player_color": "B", "komi": 7.5, "difficulty": "normal"})
     await asyncio.sleep(0)
-    assert (ctx.game.handicap, ctx.game.komi, ctx.game.player_color) == (2, 4.5, "W")
+    assert expected.handicap >= 2
+    assert (ctx.game.handicap, ctx.game.komi, ctx.game.player_color) == (expected.handicap, expected.komi, "W")
     assert ctx.game.level == gameplay_config.STANDARD_AI_LEVEL
 
-    # Stage 1 on Beginner: even game, the player gets 20 extra points of komi.
+    # Stage 1 on Beginner: no stones, the player gets 20 points of komi back.
     ctx = FakeContext()
     await handle_new_game(ctx, {"size": 19, "challenge_beta": True, "challenge_stage": 1, "difficulty": "beginner"})
     await asyncio.sleep(0)
-    assert (ctx.game.handicap, ctx.game.komi) == (0, 27.5)
+    assert (ctx.game.handicap, ctx.game.komi) == (0, run_stage_setup(1).komi + 20)
 
     # Out-of-range stages are clamped to the run.
     ctx = FakeContext()
@@ -285,12 +288,14 @@ async def smoke_run_stages_follow_the_curve() -> None:
 
 
 async def smoke_card_games_report_their_target() -> None:
-    # Stage 4: 2 AI stones (~21) and -4 stage komi: the AI starts about 17 ahead.
+    # Stage 4 without cards: the target is the stage's stones plus its komi points.
+    expected = run_stage_setup(4)
     ctx = FakeContext()
     await handle_new_game(ctx, {"size": 19, "challenge_beta": True, "challenge_stage": 4, "difficulty": "normal"})
     await asyncio.sleep(0)
     target = ctx.game.to_state()["target"]
-    assert target["points"] == 17 and target["stones"] == 2 and target["stage"] == -4, target
+    assert target["points"] == expected.ai_points and target["stones"] == expected.handicap, target
+    assert target["stage"] == expected.stage_points, target
 
     # Quick Game on Beginner: the AI starts 20 behind.
     ctx = FakeContext()

@@ -399,7 +399,7 @@
     {
       "key": "challenge",
       "title": "Herausforderung",
-      "desc": "Ein Lauf über 5 Stufen mit Weiß: Pro Stufe kommt eine Karte dazu, das Komi der KI steigt, und in den letzten beiden Stufen startet sie mit 2 Vorgabesteinen."
+      "desc": "Ein Lauf über 5 Stufen mit Weiß: Pro Stufe kommt eine Karte dazu, das Komi der KI steigt, und ab Stufe 3 startet sie mit Vorgabesteinen (2, 3, dann 5). Je stärker deine Karten, desto mehr Komi bekommt die KI."
     }
   ],
   "cards": {

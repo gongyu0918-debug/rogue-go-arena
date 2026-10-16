@@ -399,7 +399,7 @@
     {
       "key": "challenge",
       "title": "Challenge",
-      "desc": "A 5-stage run as White: you add a card each stage while the AI's komi grows, and in the last two stages it starts with 2 handicap stones."
+      "desc": "A 5-stage run as White: you add a card each stage while the AI's komi grows, and from stage 3 it starts with handicap stones (2, 3, then 5). The stronger your cards, the more komi the AI gets."
     }
   ],
   "cards": {
