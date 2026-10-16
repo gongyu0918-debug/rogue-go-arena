@@ -81,6 +81,9 @@
         "desc": {
           "$ref": "#/$defs/localized"
         },
+        "summary": {
+          "$ref": "#/$defs/localized"
+        },
         "icon": {
           "type": "string"
         },

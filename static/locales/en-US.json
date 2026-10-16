@@ -321,7 +321,13 @@
     "准备好了！": "Ready!",
     "选一张卡牌开始吧": "Pick a card to begin.",
     "仍在加载…": "Still loading…",
-    "若长时间没有反应，请重启游戏": "If nothing happens, restart the app."
+    "若长时间没有反应，请重启游戏": "If nothing happens, restart the app.",
+    "白送棋子": "Free stones",
+    "干扰 AI": "Hinders the AI",
+    "节奏": "Tempo",
+    "玩法说明": "How it works",
+    "收起说明": "Hide details",
+    "选这张": "Pick this card"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",
@@ -374,163 +380,203 @@
     "rogue": {
       "tengen": {
         "name": "Tengen",
-        "desc": "The AI must open at tengen, then its next 1 move is restricted to the 5x5 diamond around tengen."
+        "desc": "The AI must open at tengen, then its next 1 move is restricted to the 5x5 diamond around tengen.",
+        "summary": "The AI must open at tengen and stay near it for one more move."
       },
       "dice": {
         "name": "Dice Roll",
-        "desc": "Each AI move has a 10% chance of being skipped entirely."
+        "desc": "Each AI move has a 10% chance of being skipped entirely.",
+        "summary": "Each AI move has a 6% chance to become a pass."
       },
       "erosion": {
         "name": "Erosion",
-        "desc": "Every capture shifts komi by 4 points in the captor's favor."
+        "desc": "Every capture shifts komi by 4 points in the captor's favor.",
+        "summary": "Every capture moves komi 4 points toward the capturer."
       },
       "puppet": {
         "name": "Puppet",
-        "desc": "Mark the AI's next forced point first. You play your move, then the AI must answer there (once per game)."
+        "desc": "Mark the AI's next forced point first. You play your move, then the AI must answer there (once per game).",
+        "summary": "Once: pick a point and the AI must play there next."
       },
       "seal": {
         "name": "Seal",
-        "desc": "Mark 4 forbidden points the AI cannot touch for the whole game."
+        "desc": "Mark 4 forbidden points the AI cannot touch for the whole game.",
+        "summary": "Seal 4 points the AI can never play on."
       },
       "twin": {
         "name": "Combo",
-        "desc": "Play two moves in a single turn once per game for a local follow-up."
+        "desc": "Play two moves in a single turn once per game for a local follow-up.",
+        "summary": "Once: play two moves in a row."
       },
       "nerf": {
         "name": "Nerf",
-        "desc": "Drop the AI by about 8 ranks, crush its search power to roughly 5%, and make its first 12 moves much more likely to mis-pick backup options."
+        "desc": "Drop the AI by about 8 ranks, crush its search power to roughly 5%, and make its first 12 moves much more likely to mis-pick backup options.",
+        "summary": "The AI plays about 8 ranks weaker, especially early on."
       },
       "komi_relief": {
         "name": "Komi Cut",
-        "desc": "Komi shifts 7 points in your favor."
+        "desc": "Komi shifts 7 points in your favor.",
+        "summary": "Komi moves 7 points in your favor."
       },
       "time_press": {
         "name": "Time Crunch",
-        "desc": "Drop the AI by about 5 ranks, cap it at 0.10 seconds per move, and make its first 12 moves much more likely to misread under time pressure."
+        "desc": "Drop the AI by about 5 ranks, cap it at 0.10 seconds per move, and make its first 12 moves much more likely to misread under time pressure.",
+        "summary": "The AI plays about 5 ranks weaker and rushes every move."
       },
       "lowline": {
         "name": "Low Sweep",
-        "desc": "For its first 5 moves, the AI prefers low 2nd- and 3rd-line points."
+        "desc": "For its first 5 moves, the AI prefers low 2nd- and 3rd-line points.",
+        "summary": "The AI's first 5 moves lean toward the low 2nd and 3rd lines."
       },
       "suboptimal": {
         "name": "Second Best",
-        "desc": "For its first 8 moves, the AI is much more likely to choose weaker backup options."
+        "desc": "For its first 8 moves, the AI is much more likely to choose weaker backup options.",
+        "summary": "The AI's first 8 moves often pick a weaker option."
       },
       "mirror": {
         "name": "Mirror",
-        "desc": "16% chance the AI mirrors your last move across the board."
+        "desc": "16% chance the AI mirrors your last move across the board.",
+        "summary": "16% chance the AI copies your last move, mirrored."
       },
       "slip": {
         "name": "Butterfingers",
-        "desc": "14% chance the AI slips to a straight-adjacent point."
+        "desc": "14% chance the AI slips to a straight-adjacent point.",
+        "summary": "12% chance each AI move slips to a neighboring point."
       },
       "blackhole": {
         "name": "Black Hole",
-        "desc": "The central 13-point zone is off-limits to the AI for its first 6 moves."
+        "desc": "The central 13-point zone is off-limits to the AI for its first 6 moves.",
+        "summary": "The AI can never play in the central black-hole zone."
       },
       "exchange": {
         "name": "Turn Steal",
-        "desc": "Force the AI to pass — you keep playing (once per game)."
+        "desc": "Force the AI to pass — you keep playing (once per game).",
+        "summary": "Once: move one enemy stone to any empty point, for free."
       },
       "fog": {
         "name": "Fog of War",
-        "desc": "For the AI's first 11 moves, refresh a 3x3 no-go zone. After that, block 1 AI-forbidden point each turn inside the 3x3 diamond around the AI's previous move."
+        "desc": "For the AI's first 11 moves, refresh a 3x3 no-go zone. After that, block 1 AI-forbidden point each turn inside the 3x3 diamond around the AI's previous move.",
+        "summary": "Shifting no-go zones block the AI, mostly in the opening."
       },
       "gravity": {
         "name": "Gravity Well",
-        "desc": "The AI is pulled toward star points for 5 moves."
+        "desc": "The AI is pulled toward star points for 5 moves.",
+        "summary": "The AI's first 6 moves must be on star points."
       },
       "golden_corner": {
         "name": "Golden Corner",
-        "desc": "A random 4×4 corner is sealed off from the AI for its first 10 moves."
+        "desc": "A random 4×4 corner is sealed off from the AI for its first 10 moves.",
+        "summary": "One random corner is off-limits to the AI all game."
       },
       "sansan": {
         "name": "3-3 Rush",
-        "desc": "For its first 2 moves, the AI is forced to open on the four 3-3 points, then avoids corner 4×4 zones for 2 moves."
+        "desc": "For its first 2 moves, the AI is forced to open on the four 3-3 points, then avoids corner 4×4 zones for 2 moves.",
+        "summary": "The AI's first 3 moves must go in the 3-3 corner zones."
       },
       "shadow": {
         "name": "Shadow",
-        "desc": "On its first 2 moves, the AI has a high chance to cling to its previous stone."
+        "desc": "On its first 2 moves, the AI has a high chance to cling to its previous stone.",
+        "summary": "18% chance each AI move must stay next to its last one."
       },
       "sprout": {
         "name": "Sprout",
-        "desc": "After each of your captures, spawn 1 friendly stone at random within a 3x3 area around the captured point."
+        "desc": "After each of your captures, spawn 1 friendly stone at random within a 3x3 area around the captured point.",
+        "summary": "Every capture grows 1 free stone next to it."
       },
       "joseki_ocd": {
         "name": "Joseki OCD",
-        "desc": "7 target points appear. Hit any 4 of them to auto-fill the remaining 3 with your stones."
+        "desc": "7 target points appear. Hit any 4 of them to auto-fill the remaining 3 with your stones.",
+        "summary": "Hit 4 of 7 marked points and the other 3 fill in for you."
       },
       "handicap_quest": {
         "name": "Handicap Quest",
-        "desc": "Pass once to start; after every 8 moves you force an AI pass, up to 3 times."
+        "desc": "Pass once to start; after every 8 moves you force an AI pass, up to 3 times.",
+        "summary": "Pass once, then every 8 moves the AI is forced to pass (up to 3 times)."
       },
       "god_hand": {
         "name": "Hand of God",
-        "desc": "Step on a hidden diamond zone — 3 friendly stones burst into nearby empty points inside a 3×3 area."
+        "desc": "Step on a hidden diamond zone — 3 friendly stones burst into nearby empty points inside a 3×3 area.",
+        "summary": "Find the hidden spot to get 3 free stones around it."
       },
       "sansan_trap": {
         "name": "3-3 Trap",
-        "desc": "Only if the opponent's very first move lands on any 3-3 point, you immediately gain 8 nearby counter-stones."
+        "desc": "Only if the opponent's very first move lands on any 3-3 point, you immediately gain 8 nearby counter-stones.",
+        "summary": "Whenever the AI takes a 3-3 point, you get a free stone beside it."
       },
       "corner_helper": {
         "name": "Corner Guard",
-        "desc": "Each corner can trigger once. If any corner's 5×5 area has 4 of your stones, that corner gains 1 reinforcement."
+        "desc": "Each corner can trigger once. If any corner's 5×5 area has 4 of your stones, that corner gains 1 reinforcement.",
+        "summary": "4 of your stones in a corner earn that corner 1 free stone."
       },
       "sanrensei": {
         "name": "Three Stars",
-        "desc": "If your first 3 moves are all on star points, 2 additional empty star points receive your stones. All game long: when three of your stones line up evenly spaced with empty points between them (like one-space jumps), the constellation lights up and adds 1 stone on that line (at most every 6 moves, 3 times per game)."
+        "desc": "If your first 3 moves are all on star points, 2 additional empty star points receive your stones. All game long: when three of your stones line up evenly spaced with empty points between them (like one-space jumps), the constellation lights up and adds 1 stone on that line (at most every 6 moves, 3 times per game).",
+        "summary": "Open on 3 star points for 2 free stones; evenly spaced lines of 3 add more."
       },
       "no_regret": {
         "name": "No Regrets",
-        "desc": "Undo disabled — but each move has a 12% chance to add a free stone."
+        "desc": "Undo disabled — but each move has a 12% chance to add a free stone.",
+        "summary": "No undo, but after each AI move there's an 8% chance of a free stone."
       },
       "quickthink": {
         "name": "Quick Think",
-        "desc": "Play within 2 seconds to open a 1-second combo window. Timeout becomes a pass, and hints plus undo are disabled."
+        "desc": "Play within 2 seconds to open a 1-second combo window. Timeout becomes a pass, and hints plus undo are disabled.",
+        "summary": "Move within 2 seconds for a bonus move; too slow and you pass. No hints or undo."
       },
       "foolish_wisdom": {
         "name": "Wise Fool",
-        "desc": "Form an ugly shape to sprout 1 bonus stone in the nearby 5x5 area."
+        "desc": "Form an ugly shape to sprout 1 bonus stone in the nearby 5x5 area.",
+        "summary": "Make an ugly shape and a free stone grows nearby."
       },
       "five_in_row": {
         "name": "Five in a Row",
-        "desc": "When you form exactly 5 in a row, spawn 1 friendly stone in each 3x3 area at the two ends."
+        "desc": "When you form exactly 5 in a row, spawn 1 friendly stone in each 3x3 area at the two ends.",
+        "summary": "Make exactly 5 in a row to get 1 free stone at each end."
       },
       "coach_mode": {
         "name": "Coach Login",
-        "desc": "Active: a stronger AI plays the next 30 turns for you. If your winrate stays below 50% after that, it plays 10 extra turns."
+        "desc": "Active: a stronger AI plays the next 30 turns for you. If your winrate stays below 50% after that, it plays 10 extra turns.",
+        "summary": "Active: a stronger AI plays your next 30 moves."
       },
       "capture_foul": {
         "name": "Capture Foul",
-        "desc": "When the opponent captures 4 stones in one move or cumulatively, gift 1 friendly stone on your next recommended point, then reset the counter."
+        "desc": "When the opponent captures 4 stones in one move or cumulatively, gift 1 friendly stone on your next recommended point, then reset the counter.",
+        "summary": "Every 4 stones the AI captures earns you a free stone on a good point."
       },
       "last_stand": {
         "name": "Last Stand",
-        "desc": "Once per game, if your winrate drops below 26%, remove 1 enemy stone and add 1 friendly stone inside the last move's 3×3 area without landing on forbidden points."
+        "desc": "Once per game, if your winrate drops below 26%, remove 1 enemy stone and add 1 friendly stone inside the last move's 3×3 area without landing on forbidden points.",
+        "summary": "Once, when your winrate drops below 26%: remove 1 enemy stone near the last move and add 1 of yours."
       },
       "defense_first": {
         "name": "Defense First",
-        "desc": "Starting with your 3rd move, if your last 3 moves each have no enemy stone within their 5x5 area, spawn 1 friendly stone within a 5x5 area around any of your stones. Triggers up to twice per game."
+        "desc": "Starting with your 3rd move, if your last 3 moves each have no enemy stone within their 5x5 area, spawn 1 friendly stone within a 5x5 area around any of your stones. Triggers up to twice per game.",
+        "summary": "3 calm moves in a row away from the enemy earn a free stone (twice a game)."
       },
       "attack_first": {
         "name": "Attack First",
-        "desc": "If your last 3 moves are each within a 3x3 area around enemy stones, spawn 1 friendly stone next to the enemy stones you just attacked. Triggers up to twice per game."
+        "desc": "If your last 3 moves are each within a 3x3 area around enemy stones, spawn 1 friendly stone next to the enemy stones you just attacked. Triggers up to twice per game.",
+        "summary": "3 moves in a row right next to enemy stones earn a free stone (twice a game)."
       },
       "methodical": {
         "name": "Methodical",
-        "desc": "Each of your turns resolves after you play 2 stones in sequence; every 10th player turn grants 1 extra stone for a 3-stone turn."
+        "desc": "Each of your turns resolves after you play 2 stones in sequence; every 10th player turn grants 1 extra stone for a 3-stone turn.",
+        "summary": "Play 2 stones every turn, and 3 on every 10th turn."
       },
       "momentum": {
         "name": "Momentum",
-        "desc": "Each move in contact with enemy stones (or that captures) builds a streak. Every 3rd attack in a row adds 1 of your stones next to the enemy. A non-contact move resets the streak. Up to 5 times per game."
+        "desc": "Each move in contact with enemy stones (or that captures) builds a streak. Every 3rd attack in a row adds 1 of your stones next to the enemy. A non-contact move resets the streak. Up to 5 times per game.",
+        "summary": "Keep attacking: every 3rd contact move in a row adds a free stone."
       },
       "iron_wall": {
         "name": "Iron Wall",
-        "desc": "Each move that connects to your own stones without touching the enemy builds a streak. Every 3rd defence in a row adds 1 stone on a liberty of your weakest group. Touching the enemy or playing alone resets it. Up to 5 times per game."
+        "desc": "Each move that connects to your own stones without touching the enemy builds a streak. Every 3rd defence in a row adds 1 stone on a liberty of your weakest group. Touching the enemy or playing alone resets it. Up to 5 times per game.",
+        "summary": "Keep connecting solidly: every 3rd move in a row shores up your weakest group."
       },
       "capture_chain": {
         "name": "Capture Chain",
-        "desc": "Capture on consecutive turns to chain: from the 2nd capture in a row, extra stones of yours drop around the captured spot (1, then 2). A turn without a capture resets the chain. Up to 5 times per game."
+        "desc": "Capture on consecutive turns to chain: from the 2nd capture in a row, extra stones of yours drop around the captured spot (1, then 2). A turn without a capture resets the chain. Up to 5 times per game.",
+        "summary": "Capture on back-to-back turns for bonus stones: 1, then 2."
       }
     },
     "ultimate": {
@@ -560,7 +606,8 @@
       },
       "shadow_clone": {
         "name": "Shadow Clone",
-        "desc": "Create a mirrored stone now. One turn later, the original point and mirror point are forced into a full line even if either endpoint was removed."
+        "desc": "Create a mirrored stone now. One turn later, the original point and mirror point are forced into a full line even if either endpoint was removed.",
+        "summary": "Make a mirror stone; next turn a full line joins it to the original."
       },
       "plague": {
         "name": "Plague",
@@ -608,7 +655,8 @@
       },
       "corner_helper": {
         "name": "Corner Fortress",
-        "desc": "Each corner can trigger once. If a corner's 5×5 area has 2 of your stones, that corner's 8×8 boundary is filled and enemies inside are cleared."
+        "desc": "Each corner can trigger once. If a corner's 5×5 area has 2 of your stones, that corner's 8×8 boundary is filled and enemies inside are cleared.",
+        "summary": "2 of your stones in a corner fill the whole corner and clear the enemy."
       },
       "sanrensei": {
         "name": "Star Ignition",
@@ -624,11 +672,13 @@
       },
       "five_in_row": {
         "name": "Five in a Row Burst",
-        "desc": "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, remove 30 enemy stones and drop 30 friendly stones across the board. This effect can chain."
+        "desc": "This is Gomoku, not Go. Whenever your stones form exactly 5 in a row, remove 30 enemy stones and drop 30 friendly stones across the board. This effect can chain.",
+        "summary": "Each exact 5 in a row wipes 30 enemy stones and drops 30 of yours."
       },
       "capture_foul": {
         "name": "Capture Foul",
-        "desc": "Whenever the opponent captures or removes more than 5 stones (including card effects), the foul triggers with 100% certainty. The offender immediately loses 50 points, then the counter resets and can trigger again."
+        "desc": "Whenever the opponent captures or removes more than 5 stones (including card effects), the foul triggers with 100% certainty. The offender immediately loses 50 points, then the counter resets and can trigger again.",
+        "summary": "If the opponent removes more than 5 stones at once, they lose 50 points."
       },
       "last_stand": {
         "name": "Last Stand",

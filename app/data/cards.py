@@ -104,10 +104,12 @@ def _runtime_card(card: dict[str, Any], locale: str = "zh-CN") -> dict[str, Any]
     runtime = {
         key: copy.deepcopy(value)
         for key, value in card.items()
-        if key not in {"name", "desc"}
+        if key not in {"name", "desc", "summary"}
     }
     runtime["name"] = _localized_value(card.get("name"), locale)
     runtime["desc"] = _localized_value(card.get("desc"), locale)
+    if card.get("summary"):
+        runtime["summary"] = _localized_value(card.get("summary"), locale)
     return runtime
 
 
@@ -115,6 +117,7 @@ def _card_i18n(card: dict[str, Any]) -> dict[str, dict[str, str]]:
     return {
         "name": copy.deepcopy(card.get("name", {})) if isinstance(card.get("name"), dict) else {"zh-CN": str(card.get("name", ""))},
         "desc": copy.deepcopy(card.get("desc", {})) if isinstance(card.get("desc"), dict) else {"zh-CN": str(card.get("desc", ""))},
+        "summary": copy.deepcopy(card["summary"]) if isinstance(card.get("summary"), dict) else {},
     }
 
 
@@ -136,6 +139,8 @@ def _validate_card_map(config: dict[str, Any], mode: str, errors: list[str]) -> 
                 errors.append(f"{ref}: missing {field}")
         _localized_map(card.get("name"), "name", ref, errors)
         _localized_map(card.get("desc"), "desc", ref, errors)
+        if "summary" in card:
+            _localized_map(card.get("summary"), "summary", ref, errors)
         if not isinstance(card.get("icon"), str) or not card.get("icon"):
             errors.append(f"{ref}: icon must be non-empty text")
         uses = card.get("uses")

@@ -321,7 +321,13 @@
     "准备好了！": "Fertig!",
     "选一张卡牌开始吧": "Wähle eine Karte, um loszulegen.",
     "仍在加载…": "Lädt noch…",
-    "若长时间没有反应，请重启游戏": "Wenn nichts passiert, starte die App neu."
+    "若长时间没有反应，请重启游戏": "Wenn nichts passiert, starte die App neu.",
+    "白送棋子": "Gratissteine",
+    "干扰 AI": "Behindert die KI",
+    "节奏": "Tempo",
+    "玩法说明": "So funktioniert's",
+    "收起说明": "Details ausblenden",
+    "选这张": "Diese Karte wählen"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",
@@ -374,163 +380,203 @@
     "rogue": {
       "tengen": {
         "name": "Tengen",
-        "desc": "Die KI muss am Tengen eröffnen; ihr nächster Zug ist auf den 5x5-Diamanten um Tengen beschränkt."
+        "desc": "Die KI muss am Tengen eröffnen; ihr nächster Zug ist auf den 5x5-Diamanten um Tengen beschränkt.",
+        "summary": "Die KI muss auf Tengen eröffnen und noch einen Zug in der Nähe bleiben."
       },
       "dice": {
         "name": "Würfelwurf",
-        "desc": "Jeder KI-Zug hat eine Chance von 6 %, zu einem Pass zu werden."
+        "desc": "Jeder KI-Zug hat eine Chance von 6 %, zu einem Pass zu werden.",
+        "summary": "Jeder KI-Zug wird mit 6 % Wahrscheinlichkeit zum Passen."
       },
       "erosion": {
         "name": "Erosion",
-        "desc": "Jede Gefangennahme verschiebt das Komi um 4 Punkte zugunsten des Fängers."
+        "desc": "Jede Gefangennahme verschiebt das Komi um 4 Punkte zugunsten des Fängers.",
+        "summary": "Jeder Fang verschiebt das Komi um 4 Punkte zum Fänger hin."
       },
       "puppet": {
         "name": "Marionette",
-        "desc": "Markiere zuerst den erzwungenen nächsten Punkt der KI. Du spielst deinen Zug, dann muss die KI dort antworten, einmal pro Partie."
+        "desc": "Markiere zuerst den erzwungenen nächsten Punkt der KI. Du spielst deinen Zug, dann muss die KI dort antworten, einmal pro Partie.",
+        "summary": "Einmal: Wähle einen Punkt, dort muss die KI als Nächstes spielen."
       },
       "seal": {
         "name": "Siegel",
-        "desc": "Markiere 4 verbotene Punkte, die die KI die ganze Partie nicht spielen darf."
+        "desc": "Markiere 4 verbotene Punkte, die die KI die ganze Partie nicht spielen darf.",
+        "summary": "Versiegle 4 Punkte, auf die die KI nie spielen darf."
       },
       "twin": {
         "name": "Combo",
-        "desc": "Spiele einmal pro Partie zwei Steine in einem Zug für eine lokale Fortsetzung."
+        "desc": "Spiele einmal pro Partie zwei Steine in einem Zug für eine lokale Fortsetzung.",
+        "summary": "Einmal: Spiele zwei Züge hintereinander."
       },
       "nerf": {
         "name": "Nerf",
-        "desc": "Senkt die KI um etwa 8 Ränge, reduziert ihre Suche auf ungefähr 5 % und lässt sie in den ersten 12 Zügen häufiger schwache Ersatzoptionen wählen."
+        "desc": "Senkt die KI um etwa 8 Ränge, reduziert ihre Suche auf ungefähr 5 % und lässt sie in den ersten 12 Zügen häufiger schwache Ersatzoptionen wählen.",
+        "summary": "Die KI spielt etwa 8 Ränge schwächer, besonders am Anfang."
       },
       "komi_relief": {
         "name": "Komi-Schnitt",
-        "desc": "Das Komi verschiebt sich um 7 Punkte zu deinen Gunsten."
+        "desc": "Das Komi verschiebt sich um 7 Punkte zu deinen Gunsten.",
+        "summary": "Das Komi verschiebt sich um 7 Punkte zu deinen Gunsten."
       },
       "time_press": {
         "name": "Zeitdruck",
-        "desc": "Senkt die KI um etwa 5 Ränge, begrenzt jeden Zug auf 0,10 Sekunden und macht die ersten 12 Züge anfälliger für übereilte Lesefehler."
+        "desc": "Senkt die KI um etwa 5 Ränge, begrenzt jeden Zug auf 0,10 Sekunden und macht die ersten 12 Züge anfälliger für übereilte Lesefehler.",
+        "summary": "Die KI spielt etwa 5 Ränge schwächer und hetzt jeden Zug."
       },
       "lowline": {
         "name": "Tiefe Linie",
-        "desc": "In den ersten 5 Zügen bevorzugt die KI niedrige Punkte auf der 2. und 3. Linie."
+        "desc": "In den ersten 5 Zügen bevorzugt die KI niedrige Punkte auf der 2. und 3. Linie.",
+        "summary": "Die ersten 5 KI-Züge tendieren zur niedrigen 2. und 3. Linie."
       },
       "suboptimal": {
         "name": "Zweite Wahl",
-        "desc": "In den ersten 8 Zügen wählt die KI deutlich häufiger schwächere Ersatzoptionen."
+        "desc": "In den ersten 8 Zügen wählt die KI deutlich häufiger schwächere Ersatzoptionen.",
+        "summary": "Die ersten 8 KI-Züge wählen oft eine schwächere Option."
       },
       "mirror": {
         "name": "Spiegel",
-        "desc": "16 % Chance, dass die KI deinen letzten Zug über das Goban spiegelt."
+        "desc": "16 % Chance, dass die KI deinen letzten Zug über das Goban spiegelt.",
+        "summary": "Mit 16 % Wahrscheinlichkeit spiegelt die KI deinen letzten Zug."
       },
       "slip": {
         "name": "Ausrutscher",
-        "desc": "Die KI hat 12 % Chance, auf einen benachbarten Punkt abzurutschen."
+        "desc": "Die KI hat 12 % Chance, auf einen benachbarten Punkt abzurutschen.",
+        "summary": "Jeder KI-Zug rutscht mit 12 % Wahrscheinlichkeit auf einen Nachbarpunkt."
       },
       "blackhole": {
         "name": "Schwarzes Loch",
-        "desc": "Die zentrale Schwarzes-Loch-Zone ist der KI die ganze Partie verboten."
+        "desc": "Die zentrale Schwarzes-Loch-Zone ist der KI die ganze Partie verboten.",
+        "summary": "Die KI darf nie in die Schwarzloch-Zone in der Mitte spielen."
       },
       "exchange": {
         "name": "Zugdiebstahl",
-        "desc": "Aktiv, einmal pro Partie: Bewege einen gegnerischen Stein auf einen leeren Punkt deiner Wahl, ohne deinen Zug zu verbrauchen."
+        "desc": "Aktiv, einmal pro Partie: Bewege einen gegnerischen Stein auf einen leeren Punkt deiner Wahl, ohne deinen Zug zu verbrauchen.",
+        "summary": "Einmal: Versetze einen gegnerischen Stein auf einen freien Punkt, gratis."
       },
       "fog": {
         "name": "Nebel des Krieges",
-        "desc": "Für die ersten 11 KI-Züge wird eine 3x3-Sperrzone erneuert. Danach wird pro Runde 1 KI-verbotener Punkt im 3x3-Diamanten um den vorigen KI-Zug blockiert."
+        "desc": "Für die ersten 11 KI-Züge wird eine 3x3-Sperrzone erneuert. Danach wird pro Runde 1 KI-verbotener Punkt im 3x3-Diamanten um den vorigen KI-Zug blockiert.",
+        "summary": "Wandernde Sperrzonen behindern die KI, vor allem in der Eröffnung."
       },
       "gravity": {
         "name": "Gravitationsfeld",
-        "desc": "Hoshi-Gravitation: Die KI muss ihre ersten 6 Züge auf Sternpunkte spielen."
+        "desc": "Hoshi-Gravitation: Die KI muss ihre ersten 6 Züge auf Sternpunkte spielen.",
+        "summary": "Die ersten 6 KI-Züge müssen auf Sternpunkte."
       },
       "golden_corner": {
         "name": "Goldene Ecke",
-        "desc": "Sperrt zufällig eine 4x4-Eckzone; die KI darf dort die ganze Partie nicht spielen."
+        "desc": "Sperrt zufällig eine 4x4-Eckzone; die KI darf dort die ganze Partie nicht spielen.",
+        "summary": "Eine zufällige Ecke ist für die KI die ganze Partie gesperrt."
       },
       "sansan": {
         "name": "San-san-Sturm",
-        "desc": "Die KI muss ihre ersten 3 Züge in den 3x3-Eckzonen spielen."
+        "desc": "Die KI muss ihre ersten 3 Züge in den 3x3-Eckzonen spielen.",
+        "summary": "Die ersten 3 KI-Züge müssen in die San-San-Eckzonen."
       },
       "shadow": {
         "name": "Schatten",
-        "desc": "Während der ganzen Partie hat jeder KI-Zug 18 % Chance, direkt neben ihrem vorigen Stein zu folgen."
+        "desc": "Während der ganzen Partie hat jeder KI-Zug 18 % Chance, direkt neben ihrem vorigen Stein zu folgen.",
+        "summary": "Jeder KI-Zug muss mit 18 % Wahrscheinlichkeit neben ihrem letzten liegen."
       },
       "sprout": {
         "name": "Spross",
-        "desc": "Nach jeder deiner Gefangennahmen entsteht zufällig 1 freundlicher Stein in einer 3x3-Zone um den gefangenen Punkt."
+        "desc": "Nach jeder deiner Gefangennahmen entsteht zufällig 1 freundlicher Stein in einer 3x3-Zone um den gefangenen Punkt.",
+        "summary": "Jeder Fang lässt daneben 1 Gratisstein wachsen."
       },
       "joseki_ocd": {
         "name": "Joseki-Zwang",
-        "desc": "7 Zielpunkte erscheinen. Triff 4 davon, um die übrigen 3 automatisch mit deinen Steinen zu füllen."
+        "desc": "7 Zielpunkte erscheinen. Triff 4 davon, um die übrigen 3 automatisch mit deinen Steinen zu füllen.",
+        "summary": "Triff 4 von 7 markierten Punkten, die übrigen 3 füllen sich für dich."
       },
       "handicap_quest": {
         "name": "Vorgabe-Quest",
-        "desc": "Passe einmal zum Start; danach erzwingst du alle 8 Züge einen KI-Pass, bis zu 3-mal."
+        "desc": "Passe einmal zum Start; danach erzwingst du alle 8 Züge einen KI-Pass, bis zu 3-mal.",
+        "summary": "Passe einmal, dann muss die KI alle 8 Züge passen (bis zu 3-mal)."
       },
       "god_hand": {
         "name": "Hand Gottes",
-        "desc": "Triff den versteckten Diamanten, um 3 deiner Steine auf leeren Punkten im umliegenden 5x5 entstehen zu lassen."
+        "desc": "Triff den versteckten Diamanten, um 3 deiner Steine auf leeren Punkten im umliegenden 5x5 entstehen zu lassen.",
+        "summary": "Finde den versteckten Punkt und erhalte 3 Gratissteine drumherum."
       },
       "sansan_trap": {
         "name": "San-san-Falle",
-        "desc": "Wenn die KI einen der vier 3-3-Punkte spielt, erscheint 1 deiner Steine auf einem Nachbarpunkt, ohne deinen Zug zu verbrauchen."
+        "desc": "Wenn die KI einen der vier 3-3-Punkte spielt, erscheint 1 deiner Steine auf einem Nachbarpunkt, ohne deinen Zug zu verbrauchen.",
+        "summary": "Spielt die KI auf einen San-San-Punkt, bekommst du daneben einen Gratisstein."
       },
       "corner_helper": {
         "name": "Eckwache",
-        "desc": "Jede Ecke kann einmal auslösen. Hat eine 5x5-Eckzone 4 deiner Steine, erhält die Ecke 1 Verstärkung."
+        "desc": "Jede Ecke kann einmal auslösen. Hat eine 5x5-Eckzone 4 deiner Steine, erhält die Ecke 1 Verstärkung.",
+        "summary": "4 deiner Steine in einer Ecke bringen dort 1 Gratisstein."
       },
       "sanrensei": {
         "name": "Sanrensei",
-        "desc": "Wenn deine ersten 3 Züge alle auf Hoshi liegen, erhalten 2 weitere leere Hoshi deine Steine. Die ganze Partie: Stehen drei deiner Steine gleichmäßig verteilt in einer Linie mit freien Punkten dazwischen (wie Ein-Punkt-Sprünge), leuchtet das Sternbild auf und setzt 1 Stein auf diese Linie (höchstens alle 6 Züge, 3-mal pro Partie)."
+        "desc": "Wenn deine ersten 3 Züge alle auf Hoshi liegen, erhalten 2 weitere leere Hoshi deine Steine. Die ganze Partie: Stehen drei deiner Steine gleichmäßig verteilt in einer Linie mit freien Punkten dazwischen (wie Ein-Punkt-Sprünge), leuchtet das Sternbild auf und setzt 1 Stein auf diese Linie (höchstens alle 6 Züge, 3-mal pro Partie).",
+        "summary": "Eröffne auf 3 Sternpunkten für 2 Gratissteine; gleichmäßige Dreierlinien bringen mehr."
       },
       "no_regret": {
         "name": "Keine Reue",
-        "desc": "Rücknahme ist deaktiviert; nach dem gegnerischen Zug gibt es 8 % Chance, einen Stein auf deinem besten nächsten Punkt zu schenken, ohne deinen Zug zu verbrauchen."
+        "desc": "Rücknahme ist deaktiviert; nach dem gegnerischen Zug gibt es 8 % Chance, einen Stein auf deinem besten nächsten Punkt zu schenken, ohne deinen Zug zu verbrauchen.",
+        "summary": "Kein Zurücknehmen, dafür nach jedem KI-Zug 8 % Chance auf einen Gratisstein."
       },
       "quickthink": {
         "name": "Schnelles Denken",
-        "desc": "Spiele innerhalb von 2 Sekunden, um ein 1-Sekunden-Combofenster zu öffnen. Timeout wird Pass; Empfehlungen und Rücknahme sind deaktiviert."
+        "desc": "Spiele innerhalb von 2 Sekunden, um ein 1-Sekunden-Combofenster zu öffnen. Timeout wird Pass; Empfehlungen und Rücknahme sind deaktiviert.",
+        "summary": "Zieh innerhalb von 2 Sekunden für einen Bonuszug; zu langsam heißt Passen. Keine Tipps, kein Zurück."
       },
       "foolish_wisdom": {
         "name": "Schwere Weisheit",
-        "desc": "Bilde eine schlechte Form, damit 1 Bonusstein in der nahen 5x5-Zone entsteht."
+        "desc": "Bilde eine schlechte Form, damit 1 Bonusstein in der nahen 5x5-Zone entsteht.",
+        "summary": "Bau eine hässliche Form und in der Nähe wächst ein Gratisstein."
       },
       "five_in_row": {
         "name": "Fünf in Folge",
-        "desc": "Wenn du exakt 5 Steine in Folge bildest, entsteht je 1 freundlicher Stein in den 3x3-Zonen an beiden Enden."
+        "desc": "Wenn du exakt 5 Steine in Folge bildest, entsteht je 1 freundlicher Stein in den 3x3-Zonen an beiden Enden.",
+        "summary": "Bilde genau 5 in einer Reihe für je 1 Gratisstein an beiden Enden."
       },
       "coach_mode": {
         "name": "Coach-Login",
-        "desc": "Aktiv: Eine stärkere KI spielt die nächsten 30 Runden für dich. Bleibt deine Winrate danach unter 50 %, spielt sie 10 weitere Runden."
+        "desc": "Aktiv: Eine stärkere KI spielt die nächsten 30 Runden für dich. Bleibt deine Winrate danach unter 50 %, spielt sie 10 weitere Runden.",
+        "summary": "Aktiv: Eine stärkere KI spielt deine nächsten 30 Züge."
       },
       "capture_foul": {
         "name": "Fangfoul",
-        "desc": "Wenn der Gegner in einem Zug oder kumulativ 4 Steine fängt, erhältst du 1 freundlichen Stein auf deinem nächsten empfohlenen Punkt; danach wird der Zähler zurückgesetzt."
+        "desc": "Wenn der Gegner in einem Zug oder kumulativ 4 Steine fängt, erhältst du 1 freundlichen Stein auf deinem nächsten empfohlenen Punkt; danach wird der Zähler zurückgesetzt.",
+        "summary": "Für je 4 Steine, die die KI fängt, bekommst du einen Gratisstein auf einem guten Punkt."
       },
       "last_stand": {
         "name": "Letztes Aufbäumen",
-        "desc": "Einmal pro Partie: Fällt deine Winrate unter 26 %, entferne 1 gegnerischen Stein und füge 1 freundlichen Stein im 3x3 des letzten Zuges hinzu, ohne verbotene Punkte zu treffen."
+        "desc": "Einmal pro Partie: Fällt deine Winrate unter 26 %, entferne 1 gegnerischen Stein und füge 1 freundlichen Stein im 3x3 des letzten Zuges hinzu, ohne verbotene Punkte zu treffen.",
+        "summary": "Einmal, wenn deine Gewinnchance unter 26 % fällt: Entfernt 1 gegnerischen Stein nahe dem letzten Zug und setzt 1 von dir."
       },
       "defense_first": {
         "name": "Verteidigung zuerst",
-        "desc": "Ab deinem 3. Zug: Wenn deine letzten 3 Züge jeweils keinen gegnerischen Stein in ihrer 5x5-Zone haben, entsteht 1 freundlicher Stein in einer 5x5-Zone um einen deiner Steine. Bis zu zweimal pro Partie."
+        "desc": "Ab deinem 3. Zug: Wenn deine letzten 3 Züge jeweils keinen gegnerischen Stein in ihrer 5x5-Zone haben, entsteht 1 freundlicher Stein in einer 5x5-Zone um einen deiner Steine. Bis zu zweimal pro Partie.",
+        "summary": "3 ruhige Züge in Folge fern vom Gegner bringen einen Gratisstein (2-mal pro Partie)."
       },
       "attack_first": {
         "name": "Angriff zuerst",
-        "desc": "Wenn deine letzten 3 Züge jeweils in einer 3x3-Zone um gegnerische Steine liegen, entsteht 1 freundlicher Stein neben den gegnerischen Steinen, die du gerade angreifst. Bis zu zweimal pro Partie."
+        "desc": "Wenn deine letzten 3 Züge jeweils in einer 3x3-Zone um gegnerische Steine liegen, entsteht 1 freundlicher Stein neben den gegnerischen Steinen, die du gerade angreifst. Bis zu zweimal pro Partie.",
+        "summary": "3 Züge in Folge direkt an gegnerischen Steinen bringen einen Gratisstein (2-mal pro Partie)."
       },
       "methodical": {
         "name": "Methodisch",
-        "desc": "Jeder deiner Züge endet erst nach 2 nacheinander gesetzten Steinen; jeder 10. Spielerzug gewährt 1 Zusatzstein für einen 3-Stein-Zug."
+        "desc": "Jeder deiner Züge endet erst nach 2 nacheinander gesetzten Steinen; jeder 10. Spielerzug gewährt 1 Zusatzstein für einen 3-Stein-Zug.",
+        "summary": "Setze jede Runde 2 Steine, jede 10. Runde 3."
       },
       "momentum": {
         "name": "Schwung",
-        "desc": "Jeder Zug mit Kontakt zu gegnerischen Steinen (oder mit Schlagen) verlängert die Serie. Jeder 3. Angriff in Folge setzt 1 eigenen Stein neben den Gegner. Ein Zug ohne Kontakt setzt die Serie zurück. Höchstens 5-mal pro Partie."
+        "desc": "Jeder Zug mit Kontakt zu gegnerischen Steinen (oder mit Schlagen) verlängert die Serie. Jeder 3. Angriff in Folge setzt 1 eigenen Stein neben den Gegner. Ein Zug ohne Kontakt setzt die Serie zurück. Höchstens 5-mal pro Partie.",
+        "summary": "Bleib dran: Jeder 3. Kontaktzug in Folge bringt einen Gratisstein."
       },
       "iron_wall": {
         "name": "Eiserne Mauer",
-        "desc": "Jeder Zug, der an eigene Steine anschließt, ohne den Gegner zu berühren, verlängert die Serie. Jede 3. Verteidigung in Folge setzt 1 Stein auf eine Freiheit deiner schwächsten Gruppe. Kontakt zum Gegner oder ein isolierter Zug setzt zurück. Höchstens 5-mal pro Partie."
+        "desc": "Jeder Zug, der an eigene Steine anschließt, ohne den Gegner zu berühren, verlängert die Serie. Jede 3. Verteidigung in Folge setzt 1 Stein auf eine Freiheit deiner schwächsten Gruppe. Kontakt zum Gegner oder ein isolierter Zug setzt zurück. Höchstens 5-mal pro Partie.",
+        "summary": "Verbinde solide: Jeder 3. Zug in Folge stärkt deine schwächste Gruppe."
       },
       "capture_chain": {
         "name": "Schlagkette",
-        "desc": "Schlage in aufeinanderfolgenden Zügen, um eine Kette zu bilden: ab dem 2. Schlagen in Folge fallen eigene Steine um die geschlagene Stelle (1, dann 2). Ein Zug ohne Schlagen setzt die Kette zurück. Höchstens 5-mal pro Partie."
+        "desc": "Schlage in aufeinanderfolgenden Zügen, um eine Kette zu bilden: ab dem 2. Schlagen in Folge fallen eigene Steine um die geschlagene Stelle (1, dann 2). Ein Zug ohne Schlagen setzt die Kette zurück. Höchstens 5-mal pro Partie.",
+        "summary": "Fange in aufeinanderfolgenden Runden für Bonussteine: 1, dann 2."
       }
     },
     "ultimate": {
@@ -560,7 +606,8 @@
       },
       "shadow_clone": {
         "name": "Schattenklon",
-        "desc": "Erzeugt sofort einen Spiegelstein. Einen Zug später werden Original- und Spiegelpunkt zu einer vollen Linie gezwungen, selbst wenn ein Endpunkt entfernt wurde."
+        "desc": "Erzeugt sofort einen Spiegelstein. Einen Zug später werden Original- und Spiegelpunkt zu einer vollen Linie gezwungen, selbst wenn ein Endpunkt entfernt wurde.",
+        "summary": "Erzeuge einen Spiegelstein; nächste Runde verbindet ihn eine volle Linie mit dem Original."
       },
       "plague": {
         "name": "Seuche",
@@ -608,7 +655,8 @@
       },
       "corner_helper": {
         "name": "Eckfestung",
-        "desc": "Jede Ecke kann einmal auslösen. Hat eine 5x5-Eckzone 2 deiner Steine, wird ihre 8x8-Grenze gefüllt und Gegner darin werden entfernt."
+        "desc": "Jede Ecke kann einmal auslösen. Hat eine 5x5-Eckzone 2 deiner Steine, wird ihre 8x8-Grenze gefüllt und Gegner darin werden entfernt.",
+        "summary": "2 deiner Steine in einer Ecke füllen die ganze Ecke und räumen den Gegner ab."
       },
       "sanrensei": {
         "name": "Sanrensei-Zündung",
@@ -624,11 +672,13 @@
       },
       "five_in_row": {
         "name": "Fünfer-Ausbruch",
-        "desc": "Das ist Gomoku, nicht Go. Wenn deine Steine exakt 5 in Folge bilden, entferne 30 gegnerische Steine und verteile 30 freundliche Steine auf dem Goban. Der Effekt kann ketten."
+        "desc": "Das ist Gomoku, nicht Go. Wenn deine Steine exakt 5 in Folge bilden, entferne 30 gegnerische Steine und verteile 30 freundliche Steine auf dem Goban. Der Effekt kann ketten.",
+        "summary": "Jede genaue Fünferreihe löscht 30 gegnerische Steine und setzt 30 deiner."
       },
       "capture_foul": {
         "name": "Fangfoul",
-        "desc": "Wenn der Gegner mehr als 5 Steine fängt oder entfernt, Karteneffekte eingeschlossen, löst das Foul sicher aus. Der Täter verliert sofort 50 Punkte; danach startet der Zähler neu."
+        "desc": "Wenn der Gegner mehr als 5 Steine fängt oder entfernt, Karteneffekte eingeschlossen, löst das Foul sicher aus. Der Täter verliert sofort 50 Punkte; danach startet der Zähler neu.",
+        "summary": "Entfernt der Gegner mehr als 5 Steine auf einmal, verliert er 50 Punkte."
       },
       "last_stand": {
         "name": "Letztes Aufbäumen",

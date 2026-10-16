@@ -321,7 +321,13 @@
     "准备好了！": "C'est prêt !",
     "选一张卡牌开始吧": "Choisissez une carte pour commencer.",
     "仍在加载…": "Toujours en chargement…",
-    "若长时间没有反应，请重启游戏": "Si rien ne se passe, relancez l'application."
+    "若长时间没有反应，请重启游戏": "Si rien ne se passe, relancez l'application.",
+    "白送棋子": "Pierres offertes",
+    "干扰 AI": "Gêne l'IA",
+    "节奏": "Tempo",
+    "玩法说明": "Comment ça marche",
+    "收起说明": "Masquer les détails",
+    "选这张": "Choisir cette carte"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",
@@ -374,163 +380,203 @@
     "rogue": {
       "tengen": {
         "name": "Tengen",
-        "desc": "L'IA doit ouvrir au tengen ; son coup suivant est limité au diamant 5x5 autour du tengen."
+        "desc": "L'IA doit ouvrir au tengen ; son coup suivant est limité au diamant 5x5 autour du tengen.",
+        "summary": "L'IA doit ouvrir au tengen et rester près de lui un coup de plus."
       },
       "dice": {
         "name": "Jet de dé",
-        "desc": "Chaque coup de l'IA a 6 % de chances de devenir une passe."
+        "desc": "Chaque coup de l'IA a 6 % de chances de devenir une passe.",
+        "summary": "Chaque coup de l'IA a 6 % de chances de devenir une passe."
       },
       "erosion": {
         "name": "Érosion",
-        "desc": "Chaque capture déplace le komi de 4 points en faveur du preneur."
+        "desc": "Chaque capture déplace le komi de 4 points en faveur du preneur.",
+        "summary": "Chaque capture déplace le komi de 4 points vers celui qui capture."
       },
       "puppet": {
         "name": "Marionnette",
-        "desc": "Marquez d'abord le prochain point forcé de l'IA. Vous jouez votre coup, puis l'IA doit répondre là-bas, une fois par partie."
+        "desc": "Marquez d'abord le prochain point forcé de l'IA. Vous jouez votre coup, puis l'IA doit répondre là-bas, une fois par partie.",
+        "summary": "Une fois : choisissez un point, l'IA devra y jouer ensuite."
       },
       "seal": {
         "name": "Sceau",
-        "desc": "Marquez 4 points interdits que l'IA ne pourra jamais jouer pendant la partie."
+        "desc": "Marquez 4 points interdits que l'IA ne pourra jamais jouer pendant la partie.",
+        "summary": "Scellez 4 points où l'IA ne pourra jamais jouer."
       },
       "twin": {
         "name": "Combo",
-        "desc": "Jouez deux pierres dans le même tour, une fois par partie, pour un suivi local."
+        "desc": "Jouez deux pierres dans le même tour, une fois par partie, pour un suivi local.",
+        "summary": "Une fois : jouez deux coups d'affilée."
       },
       "nerf": {
         "name": "Nerf",
-        "desc": "Abaisse l'IA d'environ 8 rangs, réduit sa recherche à environ 5 %, et rend ses 12 premiers coups plus sujets aux mauvais choix de réserve."
+        "desc": "Abaisse l'IA d'environ 8 rangs, réduit sa recherche à environ 5 %, et rend ses 12 premiers coups plus sujets aux mauvais choix de réserve.",
+        "summary": "L'IA joue environ 8 rangs plus faible, surtout au début."
       },
       "komi_relief": {
         "name": "Komi réduit",
-        "desc": "Le komi se décale de 7 points en votre faveur."
+        "desc": "Le komi se décale de 7 points en votre faveur.",
+        "summary": "Le komi bouge de 7 points en votre faveur."
       },
       "time_press": {
         "name": "Pression au temps",
-        "desc": "Abaisse l'IA d'environ 5 rangs, limite chaque coup à 0,10 seconde, et rend ses 12 premiers coups plus vulnérables aux lectures hâtives."
+        "desc": "Abaisse l'IA d'environ 5 rangs, limite chaque coup à 0,10 seconde, et rend ses 12 premiers coups plus vulnérables aux lectures hâtives.",
+        "summary": "L'IA joue environ 5 rangs plus faible et se précipite à chaque coup."
       },
       "lowline": {
         "name": "Jeu bas",
-        "desc": "Pendant ses 5 premiers coups, l'IA préfère les points bas de 2e et 3e lignes."
+        "desc": "Pendant ses 5 premiers coups, l'IA préfère les points bas de 2e et 3e lignes.",
+        "summary": "Les 5 premiers coups de l'IA tirent vers les 2e et 3e lignes."
       },
       "suboptimal": {
         "name": "Second choix",
-        "desc": "Pendant ses 8 premiers coups, l'IA choisit plus souvent des options de réserve plus faibles."
+        "desc": "Pendant ses 8 premiers coups, l'IA choisit plus souvent des options de réserve plus faibles.",
+        "summary": "Les 8 premiers coups de l'IA choisissent souvent une option plus faible."
       },
       "mirror": {
         "name": "Miroir",
-        "desc": "16 % de chances que l'IA copie votre dernier coup par symétrie sur le goban."
+        "desc": "16 % de chances que l'IA copie votre dernier coup par symétrie sur le goban.",
+        "summary": "16 % de chances que l'IA copie votre dernier coup en miroir."
       },
       "slip": {
         "name": "Main glissante",
-        "desc": "L'IA a 12 % de chances de glisser vers un point adjacent."
+        "desc": "L'IA a 12 % de chances de glisser vers un point adjacent.",
+        "summary": "Chaque coup de l'IA a 12 % de chances de glisser sur un point voisin."
       },
       "blackhole": {
         "name": "Trou noir",
-        "desc": "La zone centrale de trou noir est interdite à l'IA pendant toute la partie."
+        "desc": "La zone centrale de trou noir est interdite à l'IA pendant toute la partie.",
+        "summary": "L'IA ne peut jamais jouer dans la zone du trou noir, au centre."
       },
       "exchange": {
         "name": "Vol de tour",
-        "desc": "Actif, une fois par partie : déplacez une pierre adverse vers un point vide de votre choix sans consommer votre coup."
+        "desc": "Actif, une fois par partie : déplacez une pierre adverse vers un point vide de votre choix sans consommer votre coup.",
+        "summary": "Une fois : déplacez une pierre ennemie sur un point vide, gratuitement."
       },
       "fog": {
         "name": "Brouillard de guerre",
-        "desc": "Pendant les 11 premiers coups de l'IA, renouvelle une zone interdite 3x3. Ensuite, bloque chaque tour 1 point interdit dans le diamant 3x3 autour du coup précédent de l'IA."
+        "desc": "Pendant les 11 premiers coups de l'IA, renouvelle une zone interdite 3x3. Ensuite, bloque chaque tour 1 point interdit dans le diamant 3x3 autour du coup précédent de l'IA.",
+        "summary": "Des zones interdites mouvantes gênent l'IA, surtout en ouverture."
       },
       "gravity": {
         "name": "Puits de gravité",
-        "desc": "Gravité des hoshi : l'IA doit jouer ses 6 premiers coups sur des points étoile."
+        "desc": "Gravité des hoshi : l'IA doit jouer ses 6 premiers coups sur des points étoile.",
+        "summary": "Les 6 premiers coups de l'IA doivent être sur des hoshi."
       },
       "golden_corner": {
         "name": "Coin doré",
-        "desc": "Verrouille au hasard une zone de coin 4x4 ; l'IA ne peut plus y jouer de toute la partie."
+        "desc": "Verrouille au hasard une zone de coin 4x4 ; l'IA ne peut plus y jouer de toute la partie.",
+        "summary": "Un coin au hasard est interdit à l'IA toute la partie."
       },
       "sansan": {
         "name": "Ruée san-san",
-        "desc": "L'IA doit jouer ses 3 premiers coups dans les zones 3x3 des quatre coins."
+        "desc": "L'IA doit jouer ses 3 premiers coups dans les zones 3x3 des quatre coins.",
+        "summary": "Les 3 premiers coups de l'IA doivent aller dans les zones san-san."
       },
       "shadow": {
         "name": "Ombre",
-        "desc": "Pendant toute la partie, chaque coup de l'IA a 18 % de chances de coller à sa pierre précédente."
+        "desc": "Pendant toute la partie, chaque coup de l'IA a 18 % de chances de coller à sa pierre précédente.",
+        "summary": "Chaque coup de l'IA a 18 % de chances de devoir coller à son coup précédent."
       },
       "sprout": {
         "name": "Pousse",
-        "desc": "Après chacune de vos captures, fait naître 1 pierre amie au hasard dans une zone 3x3 autour du point capturé."
+        "desc": "Après chacune de vos captures, fait naître 1 pierre amie au hasard dans une zone 3x3 autour du point capturé.",
+        "summary": "Chaque capture fait pousser 1 pierre gratuite juste à côté."
       },
       "joseki_ocd": {
         "name": "Joseki compulsif",
-        "desc": "7 points cibles apparaissent. Touchez-en 4 pour remplir automatiquement les 3 restants avec vos pierres."
+        "desc": "7 points cibles apparaissent. Touchez-en 4 pour remplir automatiquement les 3 restants avec vos pierres.",
+        "summary": "Jouez 4 des 7 points marqués et les 3 autres se remplissent pour vous."
       },
       "handicap_quest": {
         "name": "Quête de handicap",
-        "desc": "Passez une fois pour démarrer ; tous les 8 coups, vous forcez une passe de l'IA, jusqu'à 3 fois."
+        "desc": "Passez une fois pour démarrer ; tous les 8 coups, vous forcez une passe de l'IA, jusqu'à 3 fois.",
+        "summary": "Passez une fois, puis tous les 8 coups l'IA doit passer (3 fois max)."
       },
       "god_hand": {
         "name": "Main de Dieu",
-        "desc": "Touchez le diamant caché pour faire apparaître 3 de vos pierres dans la zone 5x5 autour, sur des points vides."
+        "desc": "Touchez le diamant caché pour faire apparaître 3 de vos pierres dans la zone 5x5 autour, sur des points vides.",
+        "summary": "Trouvez le point caché pour gagner 3 pierres gratuites autour."
       },
       "sansan_trap": {
         "name": "Piège san-san",
-        "desc": "Quand l'IA joue un des quatre points 3-3, 1 de vos pierres apparaît sur un point adjacent sans consommer votre coup."
+        "desc": "Quand l'IA joue un des quatre points 3-3, 1 de vos pierres apparaît sur un point adjacent sans consommer votre coup.",
+        "summary": "Chaque fois que l'IA joue un san-san, vous gagnez une pierre à côté."
       },
       "corner_helper": {
         "name": "Garde du coin",
-        "desc": "Chaque coin peut déclencher une fois. Si la zone 5x5 d'un coin contient 4 de vos pierres, ce coin reçoit 1 renfort."
+        "desc": "Chaque coin peut déclencher une fois. Si la zone 5x5 d'un coin contient 4 de vos pierres, ce coin reçoit 1 renfort.",
+        "summary": "4 de vos pierres dans un coin vous y rapportent 1 pierre gratuite."
       },
       "sanrensei": {
         "name": "Sanrensei",
-        "desc": "Si vos 3 premiers coups sont tous sur des hoshi, 2 autres hoshi vides reçoivent vos pierres. Toute la partie : quand trois de vos pierres s'alignent à intervalles égaux avec des points vides entre elles (comme des sauts d'un point), la constellation s'allume et ajoute 1 pierre sur cette ligne (au plus tous les 6 coups, 3 fois par partie)."
+        "desc": "Si vos 3 premiers coups sont tous sur des hoshi, 2 autres hoshi vides reçoivent vos pierres. Toute la partie : quand trois de vos pierres s'alignent à intervalles égaux avec des points vides entre elles (comme des sauts d'un point), la constellation s'allume et ajoute 1 pierre sur cette ligne (au plus tous les 6 coups, 3 fois par partie).",
+        "summary": "Ouvrez sur 3 hoshi pour 2 pierres gratuites ; 3 pierres à égale distance en rapportent d'autres."
       },
       "no_regret": {
         "name": "Sans regret",
-        "desc": "L'annulation est désactivée ; après le coup adverse, 8 % de chances d'offrir une pierre sur votre meilleur prochain point sans consommer votre coup."
+        "desc": "L'annulation est désactivée ; après le coup adverse, 8 % de chances d'offrir une pierre sur votre meilleur prochain point sans consommer votre coup.",
+        "summary": "Pas d'annulation, mais après chaque coup de l'IA, 8 % de chances d'une pierre gratuite."
       },
       "quickthink": {
         "name": "Réflexe rapide",
-        "desc": "Jouez en 2 secondes pour ouvrir une fenêtre combo de 1 seconde. En cas d'expiration : passe ; suggestions et annulation sont désactivées."
+        "desc": "Jouez en 2 secondes pour ouvrir une fenêtre combo de 1 seconde. En cas d'expiration : passe ; suggestions et annulation sont désactivées.",
+        "summary": "Jouez en moins de 2 secondes pour un coup bonus ; trop lent, vous passez. Ni indices ni annulation."
       },
       "foolish_wisdom": {
         "name": "Sagesse lourde",
-        "desc": "Formez une mauvaise forme pour faire pousser 1 pierre bonus dans la zone 5x5 voisine."
+        "desc": "Formez une mauvaise forme pour faire pousser 1 pierre bonus dans la zone 5x5 voisine.",
+        "summary": "Faites une mauvaise forme et une pierre gratuite pousse à côté."
       },
       "five_in_row": {
         "name": "Cinq d'affilée",
-        "desc": "Quand vous formez exactement 5 pierres d'affilée, ajoutez 1 pierre amie dans chaque zone 3x3 aux deux extrémités."
+        "desc": "Quand vous formez exactement 5 pierres d'affilée, ajoutez 1 pierre amie dans chaque zone 3x3 aux deux extrémités.",
+        "summary": "Alignez exactement 5 pierres pour en gagner 1 à chaque bout."
       },
       "coach_mode": {
         "name": "Connexion coach",
-        "desc": "Actif : une IA plus forte joue les 30 prochains tours pour vous. Si votre winrate reste sous 50 %, elle joue 10 tours de plus."
+        "desc": "Actif : une IA plus forte joue les 30 prochains tours pour vous. Si votre winrate reste sous 50 %, elle joue 10 tours de plus.",
+        "summary": "Actif : une IA plus forte joue vos 30 prochains coups."
       },
       "capture_foul": {
         "name": "Faute de capture",
-        "desc": "Quand l'adversaire capture 4 pierres en un coup ou au cumul, offre 1 pierre amie sur votre prochain point recommandé, puis remet le compteur à zéro."
+        "desc": "Quand l'adversaire capture 4 pierres en un coup ou au cumul, offre 1 pierre amie sur votre prochain point recommandé, puis remet le compteur à zéro.",
+        "summary": "Toutes les 4 pierres capturées par l'IA, vous gagnez une pierre sur un bon point."
       },
       "last_stand": {
         "name": "Baroud final",
-        "desc": "Une fois par partie, si votre winrate passe sous 26 %, retire 1 pierre ennemie et ajoute 1 pierre amie dans le 3x3 du dernier coup, hors points interdits."
+        "desc": "Une fois par partie, si votre winrate passe sous 26 %, retire 1 pierre ennemie et ajoute 1 pierre amie dans le 3x3 du dernier coup, hors points interdits.",
+        "summary": "Une fois, si vos chances tombent sous 26 % : retire 1 pierre ennemie près du dernier coup et ajoute 1 des vôtres."
       },
       "defense_first": {
         "name": "Défense d'abord",
-        "desc": "À partir de votre 3e coup, si vos 3 derniers coups n'ont chacun aucune pierre ennemie dans leur zone 5x5, fait apparaître 1 pierre amie dans un 5x5 autour d'une de vos pierres. Jusqu'à deux fois par partie."
+        "desc": "À partir de votre 3e coup, si vos 3 derniers coups n'ont chacun aucune pierre ennemie dans leur zone 5x5, fait apparaître 1 pierre amie dans un 5x5 autour d'une de vos pierres. Jusqu'à deux fois par partie.",
+        "summary": "3 coups calmes d'affilée loin de l'ennemi : 1 pierre gratuite (2 fois par partie)."
       },
       "attack_first": {
         "name": "Attaque d'abord",
-        "desc": "Si vos 3 derniers coups sont chacun dans une zone 3x3 autour de pierres ennemies, fait apparaître 1 pierre amie à côté des pierres ennemies que vous venez d'attaquer. Jusqu'à deux fois par partie."
+        "desc": "Si vos 3 derniers coups sont chacun dans une zone 3x3 autour de pierres ennemies, fait apparaître 1 pierre amie à côté des pierres ennemies que vous venez d'attaquer. Jusqu'à deux fois par partie.",
+        "summary": "3 coups d'affilée collés aux pierres ennemies : 1 pierre gratuite (2 fois par partie)."
       },
       "methodical": {
         "name": "Méthodique",
-        "desc": "Chacun de vos tours se résout après 2 pierres jouées en séquence ; tous les 10 tours joueur, 1 pierre supplémentaire permet un tour à 3 pierres."
+        "desc": "Chacun de vos tours se résout après 2 pierres jouées en séquence ; tous les 10 tours joueur, 1 pierre supplémentaire permet un tour à 3 pierres.",
+        "summary": "Jouez 2 pierres à chaque tour, et 3 tous les 10 tours."
       },
       "momentum": {
         "name": "Élan",
-        "desc": "Chaque coup au contact des pierres adverses (ou qui capture) prolonge la série. Toutes les 3 attaques d'affilée, une de vos pierres s'ajoute contre l'adversaire. Un coup sans contact remet la série à zéro. 5 fois max par partie."
+        "desc": "Chaque coup au contact des pierres adverses (ou qui capture) prolonge la série. Toutes les 3 attaques d'affilée, une de vos pierres s'ajoute contre l'adversaire. Un coup sans contact remet la série à zéro. 5 fois max par partie.",
+        "summary": "Attaquez sans relâche : chaque 3e coup au contact d'affilée ajoute une pierre."
       },
       "iron_wall": {
         "name": "Mur de fer",
-        "desc": "Chaque coup qui se connecte à vos pierres sans toucher l'adversaire prolonge la série. Toutes les 3 défenses d'affilée, une pierre renforce une liberté de votre groupe le plus faible. Toucher l'adversaire ou jouer isolé remet à zéro. 5 fois max par partie."
+        "desc": "Chaque coup qui se connecte à vos pierres sans toucher l'adversaire prolonge la série. Toutes les 3 défenses d'affilée, une pierre renforce une liberté de votre groupe le plus faible. Toucher l'adversaire ou jouer isolé remet à zéro. 5 fois max par partie.",
+        "summary": "Connectez solidement : chaque 3e coup d'affilée renforce votre groupe le plus faible."
       },
       "capture_chain": {
         "name": "Chaîne de captures",
-        "desc": "Capturez à des tours consécutifs pour enchaîner : dès la 2e capture d'affilée, des pierres à vous tombent autour de la prise (1, puis 2). Un tour sans capture remet la chaîne à zéro. 5 fois max par partie."
+        "desc": "Capturez à des tours consécutifs pour enchaîner : dès la 2e capture d'affilée, des pierres à vous tombent autour de la prise (1, puis 2). Un tour sans capture remet la chaîne à zéro. 5 fois max par partie.",
+        "summary": "Capturez à des tours consécutifs pour des pierres bonus : 1, puis 2."
       }
     },
     "ultimate": {
@@ -560,7 +606,8 @@
       },
       "shadow_clone": {
         "name": "Clone d'ombre",
-        "desc": "Crée maintenant une pierre miroir. Un tour plus tard, le point original et le miroir forment une ligne complète même si une extrémité a été retirée."
+        "desc": "Crée maintenant une pierre miroir. Un tour plus tard, le point original et le miroir forment une ligne complète même si une extrémité a été retirée.",
+        "summary": "Créez une pierre miroir ; au tour suivant, une ligne entière la relie à l'originale."
       },
       "plague": {
         "name": "Peste",
@@ -608,7 +655,8 @@
       },
       "corner_helper": {
         "name": "Forteresse de coin",
-        "desc": "Chaque coin peut déclencher une fois. Si le 5x5 d'un coin contient 2 de vos pierres, sa bordure 8x8 est remplie et les ennemies à l'intérieur sont nettoyées."
+        "desc": "Chaque coin peut déclencher une fois. Si le 5x5 d'un coin contient 2 de vos pierres, sa bordure 8x8 est remplie et les ennemies à l'intérieur sont nettoyées.",
+        "summary": "2 de vos pierres dans un coin le remplissent en entier et chassent l'ennemi."
       },
       "sanrensei": {
         "name": "Ignition sanrensei",
@@ -624,11 +672,13 @@
       },
       "five_in_row": {
         "name": "Explosion cinq d'affilée",
-        "desc": "C'est du gomoku, pas du go. Quand vos pierres forment exactement 5 d'affilée, retire 30 pierres ennemies et dépose 30 pierres amies sur le goban. L'effet peut enchaîner."
+        "desc": "C'est du gomoku, pas du go. Quand vos pierres forment exactement 5 d'affilée, retire 30 pierres ennemies et dépose 30 pierres amies sur le goban. L'effet peut enchaîner.",
+        "summary": "Chaque alignement exact de 5 efface 30 pierres ennemies et pose 30 des vôtres."
       },
       "capture_foul": {
         "name": "Faute de capture",
-        "desc": "Quand l'adversaire capture ou retire plus de 5 pierres, effets de cartes inclus, la faute se déclenche à coup sûr. Le fautif perd immédiatement 50 points, puis le compteur repart."
+        "desc": "Quand l'adversaire capture ou retire plus de 5 pierres, effets de cartes inclus, la faute se déclenche à coup sûr. Le fautif perd immédiatement 50 points, puis le compteur repart.",
+        "summary": "Si l'adversaire retire plus de 5 pierres d'un coup, il perd 50 points."
       },
       "last_stand": {
         "name": "Baroud final",

@@ -32,6 +32,15 @@
           "fr-FR": "L'IA doit ouvrir au tengen ; son coup suivant est limité au diamant 5x5 autour du tengen.",
           "de-DE": "Die KI muss am Tengen eröffnen; ihr nächster Zug ist auf den 5x5-Diamanten um Tengen beschränkt."
         },
+        "summary": {
+          "zh-CN": "AI 必须先下天元，下一手也只能留在天元附近。",
+          "en-US": "The AI must open at tengen and stay near it for one more move.",
+          "ja-JP": "AIは天元から打ち始め、次の1手も天元の近くに限られます。",
+          "ko-KR": "AI는 천원에 첫수를 두고, 다음 한 수도 천원 근처에만 둘 수 있어요.",
+          "zh-TW": "AI 必須先下天元，下一手也只能留在天元附近。",
+          "fr-FR": "L'IA doit ouvrir au tengen et rester près de lui un coup de plus.",
+          "de-DE": "Die KI muss auf Tengen eröffnen und noch einen Zug in der Nähe bleiben."
+        },
         "icon": "◎"
       },
       "dice": {
@@ -52,6 +61,15 @@
           "zh-TW": "AI 每手有 6% 機率直接虛手。",
           "fr-FR": "Chaque coup de l'IA a 6 % de chances de devenir une passe.",
           "de-DE": "Jeder KI-Zug hat eine Chance von 6 %, zu einem Pass zu werden."
+        },
+        "summary": {
+          "zh-CN": "AI 每一手有 6% 概率变成虚手。",
+          "en-US": "Each AI move has a 6% chance to become a pass.",
+          "ja-JP": "AIの着手は毎回6%の確率でパスになります。",
+          "ko-KR": "AI의 매 수가 6% 확률로 패스가 돼요.",
+          "zh-TW": "AI 每一手有 6% 機率變成虛手。",
+          "fr-FR": "Chaque coup de l'IA a 6 % de chances de devenir une passe.",
+          "de-DE": "Jeder KI-Zug wird mit 6 % Wahrscheinlichkeit zum Passen."
         },
         "icon": "🎉"
       },
@@ -74,6 +92,15 @@
           "fr-FR": "Chaque capture déplace le komi de 4 points en faveur du preneur.",
           "de-DE": "Jede Gefangennahme verschiebt das Komi um 4 Punkte zugunsten des Fängers."
         },
+        "summary": {
+          "zh-CN": "每次提子，贴目向提子方移动 4 目。",
+          "en-US": "Every capture moves komi 4 points toward the capturer.",
+          "ja-JP": "石を取るたびに、コミが取った側へ4目動きます。",
+          "ko-KR": "돌을 따낼 때마다 덤이 따낸 쪽으로 4집 움직여요.",
+          "zh-TW": "每次提子，貼目向提子方移動 4 目。",
+          "fr-FR": "Chaque capture déplace le komi de 4 points vers celui qui capture.",
+          "de-DE": "Jeder Fang verschiebt das Komi um 4 Punkte zum Fänger hin."
+        },
         "icon": "🌑"
       },
       "puppet": {
@@ -94,6 +121,15 @@
           "zh-TW": "先選定 AI 下一手的落點；你先正常落子，隨後 AI 會被迫下在那裡（限 1 次）",
           "fr-FR": "Marquez d'abord le prochain point forcé de l'IA. Vous jouez votre coup, puis l'IA doit répondre là-bas, une fois par partie.",
           "de-DE": "Markiere zuerst den erzwungenen nächsten Punkt der KI. Du spielst deinen Zug, dann muss die KI dort antworten, einmal pro Partie."
+        },
+        "summary": {
+          "zh-CN": "限一次：指定一个点，AI 下一手必须下在那里。",
+          "en-US": "Once: pick a point and the AI must play there next.",
+          "ja-JP": "1回だけ：点を指定すると、AIは次にそこへ打たされます。",
+          "ko-KR": "한 번: 점을 고르면 AI가 다음 수를 반드시 거기에 둬요.",
+          "zh-TW": "限一次：指定一個點，AI 下一手必須下在那裡。",
+          "fr-FR": "Une fois : choisissez un point, l'IA devra y jouer ensuite.",
+          "de-DE": "Einmal: Wähle einen Punkt, dort muss die KI als Nächstes spielen."
         },
         "icon": "🎁",
         "uses": 1
@@ -117,6 +153,15 @@
           "fr-FR": "Marquez 4 points interdits que l'IA ne pourra jamais jouer pendant la partie.",
           "de-DE": "Markiere 4 verbotene Punkte, die die KI die ganze Partie nicht spielen darf."
         },
+        "summary": {
+          "zh-CN": "封印 4 个点，AI 整局都不能下在那里。",
+          "en-US": "Seal 4 points the AI can never play on.",
+          "ja-JP": "4つの点を封印し、AIは対局中ずっとそこに打てません。",
+          "ko-KR": "4개의 점을 봉인해 AI가 판 내내 둘 수 없어요.",
+          "zh-TW": "封印 4 個點，AI 整局都不能下在那裡。",
+          "fr-FR": "Scellez 4 points où l'IA ne pourra jamais jouer.",
+          "de-DE": "Versiegle 4 Punkte, auf die die KI nie spielen darf."
+        },
         "icon": "🔀"
       },
       "twin": {
@@ -137,6 +182,15 @@
           "zh-TW": "本回合可連續落兩手（限 1 次）",
           "fr-FR": "Jouez deux pierres dans le même tour, une fois par partie, pour un suivi local.",
           "de-DE": "Spiele einmal pro Partie zwei Steine in einem Zug für eine lokale Fortsetzung."
+        },
+        "summary": {
+          "zh-CN": "限一次：一回合连下两手。",
+          "en-US": "Once: play two moves in a row.",
+          "ja-JP": "1回だけ：1ターンに2手続けて打てます。",
+          "ko-KR": "한 번: 한 차례에 두 수를 연달아 둬요.",
+          "zh-TW": "限一次：一回合連下兩手。",
+          "fr-FR": "Une fois : jouez deux coups d'affilée.",
+          "de-DE": "Einmal: Spiele zwei Züge hintereinander."
         },
         "icon": "✦",
         "uses": 1
@@ -160,6 +214,15 @@
           "fr-FR": "Abaisse l'IA d'environ 8 rangs, réduit sa recherche à environ 5 %, et rend ses 12 premiers coups plus sujets aux mauvais choix de réserve.",
           "de-DE": "Senkt die KI um etwa 8 Ränge, reduziert ihre Suche auf ungefähr 5 % und lässt sie in den ersten 12 Zügen häufiger schwache Ersatzoptionen wählen."
         },
+        "summary": {
+          "zh-CN": "AI 弱约 8 级，开局尤其容易走错。",
+          "en-US": "The AI plays about 8 ranks weaker, especially early on.",
+          "ja-JP": "AIが約8段階弱くなり、序盤は特にミスが増えます。",
+          "ko-KR": "AI가 약 8급 약해지고, 초반에 특히 실수가 많아져요.",
+          "zh-TW": "AI 弱約 8 級，開局尤其容易走錯。",
+          "fr-FR": "L'IA joue environ 8 rangs plus faible, surtout au début.",
+          "de-DE": "Die KI spielt etwa 8 Ränge schwächer, besonders am Anfang."
+        },
         "icon": "📲"
       },
       "komi_relief": {
@@ -179,6 +242,15 @@
           "ko-KR": "덤을 내게 유리한 방향으로 7집 조정합니다.",
           "zh-TW": "貼目會朝你有利的方向調整 7 目",
           "fr-FR": "Le komi se décale de 7 points en votre faveur.",
+          "de-DE": "Das Komi verschiebt sich um 7 Punkte zu deinen Gunsten."
+        },
+        "summary": {
+          "zh-CN": "贴目向你移动 7 目。",
+          "en-US": "Komi moves 7 points in your favor.",
+          "ja-JP": "コミがあなたに有利な方へ7目動きます。",
+          "ko-KR": "덤이 내게 유리하게 7집 움직여요.",
+          "zh-TW": "貼目向你移動 7 目。",
+          "fr-FR": "Le komi bouge de 7 points en votre faveur.",
           "de-DE": "Das Komi verschiebt sich um 7 Punkte zu deinen Gunsten."
         },
         "icon": "✘️"
@@ -202,6 +274,15 @@
           "fr-FR": "Abaisse l'IA d'environ 5 rangs, limite chaque coup à 0,10 seconde, et rend ses 12 premiers coups plus vulnérables aux lectures hâtives.",
           "de-DE": "Senkt die KI um etwa 5 Ränge, begrenzt jeden Zug auf 0,10 Sekunden und macht die ersten 12 Züge anfälliger für übereilte Lesefehler."
         },
+        "summary": {
+          "zh-CN": "AI 弱约 5 级，而且每手都很仓促。",
+          "en-US": "The AI plays about 5 ranks weaker and rushes every move.",
+          "ja-JP": "AIが約5段階弱くなり、毎手あわてて打ちます。",
+          "ko-KR": "AI가 약 5급 약해지고 매 수를 서둘러 둬요.",
+          "zh-TW": "AI 弱約 5 級，而且每手都很倉促。",
+          "fr-FR": "L'IA joue environ 5 rangs plus faible et se précipite à chaque coup.",
+          "de-DE": "Die KI spielt etwa 5 Ränge schwächer und hetzt jeden Zug."
+        },
         "icon": "⏱️"
       },
       "lowline": {
@@ -222,6 +303,15 @@
           "zh-TW": "AI 前 5 手偏向二三路低位。",
           "fr-FR": "Pendant ses 5 premiers coups, l'IA préfère les points bas de 2e et 3e lignes.",
           "de-DE": "In den ersten 5 Zügen bevorzugt die KI niedrige Punkte auf der 2. und 3. Linie."
+        },
+        "summary": {
+          "zh-CN": "AI 前 5 手偏爱二、三线的低位。",
+          "en-US": "The AI's first 5 moves lean toward the low 2nd and 3rd lines.",
+          "ja-JP": "AIの最初の5手は2・3線の低い位置に寄ります。",
+          "ko-KR": "AI의 처음 5수는 2, 3선의 낮은 자리로 쏠려요.",
+          "zh-TW": "AI 前 5 手偏愛二、三線的低位。",
+          "fr-FR": "Les 5 premiers coups de l'IA tirent vers les 2e et 3e lignes.",
+          "de-DE": "Die ersten 5 KI-Züge tendieren zur niedrigen 2. und 3. Linie."
         },
         "icon": "🦊"
       },
@@ -244,6 +334,15 @@
           "fr-FR": "Pendant ses 8 premiers coups, l'IA choisit plus souvent des options de réserve plus faibles.",
           "de-DE": "In den ersten 8 Zügen wählt die KI deutlich häufiger schwächere Ersatzoptionen."
         },
+        "summary": {
+          "zh-CN": "AI 前 8 手经常选次一点的下法。",
+          "en-US": "The AI's first 8 moves often pick a weaker option.",
+          "ja-JP": "AIの最初の8手は、よく次善の手を選びます。",
+          "ko-KR": "AI의 처음 8수는 자주 차선책을 골라요.",
+          "zh-TW": "AI 前 8 手經常選次一點的下法。",
+          "fr-FR": "Les 8 premiers coups de l'IA choisissent souvent une option plus faible.",
+          "de-DE": "Die ersten 8 KI-Züge wählen oft eine schwächere Option."
+        },
         "icon": "🚍"
       },
       "mirror": {
@@ -264,6 +363,15 @@
           "zh-TW": "AI 有 16% 機率按棋盤對稱位置映象模仿你的上一手",
           "fr-FR": "16 % de chances que l'IA copie votre dernier coup par symétrie sur le goban.",
           "de-DE": "16 % Chance, dass die KI deinen letzten Zug über das Goban spiegelt."
+        },
+        "summary": {
+          "zh-CN": "AI 有 16% 概率模仿你上一手的对称位置。",
+          "en-US": "16% chance the AI copies your last move, mirrored.",
+          "ja-JP": "16%の確率で、AIがあなたの直前の手を点対称にまねします。",
+          "ko-KR": "16% 확률로 AI가 내 직전 수를 대칭으로 따라 둬요.",
+          "zh-TW": "AI 有 16% 機率模仿你上一手的對稱位置。",
+          "fr-FR": "16 % de chances que l'IA copie votre dernier coup en miroir.",
+          "de-DE": "Mit 16 % Wahrscheinlichkeit spiegelt die KI deinen letzten Zug."
         },
         "icon": "🪞"
       },
@@ -286,6 +394,15 @@
           "fr-FR": "L'IA a 12 % de chances de glisser vers un point adjacent.",
           "de-DE": "Die KI hat 12 % Chance, auf einen benachbarten Punkt abzurutschen."
         },
+        "summary": {
+          "zh-CN": "AI 每手有 12% 概率滑到旁边的点。",
+          "en-US": "12% chance each AI move slips to a neighboring point.",
+          "ja-JP": "AIの着手は12%の確率で隣の点へずれます。",
+          "ko-KR": "AI의 매 수가 12% 확률로 옆 점으로 미끄러져요.",
+          "zh-TW": "AI 每手有 12% 機率滑到旁邊的點。",
+          "fr-FR": "Chaque coup de l'IA a 12 % de chances de glisser sur un point voisin.",
+          "de-DE": "Jeder KI-Zug rutscht mit 12 % Wahrscheinlichkeit auf einen Nachbarpunkt."
+        },
         "icon": "😾"
       },
       "blackhole": {
@@ -307,6 +424,15 @@
           "fr-FR": "La zone centrale de trou noir est interdite à l'IA pendant toute la partie.",
           "de-DE": "Die zentrale Schwarzes-Loch-Zone ist der KI die ganze Partie verboten."
         },
+        "summary": {
+          "zh-CN": "AI 整局都不能下在中央的黑洞区。",
+          "en-US": "The AI can never play in the central black-hole zone.",
+          "ja-JP": "AIは対局中ずっと中央のブラックホールに打てません。",
+          "ko-KR": "AI는 판 내내 중앙 블랙홀 구역에 둘 수 없어요.",
+          "zh-TW": "AI 整局都不能下在中央的黑洞區。",
+          "fr-FR": "L'IA ne peut jamais jouer dans la zone du trou noir, au centre.",
+          "de-DE": "Die KI darf nie in die Schwarzloch-Zone in der Mitte spielen."
+        },
         "icon": "🕳️"
       },
       "exchange": {
@@ -327,6 +453,15 @@
           "zh-TW": "主動效果，限 1 次：你可以把對方一顆棋子擺動到你指定的空點，不消耗你的落子權。",
           "fr-FR": "Actif, une fois par partie : déplacez une pierre adverse vers un point vide de votre choix sans consommer votre coup.",
           "de-DE": "Aktiv, einmal pro Partie: Bewege einen gegnerischen Stein auf einen leeren Punkt deiner Wahl, ohne deinen Zug zu verbrauchen."
+        },
+        "summary": {
+          "zh-CN": "限一次：把一颗对方棋子挪到任意空点，不占你的手数。",
+          "en-US": "Once: move one enemy stone to any empty point, for free.",
+          "ja-JP": "1回だけ：相手の石1つを好きな空点へ動かせます（手番を使いません）。",
+          "ko-KR": "한 번: 상대 돌 하나를 원하는 빈 점으로 옮겨요(수를 쓰지 않아요).",
+          "zh-TW": "限一次：把一顆對方棋子挪到任意空點，不佔你的手數。",
+          "fr-FR": "Une fois : déplacez une pierre ennemie sur un point vide, gratuitement.",
+          "de-DE": "Einmal: Versetze einen gegnerischen Stein auf einen freien Punkt, gratis."
         },
         "icon": "🔄",
         "uses": 1
@@ -350,6 +485,15 @@
           "fr-FR": "Pendant les 11 premiers coups de l'IA, renouvelle une zone interdite 3x3. Ensuite, bloque chaque tour 1 point interdit dans le diamant 3x3 autour du coup précédent de l'IA.",
           "de-DE": "Für die ersten 11 KI-Züge wird eine 3x3-Sperrzone erneuert. Danach wird pro Runde 1 KI-verbotener Punkt im 3x3-Diamanten um den vorigen KI-Zug blockiert."
         },
+        "summary": {
+          "zh-CN": "不断变化的禁区挡住 AI，开局时最明显。",
+          "en-US": "Shifting no-go zones block the AI, mostly in the opening.",
+          "ja-JP": "移り変わる禁止エリアがAIを妨害します（特に序盤）。",
+          "ko-KR": "계속 바뀌는 금지 구역이 AI를 막아요(주로 초반).",
+          "zh-TW": "不斷變化的禁區擋住 AI，開局時最明顯。",
+          "fr-FR": "Des zones interdites mouvantes gênent l'IA, surtout en ouverture.",
+          "de-DE": "Wandernde Sperrzonen behindern die KI, vor allem in der Eröffnung."
+        },
         "icon": "🌫️"
       },
       "gravity": {
@@ -370,6 +514,15 @@
           "zh-TW": "星位引力：AI 前 6 手必定下在星位。",
           "fr-FR": "Gravité des hoshi : l'IA doit jouer ses 6 premiers coups sur des points étoile.",
           "de-DE": "Hoshi-Gravitation: Die KI muss ihre ersten 6 Züge auf Sternpunkte spielen."
+        },
+        "summary": {
+          "zh-CN": "AI 前 6 手必须下在星位。",
+          "en-US": "The AI's first 6 moves must be on star points.",
+          "ja-JP": "AIの最初の6手は星に打たなければなりません。",
+          "ko-KR": "AI의 처음 6수는 반드시 화점에 둬야 해요.",
+          "zh-TW": "AI 前 6 手必須下在星位。",
+          "fr-FR": "Les 6 premiers coups de l'IA doivent être sur des hoshi.",
+          "de-DE": "Die ersten 6 KI-Züge müssen auf Sternpunkte."
         },
         "icon": "🌃"
       },
@@ -392,6 +545,15 @@
           "fr-FR": "Verrouille au hasard une zone de coin 4x4 ; l'IA ne peut plus y jouer de toute la partie.",
           "de-DE": "Sperrt zufällig eine 4x4-Eckzone; die KI darf dort die ganze Partie nicht spielen."
         },
+        "summary": {
+          "zh-CN": "随机一个角整局禁止 AI 落子。",
+          "en-US": "One random corner is off-limits to the AI all game.",
+          "ja-JP": "ランダムな隅1つに、AIは対局中ずっと打てません。",
+          "ko-KR": "무작위 귀 하나에 AI가 판 내내 둘 수 없어요.",
+          "zh-TW": "隨機一個角整局禁止 AI 落子。",
+          "fr-FR": "Un coin au hasard est interdit à l'IA toute la partie.",
+          "de-DE": "Eine zufällige Ecke ist für die KI die ganze Partie gesperrt."
+        },
         "icon": "🪙"
       },
       "sansan": {
@@ -412,6 +574,15 @@
           "zh-TW": "AI 前 3 手必定落在四角的 3×3 區域內。",
           "fr-FR": "L'IA doit jouer ses 3 premiers coups dans les zones 3x3 des quatre coins.",
           "de-DE": "Die KI muss ihre ersten 3 Züge in den 3x3-Eckzonen spielen."
+        },
+        "summary": {
+          "zh-CN": "AI 前 3 手必须下在角上的三三区域。",
+          "en-US": "The AI's first 3 moves must go in the 3-3 corner zones.",
+          "ja-JP": "AIの最初の3手は隅の三々エリアに打たなければなりません。",
+          "ko-KR": "AI의 처음 3수는 반드시 귀의 삼삼 구역에 둬야 해요.",
+          "zh-TW": "AI 前 3 手必須下在角上的三三區域。",
+          "fr-FR": "Les 3 premiers coups de l'IA doivent aller dans les zones san-san.",
+          "de-DE": "Die ersten 3 KI-Züge müssen in die San-San-Eckzonen."
         },
         "icon": "◎"
       },
@@ -434,6 +605,15 @@
           "fr-FR": "Pendant toute la partie, chaque coup de l'IA a 18 % de chances de coller à sa pierre précédente.",
           "de-DE": "Während der ganzen Partie hat jeder KI-Zug 18 % Chance, direkt neben ihrem vorigen Stein zu folgen."
         },
+        "summary": {
+          "zh-CN": "AI 每手有 18% 概率只能贴着自己上一手下。",
+          "en-US": "18% chance each AI move must stay next to its last one.",
+          "ja-JP": "AIの着手は18%の確率で、直前の自分の石の隣に限られます。",
+          "ko-KR": "AI의 매 수가 18% 확률로 직전 자기 돌 옆에만 둘 수 있어요.",
+          "zh-TW": "AI 每手有 18% 機率只能貼著自己上一手下。",
+          "fr-FR": "Chaque coup de l'IA a 18 % de chances de devoir coller à son coup précédent.",
+          "de-DE": "Jeder KI-Zug muss mit 18 % Wahrscheinlichkeit neben ihrem letzten liegen."
+        },
         "icon": "👁"
       },
       "sprout": {
@@ -454,6 +634,15 @@
           "zh-TW": "每次我方提子後，在提子處 3×3 範圍內隨機生成 1 顆我方棋子。",
           "fr-FR": "Après chacune de vos captures, fait naître 1 pierre amie au hasard dans une zone 3x3 autour du point capturé.",
           "de-DE": "Nach jeder deiner Gefangennahmen entsteht zufällig 1 freundlicher Stein in einer 3x3-Zone um den gefangenen Punkt."
+        },
+        "summary": {
+          "zh-CN": "每次提子，旁边长出 1 颗你的棋子。",
+          "en-US": "Every capture grows 1 free stone next to it.",
+          "ja-JP": "石を取るたびに、そのそばにあなたの石が1つ生えます。",
+          "ko-KR": "돌을 따낼 때마다 그 옆에 내 돌 1개가 자라나요.",
+          "zh-TW": "每次提子，旁邊長出 1 顆你的棋子。",
+          "fr-FR": "Chaque capture fait pousser 1 pierre gratuite juste à côté.",
+          "de-DE": "Jeder Fang lässt daneben 1 Gratisstein wachsen."
         },
         "icon": "🌱"
       },
@@ -476,6 +665,15 @@
           "fr-FR": "7 points cibles apparaissent. Touchez-en 4 pour remplir automatiquement les 3 restants avec vos pierres.",
           "de-DE": "7 Zielpunkte erscheinen. Triff 4 davon, um die übrigen 3 automatisch mit deinen Steinen zu füllen."
         },
+        "summary": {
+          "zh-CN": "7 个目标点中下中 4 个，剩下 3 个自动补成你的。",
+          "en-US": "Hit 4 of 7 marked points and the other 3 fill in for you.",
+          "ja-JP": "7つの目標点のうち4つに打てば、残り3つが自動であなたの石になります。",
+          "ko-KR": "표시된 7곳 중 4곳에 두면 나머지 3곳이 자동으로 채워져요.",
+          "zh-TW": "7 個目標點中下中 4 個，剩下 3 個自動補成你的。",
+          "fr-FR": "Jouez 4 des 7 points marqués et les 3 autres se remplissent pour vous.",
+          "de-DE": "Triff 4 von 7 markierten Punkten, die übrigen 3 füllen sich für dich."
+        },
         "icon": "📻"
       },
       "handicap_quest": {
@@ -496,6 +694,15 @@
           "zh-TW": "先虛手 1 次，之後每滿 8 手獎勵 AI 虛手一次，最多觸發 3 次",
           "fr-FR": "Passez une fois pour démarrer ; tous les 8 coups, vous forcez une passe de l'IA, jusqu'à 3 fois.",
           "de-DE": "Passe einmal zum Start; danach erzwingst du alle 8 Züge einen KI-Pass, bis zu 3-mal."
+        },
+        "summary": {
+          "zh-CN": "先虚手一次，之后每 8 手逼 AI 虚手一次，最多 3 次。",
+          "en-US": "Pass once, then every 8 moves the AI is forced to pass (up to 3 times).",
+          "ja-JP": "まず1回パスすると、以後8手ごとにAIがパスさせられます（最大3回）。",
+          "ko-KR": "먼저 한 번 패스하면, 이후 8수마다 AI가 강제로 패스해요(최대 3회).",
+          "zh-TW": "先虛手一次，之後每 8 手逼 AI 虛手一次，最多 3 次。",
+          "fr-FR": "Passez une fois, puis tous les 8 coups l'IA doit passer (3 fois max).",
+          "de-DE": "Passe einmal, dann muss die KI alle 8 Züge passen (bis zu 3-mal)."
         },
         "icon": "🎵"
       },
@@ -518,6 +725,15 @@
           "fr-FR": "Touchez le diamant caché pour faire apparaître 3 de vos pierres dans la zone 5x5 autour, sur des points vides.",
           "de-DE": "Triff den versteckten Diamanten, um 3 deiner Steine auf leeren Punkten im umliegenden 5x5 entstehen zu lassen."
         },
+        "summary": {
+          "zh-CN": "找到隐藏的点，周围送你 3 颗棋子。",
+          "en-US": "Find the hidden spot to get 3 free stones around it.",
+          "ja-JP": "隠された点を見つけると、周りにあなたの石が3つ置かれます。",
+          "ko-KR": "숨겨진 점을 찾으면 주변에 내 돌 3개가 놓여요.",
+          "zh-TW": "找到隱藏的點，周圍送你 3 顆棋子。",
+          "fr-FR": "Trouvez le point caché pour gagner 3 pierres gratuites autour.",
+          "de-DE": "Finde den versteckten Punkt und erhalte 3 Gratissteine drumherum."
+        },
         "icon": "✨"
       },
       "sansan_trap": {
@@ -538,6 +754,15 @@
           "zh-TW": "只要 AI 下在四個三三點之一，就立刻在相鄰交叉點生成 1 顆我方棋子，不佔用你的落子權。",
           "fr-FR": "Quand l'IA joue un des quatre points 3-3, 1 de vos pierres apparaît sur un point adjacent sans consommer votre coup.",
           "de-DE": "Wenn die KI einen der vier 3-3-Punkte spielt, erscheint 1 deiner Steine auf einem Nachbarpunkt, ohne deinen Zug zu verbrauchen."
+        },
+        "summary": {
+          "zh-CN": "AI 一点三三，你就在旁边白得 1 子。",
+          "en-US": "Whenever the AI takes a 3-3 point, you get a free stone beside it.",
+          "ja-JP": "AIが三々に打つたび、そのそばにあなたの石が1つ置かれます。",
+          "ko-KR": "AI가 삼삼에 둘 때마다 그 옆에 내 돌 1개가 생겨요.",
+          "zh-TW": "AI 一點三三，你就在旁邊白得 1 子。",
+          "fr-FR": "Chaque fois que l'IA joue un san-san, vous gagnez une pierre à côté.",
+          "de-DE": "Spielt die KI auf einen San-San-Punkt, bekommst du daneben einen Gratisstein."
         },
         "icon": "🪤"
       },
@@ -560,6 +785,15 @@
           "fr-FR": "Chaque coin peut déclencher une fois. Si la zone 5x5 d'un coin contient 4 de vos pierres, ce coin reçoit 1 renfort.",
           "de-DE": "Jede Ecke kann einmal auslösen. Hat eine 5x5-Eckzone 4 deiner Steine, erhält die Ecke 1 Verstärkung."
         },
+        "summary": {
+          "zh-CN": "一个角上有你 4 颗子，这个角就补你 1 颗。",
+          "en-US": "4 of your stones in a corner earn that corner 1 free stone.",
+          "ja-JP": "隅のエリアに自分の石が4つそろうと、その隅に1つ追加されます。",
+          "ko-KR": "귀 구역에 내 돌이 4개 모이면 그 귀에 1개가 더 생겨요.",
+          "zh-TW": "一個角上有你 4 顆子，這個角就補你 1 顆。",
+          "fr-FR": "4 de vos pierres dans un coin vous y rapportent 1 pierre gratuite.",
+          "de-DE": "4 deiner Steine in einer Ecke bringen dort 1 Gratisstein."
+        },
         "icon": "🏯"
       },
       "sanrensei": {
@@ -580,6 +814,15 @@
           "zh-TW": "若你前三手都下在星位，則在額外兩顆未落子星位贈送我方棋子。整局有效：你的三顆棋子在一條直線上等距排列、中間為空時（如一間跳），點亮星座並在線上補 1 顆己棋（至少間隔 6 手，每局最多 3 次）。",
           "fr-FR": "Si vos 3 premiers coups sont tous sur des hoshi, 2 autres hoshi vides reçoivent vos pierres. Toute la partie : quand trois de vos pierres s'alignent à intervalles égaux avec des points vides entre elles (comme des sauts d'un point), la constellation s'allume et ajoute 1 pierre sur cette ligne (au plus tous les 6 coups, 3 fois par partie).",
           "de-DE": "Wenn deine ersten 3 Züge alle auf Hoshi liegen, erhalten 2 weitere leere Hoshi deine Steine. Die ganze Partie: Stehen drei deiner Steine gleichmäßig verteilt in einer Linie mit freien Punkten dazwischen (wie Ein-Punkt-Sprünge), leuchtet das Sternbild auf und setzt 1 Stein auf diese Linie (höchstens alle 6 Züge, 3-mal pro Partie)."
+        },
+        "summary": {
+          "zh-CN": "前 3 手都下星位送 2 子；之后等距连成三子还会再送。",
+          "en-US": "Open on 3 star points for 2 free stones; evenly spaced lines of 3 add more.",
+          "ja-JP": "最初の3手を星に打つと2子追加。その後も等間隔の3子で追加されます。",
+          "ko-KR": "처음 3수를 화점에 두면 2개 추가, 이후 같은 간격 3점이면 더 생겨요.",
+          "zh-TW": "前 3 手都下星位送 2 子；之後等距連成三子還會再送。",
+          "fr-FR": "Ouvrez sur 3 hoshi pour 2 pierres gratuites ; 3 pierres à égale distance en rapportent d'autres.",
+          "de-DE": "Eröffne auf 3 Sternpunkten für 2 Gratissteine; gleichmäßige Dreierlinien bringen mehr."
         },
         "icon": "⭐"
       },
@@ -602,6 +845,15 @@
           "fr-FR": "L'annulation est désactivée ; après le coup adverse, 8 % de chances d'offrir une pierre sur votre meilleur prochain point sans consommer votre coup.",
           "de-DE": "Rücknahme ist deaktiviert; nach dem gegnerischen Zug gibt es 8 % Chance, einen Stein auf deinem besten nächsten Punkt zu schenken, ohne deinen Zug zu verbrauchen."
         },
+        "summary": {
+          "zh-CN": "不能悔棋，但 AI 落子后有 8% 概率送你一子。",
+          "en-US": "No undo, but after each AI move there's an 8% chance of a free stone.",
+          "ja-JP": "待ったはできませんが、AIの着手後に8%の確率で1子もらえます。",
+          "ko-KR": "무르기는 못 하지만, AI가 둔 뒤 8% 확률로 돌 하나를 받아요.",
+          "zh-TW": "不能悔棋，但 AI 落子後有 8% 機率送你一子。",
+          "fr-FR": "Pas d'annulation, mais après chaque coup de l'IA, 8 % de chances d'une pierre gratuite.",
+          "de-DE": "Kein Zurücknehmen, dafür nach jedem KI-Zug 8 % Chance auf einen Gratisstein."
+        },
         "icon": "🚫"
       },
       "quickthink": {
@@ -622,6 +874,15 @@
           "zh-TW": "2 秒內落子可追加 1 秒連擊視窗；超時虛手，禁用推薦點與悔棋。",
           "fr-FR": "Jouez en 2 secondes pour ouvrir une fenêtre combo de 1 seconde. En cas d'expiration : passe ; suggestions et annulation sont désactivées.",
           "de-DE": "Spiele innerhalb von 2 Sekunden, um ein 1-Sekunden-Combofenster zu öffnen. Timeout wird Pass; Empfehlungen und Rücknahme sind deaktiviert."
+        },
+        "summary": {
+          "zh-CN": "2 秒内落子可多下一手，超时就算虚手；不能用提示和悔棋。",
+          "en-US": "Move within 2 seconds for a bonus move; too slow and you pass. No hints or undo.",
+          "ja-JP": "2秒以内に打つともう1手。遅れるとパスになります。ヒントと待ったは使えません。",
+          "ko-KR": "2초 안에 두면 한 수 더, 늦으면 패스가 돼요. 힌트와 무르기는 못 써요.",
+          "zh-TW": "2 秒內落子可多下一手，超時就算虛手；不能用提示和悔棋。",
+          "fr-FR": "Jouez en moins de 2 secondes pour un coup bonus ; trop lent, vous passez. Ni indices ni annulation.",
+          "de-DE": "Zieh innerhalb von 2 Sekunden für einen Bonuszug; zu langsam heißt Passen. Keine Tipps, kein Zurück."
         },
         "icon": "⚡"
       },
@@ -644,6 +905,15 @@
           "fr-FR": "Formez une mauvaise forme pour faire pousser 1 pierre bonus dans la zone 5x5 voisine.",
           "de-DE": "Bilde eine schlechte Form, damit 1 Bonusstein in der nahen 5x5-Zone entsteht."
         },
+        "summary": {
+          "zh-CN": "下出愚形，附近就长出 1 颗你的棋子。",
+          "en-US": "Make an ugly shape and a free stone grows nearby.",
+          "ja-JP": "愚形を作ると、近くにあなたの石が1つ生えます。",
+          "ko-KR": "우형을 만들면 근처에 내 돌 1개가 자라나요.",
+          "zh-TW": "下出愚形，附近就長出 1 顆你的棋子。",
+          "fr-FR": "Faites une mauvaise forme et une pierre gratuite pousse à côté.",
+          "de-DE": "Bau eine hässliche Form und in der Nähe wächst ein Gratisstein."
+        },
         "icon": "🧠"
       },
       "five_in_row": {
@@ -665,6 +935,15 @@
           "fr-FR": "Quand vous formez exactement 5 pierres d'affilée, ajoutez 1 pierre amie dans chaque zone 3x3 aux deux extrémités.",
           "de-DE": "Wenn du exakt 5 Steine in Folge bildest, entsteht je 1 freundlicher Stein in den 3x3-Zonen an beiden Enden."
         },
+        "summary": {
+          "zh-CN": "刚好连成 5 子，两端各送你 1 子。",
+          "en-US": "Make exactly 5 in a row to get 1 free stone at each end.",
+          "ja-JP": "ちょうど5つ並べると、両端に1子ずつ追加されます。",
+          "ko-KR": "정확히 5개를 이으면 양 끝에 1개씩 더 생겨요.",
+          "zh-TW": "剛好連成 5 子，兩端各送你 1 子。",
+          "fr-FR": "Alignez exactement 5 pierres pour en gagner 1 à chaque bout.",
+          "de-DE": "Bilde genau 5 in einer Reihe für je 1 Gratisstein an beiden Enden."
+        },
         "icon": "🎯"
       },
       "coach_mode": {
@@ -685,6 +964,15 @@
           "zh-TW": "主動技能：後 30 手由更強的 AI 代打；若下完後勝率仍低於 50%，則額外再代打 10 手",
           "fr-FR": "Actif : une IA plus forte joue les 30 prochains tours pour vous. Si votre winrate reste sous 50 %, elle joue 10 tours de plus.",
           "de-DE": "Aktiv: Eine stärkere KI spielt die nächsten 30 Runden für dich. Bleibt deine Winrate danach unter 50 %, spielt sie 10 weitere Runden."
+        },
+        "summary": {
+          "zh-CN": "主动：更强的 AI 替你下接下来 30 手。",
+          "en-US": "Active: a stronger AI plays your next 30 moves.",
+          "ja-JP": "使用型：強いAIがあなたの次の30手を代わりに打ちます。",
+          "ko-KR": "사용형: 더 강한 AI가 다음 30수를 대신 둬요.",
+          "zh-TW": "主動：更強的 AI 替你下接下來 30 手。",
+          "fr-FR": "Actif : une IA plus forte joue vos 30 prochains coups.",
+          "de-DE": "Aktiv: Eine stärkere KI spielt deine nächsten 30 Züge."
         },
         "icon": "🎗",
         "uses": 1
@@ -708,6 +996,15 @@
           "fr-FR": "Quand l'adversaire capture 4 pierres en un coup ou au cumul, offre 1 pierre amie sur votre prochain point recommandé, puis remet le compteur à zéro.",
           "de-DE": "Wenn der Gegner in einem Zug oder kumulativ 4 Steine fängt, erhältst du 1 freundlichen Stein auf deinem nächsten empfohlenen Punkt; danach wird der Zähler zurückgesetzt."
         },
+        "summary": {
+          "zh-CN": "AI 每提你 4 子，你就在好点白得 1 子。",
+          "en-US": "Every 4 stones the AI captures earns you a free stone on a good point.",
+          "ja-JP": "AIに4子取られるごとに、好点にあなたの石が1つ置かれます。",
+          "ko-KR": "AI가 내 돌을 4개 따낼 때마다 좋은 자리에 돌 1개를 받아요.",
+          "zh-TW": "AI 每提你 4 子，你就在好點白得 1 子。",
+          "fr-FR": "Toutes les 4 pierres capturées par l'IA, vous gagnez une pierre sur un bon point.",
+          "de-DE": "Für je 4 Steine, die die KI fängt, bekommst du einen Gratisstein auf einem guten Punkt."
+        },
         "icon": "🧺"
       },
       "last_stand": {
@@ -728,6 +1025,15 @@
           "zh-TW": "當我方勝率跌到 26% 以下時，僅觸發 1 次：在上一手周圍 3×3 內隨機消掉 1 顆敵子，並隨機補 1 顆己棋（不會落在禁著點）",
           "fr-FR": "Une fois par partie, si votre winrate passe sous 26 %, retire 1 pierre ennemie et ajoute 1 pierre amie dans le 3x3 du dernier coup, hors points interdits.",
           "de-DE": "Einmal pro Partie: Fällt deine Winrate unter 26 %, entferne 1 gegnerischen Stein und füge 1 freundlichen Stein im 3x3 des letzten Zuges hinzu, ohne verbotene Punkte zu treffen."
+        },
+        "summary": {
+          "zh-CN": "限一次：胜率跌破 26% 时，在最后一手附近拿掉对方 1 子并补你 1 子。",
+          "en-US": "Once, when your winrate drops below 26%: remove 1 enemy stone near the last move and add 1 of yours.",
+          "ja-JP": "1回だけ：勝率が26%を切ると、直前の手の近くで相手の石1つを消し、自分の石を1つ置きます。",
+          "ko-KR": "한 번: 승률이 26% 아래로 떨어지면 마지막 수 근처의 상대 돌 1개를 없애고 내 돌 1개를 놓아요.",
+          "zh-TW": "限一次：勝率跌破 26% 時，在最後一手附近拿掉對方 1 子並補你 1 子。",
+          "fr-FR": "Une fois, si vos chances tombent sous 26 % : retire 1 pierre ennemie près du dernier coup et ajoute 1 des vôtres.",
+          "de-DE": "Einmal, wenn deine Gewinnchance unter 26 % fällt: Entfernt 1 gegnerischen Stein nahe dem letzten Zug und setzt 1 von dir."
         },
         "icon": "🫀"
       },
@@ -750,6 +1056,15 @@
           "fr-FR": "À partir de votre 3e coup, si vos 3 derniers coups n'ont chacun aucune pierre ennemie dans leur zone 5x5, fait apparaître 1 pierre amie dans un 5x5 autour d'une de vos pierres. Jusqu'à deux fois par partie.",
           "de-DE": "Ab deinem 3. Zug: Wenn deine letzten 3 Züge jeweils keinen gegnerischen Stein in ihrer 5x5-Zone haben, entsteht 1 freundlicher Stein in einer 5x5-Zone um einen deiner Steine. Bis zu zweimal pro Partie."
         },
+        "summary": {
+          "zh-CN": "连续 3 手远离对方稳稳地下，送你 1 子（每局 2 次）。",
+          "en-US": "3 calm moves in a row away from the enemy earn a free stone (twice a game).",
+          "ja-JP": "相手から離れた落ち着いた手を3手続けると1子追加（1局2回）。",
+          "ko-KR": "상대와 떨어진 차분한 수를 3번 연속 두면 돌 1개(판당 2회).",
+          "zh-TW": "連續 3 手遠離對方穩穩地下，送你 1 子（每局 2 次）。",
+          "fr-FR": "3 coups calmes d'affilée loin de l'ennemi : 1 pierre gratuite (2 fois par partie).",
+          "de-DE": "3 ruhige Züge in Folge fern vom Gegner bringen einen Gratisstein (2-mal pro Partie)."
+        },
         "icon": "🛡️"
       },
       "attack_first": {
@@ -770,6 +1085,15 @@
           "zh-TW": "若我方連續 3 手落子點位都在敵方棋子 3×3 範圍內，則在剛才進攻的敵方棋子旁贈送 1 顆我方棋子。每局最多觸發 2 次。",
           "fr-FR": "Si vos 3 derniers coups sont chacun dans une zone 3x3 autour de pierres ennemies, fait apparaître 1 pierre amie à côté des pierres ennemies que vous venez d'attaquer. Jusqu'à deux fois par partie.",
           "de-DE": "Wenn deine letzten 3 Züge jeweils in einer 3x3-Zone um gegnerische Steine liegen, entsteht 1 freundlicher Stein neben den gegnerischen Steinen, die du gerade angreifst. Bis zu zweimal pro Partie."
+        },
+        "summary": {
+          "zh-CN": "连续 3 手贴近对方棋子，送你 1 子（每局 2 次）。",
+          "en-US": "3 moves in a row right next to enemy stones earn a free stone (twice a game).",
+          "ja-JP": "相手の石のすぐそばに3手続けて打つと1子追加（1局2回）。",
+          "ko-KR": "상대 돌 바로 옆에 3번 연속 두면 돌 1개(판당 2회).",
+          "zh-TW": "連續 3 手貼近對方棋子，送你 1 子（每局 2 次）。",
+          "fr-FR": "3 coups d'affilée collés aux pierres ennemies : 1 pierre gratuite (2 fois par partie).",
+          "de-DE": "3 Züge in Folge direkt an gegnerischen Steinen bringen einen Gratisstein (2-mal pro Partie)."
         },
         "icon": "⚔️"
       },
@@ -792,6 +1116,15 @@
           "fr-FR": "Chacun de vos tours se résout après 2 pierres jouées en séquence ; tous les 10 tours joueur, 1 pierre supplémentaire permet un tour à 3 pierres.",
           "de-DE": "Jeder deiner Züge endet erst nach 2 nacheinander gesetzten Steinen; jeder 10. Spielerzug gewährt 1 Zusatzstein für einen 3-Stein-Zug."
         },
+        "summary": {
+          "zh-CN": "每回合下 2 子；每第 10 回合下 3 子。",
+          "en-US": "Play 2 stones every turn, and 3 on every 10th turn.",
+          "ja-JP": "毎ターン2子打ち、10ターンごとに3子打てます。",
+          "ko-KR": "매 차례 2개를 두고, 10번째 차례마다 3개를 둬요.",
+          "zh-TW": "每回合下 2 子；每第 10 回合下 3 子。",
+          "fr-FR": "Jouez 2 pierres à chaque tour, et 3 tous les 10 tours.",
+          "de-DE": "Setze jede Runde 2 Steine, jede 10. Runde 3."
+        },
         "icon": "📏"
       },
       "momentum": {
@@ -812,6 +1145,15 @@
           "zh-TW": "連續落子貼住對方棋子（或提子）累積連擊；每滿 3 連擊，在對方棋子旁追加 1 顆己棋。下一手脫離接觸則連擊歸零，每局最多 5 次。",
           "fr-FR": "Chaque coup au contact des pierres adverses (ou qui capture) prolonge la série. Toutes les 3 attaques d'affilée, une de vos pierres s'ajoute contre l'adversaire. Un coup sans contact remet la série à zéro. 5 fois max par partie.",
           "de-DE": "Jeder Zug mit Kontakt zu gegnerischen Steinen (oder mit Schlagen) verlängert die Serie. Jeder 3. Angriff in Folge setzt 1 eigenen Stein neben den Gegner. Ein Zug ohne Kontakt setzt die Serie zurück. Höchstens 5-mal pro Partie."
+        },
+        "summary": {
+          "zh-CN": "连续贴着对方下，每第 3 手送你 1 子。",
+          "en-US": "Keep attacking: every 3rd contact move in a row adds a free stone.",
+          "ja-JP": "相手に接触する手を続けると、3手ごとに1子追加。",
+          "ko-KR": "상대에게 붙이는 수를 이어 가면 3수마다 돌 1개가 생겨요.",
+          "zh-TW": "連續貼著對方下，每第 3 手送你 1 子。",
+          "fr-FR": "Attaquez sans relâche : chaque 3e coup au contact d'affilée ajoute une pierre.",
+          "de-DE": "Bleib dran: Jeder 3. Kontaktzug in Folge bringt einen Gratisstein."
         },
         "icon": "🔥"
       },
@@ -834,6 +1176,15 @@
           "fr-FR": "Chaque coup qui se connecte à vos pierres sans toucher l'adversaire prolonge la série. Toutes les 3 défenses d'affilée, une pierre renforce une liberté de votre groupe le plus faible. Toucher l'adversaire ou jouer isolé remet à zéro. 5 fois max par partie.",
           "de-DE": "Jeder Zug, der an eigene Steine anschließt, ohne den Gegner zu berühren, verlängert die Serie. Jede 3. Verteidigung in Folge setzt 1 Stein auf eine Freiheit deiner schwächsten Gruppe. Kontakt zum Gegner oder ein isolierter Zug setzt zurück. Höchstens 5-mal pro Partie."
         },
+        "summary": {
+          "zh-CN": "连续稳健地连接自己，每第 3 手加固你最弱的棋。",
+          "en-US": "Keep connecting solidly: every 3rd move in a row shores up your weakest group.",
+          "ja-JP": "堅く自分の石につなぐ手を続けると、3手ごとに一番弱い石を補強。",
+          "ko-KR": "내 돌에 단단히 잇는 수를 이어 가면 3수마다 가장 약한 돌을 보강해요.",
+          "zh-TW": "連續穩健地連接自己，每第 3 手加固你最弱的棋。",
+          "fr-FR": "Connectez solidement : chaque 3e coup d'affilée renforce votre groupe le plus faible.",
+          "de-DE": "Verbinde solide: Jeder 3. Zug in Folge stärkt deine schwächste Gruppe."
+        },
         "icon": "🧱"
       },
       "capture_chain": {
@@ -854,6 +1205,15 @@
           "zh-TW": "連續兩手及以上都提子時，在提子處周圍額外落下己棋（第 2 連 1 顆，之後 2 顆）。不提子則歸零，每局最多 5 次。",
           "fr-FR": "Capturez à des tours consécutifs pour enchaîner : dès la 2e capture d'affilée, des pierres à vous tombent autour de la prise (1, puis 2). Un tour sans capture remet la chaîne à zéro. 5 fois max par partie.",
           "de-DE": "Schlage in aufeinanderfolgenden Zügen, um eine Kette zu bilden: ab dem 2. Schlagen in Folge fallen eigene Steine um die geschlagene Stelle (1, dann 2). Ein Zug ohne Schlagen setzt die Kette zurück. Höchstens 5-mal pro Partie."
+        },
+        "summary": {
+          "zh-CN": "连续回合提子，额外送你 1 子，再连再送 2 子。",
+          "en-US": "Capture on back-to-back turns for bonus stones: 1, then 2.",
+          "ja-JP": "連続したターンで石を取ると追加の石：1子、次は2子。",
+          "ko-KR": "연속된 차례에 돌을 따내면 보너스 돌: 1개, 그다음 2개.",
+          "zh-TW": "連續回合提子，額外送你 1 子，再連再送 2 子。",
+          "fr-FR": "Capturez à des tours consécutifs pour des pierres bonus : 1, puis 2.",
+          "de-DE": "Fange in aufeinanderfolgenden Runden für Bonussteine: 1, dann 2."
         },
         "icon": "⛓"
       }
@@ -1003,6 +1363,15 @@
           "zh-TW": "先生成一顆映象棋；下一回合會按原落點和映象點強制連成一整條線，就算兩端棋子被提掉也照樣連線",
           "fr-FR": "Crée maintenant une pierre miroir. Un tour plus tard, le point original et le miroir forment une ligne complète même si une extrémité a été retirée.",
           "de-DE": "Erzeugt sofort einen Spiegelstein. Einen Zug später werden Original- und Spiegelpunkt zu einer vollen Linie gezwungen, selbst wenn ein Endpunkt entfernt wurde."
+        },
+        "summary": {
+          "zh-CN": "生成一颗镜像子，下一回合原点与镜像点之间连成一整条线。",
+          "en-US": "Make a mirror stone; next turn a full line joins it to the original.",
+          "ja-JP": "鏡写しの石を作り、次のターンに元の点との間が1本の線でつながります。",
+          "ko-KR": "거울 돌을 만들고, 다음 차례에 원래 점과 한 줄로 이어져요.",
+          "zh-TW": "生成一顆鏡像子，下一回合原點與鏡像點之間連成一整條線。",
+          "fr-FR": "Créez une pierre miroir ; au tour suivant, une ligne entière la relie à l'originale.",
+          "de-DE": "Erzeuge einen Spiegelstein; nächste Runde verbindet ihn eine volle Linie mit dem Original."
         },
         "icon": "👥"
       },
@@ -1256,6 +1625,15 @@
           "fr-FR": "Chaque coin peut déclencher une fois. Si le 5x5 d'un coin contient 2 de vos pierres, sa bordure 8x8 est remplie et les ennemies à l'intérieur sont nettoyées.",
           "de-DE": "Jede Ecke kann einmal auslösen. Hat eine 5x5-Eckzone 2 deiner Steine, wird ihre 8x8-Grenze gefüllt und Gegner darin werden entfernt."
         },
+        "summary": {
+          "zh-CN": "一个角上有你 2 颗子，就把整个角填满并清掉对方。",
+          "en-US": "2 of your stones in a corner fill the whole corner and clear the enemy.",
+          "ja-JP": "隅に自分の石が2つあると、その隅全体を埋めて相手の石を消します。",
+          "ko-KR": "귀에 내 돌이 2개 있으면 그 귀 전체를 채우고 상대 돌을 없애요.",
+          "zh-TW": "一個角上有你 2 顆子，就把整個角填滿並清掉對方。",
+          "fr-FR": "2 de vos pierres dans un coin le remplissent en entier et chassent l'ennemi.",
+          "de-DE": "2 deiner Steine in einer Ecke füllen die ganze Ecke und räumen den Gegner ab."
+        },
         "icon": "🏯"
       },
       "sanrensei": {
@@ -1340,6 +1718,15 @@
           "fr-FR": "C'est du gomoku, pas du go. Quand vos pierres forment exactement 5 d'affilée, retire 30 pierres ennemies et dépose 30 pierres amies sur le goban. L'effet peut enchaîner.",
           "de-DE": "Das ist Gomoku, nicht Go. Wenn deine Steine exakt 5 in Folge bilden, entferne 30 gegnerische Steine und verteile 30 freundliche Steine auf dem Goban. Der Effekt kann ketten."
         },
+        "summary": {
+          "zh-CN": "每次刚好连成 5 子：清掉 30 颗对方棋子，再落下 30 颗你的。",
+          "en-US": "Each exact 5 in a row wipes 30 enemy stones and drops 30 of yours.",
+          "ja-JP": "ちょうど5つ並べるたびに、相手の石30子を消して自分の石30子を置きます。",
+          "ko-KR": "정확히 5개를 이을 때마다 상대 돌 30개를 없애고 내 돌 30개를 놓아요.",
+          "zh-TW": "每次剛好連成 5 子：清掉 30 顆對方棋子，再落下 30 顆你的。",
+          "fr-FR": "Chaque alignement exact de 5 efface 30 pierres ennemies et pose 30 des vôtres.",
+          "de-DE": "Jede genaue Fünferreihe löscht 30 gegnerische Steine und setzt 30 deiner."
+        },
         "icon": "🎯"
       },
       "capture_foul": {
@@ -1360,6 +1747,15 @@
           "zh-TW": "若對手提子或技能消除棋子累計超過 5 顆，則 100% 觸發“提子未放在棋盒”，被懲罰方立刻罰 50 目；每次觸發後重新計數，之後仍可重複觸發",
           "fr-FR": "Quand l'adversaire capture ou retire plus de 5 pierres, effets de cartes inclus, la faute se déclenche à coup sûr. Le fautif perd immédiatement 50 points, puis le compteur repart.",
           "de-DE": "Wenn der Gegner mehr als 5 Steine fängt oder entfernt, Karteneffekte eingeschlossen, löst das Foul sicher aus. Der Täter verliert sofort 50 Punkte; danach startet der Zähler neu."
+        },
+        "summary": {
+          "zh-CN": "对方一次提掉或消除超过 5 子，立刻被罚 50 目。",
+          "en-US": "If the opponent removes more than 5 stones at once, they lose 50 points.",
+          "ja-JP": "相手が一度に5子より多く取る・消すと、即座に50目の罰。",
+          "ko-KR": "상대가 한 번에 5개 넘게 따내거나 없애면 즉시 50집 벌점.",
+          "zh-TW": "對方一次提掉或消除超過 5 子，立刻被罰 50 目。",
+          "fr-FR": "Si l'adversaire retire plus de 5 pierres d'un coup, il perd 50 points.",
+          "de-DE": "Entfernt der Gegner mehr als 5 Steine auf einmal, verliert er 50 Punkte."
         },
         "icon": "🧺"
       },
