@@ -243,7 +243,21 @@
     "之后每次触发额外回响": "Chaque déclenchement fait écho",
     "觉醒！": "Éveil !",
     "进化！": "Évolution !",
-    "大招之影": "Ombre de"
+    "大招之影": "Ombre de",
+    "规则": "Règles",
+    "中国规则（数子）": "Chinoises (score par zone)",
+    "日本规则（数目）": "Japonaises (score par territoire)",
+    "0（无贴目）": "0 (sans komi)",
+    "19×19 标准": "19×19 standard",
+    "无让子": "Sans handicap",
+    "让2子": "Handicap de 2 pierres",
+    "让3子": "Handicap de 3 pierres",
+    "让4子": "Handicap de 4 pierres",
+    "让5子": "Handicap de 5 pierres",
+    "让6子": "Handicap de 6 pierres",
+    "让7子": "Handicap de 7 pierres",
+    "让8子": "Handicap de 8 pierres",
+    "让9子": "Handicap de 9 pierres"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",

@@ -5,6 +5,7 @@ const SETUP_ROW_DISPLAY_RULES = [
   { id: "row-rogue-variant", display: ({ isRogue }) => isRogue ? "flex" : "none" },
   { id: "row-size", display: ({ isRogue }) => isRogue ? "none" : "flex" },
   { id: "row-handicap", display: ({ isWatch, isChallenge, isRogue }) => (isWatch || isChallenge || isRogue) ? "none" : "flex" },
+  { id: "row-rules", display: ({ isChallenge }) => isChallenge ? "none" : "flex" },
   { id: "row-time", display: () => "flex" },
   { id: "row-level", display: ({ isWatch }) => isWatch ? "none" : "flex" },
   { id: "row-level-black", display: ({ isWatch }) => isWatch ? "flex" : "none" },
@@ -203,6 +204,7 @@ function resetGameUiBeforeStart() {
 function startGameFromSetup() {
   let playerColor = document.getElementById("sel-color").value;
   let komi = parseFloat(document.getElementById("sel-komi").value);
+  let rules = document.getElementById("sel-rules")?.value || "chinese";
   const handicap = parseInt(document.getElementById("sel-handicap").value, 10);
   const isTwoPlayer = startMode === "two";
   const isAiWatch = startMode === "watch";
@@ -235,6 +237,7 @@ function startGameFromSetup() {
   } else if (isChallenge) {
     playerColor = "W";
     komi = 7.5;
+    rules = "chinese";
   }
 
   timerMode = document.getElementById("sel-time-mode").value;
@@ -258,6 +261,7 @@ function startGameFromSetup() {
         action: "new_game",
         size: gameSize,
         komi: komi,
+        rules: rules,
         handicap: gameHandicap,
         player_color: playerColor,
         level: isAiWatch ? aiLevelBlack : aiLevelDefault,
@@ -293,6 +297,15 @@ function bindSetupControls() {
 
   document.getElementById("sel-stage-preset")?.addEventListener("change", (event) => {
     applyStagePreset(event.target.value);
+  });
+
+  document.getElementById("sel-rules")?.addEventListener("change", (event) => {
+    // Suggest the usual komi for the chosen rules; handicap games keep 0 and the player can still override.
+    const komiSelect = document.getElementById("sel-komi");
+    const handicap = parseInt(document.getElementById("sel-handicap")?.value || "0", 10);
+    if (!komiSelect || handicap > 0) return;
+    komiSelect.value = event.target.value === "japanese" ? "6.5" : "7.5";
+    syncWoodSelect(komiSelect);
   });
 
   document.getElementById("btn-new")?.addEventListener("click", startGameFromSetup);

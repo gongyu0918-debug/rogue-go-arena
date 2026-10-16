@@ -185,6 +185,7 @@ function localizeOverlays() {
   setText("#label-rogue-variant", ui("玩法", "Variant", "モード", "모드"));
   setText("#label-board", ui("棋盘", "Board", "碁盤", "바둑판"));
   setText("#label-komi", ui("贴目", "Komi", "コミ", "덤"));
+  setText("#label-rules", ui("规则", "Rules", "ルール", "규칙"));
   setText("#label-level", ui("等级", "Rank", "棋力", "기력"));
   setText("#label-level-black", ui("黑棋等级", "Black Rank", "黒の棋力", "흑 기력"));
   setText("#label-level-white", ui("白棋等级", "White Rank", "白の棋力", "백 기력"));
@@ -239,6 +240,16 @@ function localizeSetupOptions() {
     ["B", "黑棋（先手）", "Black (First)", "黒（先番）", "흑(선수)"],
     ["W", "白棋（后手）", "White (Second)", "白（後番）", "백(후수)"],
     ["R", "随机（猜先）", "Random (Guess)", "ランダム（ニギリ）", "무작위(돌 가리기)"]
+  ]);
+  setOptionText("sel-komi", [["0", "0（无贴目）", "0 (no komi)", "0（コミなし）", "0(덤 없음)"]]);
+  setOptionText("sel-size", [["19", "19×19 标准", "19×19 standard", "19×19 標準", "19×19 표준"]]);
+  setOptionText("sel-handicap", [
+    ["0", "无让子", "No handicap", "互先（置き石なし）", "호선(접바둑 없음)"],
+    ...[2, 3, 4, 5, 6, 7, 8, 9].map(n => [String(n), `让${n}子`, `${n}-stone handicap`, `${n}子局`, `${n}점 접바둑`]),
+  ]);
+  setOptionText("sel-rules", [
+    ["chinese", "中国规则（数子）", "Chinese (area scoring)", "中国ルール（数子）", "중국 규칙(계가)"],
+    ["japanese", "日本规则（数目）", "Japanese (territory scoring)", "日本ルール（数目）", "일본 규칙(집 계산)"]
   ]);
   setOptionText("sel-ai-style", AI_STYLE_OPTIONS);
   setOptionText("sel-ai-style-black", AI_STYLE_OPTIONS);

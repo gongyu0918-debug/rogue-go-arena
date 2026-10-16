@@ -284,6 +284,26 @@ async def smoke_challenge_new_game_applies_existing_loadout_and_skips_offer() ->
     assert ctx.background_games == [game]
 
 
+async def smoke_rules_follow_player_choice_not_komi() -> None:
+    cases = [
+        ({"komi": 6.5}, "chinese"),  # komi 6.5 used to switch to Japanese silently
+        ({"komi": 0, "handicap": 2}, "chinese"),
+        ({"komi": 6.5, "rules": "japanese"}, "japanese"),
+        ({"komi": 7.5, "rules": "Japanese"}, "japanese"),
+        ({"komi": 7.5, "rules": "ing"}, "chinese"),
+        ({"komi": 6.5, "rules": "japanese", "challenge_beta": True, "challenge_stage": 1}, "chinese"),
+    ]
+    for options, expected in cases:
+        ctx = FakeContext()
+        await handle_new_game(ctx, {"size": 9, "level": "5k", **options})
+        await asyncio.sleep(0)
+        assert ctx.errors == [], (options, ctx.errors)
+        assert ctx.game.rules == expected, (options, ctx.game.rules)
+        assert f"kata-set-rules {expected}" in ctx.engine.commands, (options, ctx.engine.commands)
+        start = next(p for p in ctx.sent if p["type"] == "game_start")
+        assert start["rules"] == expected
+
+
 def smoke_ws_action_handlers_keep_new_game_action_name() -> None:
     assert ws_actions.WS_ACTION_HANDLERS["new_game"] is handle_new_game
 
@@ -304,6 +324,7 @@ async def main() -> None:
     await smoke_ultimate_new_game_sends_offer()
     await smoke_two_player_rogue_new_game_uses_two_player_pool_without_engine()
     await smoke_challenge_new_game_applies_existing_loadout_and_skips_offer()
+    await smoke_rules_follow_player_choice_not_komi()
     smoke_ws_action_handlers_keep_new_game_action_name()
     smoke_new_game_action_annotations_resolve_runtime_context()
     print("ws new game actions smoke test: OK")

@@ -8,7 +8,7 @@ from typing import Any
 
 from app.domain.coordinates import gtp_to_coord
 from app.domain.game_state import GoGame
-from app.domain.sgf import gtp_to_sgf
+from app.domain.sgf import gtp_to_sgf, sgf_rules
 
 
 def _matches_replayed_position(game: Any, board: list[list[int]], moves: list) -> bool:
@@ -51,9 +51,10 @@ def _sync_position(game: Any) -> tuple[list[list[int]], list]:
 
 def build_board_sync_sgf(game: Any) -> str:
     board, moves = _sync_position(game)
-    # Without RU, KataGo loadsgf retains its current rules. Komi can change
-    # during card effects without changing the rules chosen for this game.
-    sgf = f"(;GM[1]FF[4]CA[UTF-8]SZ[{game.size}]KM[{game.komi}]"
+    # RU carries the game's rules on every sync, so a restarted engine (idle
+    # timeout, crash recovery) cannot fall back to its config default. Komi can
+    # change during card effects without changing the rules.
+    sgf = f"(;GM[1]FF[4]CA[UTF-8]SZ[{game.size}]KM[{game.komi}]RU[{sgf_rules(game)}]"
     first_player = moves[0][0] if moves else getattr(game, "current_player", None)
     if first_player in {"B", "W"}:
         sgf += f"PL[{first_player}]"

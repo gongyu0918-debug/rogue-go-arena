@@ -40,7 +40,9 @@ def test_build_board_sync_sgf() -> None:
 
     sgf = build_board_sync_sgf(game)
 
-    assert sgf == "(;GM[1]FF[4]CA[UTF-8]SZ[9]KM[6.5]AB[aa][dc]AW[eb][ii])"
+    assert sgf == "(;GM[1]FF[4]CA[UTF-8]SZ[9]KM[6.5]RU[Chinese]AB[aa][dc]AW[eb][ii])"
+    game.rules = "japanese"
+    assert "KM[6.5]RU[Japanese]AB" in build_board_sync_sgf(game)
     assert sgf.index("AB[aa][dc]") < sgf.index("AW[eb][ii]")
 
 

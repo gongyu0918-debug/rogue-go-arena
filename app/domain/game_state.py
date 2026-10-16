@@ -25,6 +25,8 @@ class GoGame:
         self.ai_color = "W" if player_color == "B" else "B"
         self.level = level
         self.two_player = two_player
+        # "chinese" (area scoring) or "japanese" (territory scoring), chosen by the player.
+        self.rules = "chinese"
         self.moves = []
         self.current_player = "B"
         self.board = [[0] * size for _ in range(size)]
@@ -300,6 +302,7 @@ class GoGame:
             "board": self.board,
             "size": self.size,
             "komi": self.komi,
+            "rules": getattr(self, "rules", "chinese"),
             "handicap": self.handicap,
             "current_player": self.current_player,
             "player_color": self.player_color,

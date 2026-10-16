@@ -19,13 +19,15 @@ def main() -> int:
     sgf = generate_sgf(game)
 
     assert "GM[1]FF[4]CA[UTF-8]" in sgf
-    assert "SZ[9]KM[7.5]" in sgf
+    assert "SZ[9]KM[7.5]RU[Chinese]" in sgf
     assert "PB[Player]PW[AI]" in sgf
     assert "RE[B+]" in sgf
     assert ";B[df]" in sgf
     assert ";W[]" in sgf
     assert ";B[ee]" in sgf
     assert sgf.endswith(")\n")
+    game.rules = "japanese"
+    assert "RU[Japanese]" in generate_sgf(game)
 
     print("sgf smoke test: OK")
     return 0

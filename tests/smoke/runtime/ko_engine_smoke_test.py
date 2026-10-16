@@ -122,6 +122,7 @@ def main() -> None:
 def check_rules(engine: KataGoEngine, rule: str, komi: float, temp_dir: Path, changed_komi: bool) -> dict:
     game = make_ko(9, "B", card_edit=changed_komi)
     game.komi = komi
+    game.rules = rule  # the game records the player's choice; syncs carry it as RU[]
     assert engine.send_command(f"kata-set-rules {rule}").startswith("=")
     assert engine.send_command(f"komi {komi}").startswith("=")
     before = json.loads(engine.send_command("kata-get-rules").lstrip("= "))
@@ -132,6 +133,12 @@ def check_rules(engine: KataGoEngine, rule: str, komi: float, temp_dir: Path, ch
     after = json.loads(engine.send_command("kata-get-rules").lstrip("= "))
     assert before == after, f"loadsgf changed {rule} rules: {before} -> {after}"
     assert float(engine.send_command("get_komi").lstrip("= ")) == game.komi
+    # An engine that lost the rules (e.g. restarted after idling) gets them back on sync.
+    other = "japanese" if rule == "chinese" else "chinese"
+    assert engine.send_command(f"kata-set-rules {other}").startswith("=")
+    sync(engine, game, temp_dir)
+    restored = json.loads(engine.send_command("kata-get-rules").lstrip("= "))
+    assert restored == before, f"sync did not restore {rule} rules: {restored}"
     return {"rule": rule, "initial_komi": komi, "komi_after_sync": game.komi,
             "card_changed_komi": changed_komi, "rules_before": before, "rules_after": after}
 

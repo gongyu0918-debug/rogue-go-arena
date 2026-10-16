@@ -243,7 +243,21 @@
     "之后每次触发额外回响": "Each trigger now echoes",
     "觉醒！": "Ascended!",
     "进化！": "Evolved!",
-    "大招之影": "Echo of"
+    "大招之影": "Echo of",
+    "规则": "Rules",
+    "中国规则（数子）": "Chinese (area scoring)",
+    "日本规则（数目）": "Japanese (territory scoring)",
+    "0（无贴目）": "0 (no komi)",
+    "19×19 标准": "19×19 standard",
+    "无让子": "No handicap",
+    "让2子": "2-stone handicap",
+    "让3子": "3-stone handicap",
+    "让4子": "4-stone handicap",
+    "让5子": "5-stone handicap",
+    "让6子": "6-stone handicap",
+    "让7子": "7-stone handicap",
+    "让8子": "8-stone handicap",
+    "让9子": "9-stone handicap"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",

@@ -16,6 +16,7 @@ from app.runtime.game_input_validation import (
     VALID_BOARD_SIZES,
     VALID_HANDICAPS,
     normalize_komi,
+    normalize_rules,
     payload_int,
 )
 from app.runtime.gtp_safety import normalize_gtp_color
@@ -58,7 +59,9 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
         await ctx.send_error("闯关次数设置无效")
         return
     challenge_refreshes = payload_int(data.get("challenge_refreshes", 0) or 0, 0)
+    rules = normalize_rules(data.get("rules"))
     if challenge_beta:
+        rules = "chinese"
         two_player = False
         ai_observer = False
         rogue_enabled = True
@@ -99,6 +102,7 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
 
     game = ctx.GoGame(size, komi, handicap, player_color, level, two_player)
     game.ai_observer = ai_observer
+    game.rules = rules
     game.ai_style = ai_style
     game.ai_level_black = ai_level_black
     game.ai_level_white = ai_level_white
@@ -131,7 +135,7 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
         await ctx.run_in_executor(ctx.engine.send_command, f"boardsize {size}")
         await ctx.run_in_executor(ctx.engine.send_command, "clear_board")
         await ctx.run_in_executor(ctx.engine.send_command, f"komi {komi}")
-        rules = "chinese" if komi == 7.5 else "japanese"
+        # The player's choice, independent of komi (6.5 no longer implies Japanese).
         await ctx.run_in_executor(ctx.engine.send_command, f"kata-set-rules {rules}")
 
     if handicap > 0 and ctx.engine.ready:

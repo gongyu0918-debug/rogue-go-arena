@@ -18,12 +18,16 @@ def gtp_to_sgf(gtp_move: str, size: int = 19) -> str:
         return ""
 
 
+def sgf_rules(game: Any) -> str:
+    return "Japanese" if getattr(game, "rules", "chinese") == "japanese" else "Chinese"
+
+
 def generate_sgf(game: Any) -> str:
     """Generate the SGF export string for the current game state."""
     dt = datetime.date.today().isoformat()
     header = (
         f"(;GM[1]FF[4]CA[UTF-8]AP[rogue-go-arena:1.0]"
-        f"SZ[{game.size}]KM[{game.komi}]"
+        f"SZ[{game.size}]KM[{game.komi}]RU[{sgf_rules(game)}]"
         f"DT[{dt}]PB[{('Player' if game.player_color == 'B' else 'AI')}]"
         f"PW[{('Player' if game.player_color == 'W' else 'AI')}]"
         f"RE[{('B' if game.winner == 'B' else 'W') + '+' if game.winner else '?'}]"

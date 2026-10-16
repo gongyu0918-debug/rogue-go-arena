@@ -243,7 +243,21 @@
     "之后每次触发额外回响": "Jede Auslösung hallt nach",
     "觉醒！": "Erwacht!",
     "进化！": "Entwickelt!",
-    "大招之影": "Schatten von"
+    "大招之影": "Schatten von",
+    "规则": "Regeln",
+    "中国规则（数子）": "Chinesisch (Flächenwertung)",
+    "日本规则（数目）": "Japanisch (Gebietswertung)",
+    "0（无贴目）": "0 (ohne Komi)",
+    "19×19 标准": "19×19 Standard",
+    "无让子": "Ohne Vorgabe",
+    "让2子": "2 Vorgabesteine",
+    "让3子": "3 Vorgabesteine",
+    "让4子": "4 Vorgabesteine",
+    "让5子": "5 Vorgabesteine",
+    "让6子": "6 Vorgabesteine",
+    "让7子": "7 Vorgabesteine",
+    "让8子": "8 Vorgabesteine",
+    "让9子": "9 Vorgabesteine"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",
