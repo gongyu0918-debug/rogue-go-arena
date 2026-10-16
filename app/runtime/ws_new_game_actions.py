@@ -112,14 +112,17 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
     difficulty = normalize_difficulty(data.get("difficulty"))
     if two_player or ai_observer:
         difficulty = None
+    stage_points = chosen_points = 0.0
     if challenge_beta:
         # Runs: the player is White; the stage curve plus difficulty set the AI's head start.
         run = run_stage_setup(challenge_stage, difficulty_points(difficulty) if difficulty else 0.0)
         handicap, komi, player_color = run.handicap, run.komi, "W"
+        stage_points, chosen_points = run.stage_points, run.difficulty_points
     elif difficulty and player_color is not None:
         if rogue_enabled:
             ai_color = "W" if player_color == "B" else "B"
-            komi = komi_for_ai_points(difficulty_points(difficulty), ai_color)
+            chosen_points = difficulty_points(difficulty)
+            komi = komi_for_ai_points(chosen_points, ai_color)
             handicap = 0
         else:
             plain = plain_game_setup(difficulty, player_color)
@@ -140,6 +143,8 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
     game = ctx.GoGame(size, komi, handicap, player_color, level, two_player)
     game.ai_observer = ai_observer
     game.difficulty = difficulty
+    game.stage_komi_points = stage_points
+    game.difficulty_points = chosen_points
     game.rules = rules
     game.ai_style = ai_style
     game.ai_level_black = ai_level_black

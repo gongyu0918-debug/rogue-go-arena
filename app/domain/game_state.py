@@ -4,6 +4,8 @@ import copy
 import time
 from typing import Optional
 
+from app.gameplay.run_curve import game_target
+
 from app.config.gameplay import (
     ROGUE_QUICKTHINK_FIRST_SECONDS,
     ROGUE_QUICKTHINK_SECOND_SECONDS,
@@ -132,6 +134,8 @@ class GoGame:
         self.ai_rally_count: int = 0
         self.difficulty: Optional[str] = None
         self.card_komi_points: float = 0.0
+        self.stage_komi_points: float = 0.0
+        self.difficulty_points: float = 0.0
         self.ai_rally_last_move: Optional[int] = None
         self.ai_style: str = "balanced"
         self.ai_level_black: str = level
@@ -362,6 +366,7 @@ class GoGame:
             "challenge_stage": self.challenge_stage,
             "difficulty": self.difficulty,
             "card_komi_points": self.card_komi_points,
+            "target": game_target(self),
             "challenge_cards": list(self.challenge_cards),
             "challenge_refreshes": self.challenge_refreshes,
             "challenge_limits": dict(self.challenge_limits),

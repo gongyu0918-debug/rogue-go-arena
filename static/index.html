@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>rogue-go-arena</title>
 <link rel="icon" type="image/png" href="assets/rogue-go-arena-favicon.png?v=20260430a">
-<link rel="stylesheet" href="/static/legacy.css?v=20261012c">
+<link rel="stylesheet" href="/static/legacy.css?v=20261013a">
 <link rel="stylesheet" href="/static/client-command-deck.css?v=20261005a">
 <link rel="stylesheet" href="/static/visual-effects.css?v=20261009a">
 </head>
@@ -40,6 +40,7 @@
         </div>
       </div>
     </div>
+    <span class="topbar-target" id="hud-target" hidden></span>
   </div>
   <div class="client-status-grid">
     <div class="client-status-card">
@@ -272,6 +273,8 @@
           <span class="info-val" id="info-cap-w">0</span></div>
         <div class="info-row"><span>形势估算</span>
           <span class="info-val" id="info-score">—</span></div>
+        <div class="info-row" id="info-target-row" hidden><span id="info-target-label">目标</span>
+          <span class="info-val" id="info-target">—</span></div>
         <div class="info-row"><span>地盘差</span>
           <span class="info-val" id="info-territory">—</span></div>
         <div class="info-row"><span>对手级别</span>
@@ -573,7 +576,7 @@
 
 <script src="/static/js/legacy_state.js?v=20260630a"></script>
 <script src="/static/js/wood_select.js?v=20260907a"></script>
-<script src="/static/js/i18n.js?v=20261012c"></script>
+<script src="/static/js/i18n.js?v=20261013a"></script>
 <script src="/static/js/rank_controls.js?v=20260907a"></script>
 <script src="/static/js/card_state.js?v=20260603a"></script>
 <script src="/static/js/card_catalog.js?v=20261012a"></script>
@@ -599,7 +602,7 @@
 <script src="/static/js/board_renderer.js?v=20260918a"></script>
 <script src="/static/js/review_controls.js?v=20260530a"></script>
 <script src="/static/js/localization_ui.js?v=20261012e"></script>
-<script src="/static/js/websocket_messages.js?v=20261012e"></script>
+<script src="/static/js/websocket_messages.js?v=20261013c"></script>
 <script src="/static/js/app_bootstrap.js?v=20260629a"></script>
 <script src="/static/js/setup_controls.js?v=20261012e"></script>
 <script src="/static/js/desktop_exit.js?v=20260628a"></script>

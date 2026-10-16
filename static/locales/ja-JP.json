@@ -342,7 +342,18 @@
     "闯关：连战 5 关，你执白。每关多选 1 张卡，AI 的让子和贴目逐关增加；难度会整体加减。": "チャレンジ：5ステージの連戦で、あなたは白番。ステージごとにカードを1枚追加し、AIの置き石とコミが増えていきます。難易度は全体を上下させます。",
     "第 {stage} 关通过！进入第 {next} 关（共 {total} 关）：AI 的先手优势更大，你也会再选 1 张卡。": "第{stage}ステージ突破！第{next}ステージ（全{total}ステージ）へ：AIのハンデが大きくなり、カードももう1枚選べます。",
     "全部 {total} 关通关！": "全{total}ステージ制覇！",
-    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "第{stage}/{total}ステージ | カード {cards} | 待った {undo} ヒント {hint} 代打 {coach} 更新 {refresh}"
+    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "第{stage}/{total}ステージ | カード {cards} | 待った {undo} ヒント {hint} 代打 {coach} 更新 {refresh}",
+    "目标": "目標",
+    "{target} 目": "{target}目",
+    "{target} 目 · 你 {margin}": "{target}目 · あなた {margin}",
+    "目标 {target}": "目標 {target}",
+    "让 {stones} 子（约 {points}）": "置き石{stones}子（約{points}）",
+    "关卡 {points}": "ステージ {points}",
+    "难度 {points}": "難易度 {points}",
+    "你的卡牌 {points}": "あなたのカード {points}",
+    "目标：AI 先手优势 {target} 目，你要在均势棋盘上赢得比它多。": "目標：AIは{target}目のリードから始まります。それを上回る差で勝ちましょう。",
+    "你的优势 {margin} · 目标 {target}": "あなたの差 {margin} · 目標 {target}",
+    "目标 {target} · 你 {margin}": "目標 {target} · あなた {margin}"
   },
   "rankGroups": {
     "kyu": "── 級位 ──",

@@ -284,6 +284,28 @@ async def smoke_run_stages_follow_the_curve() -> None:
     assert ctx.game.challenge_stage == 5
 
 
+async def smoke_card_games_report_their_target() -> None:
+    # Stage 4: 2 AI stones (~21) and -4 stage komi: the AI starts about 17 ahead.
+    ctx = FakeContext()
+    await handle_new_game(ctx, {"size": 19, "challenge_beta": True, "challenge_stage": 4, "difficulty": "normal"})
+    await asyncio.sleep(0)
+    target = ctx.game.to_state()["target"]
+    assert target["points"] == 17 and target["stones"] == 2 and target["stage"] == -4, target
+
+    # Quick Game on Beginner: the AI starts 20 behind.
+    ctx = FakeContext()
+    await handle_new_game(ctx, {"size": 19, "rogue": True, "difficulty": "beginner"})
+    await asyncio.sleep(0)
+    target = ctx.game.to_state()["target"]
+    assert target["points"] == -20 and target["difficulty"] == -20 and target["stones"] == 0, target
+
+    # Plain games show their handicap instead of a target.
+    ctx = FakeContext()
+    await handle_new_game(ctx, {"size": 19, "difficulty": "easy"})
+    await asyncio.sleep(0)
+    assert ctx.game.to_state()["target"] is None
+
+
 async def smoke_archived_ultimate_is_refused() -> None:
     assert gameplay_config.ULTIMATE_ENABLED is False
     ctx = FakeContext()
@@ -398,6 +420,7 @@ async def main() -> None:
     await smoke_card_games_always_use_the_standard_ai()
     await smoke_difficulty_sets_handicap_or_komi()
     await smoke_run_stages_follow_the_curve()
+    await smoke_card_games_report_their_target()
     await smoke_archived_ultimate_is_refused()
     await smoke_ultimate_new_game_sends_offer()
     await smoke_two_player_rogue_new_game_uses_two_player_pool_without_engine()

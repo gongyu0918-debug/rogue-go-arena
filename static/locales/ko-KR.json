@@ -342,7 +342,18 @@
     "闯关：连战 5 关，你执白。每关多选 1 张卡，AI 的让子和贴目逐关增加；难度会整体加减。": "도전: 5단계 연전이며 나는 백이에요. 단계마다 카드를 1장 더 고르고, AI의 접바둑 돌과 덤이 점점 늘어나요. 난이도는 전체 곡선을 올리거나 내려요.",
     "第 {stage} 关通过！进入第 {next} 关（共 {total} 关）：AI 的先手优势更大，你也会再选 1 张卡。": "{stage}단계 통과! {next}단계(총 {total}단계)로: AI의 시작 우위가 커지고, 카드도 1장 더 골라요.",
     "全部 {total} 关通关！": "{total}단계 모두 통과!",
-    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "{stage}/{total}단계 | 카드 {cards} | 무르기 {undo} 힌트 {hint} 대리 {coach} 새로고침 {refresh}"
+    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "{stage}/{total}단계 | 카드 {cards} | 무르기 {undo} 힌트 {hint} 대리 {coach} 새로고침 {refresh}",
+    "目标": "목표",
+    "{target} 目": "{target}집",
+    "{target} 目 · 你 {margin}": "{target}집 · 나 {margin}",
+    "目标 {target}": "목표 {target}",
+    "让 {stones} 子（约 {points}）": "접바둑 {stones}점(약 {points})",
+    "关卡 {points}": "단계 {points}",
+    "难度 {points}": "난이도 {points}",
+    "你的卡牌 {points}": "내 카드 {points}",
+    "目标：AI 先手优势 {target} 目，你要在均势棋盘上赢得比它多。": "목표: AI가 {target}집 앞선 채 시작해요. 그보다 큰 차이로 이기세요.",
+    "你的优势 {margin} · 目标 {target}": "내 차이 {margin} · 목표 {target}",
+    "目标 {target} · 你 {margin}": "목표 {target} · 나 {margin}"
   },
   "rankGroups": {
     "kyu": "── 급 ──",

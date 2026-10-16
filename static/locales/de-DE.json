@@ -342,7 +342,18 @@
     "闯关：连战 5 关，你执白。每关多选 1 张卡，AI 的让子和贴目逐关增加；难度会整体加减。": "Herausforderung: ein Lauf über 5 Stufen, du spielst Weiß. Pro Stufe wählst du eine Karte mehr, während Vorgabe und Komi der KI wachsen; die Schwierigkeit verschiebt die ganze Kurve.",
     "第 {stage} 关通过！进入第 {next} 关（共 {total} 关）：AI 的先手优势更大，你也会再选 1 张卡。": "Stufe {stage} geschafft! Weiter zu Stufe {next} von {total}: Die KI bekommt mehr Vorsprung, und du wählst eine Karte mehr.",
     "全部 {total} 关通关！": "Lauf geschafft: alle {total} Stufen gemeistert!",
-    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "Stufe {stage}/{total} | Karten {cards} | Zurück {undo} Tipp {hint} Coach {coach} Neu {refresh}"
+    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "Stufe {stage}/{total} | Karten {cards} | Zurück {undo} Tipp {hint} Coach {coach} Neu {refresh}",
+    "目标": "Ziel",
+    "{target} 目": "{target} Pkt.",
+    "{target} 目 · 你 {margin}": "{target} Pkt. · du {margin}",
+    "目标 {target}": "Ziel {target}",
+    "让 {stones} 子（约 {points}）": "{stones} Vorgabesteine (~{points})",
+    "关卡 {points}": "Stufe {points}",
+    "难度 {points}": "Schwierigkeit {points}",
+    "你的卡牌 {points}": "deine Karten {points}",
+    "目标：AI 先手优势 {target} 目，你要在均势棋盘上赢得比它多。": "Ziel: Die KI startet mit {target} Punkten Vorsprung; übertriff diesen Abstand, um zu gewinnen.",
+    "你的优势 {margin} · 目标 {target}": "Dein Abstand {margin} · Ziel {target}",
+    "目标 {target} · 你 {margin}": "Ziel {target} · du {margin}"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",

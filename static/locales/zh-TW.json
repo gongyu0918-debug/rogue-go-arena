@@ -342,7 +342,18 @@
     "闯关：连战 5 关，你执白。每关多选 1 张卡，AI 的让子和贴目逐关增加；难度会整体加减。": "闖關：連戰 5 關，你執白。每關多選 1 張卡，AI 的讓子和貼目逐關增加；難度會整體加減。",
     "第 {stage} 关通过！进入第 {next} 关（共 {total} 关）：AI 的先手优势更大，你也会再选 1 张卡。": "第 {stage} 關通過！進入第 {next} 關（共 {total} 關）：AI 的先手優勢更大，你也會再選 1 張卡。",
     "全部 {total} 关通关！": "全部 {total} 關通關！",
-    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "第 {stage}/{total} 關 | 卡牌 {cards} | 悔棋 {undo} 推薦 {hint} 代下 {coach} 刷新 {refresh}"
+    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "第 {stage}/{total} 關 | 卡牌 {cards} | 悔棋 {undo} 推薦 {hint} 代下 {coach} 刷新 {refresh}",
+    "目标": "目標",
+    "{target} 目": "{target} 目",
+    "{target} 目 · 你 {margin}": "{target} 目 · 你 {margin}",
+    "目标 {target}": "目標 {target}",
+    "让 {stones} 子（约 {points}）": "讓 {stones} 子（約 {points}）",
+    "关卡 {points}": "關卡 {points}",
+    "难度 {points}": "難度 {points}",
+    "你的卡牌 {points}": "你的卡牌 {points}",
+    "目标：AI 先手优势 {target} 目，你要在均势棋盘上赢得比它多。": "目標：AI 先手優勢 {target} 目，你要在均勢棋盤上贏得比它多。",
+    "你的优势 {margin} · 目标 {target}": "你的優勢 {margin} · 目標 {target}",
+    "目标 {target} · 你 {margin}": "目標 {target} · 你 {margin}"
   },
   "rankGroups": {
     "kyu": "── 級位 ──",

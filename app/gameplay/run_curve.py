@@ -55,6 +55,25 @@ class RunSetup:
         return handicap_points(self.handicap) + self.stage_points + self.difficulty_points + self.card_points
 
 
+def game_target(game) -> dict | None:
+    """The AI's head start in a card game, with its parts; None for other games.
+
+    The player wins exactly when their lead on an even board beats this.
+    """
+    if not getattr(game, "rogue_enabled", False) or getattr(game, "two_player", False):
+        return None
+    stones = int(getattr(game, "handicap", 0) or 0) if getattr(game, "challenge_beta", False) else 0
+    parts = {
+        "stones": stones,
+        "stone_points": handicap_points(stones),
+        "stage": float(getattr(game, "stage_komi_points", 0.0)),
+        "difficulty": float(getattr(game, "difficulty_points", 0.0)),
+        "cards": float(getattr(game, "card_komi_points", 0.0)),
+    }
+    total = parts["stone_points"] + parts["stage"] + parts["difficulty"] + parts["cards"]
+    return {"points": round(total * 2) / 2, **parts}
+
+
 def run_stage_setup(stage: int, difficulty_points: float = 0.0, card_points: float = 0.0) -> RunSetup:
     stage = clamp_stage(stage)
     stones = stage_ai_stones(stage)

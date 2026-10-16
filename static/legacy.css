@@ -2947,3 +2947,17 @@ header::before { display: none; }
   text-align: left;
   overflow-wrap: anywhere;
 }
+
+/* Card games: the target (the AI's head start) beside the score bar. */
+.topbar-target {
+  flex: 0 0 auto;
+  margin-left: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(240,201,91,.6);
+  background: rgba(20,15,8,.82);
+  color: #ffd36b;
+  font-size: .78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}

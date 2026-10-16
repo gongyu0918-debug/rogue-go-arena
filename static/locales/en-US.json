@@ -342,7 +342,18 @@
     "闯关：连战 5 关，你执白。每关多选 1 张卡，AI 的让子和贴目逐关增加；难度会整体加减。": "Challenge: a 5-stage run where you play White. You pick one more card each stage while the AI's handicap and komi grow; difficulty shifts the whole curve.",
     "第 {stage} 关通过！进入第 {next} 关（共 {total} 关）：AI 的先手优势更大，你也会再选 1 张卡。": "Stage {stage} cleared! On to stage {next} of {total}: the AI gets a bigger head start, and you pick one more card.",
     "全部 {total} 关通关！": "Run complete: all {total} stages cleared!",
-    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "Stage {stage}/{total} | Cards {cards} | Undo {undo} Hint {hint} Coach {coach} Refresh {refresh}"
+    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "Stage {stage}/{total} | Cards {cards} | Undo {undo} Hint {hint} Coach {coach} Refresh {refresh}",
+    "目标": "Target",
+    "{target} 目": "{target} pts",
+    "{target} 目 · 你 {margin}": "{target} pts · you {margin}",
+    "目标 {target}": "Target {target}",
+    "让 {stones} 子（约 {points}）": "{stones} handicap stones (~{points})",
+    "关卡 {points}": "stage {points}",
+    "难度 {points}": "difficulty {points}",
+    "你的卡牌 {points}": "your cards {points}",
+    "目标：AI 先手优势 {target} 目，你要在均势棋盘上赢得比它多。": "Target: the AI starts {target} points ahead; beat that margin to win.",
+    "你的优势 {margin} · 目标 {target}": "Your margin {margin} · target {target}",
+    "目标 {target} · 你 {margin}": "Target {target} · you {margin}"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",

@@ -106,6 +106,11 @@ function ui(zh, en, ja, ko) {
   return localizedValue(zh, en, ja, ko);
 }
 
+// ui() for a phrase template: "{name}" placeholders are filled after translation.
+function uiFill(zh, en, params = {}) {
+  return Object.entries(params).reduce((out, [key, value]) => out.split(`{${key}}`).join(String(value)), ui(zh, en));
+}
+
 function langObjectValue(value) {
   if (!value || typeof value !== "object") return value || "";
   const localeCode = { zh: "zh-CN", zht: "zh-TW", en: "en-US", ja: "ja-JP", ko: "ko-KR", fr: "fr-FR", de: "de-DE" }[currentLang];

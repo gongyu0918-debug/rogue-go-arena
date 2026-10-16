@@ -342,7 +342,18 @@
     "闯关：连战 5 关，你执白。每关多选 1 张卡，AI 的让子和贴目逐关增加；难度会整体加减。": "Défi : un parcours de 5 étapes où vous jouez Blanc. Vous prenez une carte de plus à chaque étape tandis que le handicap et le komi de l'IA augmentent ; la difficulté décale toute la courbe.",
     "第 {stage} 关通过！进入第 {next} 关（共 {total} 关）：AI 的先手优势更大，你也会再选 1 张卡。": "Étape {stage} réussie ! Place à l'étape {next} sur {total} : l'IA part avec plus d'avance, et vous choisissez une carte de plus.",
     "全部 {total} 关通关！": "Parcours terminé : les {total} étapes sont réussies !",
-    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "Étape {stage}/{total} | Cartes {cards} | Annuler {undo} Indice {hint} Coach {coach} Relance {refresh}"
+    "第 {stage}/{total} 关 | 卡牌 {cards} | 悔棋 {undo} 推荐 {hint} 代下 {coach} 刷新 {refresh}": "Étape {stage}/{total} | Cartes {cards} | Annuler {undo} Indice {hint} Coach {coach} Relance {refresh}",
+    "目标": "Objectif",
+    "{target} 目": "{target} pts",
+    "{target} 目 · 你 {margin}": "{target} pts · vous {margin}",
+    "目标 {target}": "Objectif {target}",
+    "让 {stones} 子（约 {points}）": "{stones} pierres de handicap (~{points})",
+    "关卡 {points}": "étape {points}",
+    "难度 {points}": "difficulté {points}",
+    "你的卡牌 {points}": "vos cartes {points}",
+    "目标：AI 先手优势 {target} 目，你要在均势棋盘上赢得比它多。": "Objectif : l'IA part avec {target} points d'avance ; dépassez cet écart pour gagner.",
+    "你的优势 {margin} · 目标 {target}": "Votre écart {margin} · objectif {target}",
+    "目标 {target} · 你 {margin}": "Objectif {target} · vous {margin}"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",

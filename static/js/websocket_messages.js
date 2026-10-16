@@ -30,6 +30,12 @@ function handleGameStartMessage(msg) {
   if (timerMode !== "none") startTimerFor(msg.current_player);
   triggerBoardIntro();
   advanceStartProgressForGameStart(msg);
+  updateTargetDisplay();
+  // Card komi is settled when a card is picked, so log the target once no pick is pending.
+  const pickPending = msg.rogue_enabled && (msg.challenge_beta
+    ? (msg.challenge_cards || []).length < Math.max(1, msg.challenge_stage || 1)
+    : !msg.rogue_card);
+  if (!pickPending) logTargetAtStart();
 
   if (msg.ai_observer) {
     logStudyGameStart(msg);
@@ -59,6 +65,82 @@ function logStudyGameStart(msg) {
     );
   });
 }
+
+// Card games: the target is the AI's head start in points. Your margin is your
+// lead plus that head start (about where you'd stand on an even board); you win
+// exactly when your margin beats the target.
+function gameTarget() {
+  return gameState?.target && Number.isFinite(Number(gameState.target.points)) ? gameState.target : null;
+}
+
+function signedPoints(value) {
+  const n = Math.round(Number(value) * 2) / 2;
+  return `${n > 0 ? "+" : n < 0 ? "−" : "±"}${Math.abs(n)}`;
+}
+
+function playerLeadFromScore(blackScore) {
+  if (blackScore === null || blackScore === undefined || blackScore === "") return null;
+  const score = Number(blackScore);
+  if (!Number.isFinite(score)) return null;
+  return myColor === "W" ? -score : score;
+}
+
+function targetBreakdownText(target) {
+  const parts = [];
+  if (target.stones) parts.push(uiFill("让 {stones} 子（约 {points}）", "{stones} handicap stones (~{points})", { stones: target.stones, points: target.stone_points }));
+  if (target.stage) parts.push(uiFill("关卡 {points}", "stage {points}", { points: signedPoints(target.stage) }));
+  if (target.difficulty) parts.push(uiFill("难度 {points}", "difficulty {points}", { points: signedPoints(target.difficulty) }));
+  if (target.cards) parts.push(uiFill("你的卡牌 {points}", "your cards {points}", { points: signedPoints(target.cards) }));
+  return parts.join(" · ");
+}
+
+function updateTargetDisplay(blackScore = null) {
+  if (blackScore === null && analysisReady && analysis) blackScore = analysis.score;
+  const target = gameTarget();
+  const row = document.getElementById("info-target-row");
+  const value = document.getElementById("info-target");
+  const chip = document.getElementById("hud-target");
+  if (row) row.hidden = !target;
+  if (chip) chip.hidden = !target;
+  if (!target) return;
+  const label = document.getElementById("info-target-label");
+  if (label) label.textContent = ui("目标", "Target");
+  const lead = playerLeadFromScore(blackScore);
+  const margin = lead === null ? null : lead + Number(target.points);
+  if (value) {
+    value.textContent = margin === null
+      ? uiFill("{target} 目", "{target} pts", { target: target.points })
+      : uiFill("{target} 目 · 你 {margin}", "{target} pts · you {margin}", { target: target.points, margin: signedPoints(margin) });
+    value.title = targetBreakdownText(target);
+  }
+  if (chip) {
+    chip.textContent = margin === null
+      ? uiFill("目标 {target}", "Target {target}", { target: target.points })
+      : uiFill("目标 {target} · 你 {margin}", "Target {target} · you {margin}", { target: target.points, margin: signedPoints(margin) });
+    chip.title = targetBreakdownText(target);
+  }
+}
+
+function logTargetAtStart() {
+  const target = gameTarget();
+  if (!target) return;
+  logRender(() => {
+    const breakdown = targetBreakdownText(target);
+    const head = uiFill("目标：AI 先手优势 {target} 目，你要在均势棋盘上赢得比它多。", "Target: the AI starts {target} points ahead; beat that margin to win.", { target: target.points });
+    return breakdown ? `${head} (${breakdown})` : head;
+  });
+}
+
+function targetResultText(scoreRaw) {
+  const target = gameTarget();
+  const match = String(scoreRaw || "").match(/^([BW])\+([\d.]+)$/);
+  if (!target || !match) return "";
+  const black = match[1] === "B" ? Number(match[2]) : -Number(match[2]);
+  const margin = playerLeadFromScore(black) + Number(target.points);
+  return uiFill("你的优势 {margin} · 目标 {target}", "Your margin {margin} · target {target}", { margin: signedPoints(margin), target: target.points });
+}
+
+window.updateTargetDisplay = updateTargetDisplay;
 
 function logPlayerGameStart(msg) {
   const playerColor = myColor;
@@ -150,6 +232,7 @@ function handleAnalysisMessage(msg) {
   }
   if (!reviewMode) pushWinratePoint(msg.winrate, msg.score);
   const sc = msg.score;
+  updateTargetDisplay(sc);
   const unit = (gameState && gameState.komi === 7.5) ? "子" : "目";
   document.getElementById("info-score").textContent =
     sc > 0.5
@@ -192,8 +275,10 @@ function handleGameOverMessage(msg) {
     : (youWin ? ui("你赢了！", "You win!") : msg.winner ? ui("AI 胜利", "AI wins") : ui("平局", "Draw"));
   const scoreRaw = msg.score || "";
   const scoreKomi = gameState?.komi;
-  const scoreDisplay = formatScoreDisplay(scoreRaw, scoreKomi);
+  const targetText = targetResultText(scoreRaw);
+  const scoreDisplay = [formatScoreDisplay(scoreRaw, scoreKomi), targetText].filter(Boolean).join(" · ");
   showOverlay(titleText, reasonText(msg.reason), winnerName, scoreDisplay);
+  if (targetText) log(targetText);
   logGameOverMessage(msg, scoreRaw, scoreKomi);
   handleChallengeGameOver(msg, youWin);
 }
@@ -350,6 +435,8 @@ function handleRogueCardSelectedMessage(msg) {
   }
   showCardEffectVisual(msg.card_name || getRogueCardName(msg.card_id), "rogue");
   logRogueCardSelected(msg);
+  updateTargetDisplay();
+  logTargetAtStart();
 }
 
 function logRogueCardSelected(msg) {
