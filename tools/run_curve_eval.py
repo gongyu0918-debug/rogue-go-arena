@@ -99,11 +99,21 @@ ev.choose_legal_player_move = _weaker_player_move
 
 
 def draw_deck(stage: int, rng: random.Random) -> list[str]:
+    """Draw a deck through the real offers. The offer code seeds its own RNG from
+    the clock; feed it from rng instead so the same --seed gives the same decks,
+    which pairs before/after runs."""
+    import app.gameplay.card_selection as card_selection
+
     pool = [c for c in CHALLENGE_BETA_POOL if c not in ROGUE_DISABLED_CARDS]
     deck: list[str] = []
-    for _ in range(stage):
-        offer = pick_challenge_beta_choices(deck, 3, pool=[c for c in pool if c not in deck])
-        deck.append(rng.choice(offer))
+    real_time_ns = card_selection.time.time_ns
+    card_selection.time.time_ns = lambda: rng.getrandbits(62)
+    try:
+        for _ in range(stage):
+            offer = pick_challenge_beta_choices(deck, 3, pool=[c for c in pool if c not in deck])
+            deck.append(rng.choice(offer))
+    finally:
+        card_selection.time.time_ns = real_time_ns
     return deck
 
 
