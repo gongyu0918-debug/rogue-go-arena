@@ -9,11 +9,13 @@ from app.config.gameplay import (
     ROGUE_METHODICAL_BONUS_PLAYS,
     ROGUE_QUICKTHINK_SECOND_SECONDS,
 )
+from app.gameplay.quickthink_timer import arm_quickthink, quickthink_expired
 from app.gameplay.turn_modifiers import has_methodical_card
 from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_action_utils import board_point_from_data
 from app.runtime.gtp_safety import normalize_gtp_color
 from app.runtime.ws_session_actions import ensure_engine_ready_for_game
+from app.runtime.ws_turn_actions import handle_pass
 from app.runtime.ws_ultimate_actions import handle_ultimate_play
 
 
@@ -46,6 +48,12 @@ async def handle_play(ctx: WebSocketActionContext, data: dict) -> None:
 
     if game.ultimate and not game.two_player:
         await handle_ultimate_play(ctx, game, data, color)
+        return
+
+    if quickthink_expired(game):
+        # The authoritative deadline passed before this move arrived.
+        await ctx.send({"type": "rogue_event", "msg": "⚡ 快速思考超时，自动虚手"})
+        await handle_pass(ctx, {})
         return
 
     if (
@@ -162,3 +170,13 @@ async def handle_play(ctx: WebSocketActionContext, data: dict) -> None:
 
     if not game.game_over and ctx.engine.ready:
         asyncio.create_task(ctx.do_analysis_bg(game))
+
+
+async def handle_quickthink_shown(ctx: WebSocketActionContext, data: dict) -> None:
+    """The Quick Think prompt is now visible to the player: arm the deadline."""
+    game = ctx.restore_game()
+    if not game:
+        return
+    seconds = arm_quickthink(game, str(data.get("key", "")))
+    if seconds is not None:
+        await ctx.send({"type": "quickthink_armed", "key": game.rogue_quickthink_armed_key, "seconds": seconds})

@@ -26,7 +26,8 @@ export type WsAction =
   | { action: "rogue_use_exchange"; from_x?: number; from_y?: number; to_x?: number; to_y?: number }
   | { action: "rogue_use_coach" }
   | { action: "ultimate_select_card"; card_id: string }
-  | { action: "ultimate_quickthink_end" };
+  | { action: "ultimate_quickthink_end" }
+  | { action: "quickthink_shown"; key: string };
 
 export interface GameStatePayload {
   board_size: number;
@@ -56,6 +57,31 @@ export interface CardOffer {
   [key: string]: unknown;
 }
 
+export interface CardEvolution {
+  level: number;
+  charge: number;
+  floor: number;
+  next: number | null;
+  max_level: number;
+}
+
+export interface CardImpactPayload {
+  card_id: string | null;
+  stones_gained: number;
+  enemy_stones_lost: number;
+  komi_gain: number;
+  echo_points: [number, number][];
+  echo_komi: number;
+  evolution: CardEvolution;
+  measured: boolean;
+  winrate_before?: number;
+  winrate_after?: number;
+  winrate_delta?: number;
+  lead_before?: number;
+  lead_after?: number;
+  lead_delta?: number;
+}
+
 export type WsMessage =
   | ({ type: "game_start" } & GameStatePayload)
   | ({ type: "game_state" } & GameStatePayload)
@@ -75,4 +101,7 @@ export type WsMessage =
   | { type: "rogue_event"; msg: string; [key: string]: unknown }
   | { type: "rogue_uses_update"; uses: number }
   | { type: "rogue_seal_update"; points: MovePoint[]; [key: string]: unknown }
-  | { type: "rogue_seal_done" };
+  | { type: "rogue_seal_done" }
+  | { type: "quickthink_armed"; key: string; seconds: number }
+  | ({ type: "card_impact" } & CardImpactPayload)
+  | ({ type: "card_evolved"; card_id: string | null; ultimate_twin: string | null } & CardEvolution);

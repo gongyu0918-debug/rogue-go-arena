@@ -1,5 +1,8 @@
 // Card-driven turn timers, used by Rogue Quick Thinking and Ultimate Quick Thinking.
 
+// Rogue Quick Think prompt waiting to be painted before its countdown starts.
+let pendingQuickthinkKey = "";
+
 function clearCardTurnTimer() {
   if (cardTurnTimer) {
     clearTimeout(cardTurnTimer);
@@ -13,6 +16,7 @@ function clearCardTurnTimer() {
   cardTurnRemaining = 0;
   cardTurnLabel = "";
   cardTurnKey = "";
+  pendingQuickthinkKey = "";
 }
 
 function startCardTurnTimer(seconds, key, label, onExpire) {
@@ -34,6 +38,24 @@ function startCardTurnTimer(seconds, key, label, onExpire) {
   }, Math.max(0, seconds * 1000));
 }
 
+// Run `callback` once the current frame has been painted while the page is visible,
+// so a countdown never starts before the player can actually see the prompt.
+function whenPromptVisible(isStillWanted, callback) {
+  const afterPaint = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (document.hidden) { waitForVisible(); return; }
+    if (isStillWanted()) callback();
+  }));
+  const waitForVisible = () => {
+    const onVisible = () => {
+      if (document.hidden) return;
+      document.removeEventListener("visibilitychange", onVisible);
+      afterPaint();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+  };
+  if (document.hidden) waitForVisible(); else afterPaint();
+}
+
 function syncCardTurnTimer() {
   if (!gameState || gameState.game_over || twoPlayerMode || !isMyTurn) {
     clearCardTurnTimer();
@@ -47,24 +69,12 @@ function syncCardTurnTimer() {
     }
     const seconds = gameState.rogue_quickthink_seconds || (gameState.rogue_quickthink_stage === 1 ? 2 : 1);
     const key = `rq:${gameState.move_number}:${gameState.rogue_quickthink_stage}`;
-    if (cardTurnKey !== key) {
-      logI18n(
-        `⚡ 快速思考：${seconds} 秒内完成这一手`,
-        `⚡ Quick Thinking: finish this move within ${seconds} seconds.`,
-        `⚡ クイック思考：${seconds}秒以内に着手`,
-        `⚡ 빠른 사고: ${seconds}초 안에 착수`
+    if (cardTurnKey !== key && pendingQuickthinkKey !== key) {
+      pendingQuickthinkKey = key;
+      whenPromptVisible(
+        () => pendingQuickthinkKey === key && isMyTurn && !quickthinkAwaitingAiMove,
+        () => startRogueQuickthink(seconds, key),
       );
-      startCardTurnTimer(seconds, key, ui("快棋", "Fast"), () => {
-        // Safety: do not auto-pass if it's no longer the player's turn.
-        if (!isMyTurn || (gameState && gameState.current_player !== myColor)) return;
-        logI18n("⚡ 快速思考超时，自动虚手", "⚡ Quick Thinking timed out. Auto-pass.", "⚡ クイック思考が時間切れになり、自動パス", "⚡ 빠른 사고 시간 초과, 자동 패스");
-        quickthinkAwaitingAiMove = true;
-        sendWS({ action: "pass" });
-        if (!twoPlayerMode) {
-          isMyTurn = false;
-          setThinking(true);
-        }
-      });
     }
     return;
   }
@@ -94,4 +104,27 @@ function syncCardTurnTimer() {
   }
 
   clearCardTurnTimer();
+}
+
+function startRogueQuickthink(seconds, key) {
+  pendingQuickthinkKey = "";
+  // The server arms its authoritative deadline from this report; see app/gameplay/quickthink_timer.py.
+  sendWS({ action: "quickthink_shown", key });
+  logI18n(
+    `⚡ 快速思考：${seconds} 秒内完成这一手`,
+    `⚡ Quick Thinking: finish this move within ${seconds} seconds.`,
+    `⚡ クイック思考：${seconds}秒以内に着手`,
+    `⚡ 빠른 사고: ${seconds}초 안에 착수`
+  );
+  startCardTurnTimer(seconds, key, ui("快棋", "Fast"), () => {
+    // Safety: do not auto-pass if it's no longer the player's turn.
+    if (!isMyTurn || (gameState && gameState.current_player !== myColor)) return;
+    logI18n("⚡ 快速思考超时，自动虚手", "⚡ Quick Thinking timed out. Auto-pass.", "⚡ クイック思考が時間切れになり、自動パス", "⚡ 빠른 사고 시간 초과, 자동 패스");
+    quickthinkAwaitingAiMove = true;
+    sendWS({ action: "pass" });
+    if (!twoPlayerMode) {
+      isMyTurn = false;
+      setThinking(true);
+    }
+  });
 }

@@ -4,7 +4,7 @@ from typing import Awaitable, Callable
 
 from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_new_game_actions import handle_new_game
-from app.runtime.ws_play_actions import handle_play
+from app.runtime.ws_play_actions import handle_play, handle_quickthink_shown
 from app.runtime.ws_rogue_actions import (
     handle_challenge_refresh_offer,
     handle_rogue_seal_point,
@@ -36,6 +36,7 @@ from app.runtime.ws_ultimate_actions import (
 WS_ACTION_HANDLERS: dict[str, Callable[[WebSocketActionContext, dict], Awaitable[None]]] = {
     "new_game": handle_new_game,
     "play": handle_play,
+    "quickthink_shown": handle_quickthink_shown,
     "pass": handle_pass,
     "undo": handle_undo,
     "reconnect": handle_reconnect,
