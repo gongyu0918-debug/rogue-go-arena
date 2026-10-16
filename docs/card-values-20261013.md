@@ -1,5 +1,9 @@
 # Card values (2026-10-13)
 
+> **Updated (0.1.42):** Quick Think was capped and re-measured at about +67
+> (value_points 67); the card-komi cap now grows by stage. See
+> docs/balance-update-20261016.md.
+
 `value_points` in `app/data/cards.json` comes from this measurement. The AI
 receives `CARD_KOMI_SHARE` of the value of the cards you hold as komi, capped
 at `CARD_KOMI_MAX` per game; negative values count as 0. The run calibration

@@ -1,5 +1,8 @@
 # Run curve calibration (2026-10-13)
 
+> **Superseded in part (0.1.42):** stage 1/2 komi, the card-komi cap and the
+> Beginner/Easy values changed; see docs/balance-update-20261016.md.
+
 Goal: a run should not snowball. As cards pile up stage by stage, the AI's
 head start (stage stones and komi plus card komi) should grow with them, so a
 typical deck's result stays level from stage 1 to stage 5.
