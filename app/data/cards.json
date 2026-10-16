@@ -3756,7 +3756,7 @@
       "min": -100,
       "max": 100,
       "step": 0.5,
-      "value": 10.0
+      "value": 0.0
     },
     "RUN_STAGE2_AI_STONES": {
       "group": "Run",
@@ -3790,7 +3790,7 @@
       "min": -100,
       "max": 100,
       "step": 0.5,
-      "value": 15.0
+      "value": 5.0
     },
     "RUN_STAGE3_AI_STONES": {
       "group": "Run",
@@ -3915,13 +3915,98 @@
       "group": "Difficulty",
       "card": "",
       "label": {
-        "zh-CN": "卡牌贴目：每局上限",
-        "zh-TW": "卡牌貼目：每局上限",
-        "en-US": "Card komi: maximum per game",
-        "ja-JP": "カードコミ：1局の上限",
-        "ko-KR": "카드 덤: 판당 최대",
-        "fr-FR": "Komi des cartes : maximum par partie",
-        "de-DE": "Karten-Komi: Maximum pro Partie"
+        "zh-CN": "卡牌贴目：总上限（各关上限不超过此值）",
+        "zh-TW": "卡牌貼目：總上限（各關上限不超過此值）",
+        "en-US": "Card komi: overall ceiling (no stage cap goes above it)",
+        "ja-JP": "カードコミ：全体の上限（各ステージ上限はこれ以下）",
+        "ko-KR": "카드 덤: 전체 상한(단계별 상한은 이 값 이하)",
+        "fr-FR": "Komi des cartes : plafond global (aucun plafond d'étape au-dessus)",
+        "de-DE": "Karten-Komi: Gesamtobergrenze (keine Stufenobergrenze darüber)"
+      },
+      "min": 0,
+      "max": 100,
+      "step": 0.5,
+      "value": 60.0
+    },
+    "CARD_KOMI_MAX_STAGE1": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "卡牌贴目：第 1 关上限",
+        "zh-TW": "卡牌貼目：第 1 關上限",
+        "en-US": "Card komi: cap in stage 1",
+        "ja-JP": "カードコミ：第1ステージの上限",
+        "ko-KR": "카드 덤: 1단계 상한",
+        "fr-FR": "Komi des cartes : plafond à l'étape 1",
+        "de-DE": "Karten-Komi: Obergrenze in Stufe 1"
+      },
+      "min": 0,
+      "max": 100,
+      "step": 0.5,
+      "value": 15.0
+    },
+    "CARD_KOMI_MAX_STAGE2": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "卡牌贴目：第 2 关上限",
+        "zh-TW": "卡牌貼目：第 2 關上限",
+        "en-US": "Card komi: cap in stage 2",
+        "ja-JP": "カードコミ：第2ステージの上限",
+        "ko-KR": "카드 덤: 2단계 상한",
+        "fr-FR": "Komi des cartes : plafond à l'étape 2",
+        "de-DE": "Karten-Komi: Obergrenze in Stufe 2"
+      },
+      "min": 0,
+      "max": 100,
+      "step": 0.5,
+      "value": 25.0
+    },
+    "CARD_KOMI_MAX_STAGE3": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "卡牌贴目：第 3 关上限",
+        "zh-TW": "卡牌貼目：第 3 關上限",
+        "en-US": "Card komi: cap in stage 3",
+        "ja-JP": "カードコミ：第3ステージの上限",
+        "ko-KR": "카드 덤: 3단계 상한",
+        "fr-FR": "Komi des cartes : plafond à l'étape 3",
+        "de-DE": "Karten-Komi: Obergrenze in Stufe 3"
+      },
+      "min": 0,
+      "max": 100,
+      "step": 0.5,
+      "value": 35.0
+    },
+    "CARD_KOMI_MAX_STAGE4": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "卡牌贴目：第 4 关上限",
+        "zh-TW": "卡牌貼目：第 4 關上限",
+        "en-US": "Card komi: cap in stage 4",
+        "ja-JP": "カードコミ：第4ステージの上限",
+        "ko-KR": "카드 덤: 4단계 상한",
+        "fr-FR": "Komi des cartes : plafond à l'étape 4",
+        "de-DE": "Karten-Komi: Obergrenze in Stufe 4"
+      },
+      "min": 0,
+      "max": 100,
+      "step": 0.5,
+      "value": 50.0
+    },
+    "CARD_KOMI_MAX_STAGE5": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "卡牌贴目：第 5 关上限",
+        "zh-TW": "卡牌貼目：第 5 關上限",
+        "en-US": "Card komi: cap in stage 5",
+        "ja-JP": "カードコミ：第5ステージの上限",
+        "ko-KR": "카드 덤: 5단계 상한",
+        "fr-FR": "Komi des cartes : plafond à l'étape 5",
+        "de-DE": "Karten-Komi: Obergrenze in Stufe 5"
       },
       "min": 0,
       "max": 100,

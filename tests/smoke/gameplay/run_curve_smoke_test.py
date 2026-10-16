@@ -35,6 +35,18 @@ def main() -> None:
         assert normal.komi - hard.komi == difficulty_points("hard")
         assert beginner.ai_points < normal.ai_points < hard.ai_points
 
+    # The opening is friendly: stage 1 and 2 add at most 5 points before cards.
+    assert setups[0].stage_points <= 5 and setups[1].stage_points <= 5
+
+    # Smaller boards scale every point by area and turn stones into komi;
+    # each stage still gets harder.
+    for size in (9, 13):
+        small = [run_stage_setup(stage, size=size) for stage in range(1, RUN_STAGES + 1)]
+        assert all(s.handicap == 0 for s in small)
+        small_points = [s.ai_points for s in small]
+        assert small_points == sorted(small_points) and len(set(small_points)) == RUN_STAGES, (size, small_points)
+        assert small_points[-1] < points[-1]
+
     # Card points (step 5) also come off the player's komi.
     assert run_stage_setup(2, 0, 4).komi == run_stage_setup(2).komi - 4
     print("run curve smoke test: OK")

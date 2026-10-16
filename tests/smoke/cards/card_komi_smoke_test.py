@@ -7,7 +7,7 @@ ensure_repo_root(__file__)
 from app.config import gameplay as gameplay_config
 from app.data import cards as card_data
 from app.domain.game_state import GoGame
-from app.gameplay.card_komi import card_komi_points, card_value_points, settle_card_komi
+from app.gameplay.card_komi import card_komi_cap, card_komi_points, card_value_points, settle_card_komi
 
 
 def smoke_every_offerable_card_has_a_measured_value() -> None:
@@ -19,13 +19,35 @@ def smoke_every_offerable_card_has_a_measured_value() -> None:
 
 
 def smoke_points_follow_share_and_cap() -> None:
-    share, cap = gameplay_config.CARD_KOMI_SHARE, gameplay_config.CARD_KOMI_MAX
+    share = gameplay_config.CARD_KOMI_SHARE
     assert card_komi_points([]) == 0
     one = card_komi_points(["sprout"])
-    assert one == round(min(cap, share * max(0.0, card_value_points("sprout"))) * 2) / 2
-    many = card_komi_points(list(card_data.ROGUE_CARDS))
-    assert many == cap, "a huge deck is capped"
+    assert one == round(min(card_komi_cap(1), share * max(0.0, card_value_points("sprout"))) * 2) / 2
+    for stage in range(1, 6):
+        assert card_komi_points(list(card_data.ROGUE_CARDS), stage) == card_komi_cap(stage), "a huge deck is capped"
     assert card_komi_points(["sprout", "sprout"]) == one, "duplicates count once"
+
+
+def smoke_caps_escalate_by_stage_under_the_ceiling() -> None:
+    caps = [card_komi_cap(stage) for stage in range(1, 6)]
+    assert caps == sorted(caps) and caps[0] < caps[-1], caps
+    assert caps[0] <= 15, "stage 1 keeps the opening komi friendly"
+    assert all(cap <= gameplay_config.CARD_KOMI_MAX for cap in caps)
+    original = gameplay_config.CARD_KOMI_MAX
+    try:
+        gameplay_config.CARD_KOMI_MAX = 20.0
+        assert card_komi_cap(5) == 20.0, "CARD_KOMI_MAX stays the overall ceiling"
+    finally:
+        gameplay_config.CARD_KOMI_MAX = original
+
+
+def smoke_points_scale_with_board_size() -> None:
+    full = card_komi_points(["momentum"], 1, 19)
+    assert card_komi_points(["momentum"], 1, 13) < full
+    assert card_komi_points(["momentum"], 1, 9) < card_komi_points(["momentum"], 1, 13)
+    game = GoGame(size=9, komi=7.5, player_color="B")
+    game.rogue_card = "momentum"
+    assert settle_card_komi(game) == card_komi_points(["momentum"], 1, 9)
 
 
 def smoke_settle_moves_komi_toward_the_ai_once() -> None:
@@ -45,6 +67,8 @@ def smoke_settle_moves_komi_toward_the_ai_once() -> None:
 def main() -> None:
     smoke_every_offerable_card_has_a_measured_value()
     smoke_points_follow_share_and_cap()
+    smoke_caps_escalate_by_stage_under_the_ceiling()
+    smoke_points_scale_with_board_size()
     smoke_settle_moves_komi_toward_the_ai_once()
     print("card komi smoke test: OK")
 

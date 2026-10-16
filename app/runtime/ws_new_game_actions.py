@@ -21,7 +21,7 @@ from app.runtime.game_input_validation import (
 )
 from app.domain.event_text import event_text
 from app.gameplay.card_komi import settle_card_komi
-from app.gameplay.run_curve import clamp_stage, run_stage_setup
+from app.gameplay.run_curve import board_scale, clamp_stage, run_stage_setup
 from app.gameplay.difficulty import (
     difficulty_points,
     komi_for_ai_points,
@@ -115,13 +115,13 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
     stage_points = chosen_points = 0.0
     if challenge_beta:
         # Runs: the player is White; the stage curve plus difficulty set the AI's head start.
-        run = run_stage_setup(challenge_stage, difficulty_points(difficulty) if difficulty else 0.0)
+        run = run_stage_setup(challenge_stage, difficulty_points(difficulty) if difficulty else 0.0, size=size)
         handicap, komi, player_color = run.handicap, run.komi, "W"
         stage_points, chosen_points = run.stage_points, run.difficulty_points
     elif difficulty and player_color is not None:
         if rogue_enabled:
             ai_color = "W" if player_color == "B" else "B"
-            chosen_points = difficulty_points(difficulty)
+            chosen_points = round(difficulty_points(difficulty) * board_scale(size) * 2) / 2
             komi = komi_for_ai_points(chosen_points, ai_color)
             handicap = 0
         else:

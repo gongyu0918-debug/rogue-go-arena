@@ -23,6 +23,11 @@ FIRST_MOVE_POINTS = 7.0
 STONE_POINTS = 14.0
 
 
+def board_scale(size: int) -> float:
+    """Points scale with board area: a 9x9 game is worth about a fifth of 19x19."""
+    return (int(size or 19) ** 2) / 361.0
+
+
 def clamp_stage(stage: int) -> int:
     return min(max(int(stage or 1), 1), RUN_STAGES)
 
@@ -74,10 +79,21 @@ def game_target(game) -> dict | None:
     return {"points": round(total * 2) / 2, **parts}
 
 
-def run_stage_setup(stage: int, difficulty_points: float = 0.0, card_points: float = 0.0) -> RunSetup:
+def run_stage_setup(
+    stage: int, difficulty_points: float = 0.0, card_points: float = 0.0, size: int = 19,
+) -> RunSetup:
+    """The stage's setup. The curve is tuned for 19x19; on smaller boards every
+    point value is scaled by board area and the stones become komi, since a
+    handicap stone on 9x9 or 13x13 is worth far more than on 19x19."""
     stage = clamp_stage(stage)
     stones = stage_ai_stones(stage)
     stage_points = stage_komi_points(stage)
+    if size != 19:
+        scale = board_scale(size)
+        stage_points = round((stage_points + handicap_points(stones)) * scale * 2) / 2
+        difficulty_points = round(difficulty_points * scale * 2) / 2
+        card_points = round(card_points * scale * 2) / 2
+        stones = 0
     base = HANDICAP_KOMI if stones else EVEN_KOMI
     komi = base - (stage_points + difficulty_points + card_points)
     return RunSetup(stage, stones, komi, stage_points, float(difficulty_points), float(card_points))

@@ -219,18 +219,25 @@ DIFFICULTY_NORMAL_STONES = 4
 DIFFICULTY_HARD_STONES = 2
 
 # Card-strength komi (see app/gameplay/card_komi.py): the AI gets this share
-# of the measured value_points of the cards you hold, up to the maximum.
+# of the measured value_points of the cards you hold, up to the cap for the
+# stage (Quick Game uses stage 1). The caps start low so the opening komi is
+# friendly and grow as decks grow; CARD_KOMI_MAX is the overall ceiling.
 CARD_KOMI_SHARE = 1.0
 CARD_KOMI_MAX = 60.0
+CARD_KOMI_MAX_STAGE1 = 15.0
+CARD_KOMI_MAX_STAGE2 = 25.0
+CARD_KOMI_MAX_STAGE3 = 35.0
+CARD_KOMI_MAX_STAGE4 = 50.0
+CARD_KOMI_MAX_STAGE5 = 60.0
 CARD_DEFAULT_POINTS = 12.0
 
 # Run curve (see app/gameplay/run_curve.py): five stages; each gives the AI
-# handicap stones (0 or 2+) and komi points. About 10, 15, 31, 50, 78 points before
+# handicap stones (0 or 2+) and komi points. About 0, 5, 31, 50, 78 points before
 # cards (calibrated by self-play, see docs/run-curve-calibration-20261013.md).
 RUN_STAGE1_AI_STONES = 0
-RUN_STAGE1_KOMI_POINTS = 10.0
+RUN_STAGE1_KOMI_POINTS = 0.0
 RUN_STAGE2_AI_STONES = 0
-RUN_STAGE2_KOMI_POINTS = 15.0
+RUN_STAGE2_KOMI_POINTS = 5.0
 RUN_STAGE3_AI_STONES = 2
 RUN_STAGE3_KOMI_POINTS = 10.0
 RUN_STAGE4_AI_STONES = 3
@@ -340,7 +347,12 @@ BALANCE_TUNABLES = {
     "DIFFICULTY_NORMAL_STONES": {"group": "Difficulty", "card": "", "label": "普通难度：普通对局让子数", "min": 0, "max": 9, "step": 1},
     "DIFFICULTY_HARD_STONES": {"group": "Difficulty", "card": "", "label": "困难难度：普通对局让子数", "min": 0, "max": 9, "step": 1},
     "CARD_KOMI_SHARE": {"group": "Difficulty", "card": "", "label": "卡牌贴目：按卡牌价值给 AI 的比例", "min": 0, "max": 2, "step": 0.05},
-    "CARD_KOMI_MAX": {"group": "Difficulty", "card": "", "label": "卡牌贴目：每局上限", "min": 0, "max": 100, "step": 0.5},
+    "CARD_KOMI_MAX": {"group": "Difficulty", "card": "", "label": "卡牌贴目：总上限（各关上限不超过此值）", "min": 0, "max": 100, "step": 0.5},
+    "CARD_KOMI_MAX_STAGE1": {"group": "Difficulty", "card": "", "label": "卡牌贴目：第 1 关上限", "min": 0, "max": 100, "step": 0.5},
+    "CARD_KOMI_MAX_STAGE2": {"group": "Difficulty", "card": "", "label": "卡牌贴目：第 2 关上限", "min": 0, "max": 100, "step": 0.5},
+    "CARD_KOMI_MAX_STAGE3": {"group": "Difficulty", "card": "", "label": "卡牌贴目：第 3 关上限", "min": 0, "max": 100, "step": 0.5},
+    "CARD_KOMI_MAX_STAGE4": {"group": "Difficulty", "card": "", "label": "卡牌贴目：第 4 关上限", "min": 0, "max": 100, "step": 0.5},
+    "CARD_KOMI_MAX_STAGE5": {"group": "Difficulty", "card": "", "label": "卡牌贴目：第 5 关上限", "min": 0, "max": 100, "step": 0.5},
     "CARD_DEFAULT_POINTS": {"group": "Difficulty", "card": "", "label": "卡牌贴目：未测卡牌的默认价值", "min": 0, "max": 100, "step": 0.5},
     "RUN_STAGE1_AI_STONES": {"group": "Run", "card": "", "label": "第 1 关：AI 让子数", "min": 0, "max": 9, "step": 1},
     "RUN_STAGE1_KOMI_POINTS": {"group": "Run", "card": "", "label": "第 1 关：给 AI 的贴目", "min": -100, "max": 100, "step": 0.5},

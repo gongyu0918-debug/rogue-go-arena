@@ -207,7 +207,7 @@ async def _server_activate_rogue_card_wrapper_sends_events_and_syncs_komi() -> N
         s.apply_rogue_card_activation = original_activation
 
     # The card's strength is charged to the AI as komi on top of the activation's own change.
-    charge = card_komi_points(["blackhole"])
+    charge = card_komi_points(["blackhole"], 1, game.size)
     expected_komi = 3.5 + charge if game.ai_color == "W" else 3.5 - charge
     assert game.komi == expected_komi and game.card_komi_points == charge
     assert calls == [
@@ -302,7 +302,7 @@ async def _server_activate_rogue_card_wrapper_skips_komi_sync_when_not_needed_or
     assert calls == []
     assert sent[0]["type"] == "rogue_card_selected"
     assert sent[0]["card_id"] == "komi_relief"
-    assert sent[0]["komi"] == 0.5 + card_komi_points(["komi_relief"])  # the AI (White) gets the card charge
+    assert sent[0]["komi"] == 0.5 + card_komi_points(["komi_relief"], 1, game.size)  # the AI (White) gets the card charge
 
 
 def test_server_activate_rogue_card_wrapper_skips_komi_sync_when_not_needed_or_not_ready() -> None:
