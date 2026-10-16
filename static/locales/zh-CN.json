@@ -327,7 +327,8 @@
     "节奏": "节奏",
     "玩法说明": "玩法说明",
     "收起说明": "收起说明",
-    "选这张": "选这张"
+    "选这张": "选这张",
+    "这里汇总 Rogue AI 的玩法、闯关路线，以及所有 Rogue 卡牌的效果说明。": "这里汇总 Rogue AI 的玩法、闯关路线，以及所有 Rogue 卡牌的效果说明。"
   },
   "rankGroups": {
     "kyu": "── 级位 ──",
@@ -852,6 +853,7 @@
     "ultimate.wall.failed": "🧱 {card|ucard}未能成型，这次没有筑起城墙",
     "ultimate.wall.row": "🧱 {card|ucard}发动！第 {row} 行筑起 {count} 子",
     "ultimate.wildgrow.grow": "🌿 {card|ucard}！{count} 颗棋子生长出新子",
-    "ai.rally": "⚡ AI 反扑！你领先 {lead} 目，AI 在 {points|list} 追加 {count} 子，本局还剩 {remaining} 次"
+    "ai.rally": "⚡ AI 反扑！你领先 {lead} 目，AI 在 {points|list} 追加 {count} 子，本局还剩 {remaining} 次",
+    "error.setup.ultimate_archived": "大招对战已归档，暂不可用"
   }
 }

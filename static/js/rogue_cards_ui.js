@@ -1,6 +1,34 @@
 // Rogue/Ultimate card UI helpers.
 // Loaded before the main inline script; functions resolve shared globals at call time.
 
+// Features the server reports in /status. Ultimate mode is archived unless the
+// server says otherwise, so it stays hidden until /status confirms it.
+let serverFeatures = { ultimate: false };
+
+function ultimateAvailable() {
+  return !!serverFeatures.ultimate;
+}
+
+function applyServerFeatures(features) {
+  if (features && typeof features === "object") serverFeatures = { ...serverFeatures, ...features };
+  const available = ultimateAvailable();
+  const option = document.querySelector('#sel-rogue-variant option[value="ultimate"]');
+  if (option) {
+    option.hidden = !available;
+    option.disabled = !available;
+  }
+  const select = document.getElementById("sel-rogue-variant");
+  if (select && select.value === "ultimate" && !available) {
+    select.value = "solo";
+    if (typeof updateVariantOptionRows === "function") updateVariantOptionRows();
+  }
+  ["rogue-wiki-ultimate-title", "rogue-wiki-ultimate-cards"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = !available;
+  });
+  renderRogueWiki();
+}
+
 function localizedModeField(item, field) {
   const key = field.toLowerCase();
   return item[key] || "";
@@ -13,14 +41,22 @@ function renderRogueWiki() {
   const ultimateWrap = document.getElementById("rogue-wiki-ultimate-cards");
   if (!intro || !modeWrap || !rogueWrap || !ultimateWrap) return;
 
-  intro.textContent = ui(
-    "这里汇总 Rogue AI 的三种主玩法、闯关路线，以及所有 Rogue 强化卡与大招卡的效果说明。",
-    "This index covers Rogue AI game variants, challenge runs, and the full effect list for Rogue and Ultimate cards.",
-    "Rogue AIの主な遊び方、チャレンジルート、Rogue強化カードと必殺カードの効果をまとめています。",
-    "Rogue AI의 주요 모드, 도전 루트, Rogue 강화 카드와 궁극기 카드 효과를 모았습니다."
-  );
+  intro.textContent = ultimateAvailable()
+    ? ui(
+      "这里汇总 Rogue AI 的三种主玩法、闯关路线，以及所有 Rogue 强化卡与大招卡的效果说明。",
+      "This index covers Rogue AI game variants, challenge runs, and the full effect list for Rogue and Ultimate cards.",
+      "Rogue AIの主な遊び方、チャレンジルート、Rogue強化カードと必殺カードの効果をまとめています。",
+      "Rogue AI의 주요 모드, 도전 루트, Rogue 강화 카드와 궁극기 카드 효과를 모았습니다."
+    )
+    : ui(
+      "这里汇总 Rogue AI 的玩法、闯关路线，以及所有 Rogue 卡牌的效果说明。",
+      "This index covers Rogue AI game variants, challenge runs, and the full effect list for every Rogue card.",
+      "Rogue AIの遊び方、チャレンジルート、すべてのRogueカードの効果をまとめています。",
+      "Rogue AI의 모드, 도전 루트, 모든 Rogue 카드 효과를 모았습니다."
+    );
 
-  const modes = activeLocalePack()?.wikiModes || fallbackLocalePack()?.wikiModes || [];
+  const modes = (activeLocalePack()?.wikiModes || fallbackLocalePack()?.wikiModes || [])
+    .filter(item => item.key !== "ultimate" || ultimateAvailable());
   modeWrap.innerHTML = modes.map(item => `
     <article class="wiki-mode-card">
       <h3>${escapeHtml(localizedModeField(item, "Title"))}</h3>
@@ -42,7 +78,7 @@ function renderRogueWiki() {
     `;
   }).join("");
 
-  ultimateWrap.innerHTML = ULTIMATE_CARD_IDS.map(cardId => {
+  ultimateWrap.innerHTML = !ultimateAvailable() ? "" : ULTIMATE_CARD_IDS.map(cardId => {
     const meta = getCardMeta(cardId, "ultimate");
     return `
       <article class="wiki-card-item">

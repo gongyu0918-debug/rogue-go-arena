@@ -563,6 +563,13 @@ const SERVER_EVENT_SHARED = [
     ja: (lead, pts, n, left) => `⚡ AIの反撃！あなたが${lead}目リードしているので、AIが${pts}に${n}子追加します。この対局であと${left}回`,
     ko: (lead, pts, n, left) => `⚡ AI 반격! ${lead}집 앞서 있어서 AI가 ${pts.split("、").join(", ")}에 돌 ${n}개를 더 놓습니다. 이번 판 남은 횟수 ${left}`,
   }],
+  [/^大招对战已归档，暂不可用$/, {
+    en: () => "Ultimate Duel is archived and not available right now.",
+    fr: () => "Le duel ultime est archivé et n'est pas disponible pour le moment.",
+    de: () => "Das Ultimate-Duell ist archiviert und derzeit nicht verfügbar.",
+    ja: () => "必殺デュエルはアーカイブされたため、現在は遊べません",
+    ko: () => "궁극기 대전은 보관 처리되어 지금은 이용할 수 없어요",
+  }],
   [/^AI 引擎数目失败：(.*)$/, {
     en: x => `The AI engine could not count the score: ${x}`,
     fr: x => `Le moteur IA n'a pas pu compter les points : ${x}`,

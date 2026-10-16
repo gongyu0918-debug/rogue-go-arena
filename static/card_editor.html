@@ -596,6 +596,12 @@
       state.jsonDirty = false;
     }
     async function loadPayload() {
+      try {
+        const status = await (await fetch("/status", { cache: "no-store" })).json();
+        state.ultimateEnabled = !!status?.features?.ultimate;
+      } catch (_) {
+        state.ultimateEnabled = false;
+      }
       const response = await fetch("/api/card-config", { cache: "no-store" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       adoptPayload(await response.json());
@@ -694,7 +700,8 @@
         ultimate: Object.keys(state.config?.cards?.ultimate || {}).length,
         tuning: Object.keys(state.config?.tuning || {}).length
       };
-      els.tabs.innerHTML = ["rogue", "ultimate", "tuning"].map(key =>
+      if (state.tab === "ultimate" && !state.ultimateEnabled) state.tab = "rogue";
+      els.tabs.innerHTML = ["rogue", ...(state.ultimateEnabled ? ["ultimate"] : []), "tuning"].map(key =>
         `<button type="button" data-tab="${key}" class="${state.tab === key ? "active" : ""}" aria-current="${state.tab === key}">${t(key)}<span class="count">${counts[key]}</span></button>`
       ).join("") + `<span class="spacer"></span><button type="button" data-tab="json" id="advancedJsonBtn" class="${state.tab === "json" ? "active" : ""}">${t("json")}</button>`;
 

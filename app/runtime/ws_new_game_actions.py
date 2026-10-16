@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping
 
+import app.config.gameplay as gameplay_config
 from app.config.gameplay import AI_STYLE_OPTIONS, RANK_VISITS
 from app.data.cards import (
     CHALLENGE_BETA_HANDICAPS,
@@ -34,6 +35,10 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
         await ctx.send_error(event_text(
             "error.config.load_failed", "卡牌配置加载失败：" + "；".join(config_errors[:6]),
             detail="; ".join(config_errors[:6])))
+        return
+
+    if data.get("ultimate") and not gameplay_config.ULTIMATE_ENABLED:
+        await ctx.send_error(event_text("error.setup.ultimate_archived", "大招对战已归档，暂不可用"))
         return
 
     size = payload_int(data.get("size", 19), 19)

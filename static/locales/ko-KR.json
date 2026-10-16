@@ -327,7 +327,8 @@
     "节奏": "템포",
     "玩法说明": "자세히 보기",
     "收起说明": "접기",
-    "选这张": "이 카드 선택"
+    "选这张": "이 카드 선택",
+    "这里汇总 Rogue AI 的玩法、闯关路线，以及所有 Rogue 卡牌的效果说明。": "Rogue AI의 모드, 도전 루트, 모든 Rogue 카드 효과를 모았습니다."
   },
   "rankGroups": {
     "kyu": "── 급 ──",
@@ -852,6 +853,7 @@
     "ultimate.wall.failed": "🧱 {card|ucard}: 이번에는 성벽이 세워지지 않았습니다",
     "ultimate.wall.row": "🧱 {card|ucard}! {row}번째 줄에 돌 {count}개가 솟아오릅니다",
     "ultimate.wildgrow.grow": "🌿 {card|ucard}! 돌 {count}개에서 새 돌이 뻗어 나옵니다",
-    "ai.rally": "⚡ AI 반격! {lead}집 앞서 있어서 AI가 {points|list}에 돌 {count}개를 더 놓습니다. 이번 판 남은 횟수 {remaining}"
+    "ai.rally": "⚡ AI 반격! {lead}집 앞서 있어서 AI가 {points|list}에 돌 {count}개를 더 놓습니다. 이번 판 남은 횟수 {remaining}",
+    "error.setup.ultimate_archived": "궁극기 대전은 보관 처리되어 지금은 이용할 수 없어요"
   }
 }

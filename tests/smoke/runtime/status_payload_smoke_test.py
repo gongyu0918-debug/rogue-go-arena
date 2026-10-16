@@ -46,6 +46,7 @@ def main() -> int:
         desktop_exit_token="ui-exit-token",
     )
 
+    assert payload["features"] == {"ultimate": False}
     assert list(payload) == [
         "server_rev",
         "host",
@@ -77,6 +78,7 @@ def main() -> int:
         "engine_idle_auto_release",
         "active_games_count",
         "desktop_exit_available",
+        "features",
         "desktop_exit_token",
     ]
     assert payload["server_rev"] == "rev-test"

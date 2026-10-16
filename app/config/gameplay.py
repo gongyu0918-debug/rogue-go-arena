@@ -79,6 +79,9 @@ RANK_LABELS = {
 }
 
 MAX_GAME_VISITS = 20000
+# Ultimate mode is archived: hidden in the UI and refused by the server, with
+# its code, data and tests kept. Set to True to bring it back.
+ULTIMATE_ENABLED = False
 ROGUE_MAX_VISITS = 800
 ULTIMATE_MAX_VISITS = 400
 CPU_MAX_VISITS = 250

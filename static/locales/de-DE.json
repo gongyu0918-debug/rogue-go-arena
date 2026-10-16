@@ -327,7 +327,8 @@
     "节奏": "Tempo",
     "玩法说明": "So funktioniert's",
     "收起说明": "Details ausblenden",
-    "选这张": "Diese Karte wählen"
+    "选这张": "Diese Karte wählen",
+    "这里汇总 Rogue AI 的玩法、闯关路线，以及所有 Rogue 卡牌的效果说明。": "Diese Übersicht zeigt die Rogue-AI-Varianten, die Herausforderungs-Läufe und die Wirkung jeder Rogue-Karte."
   },
   "rankGroups": {
     "kyu": "── Kyu ──",
@@ -852,6 +853,7 @@
     "ultimate.wall.failed": "🧱 {card|ucard} kam diesmal nicht zustande.",
     "ultimate.wall.row": "🧱 {card|ucard}! {count} {count|pl:Stein erhebt:Steine erheben} sich in Reihe {row}.",
     "ultimate.wildgrow.grow": "🌿 {card|ucard}! {count} deiner Steine {count|pl:treibt:treiben} neue Steine aus.",
-    "ai.rally": "⚡ Die KI schlägt zurück! Du führst mit {lead} {lead|pl:Punkt:Punkten}, also setzt die KI {count} {count|pl:zusätzlichen Stein:zusätzliche Steine} auf {points|list}. Noch {remaining}× in dieser Partie."
+    "ai.rally": "⚡ Die KI schlägt zurück! Du führst mit {lead} {lead|pl:Punkt:Punkten}, also setzt die KI {count} {count|pl:zusätzlichen Stein:zusätzliche Steine} auf {points|list}. Noch {remaining}× in dieser Partie.",
+    "error.setup.ultimate_archived": "Das Ultimate-Duell ist archiviert und derzeit nicht verfügbar."
   }
 }

@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+import app.config.gameplay as gameplay_config
+
 
 def build_status_payload(
     *,
@@ -54,6 +56,7 @@ def build_status_payload(
         "engine_idle_auto_release": engine_snapshot.get("idle_auto_release"),
         "active_games_count": active_games_count,
         "desktop_exit_available": desktop_exit_available,
+        "features": {"ultimate": bool(gameplay_config.ULTIMATE_ENABLED)},
     }
     if desktop_exit_token:
         payload["desktop_exit_token"] = desktop_exit_token

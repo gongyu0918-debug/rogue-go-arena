@@ -306,6 +306,17 @@ async def rogue_smoke(base_ws: str) -> dict:
     raise RuntimeError(f"no fast rogue smoke card was offered: {skipped_offers}")
 
 
+async def archived_ultimate_smoke(base_ws: str) -> dict:
+    """Ultimate is archived: the server refuses it with a clear error."""
+    game_id = "runtime-ultimate-archived-" + uuid.uuid4().hex[:8]
+    transcript: list[dict] = []
+    async with websocket_connect(base_ws, game_id) as ws:
+        await ws.send(json.dumps({"action": "new_game", "size": 9, "ultimate": True}))
+        msg = await recv_until(ws, lambda m: m.get("type") in ("error", "game_start"), timeout=20, transcript=transcript)
+    refused = msg.get("type") == "error" and msg.get("key") == "error.setup.ultimate_archived"
+    return {"refused": refused, "status": "passed" if refused else "failed"}
+
+
 async def ultimate_smoke(base_ws: str) -> dict:
     game_id = "runtime-ultimate-" + uuid.uuid4().hex[:8]
     transcript: list[dict] = []
@@ -527,13 +538,15 @@ async def run_smoke(base_url: str) -> dict:
     scheme = "wss" if parsed.scheme == "https" else "ws"
     ws_base = f"{scheme}://{parsed.netloc}"
 
+    status = http_json(base_url, "/status")
+    ultimate_enabled = bool((status.get("features") or {}).get("ultimate")) if isinstance(status, dict) else False
     results = {
-        "status": http_json(base_url, "/status"),
+        "status": status,
         "gpu": http_json(base_url, "/gpu"),
         "engine_owner": await engine_owner_smoke(ws_base),
         "normal": await normal_smoke(base_url, ws_base),
         "rogue": await rogue_smoke(ws_base),
-        "ultimate": await ultimate_smoke(ws_base),
+        "ultimate": await (ultimate_smoke(ws_base) if ultimate_enabled else archived_ultimate_smoke(ws_base)),
         "observer": await observer_smoke(ws_base),
         "capture_rule": await capture_smoke(ws_base),
         "ko_rule": await ko_smoke(ws_base),

@@ -345,7 +345,7 @@
         <select id="sel-rogue-variant">
           <option value="solo" selected>单人抽卡</option>
           <option value="dual">双人抽卡</option>
-          <option value="ultimate">大招对战</option>
+          <option value="ultimate" hidden disabled>大招对战</option>
         </select>
       </div>
       <div class="form-row setup-field" id="row-size">
@@ -525,8 +525,8 @@
         <div id="rogue-wiki-rogue-cards" class="wiki-card-grid"></div>
       </section>
       <section>
-        <div id="rogue-wiki-ultimate-title" class="wiki-section-title">大招卡牌效果</div>
-        <div id="rogue-wiki-ultimate-cards" class="wiki-card-grid"></div>
+        <div id="rogue-wiki-ultimate-title" class="wiki-section-title" hidden>大招卡牌效果</div>
+        <div id="rogue-wiki-ultimate-cards" class="wiki-card-grid" hidden></div>
       </section>
     </div>
   </div>
@@ -565,7 +565,7 @@
 <script src="/static/js/rank_controls.js?v=20260907a"></script>
 <script src="/static/js/card_state.js?v=20260603a"></script>
 <script src="/static/js/card_catalog.js?v=20261012a"></script>
-<script src="/static/js/rogue_cards_ui.js?v=20261012a"></script>
+<script src="/static/js/rogue_cards_ui.js?v=20261012b"></script>
 <script src="/static/js/card_board_marks.js?v=20260603a"></script>
 <script src="/static/js/card_turn_timer.js?v=20261009a"></script>
 <script src="/static/js/seal_selection_ui.js?v=20260603a"></script>
@@ -573,12 +573,12 @@
 <script src="/static/js/card_impact_ui.js?v=20261009a"></script>
 <script src="/static/js/shell_ui.js?v=20261009a"></script>
 <script src="/static/js/start_progress_ui.js?v=20261012a"></script>
-<script src="/static/js/network_client.js?v=20260530a"></script>
+<script src="/static/js/network_client.js?v=20261012a"></script>
 <script src="/static/js/game_runtime_helpers.js?v=20260530a"></script>
 <script src="/static/js/settings_controls.js?v=20260907a"></script>
 <script src="/static/js/runtime_status_ui.js?v=20260530a"></script>
 <script src="/static/js/game_timers.js?v=20260530a"></script>
-<script src="/static/js/server_event_i18n.js?v=20261012a"></script>
+<script src="/static/js/server_event_i18n.js?v=20261012b"></script>
 <script src="/static/js/event_text.js?v=20261010a"></script>
 <script src="/static/js/game_log.js?v=20261010a"></script>
 <script src="/static/js/board_layout.js?v=20260527a"></script>
@@ -589,7 +589,7 @@
 <script src="/static/js/localization_ui.js?v=20261010a"></script>
 <script src="/static/js/websocket_messages.js?v=20261012a"></script>
 <script src="/static/js/app_bootstrap.js?v=20260629a"></script>
-<script src="/static/js/setup_controls.js?v=20261010a"></script>
+<script src="/static/js/setup_controls.js?v=20261012a"></script>
 <script src="/static/js/desktop_exit.js?v=20260628a"></script>
 <script src="/static/js/toolbar_actions.js?v=20260603a"></script>
 <script src="/static/js/inline_actions.js?v=20260907a"></script>

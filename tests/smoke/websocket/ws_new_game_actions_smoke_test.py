@@ -7,6 +7,7 @@ ensure_repo_root(__file__)
 import asyncio
 from typing import get_type_hints
 
+import app.config.gameplay as gameplay_config
 import app.runtime.ws_actions as ws_actions
 from app.domain.coordinates import gtp_to_coord
 from app.domain.game_state import GoGame
@@ -226,11 +227,27 @@ async def smoke_releases_engine_claim_when_game_commit_fails() -> None:
     assert ctx.connection_token not in engine.active_connection_tokens
 
 
-async def smoke_ultimate_new_game_sends_offer() -> None:
+async def smoke_archived_ultimate_is_refused() -> None:
+    assert gameplay_config.ULTIMATE_ENABLED is False
     ctx = FakeContext()
 
     await handle_new_game(ctx, {"size": 9, "ultimate": True})
-    await asyncio.sleep(0)
+
+    assert ctx.game is None
+    assert ctx.ultimate_choice_calls == []
+    assert ctx.sent == []
+    assert [error.key for error in ctx.errors] == ["error.setup.ultimate_archived"]
+
+
+async def smoke_ultimate_new_game_sends_offer() -> None:
+    # Ultimate is archived, not deleted: its flow keeps working when enabled.
+    ctx = FakeContext()
+    gameplay_config.ULTIMATE_ENABLED = True
+    try:
+        await handle_new_game(ctx, {"size": 9, "ultimate": True})
+        await asyncio.sleep(0)
+    finally:
+        gameplay_config.ULTIMATE_ENABLED = False
 
     assert ctx.game.ultimate is True
     assert ctx.ultimate_choice_calls == [3]
@@ -321,6 +338,7 @@ async def main() -> None:
     await smoke_allows_internal_five_by_five_rule_smoke_board()
     await smoke_rejects_a_second_game_using_the_shared_engine()
     await smoke_releases_engine_claim_when_game_commit_fails()
+    await smoke_archived_ultimate_is_refused()
     await smoke_ultimate_new_game_sends_offer()
     await smoke_two_player_rogue_new_game_uses_two_player_pool_without_engine()
     await smoke_challenge_new_game_applies_existing_loadout_and_skips_offer()

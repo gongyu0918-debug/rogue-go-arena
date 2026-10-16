@@ -42,7 +42,8 @@ const SETUP_MODE_HINTS = {
 };
 
 function getRogueVariantMode() {
-  return document.getElementById("sel-rogue-variant")?.value || "solo";
+  const value = document.getElementById("sel-rogue-variant")?.value || "solo";
+  return value === "ultimate" && !ultimateAvailable() ? "solo" : value;
 }
 
 function getSetupModeContext(mode = startMode) {

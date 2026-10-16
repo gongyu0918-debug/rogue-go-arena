@@ -327,7 +327,8 @@
     "节奏": "テンポ",
     "玩法说明": "遊び方",
     "收起说明": "説明を閉じる",
-    "选这张": "このカードにする"
+    "选这张": "このカードにする",
+    "这里汇总 Rogue AI 的玩法、闯关路线，以及所有 Rogue 卡牌的效果说明。": "Rogue AIの遊び方、チャレンジルート、すべてのRogueカードの効果をまとめています。"
   },
   "rankGroups": {
     "kyu": "── 級位 ──",
@@ -852,6 +853,7 @@
     "ultimate.wall.failed": "🧱 今回は{card|ucard}を築けませんでした",
     "ultimate.wall.row": "🧱 {card|ucard}！{row}段目に石が{count}子そびえ立ちます",
     "ultimate.wildgrow.grow": "🌿 {card|ucard}！{count}子の石から新しい石が伸びました",
-    "ai.rally": "⚡ AIの反撃！あなたが{lead}目リードしているので、AIが{points|list}に{count}子追加します。この対局であと{remaining}回"
+    "ai.rally": "⚡ AIの反撃！あなたが{lead}目リードしているので、AIが{points|list}に{count}子追加します。この対局であと{remaining}回",
+    "error.setup.ultimate_archived": "必殺デュエルはアーカイブされたため、現在は遊べません"
   }
 }

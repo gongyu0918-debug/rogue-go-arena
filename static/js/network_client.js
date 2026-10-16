@@ -24,6 +24,7 @@ async function refreshNetworkInfo() {
     const result = await fetchNetworkStatus();
     if (!result.ok) return null;
     updateNetworkBadge(result.status);
+    if (typeof window.applyServerFeatures === "function") window.applyServerFeatures(result.status?.features);
     syncClientShell();
     if (typeof window.syncDesktopExitButton === "function") window.syncDesktopExitButton();
     return result.status;
