@@ -1162,9 +1162,12 @@ def apply_rogue_five_in_row(
 
     return RogueBoardEffectResult(
         True,
-        [
-            f"🎯 五子连珠发动，正好连成 5 子，在首尾 3×3 区域补下 {len(changed)} 颗己方棋子"
-        ],
+        [event_text(
+            "card.five_in_row.burst",
+            f"🎯 五子连珠发动，正好连成 5 子，在首尾 3×3 区域补下 {len(changed)} 颗己方棋子",
+            card="five_in_row",
+            count=len(changed),
+        )],
         [],
     )
 
@@ -1199,9 +1202,13 @@ def apply_rogue_last_stand(
     game.rogue_last_stand_done[color] = True
     return RogueBoardEffectResult(
         True,
-        [
-            f"🫀 起死回生发动，在上一手周围扭转局面：清掉 {len(cleared)} 颗敌子，补下 {len(changed)} 颗己棋"
-        ],
+        [event_text(
+            "card.last_stand.rally",
+            f"🫀 起死回生发动，在上一手周围扭转局面：清掉 {len(cleared)} 颗敌子，补下 {len(changed)} 颗己棋",
+            card="last_stand",
+            cleared=len(cleared),
+            added=len(changed),
+        )],
         [],
     )
 

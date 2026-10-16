@@ -6,6 +6,7 @@ from typing import Any
 
 from app.callback_types import SendFn
 from app.gameplay.engine_errors import engine_error_message, is_engine_error_response
+from app.domain.event_text import event_text
 
 GameVisitsFn = Callable[..., int]
 GenerateMoveFn = Callable[[Any, str, int, float], Awaitable[str]]
@@ -114,7 +115,12 @@ async def run_coach_turn_if_needed(
     await send_fn(
         {
             "type": "rogue_event",
-            "msg": f"🎓 代练上号：强化 AI 接管了一手，剩余 {game.rogue_coach_moves_left} 手",
+            "msg": event_text(
+                "card.coach_mode.played",
+                f"🎓 代练上号：强化 AI 接管了一手，剩余 {game.rogue_coach_moves_left} 手",
+                card="coach_mode",
+                left=game.rogue_coach_moves_left,
+            ),
         }
     )
     await send_fn({"type": "game_state", **game.to_state()})
@@ -126,7 +132,12 @@ async def run_coach_turn_if_needed(
             await send_fn(
                 {
                     "type": "rogue_event",
-                    "msg": f"🎓 代练上号追加触发：胜率仍低于 50%，额外再代打 {deps.bonus_turns} 手",
+                    "msg": event_text(
+                        "card.coach_mode.overtime",
+                        f"🎓 代练上号追加触发：胜率仍低于 50%，额外再代打 {deps.bonus_turns} 手",
+                        card="coach_mode",
+                        count=deps.bonus_turns,
+                    ),
                 }
             )
 

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import app.config.gameplay as gameplay_config
+from app.domain.event_text import event_text
 
 
 @dataclass(frozen=True)
@@ -61,7 +62,13 @@ def _check_ultimate_capture_foul(
     progress[offender] = 0
     return CaptureFoulResult(
         True,
-        f"🧺 提子犯规触发！{_color_label(offender)} 被罚 {gameplay_config.ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY:.0f} 目",
+        event_text(
+            "card.capture_foul.penalty",
+            f"🧺 提子犯规触发！{_color_label(offender)} 被罚 {gameplay_config.ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY:.0f} 目",
+            card="capture_foul",
+            color=offender,
+            points=int(gameplay_config.ULTIMATE_CAPTURE_FOUL_SCORE_PENALTY),
+        ),
         sync_komi=True,
     )
 
@@ -87,7 +94,13 @@ def _check_rogue_capture_foul(
     progress[offender] = 0
     return CaptureFoulResult(
         True,
-        f"🧺 提子犯规触发！{_color_label(offender)} 提子达到 {gameplay_config.ROGUE_CAPTURE_FOUL_THRESHOLD} 颗",
+        event_text(
+            "card.capture_foul.reached",
+            f"🧺 提子犯规触发！{_color_label(offender)} 提子达到 {gameplay_config.ROGUE_CAPTURE_FOUL_THRESHOLD} 颗",
+            card="capture_foul",
+            color=offender,
+            count=gameplay_config.ROGUE_CAPTURE_FOUL_THRESHOLD,
+        ),
         beneficiary=game.player_color,
     )
 

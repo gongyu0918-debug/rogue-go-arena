@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.callback_types import SendFn
+from app.domain.event_text import event_text
 
 HasRogueFn = Callable[[Any, str], bool]
 SyncGameFn = Callable[[Any], Awaitable[None]]
@@ -60,7 +61,8 @@ async def apply_player_rogue_move_effects_event(
         await deps.sync_engine_komi(game)
         await send_fn({
             "type": "rogue_event",
-            "msg": f"蚕食触发：提掉 {captured} 子，当前贴目变为 {game.komi}",
+            "msg": event_text("card.erosion.capture", f"蚕食触发：提掉 {captured} 子，当前贴目变为 {game.komi}",
+                              card="erosion", count=captured, komi=game.komi),
         })
 
     board_effect = deps.apply_board_effects(

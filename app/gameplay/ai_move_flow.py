@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Collection
 from dataclasses import dataclass
 from typing import Any
+from app.domain.event_text import event_text
 
 import app.config.gameplay as gameplay_config
 
@@ -255,14 +256,16 @@ async def try_apply_puppet_ai_move(
     if game.board[ty][tx] != 0:
         await send_fn({
             "type": "rogue_event",
-            "msg": f"🎭 傀儡术目标 {puppet_gtp} 已被占用，AI 改为正常应手",
+            "msg": event_text("card.puppet.occupied", f"🎭 傀儡术目标 {puppet_gtp} 已被占用，AI 改为正常应手",
+                              card="puppet", point=puppet_gtp),
         })
         return False
 
     if game.is_ko(tx, ty, color) or not game.is_legal_move(tx, ty, color):
         await send_fn({
             "type": "rogue_event",
-            "msg": f"🎭 傀儡术目标 {puppet_gtp} 当前不合法，AI 改为正常应手",
+            "msg": event_text("card.puppet.illegal", f"🎭 傀儡术目标 {puppet_gtp} 当前不合法，AI 改为正常应手",
+                              card="puppet", point=puppet_gtp),
         })
         return False
 
@@ -270,7 +273,8 @@ async def try_apply_puppet_ai_move(
     if "?" in resp:
         await send_fn({
             "type": "rogue_event",
-            "msg": f"🎭 傀儡术目标 {puppet_gtp} 执行失败，AI 改为正常应手",
+            "msg": event_text("card.puppet.failed", f"🎭 傀儡术目标 {puppet_gtp} 执行失败，AI 改为正常应手",
+                              card="puppet", point=puppet_gtp),
         })
         return False
 
@@ -282,7 +286,7 @@ async def try_apply_puppet_ai_move(
         color,
         card,
         puppet_gtp,
-        f"🎭 傀儡术生效，AI 被迫落子于 {puppet_gtp}",
+        event_text("card.puppet.forced", f"🎭 傀儡术生效，AI 被迫落子于 {puppet_gtp}", card="puppet", point=puppet_gtp),
     )
     await send_fn({"type": "rogue_uses_update", "uses": game.rogue_uses})
     return True
@@ -314,7 +318,7 @@ async def try_finish_forced_rogue_ai_move(
             game,
             send_fn,
             color=color,
-            message="掷骰触发，AI 这手选择虚手",
+            message=event_text("card.dice.pass", "掷骰触发，AI 这手选择虚手", card="dice"),
             prepare_player_turn_modifiers=prepare_player_turn_modifiers,
             run_engine_command=run_engine_command,
         )
@@ -334,7 +338,8 @@ async def try_finish_forced_rogue_ai_move(
                         color=color,
                         gtp_move=mirror_gtp,
                         coord=(mx, my),
-                        message=f"镜像触发，AI 在对称点 {mirror_gtp} 落子",
+                        message=event_text("card.mirror.copy", f"镜像触发，AI 在对称点 {mirror_gtp} 落子",
+                                           card="mirror", point=mirror_gtp),
                         prepare_player_turn_modifiers=prepare_player_turn_modifiers,
                         run_engine_command=run_engine_command,
                         check_capture_foul=check_capture_foul,
@@ -347,7 +352,7 @@ async def try_finish_forced_rogue_ai_move(
             game,
             send_fn,
             color=color,
-            message="乾坤挪移生效，AI 本回合虚手并把回合交还给你",
+            message=event_text("card.exchange.ai_pass", "乾坤挪移生效，AI 本回合虚手并把回合交还给你", card="exchange"),
             prepare_player_turn_modifiers=prepare_player_turn_modifiers,
             run_engine_command=run_engine_command,
         )
@@ -623,7 +628,7 @@ async def refresh_fog_restriction_points(
             game,
             pick_fog_mask(game.size, rng),
         )
-        fog_msg = "🌫 战争迷雾刷新：3×3 禁区本回合对 AI 禁止落子"
+        fog_msg = event_text("card.fog.refresh", "🌫 战争迷雾刷新：3×3 禁区本回合对 AI 禁止落子", card="fog")
     else:
         fog_pts: list[tuple[int, int]] = []
         if (
@@ -638,7 +643,12 @@ async def refresh_fog_restriction_points(
         for _ in range(max(0, gameplay_config.ROGUE_FOG_POST_MASK_POINTS - len(fog_pts))):
             fog_pts.extend(pick_fog_point(game, rng))
         game.rogue_seal_points = _unique_points(fog_pts)[:gameplay_config.ROGUE_FOG_POST_MASK_POINTS]
-        fog_msg = f"🌫 战争迷雾残留：本回合随机封锁 {gameplay_config.ROGUE_FOG_POST_MASK_POINTS} 个 AI 禁着点"
+        fog_msg = event_text(
+            "card.fog.linger",
+            f"🌫 战争迷雾残留：本回合随机封锁 {gameplay_config.ROGUE_FOG_POST_MASK_POINTS} 个 AI 禁着点",
+            card="fog",
+            count=gameplay_config.ROGUE_FOG_POST_MASK_POINTS,
+        )
 
     await send_fn({"type": "game_state", **game.to_state()})
     if game.rogue_seal_points:
@@ -736,9 +746,11 @@ async def try_apply_sansan_trap_counter(
     if not changed:
         return False
 
+    point = coord_to_gtp(coord[0], coord[1], game.size)
     await send_fn({
         "type": "rogue_event",
-        "msg": f"△ 三三陷阱发动，在 {coord_to_gtp(coord[0], coord[1], game.size)} 相邻点反打 {len(changed)} 子",
+        "msg": event_text("card.sansan_trap.sprung", f"△ 三三陷阱发动，在 {point} 相邻点反打 {len(changed)} 子",
+                          card="sansan_trap", point=point, count=len(changed)),
     })
     await apply_trap_bonus(game, send_fn, "三三陷阱")
     return True
@@ -772,7 +784,12 @@ async def try_apply_no_regret_bonus(
 
     await send_fn({
         "type": "rogue_event",
-        "msg": f"🚫 永不悔棋发动，AI 落子后在 {coord_to_gtp(bonus[0], bonus[1], game.size)} 赠送一子",
+        "msg": event_text(
+            "card.no_regret.gift",
+            f"🚫 永不悔棋发动，AI 落子后在 {coord_to_gtp(bonus[0], bonus[1], game.size)} 赠送一子",
+            card="no_regret",
+            point=coord_to_gtp(bonus[0], bonus[1], game.size),
+        ),
     })
     return True
 
@@ -818,7 +835,8 @@ async def try_finalize_double_pass(
     resp_score = await run_engine_command("final_score")
     score_str = resp_score.replace("=", "").strip()
     if is_engine_error_response(resp_score) or not score_str or score_str[0] not in {"B", "W", "0"}:
-        await send_fn({"type": "error", "message": f"AI 引擎数目失败：{resp_score}"})
+        await send_fn({"type": "error", "message": event_text(
+            "error.engine.score_failed", f"AI 引擎数目失败：{resp_score}", detail=str(resp_score).strip())})
         return False
     winner = "B" if score_str.startswith("B") else "W"
     game.game_over = True
@@ -1394,7 +1412,8 @@ def apply_slip_ai_move(
     return AiMoveAdjustment(
         slipped_gtp,
         needs_sync=True,
-        message=f"手滑了触发，AI 原本想下 {original_gtp}，结果滑到 {slipped_gtp}",
+        message=event_text("card.slip.slipped", f"手滑了触发，AI 原本想下 {original_gtp}，结果滑到 {slipped_gtp}",
+                           card="slip", from_point=original_gtp, to_point=slipped_gtp),
     )
 
 
@@ -1467,7 +1486,7 @@ async def try_finish_suboptimal_rogue_move(
             gameplay_config.ROGUE_NERF_BACKUP_CHANCE,
             1,
             5,
-            "弱化触发，AI 在多个备选点里误选了一手",
+            event_text("card.nerf.misread", "弱化触发，AI 在多个备选点里误选了一手", card="nerf"),
         ),
         (
             "time_press",
@@ -1475,7 +1494,7 @@ async def try_finish_suboptimal_rogue_move(
             gameplay_config.ROGUE_TIME_PRESS_BACKUP_CHANCE,
             1,
             4,
-            "限时压制触发，AI 仓促落在了备选点上",
+            event_text("card.time_press.rushed", "限时压制触发，AI 仓促落在了备选点上", card="time_press"),
         ),
         (
             "suboptimal",
@@ -1483,7 +1502,7 @@ async def try_finish_suboptimal_rogue_move(
             None,
             None,
             None,
-            "次优之选触发，AI 采用了较弱备选点",
+            event_text("card.suboptimal.weaker", "次优之选触发，AI 采用了较弱备选点", card="suboptimal"),
         ),
     )
 
@@ -1586,7 +1605,9 @@ async def finalize_ai_move(
         captured=captured,
         shift_per_capture=gameplay_config.ROGUE_EROSION_SHIFT,
         run_engine_command=run_engine_command,
-        message=lambda capture_count, komi: f"🐛 蚕食！AI 提 {capture_count} 子，贴目变为 {komi}",
+        message=lambda capture_count, komi: event_text(
+            "card.erosion.ai_capture", f"🐛 蚕食！AI 提 {capture_count} 子，贴目变为 {komi}",
+            card="erosion", count=capture_count, komi=komi),
     )
 
     game.push_history()

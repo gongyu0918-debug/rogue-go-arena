@@ -55,6 +55,8 @@ def collect_calls() -> list[dict]:
                 )
                 calls.append({"key": None, "pattern": re.compile(f"^{regex}$"), "names": names,
                               "dynamic": dynamic_params, "constants": constants, "where": where})
+            elif isinstance(key_node, ast.Attribute) and key_node.attr == "key":
+                continue  # re-wraps an existing keyed message (e.g. engine_error_message)
             else:
                 raise AssertionError(f"{where}: event_text key must be a literal or f-string")
     return calls
@@ -150,13 +152,15 @@ def main() -> None:
             problems.append(f"{loc}: missing template for {key}")
 
     calls_by_key: dict[str, list[dict]] = {}
+    literal_keys = {call["key"] for call in calls if call["key"] is not None}
     for call in calls:
         if call["key"] is not None:
             calls_by_key.setdefault(call["key"], []).append(call)
             if call["key"] not in all_keys:
                 problems.append(f"{call['where']}: no template for {call['key']}")
         else:
-            matches = [key for key in all_keys if call["pattern"].match(key)]
+            # A key built from an f-string only claims keys no literal call sends.
+            matches = [key for key in all_keys - literal_keys if call["pattern"].match(key)]
             if not matches:
                 problems.append(f"{call['where']}: no template matches {call['pattern'].pattern}")
             for key in matches:
@@ -167,6 +171,13 @@ def main() -> None:
     jobs = []
     for key in sorted(calls_by_key):
         texts = [packs[loc]["events"][key] for loc in LOCALES if key in packs[loc].get("events", {})]
+        # Korean particles depend on the preceding sound; a variable value (point,
+        # number, card name) must not carry one. Colors (흑/백) and ranks end in a
+        # consonant, so those placeholders may.
+        ko = packs["ko-KR"].get("events", {}).get(key, "")
+        for match in re.finditer(r"\{(\w+)(?:\|(\w+)[^{}]*)?\}([은는이가을를과와로])(?![가-힯])", ko):
+            if match.group(2) not in {"color", "rank"}:
+                problems.append(f"ko-KR {key}: particle {match.group(3)!r} right after {{{match.group(1)}}}")
         for text in texts:
             for name, spec in PLACEHOLDER.findall(text):
                 kind = (spec or "").split(":")[0]

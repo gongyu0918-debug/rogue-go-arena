@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import app.config.gameplay as gameplay_config
+from app.domain.event_text import event_text
 from app.gameplay.rogue_effects import (
     challenge_category_counts_for_game,
     challenge_has_set,
@@ -13,6 +14,9 @@ from app.gameplay.rogue_effects import (
 
 RandomFloatFn = Callable[[], float]
 WeakenRankFn = Callable[[str], str]
+
+# Trap bonus sources arrive as Chinese card names; keyed messages send card ids.
+TRAP_SOURCE_CARD_IDS = {"三三陷阱": "sansan_trap", "神之一手": "god_hand"}
 
 CHALLENGE_SET_LABELS = {
     "derivative": "衍生",
@@ -41,7 +45,11 @@ def apply_challenge_trap_bonus(
     if roll_random() > chance:
         return None
     game.rogue_skip_ai = True
-    return f"陷阱套装触发：{source_name} 额外夺得一次落子权"
+    return event_text(
+        "challenge.trap_bonus",
+        f"陷阱套装触发：{source_name} 额外夺得一次落子权",
+        card=TRAP_SOURCE_CARD_IDS.get(source_name, source_name),
+    )
 
 
 def apply_challenge_level_decay(
@@ -63,7 +71,7 @@ def apply_challenge_level_decay(
     label = rank_labels.get(game.level, game.level)
     return ChallengeLevelDecayResult(
         new_level=game.level,
-        message=f"限制套装触发：AI 临时下调至 {label}",
+        message=event_text("challenge.restriction_decay", f"限制套装触发：AI 临时下调至 {label}", rank=game.level),
     )
 
 
@@ -76,11 +84,11 @@ def challenge_set_bonus_status_message(
     if not getattr(game, "challenge_beta", False):
         return None
     counts = challenge_category_counts_for_game(game)
-    active = [
-        labels[key]
-        for key, count in counts.items()
-        if count >= min_count
-    ]
+    active = [key for key, count in counts.items() if count >= min_count]
     if not active:
         return None
-    return f"闯关套装已激活：{' / '.join(active)}"
+    return event_text(
+        "challenge.sets_active",
+        f"闯关套装已激活：{' / '.join(labels[key] for key in active)}",
+        sets=active,
+    )

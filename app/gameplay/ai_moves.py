@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 import app.config.gameplay as gameplay_config
+from app.domain.event_text import event_text
 from app.gameplay.effect_utils import (
     adjacent_points,
     diamond_points,
@@ -210,7 +211,7 @@ def resolve_occupied_ai_move(
     if game.board[y][x] == 0:
         return gtp_move, coord
 
-    return f"? AI 返回已占用点 {gtp_move}，已停止落子", None
+    return event_text("error.engine.occupied", f"? AI 返回已占用点 {gtp_move}，已停止落子", point=gtp_move), None
 
 
 def choose_tengen_target(game: Any, ai_move_count: int) -> Optional[AiTargetPlan]:
@@ -218,7 +219,7 @@ def choose_tengen_target(game: Any, ai_move_count: int) -> Optional[AiTargetPlan
         return None
     if ai_move_count == 0:
         c = game.size // 2
-        return AiTargetPlan((c, c), "天元触发，AI 优先抢下天元")
+        return AiTargetPlan((c, c), event_text("card.tengen.first", "天元触发，AI 优先抢下天元", card="tengen"))
     return None
 
 
@@ -233,7 +234,8 @@ def tengen_followup_points(game: Any, ai_move_count: int) -> Optional[AiPointRes
     ]
     if not available:
         return None
-    return AiPointRestriction("allow_only", available, "天元牵引：AI 被限制在天元 5x5 菱形区域内落子")
+    return AiPointRestriction("allow_only", available, event_text(
+        "card.tengen.pull", "天元牵引：AI 被限制在天元 5x5 菱形区域内落子", card="tengen"))
 
 
 def gravity_allowed_points(game: Any, ai_move_count: int) -> Optional[AiPointRestriction]:
@@ -242,7 +244,8 @@ def gravity_allowed_points(game: Any, ai_move_count: int) -> Optional[AiPointRes
     available = [(x, y) for x, y in get_star_points(game.size) if game.board[y][x] == 0]
     if not available:
         return None
-    return AiPointRestriction("allow_only", available, "引力触发，AI 被限制在星位附近落子")
+    return AiPointRestriction("allow_only", available, event_text(
+        "card.gravity.pull", "引力触发，AI 被限制在星位附近落子", card="gravity"))
 
 
 def lowline_allowed_points(game: Any, ai_move_count: int) -> Optional[AiPointRestriction]:
@@ -256,7 +259,8 @@ def lowline_allowed_points(game: Any, ai_move_count: int) -> Optional[AiPointRes
     ]
     if not allowed:
         return None
-    return AiPointRestriction("allow_only", allowed, "低空飞行触发，AI 继续在低线路落子")
+    return AiPointRestriction("allow_only", allowed, event_text(
+        "card.lowline.crawl", "低空飞行触发，AI 继续在低线路落子", card="lowline"))
 
 
 def sansan_opening_restriction(game: Any, ai_move_count: int) -> Optional[AiPointRestriction]:
@@ -273,7 +277,8 @@ def sansan_opening_restriction(game: Any, ai_move_count: int) -> Optional[AiPoin
                         points.append((x, y))
     if not points:
         return None
-    return AiPointRestriction("allow_only", points, "三三开局触发，AI 前 3 手必须落在角部 3x3 区域")
+    return AiPointRestriction("allow_only", points, event_text(
+        "card.sansan.rush", "三三开局触发，AI 前 3 手必须落在角部 3x3 区域", card="sansan", count=3))
 
 
 def shadow_followup_points(
@@ -301,7 +306,8 @@ def shadow_followup_points(
     ]
     if not available:
         return None
-    return AiPointRestriction("allow_only", available, "影子触发，AI 贴着自己的上一手继续下")
+    return AiPointRestriction("allow_only", available, event_text(
+        "card.shadow.follow", "影子触发，AI 贴着自己的上一手继续下", card="shadow"))
 
 
 def rogue_forbidden_points(

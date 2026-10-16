@@ -76,6 +76,7 @@ from app.config.gameplay import (
     save_balance_overrides,
 )
 from app.data import cards as card_data
+from app.domain.event_text import event_text
 from app.gameplay.card_impact import (
     ImpactSnapshot,
     parse_raw_nn,
@@ -1702,7 +1703,9 @@ def _generated_ai_runtime_dependencies() -> GeneratedAiRuntimeDependencies:
             prepare_player_turn_modifiers=_prepare_player_turn_modifiers,
             apply_erosion_counter=apply_erosion_komi_counter,
             run_erosion_command=_send_engine_command,
-            erosion_message=lambda capture_count, komi: f"蚕食反制：AI 提掉了 {capture_count} 子，当前贴目变为 {komi}",
+            erosion_message=lambda capture_count, komi: event_text(
+                "card.erosion.countered", f"蚕食反制：AI 提掉了 {capture_count} 子，当前贴目变为 {komi}",
+                card="erosion", count=capture_count, komi=komi),
             finalize_double_pass=try_finalize_double_pass,
             send_ai_move_response=send_ai_move_and_run_coach,
             run_coach_turn_if_needed=_run_coach_turn_if_needed,

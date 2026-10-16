@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.domain.event_text import event_text
+
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -54,7 +56,11 @@ async def check_capture_foul_event(
             await send_fn(
                 {
                     "type": "rogue_event",
-                    "msg": f"{result.message}，在我方推荐点 {point_label} 赠送 1 颗己棋",
+                    "msg": event_text(
+                        "card.capture_foul.gift",
+                        f"{result.message}，在我方推荐点 {point_label} 赠送 1 颗己棋",
+                        **{**getattr(result.message, "params", {}), "point": point_label},
+                    ),
                 }
             )
             if sync_board is not None:
@@ -64,7 +70,11 @@ async def check_capture_foul_event(
         await send_fn(
             {
                 "type": "rogue_event",
-                "msg": f"{result.message}，但当前没有可用推荐点",
+                "msg": event_text(
+                    "card.capture_foul.no_point",
+                    f"{result.message}，但当前没有可用推荐点",
+                    **getattr(result.message, "params", {}),
+                ),
             }
         )
         return
