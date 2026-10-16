@@ -514,7 +514,7 @@
       },
       "attack_first": {
         "name": "Attaque d'abord",
-        "desc": "Si vos 3 derniers coups sont chacun dans une zone 3x3 autour de pierres ennemies, fait apparaître 1 pierre amie dans un 3x3 autour d'une pierre ennemie. Jusqu'à deux fois par partie."
+        "desc": "Si vos 3 derniers coups sont chacun dans une zone 3x3 autour de pierres ennemies, fait apparaître 1 pierre amie à côté des pierres ennemies que vous venez d'attaquer. Jusqu'à deux fois par partie."
       },
       "methodical": {
         "name": "Méthodique",

@@ -763,13 +763,13 @@
           "de-DE": "Angriff zuerst"
         },
         "desc": {
-          "zh-CN": "若我方连续 3 手落子点位都在敌方棋子 3×3 范围内，则在任意敌方棋子 3×3 范围内随机赠送 1 颗我方棋子。每局最多触发 2 次。",
-          "en-US": "If your last 3 moves are each within a 3x3 area around enemy stones, spawn 1 friendly stone within a 3x3 area around any enemy stone. Triggers up to twice per game.",
-          "ja-JP": "直近3手がすべて敵石の3×3範囲内なら、任意の敵石の3×3範囲に自分の石1子をランダムに追加します。1局2回まで。",
-          "ko-KR": "최근 3수가 모두 적 돌 3x3 범위 안이면, 임의의 적 돌 3x3 범위에 내 돌 1개를 무작위로 추가합니다. 한 판 최대 2회.",
-          "zh-TW": "若我方連續 3 手落子點位都在敵方棋子 3×3 範圍內，則在任意敵方棋子 3×3 範圍內隨機贈送 1 顆我方棋子。每局最多觸發 2 次。",
-          "fr-FR": "Si vos 3 derniers coups sont chacun dans une zone 3x3 autour de pierres ennemies, fait apparaître 1 pierre amie dans un 3x3 autour d'une pierre ennemie. Jusqu'à deux fois par partie.",
-          "de-DE": "Wenn deine letzten 3 Züge jeweils in einer 3x3-Zone um gegnerische Steine liegen, entsteht 1 freundlicher Stein in einer 3x3-Zone um einen gegnerischen Stein. Bis zu zweimal pro Partie."
+          "zh-CN": "若我方连续 3 手落子点位都在敌方棋子 3×3 范围内，则在刚才进攻的敌方棋子旁赠送 1 颗我方棋子。每局最多触发 2 次。",
+          "en-US": "If your last 3 moves are each within a 3x3 area around enemy stones, spawn 1 friendly stone next to the enemy stones you just attacked. Triggers up to twice per game.",
+          "ja-JP": "直近3手がすべて敵石の3×3範囲内なら、いま攻めた敵石のそばに自分の石1子を追加します。1局2回まで。",
+          "ko-KR": "최근 3수가 모두 적 돌 3x3 범위 안이면, 방금 공격한 적 돌 옆에 내 돌 1개를 추가합니다. 한 판 최대 2회.",
+          "zh-TW": "若我方連續 3 手落子點位都在敵方棋子 3×3 範圍內，則在剛才進攻的敵方棋子旁贈送 1 顆我方棋子。每局最多觸發 2 次。",
+          "fr-FR": "Si vos 3 derniers coups sont chacun dans une zone 3x3 autour de pierres ennemies, fait apparaître 1 pierre amie à côté des pierres ennemies que vous venez d'attaquer. Jusqu'à deux fois par partie.",
+          "de-DE": "Wenn deine letzten 3 Züge jeweils in einer 3x3-Zone um gegnerische Steine liegen, entsteht 1 freundlicher Stein neben den gegnerischen Steinen, die du gerade angreifst. Bis zu zweimal pro Partie."
         },
         "icon": "⚔️"
       },

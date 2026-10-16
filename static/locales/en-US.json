@@ -514,7 +514,7 @@
       },
       "attack_first": {
         "name": "Attack First",
-        "desc": "If your last 3 moves are each within a 3x3 area around enemy stones, spawn 1 friendly stone within a 3x3 area around any enemy stone. Triggers up to twice per game."
+        "desc": "If your last 3 moves are each within a 3x3 area around enemy stones, spawn 1 friendly stone next to the enemy stones you just attacked. Triggers up to twice per game."
       },
       "methodical": {
         "name": "Methodical",

@@ -514,7 +514,7 @@
       },
       "attack_first": {
         "name": "Angriff zuerst",
-        "desc": "Wenn deine letzten 3 Züge jeweils in einer 3x3-Zone um gegnerische Steine liegen, entsteht 1 freundlicher Stein in einer 3x3-Zone um einen gegnerischen Stein. Bis zu zweimal pro Partie."
+        "desc": "Wenn deine letzten 3 Züge jeweils in einer 3x3-Zone um gegnerische Steine liegen, entsteht 1 freundlicher Stein neben den gegnerischen Steinen, die du gerade angreifst. Bis zu zweimal pro Partie."
       },
       "methodical": {
         "name": "Methodisch",

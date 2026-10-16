@@ -420,6 +420,7 @@ def _apply_supremacy_card(
     last_trigger_indices: dict[str, int],
     message_name: str,
     coord_to_gtp: CoordFormatter,
+    preferred: list[tuple[int, int]] | None = None,
 ) -> RogueBoardEffectResult:
     if trigger_counts.get(color, 0) >= gameplay_config.ROGUE_SUPREMACY_MAX_TRIGGERS:
         return RogueBoardEffectResult(False, [], [])
@@ -431,7 +432,7 @@ def _apply_supremacy_card(
     if _supremacy_window_reuses_trigger_moves(window_entries, last_trigger_index):
         return RogueBoardEffectResult(False, [], [])
 
-    candidates = _empty_points_around_stones(game, spawn_anchor_value, spawn_radius)
+    candidates = list(preferred or []) + _empty_points_around_stones(game, spawn_anchor_value, spawn_radius)
     changed = spawn_bonus_points(game, candidates[:1], color)
     if not changed:
         return RogueBoardEffectResult(False, [], [])
@@ -508,6 +509,16 @@ def _apply_attack_first(
         for coord in recent_coords
     ):
         return RogueBoardEffectResult(False, [], [])
+    # Gift the stone beside the enemy stones just attacked, where the player is looking.
+    near_fight = []
+    if recent_coords:
+        mx, my = recent_coords[-1]
+        near_fight = _safe_points(game, [
+            (px, py)
+            for px, py in get_square_points(mx, my, gameplay_config.ROGUE_ATTACK_SPAWN_RADIUS + 1, game.size)
+            if game.board[py][px] == 0
+            and _has_stone_in_square(game, (px, py), enemy, gameplay_config.ROGUE_ATTACK_SPAWN_RADIUS)
+        ], color)
     return _apply_supremacy_card(
         game,
         color,
@@ -519,6 +530,7 @@ def _apply_attack_first(
         last_trigger_indices=game.rogue_attack_first_last_index,
         message_name="⚔ 进攻至上",
         coord_to_gtp=coord_to_gtp,
+        preferred=near_fight,
     )
 
 
