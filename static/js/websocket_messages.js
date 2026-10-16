@@ -451,7 +451,7 @@ const LEGACY_WEBSOCKET_MESSAGE_HANDLERS = {
   reconnect_failed: handleReconnectFailedMessage,
   error: handleErrorMessage,
   level_set: handleLevelSetMessage,
-  rogue_offer: msg => { showRogueCards(msg.cards, msg); showDraftReadyProgress("rogue"); },
+  rogue_offer: msg => { showRogueCards(msg.cards, msg); showDraftReadyProgress(); },
   rogue_card_selected: handleRogueCardSelectedMessage,
   rogue_ai_selected: handleRogueAiSelectedMessage,
   rogue_seal_update: handleRogueSealUpdateMessage,
@@ -460,7 +460,7 @@ const LEGACY_WEBSOCKET_MESSAGE_HANDLERS = {
   rogue_uses_update: handleRogueUsesUpdateMessage,
   card_impact: msg => showCardImpact(msg),
   card_evolved: msg => showCardEvolved(msg),
-  ultimate_offer: msg => { showUltimateCards(msg.cards); showDraftReadyProgress("ultimate"); },
+  ultimate_offer: msg => { showUltimateCards(msg.cards); showDraftReadyProgress(); },
   ultimate_cards_selected: handleUltimateCardsSelectedMessage,
 };
 

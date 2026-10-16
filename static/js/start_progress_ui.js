@@ -18,8 +18,8 @@ function startProgressElements() {
 
 function setStartProgressText(title, message, detail) {
   const els = startProgressElements();
-  if (els.title) els.title.textContent = title || ui("对局准备中", "Preparing game");
-  if (els.message) els.message.textContent = message || ui("正在连接服务与加载模型…", "Connecting and loading the model...");
+  if (els.title) els.title.textContent = title || ui("准备中…", "Getting ready…");
+  if (els.message) els.message.textContent = message || "";
   if (els.detail) els.detail.textContent = detail || "";
 }
 
@@ -76,13 +76,6 @@ function hideStartProgressSoon(delayMs = 1200) {
   }, delayMs);
 }
 
-function engineLogText(item) {
-  if (!item) return "";
-  if (typeof item === "string") return item;
-  if (typeof item === "object") return item.message || item.detail || "";
-  return String(item);
-}
-
 async function checkStartProgressHealth() {
   if (!startProgressVisible) return;
   let status = null;
@@ -137,87 +130,39 @@ async function checkStartProgressHealth() {
   }
   if (phase === "initializing" && elapsedMs > 180000) {
     updateStartProgress(
-      ui("模型仍在启动", "Model is still starting"),
-      ui("启动时间异常偏长，请关闭后重开，或切换 CPU/OpenCL 后再试。", "Startup is taking too long. Restart the app or try CPU/OpenCL."),
-      status.engine_message || ""
+      ui("仍在加载…", "Still loading…"),
+      ui("若长时间没有反应，请重启游戏", "If nothing happens, restart the app."),
+      ""
     );
   }
 }
 
 function showGameStartProgress(options = {}) {
-  const mode = options.mode || "normal";
-  const isTwoPlayer = !!options.twoPlayer;
-  const isObserver = !!options.aiObserver;
-  const title = mode === "ultimate"
-    ? ui("Ultimate 对局准备中", "Preparing Ultimate game")
-    : mode === "rogue"
-      ? ui("Rogue 对局准备中", "Preparing Rogue game")
-      : isObserver
-        ? ui("AI 学习对局准备中", "Preparing AI study game")
-        : ui("对局准备中", "Preparing game");
-  const message = isTwoPlayer
-    ? ui("正在创建棋盘与同步界面…", "Creating board and syncing the UI...")
-    : ui("正在加载模型、同步棋盘与规则…", "Loading model, board, and rules...");
-  const detail = mode === "rogue"
-    ? ui("模型就绪后会进入卡牌选择。", "Card draft opens after the model is ready.")
-    : mode === "ultimate"
-      ? ui("模型就绪后会进入大招卡选择。", "Ultimate draft opens after the model is ready.")
-      : ui("请稍候，完成后会自动开始。", "Please wait. The game will start automatically.");
-  showStartProgress(title, message, detail);
+  const message = options.twoPlayer
+    ? ui("正在摆好棋盘…", "Setting up the board…")
+    : ui("正在加载 AI…", "Loading the AI…");
+  showStartProgress(ui("准备中…", "Getting ready…"), message, "");
 }
 
 function advanceStartProgressForGameStart(msg) {
   if (!startProgressVisible) return;
-  if (msg?.ultimate) {
-    updateStartProgress(
-      ui("模型已就绪", "Model ready"),
-      ui("正在准备大招卡选择…", "Preparing Ultimate card draft..."),
-      ""
-    );
-    return;
-  }
-  if (msg?.rogue_enabled) {
-    updateStartProgress(
-      ui("模型已就绪", "Model ready"),
-      ui("正在准备 Rogue 卡牌选择…", "Preparing Rogue card draft..."),
-      ""
-    );
+  if (msg?.ultimate || msg?.rogue_enabled) {
+    updateStartProgress(ui("准备好了！", "Ready!"), "", "");
     return;
   }
   hideStartProgress();
 }
 
-function engineProgressDetail(msg) {
-  const phase = msg?.phase ? String(msg.phase) : "";
-  const lastError = msg?.last_error ? String(msg.last_error) : "";
-  const logTail = Array.isArray(msg?.log_tail)
-    ? msg.log_tail.map(engineLogText).filter(Boolean).slice(-2).join(" / ")
-    : "";
-  if (lastError) return lastError;
-  if (logTail) return logTail;
-  if (phase && phase !== "ready") {
-    return ui(`当前阶段：${phase}`, `Current phase: ${phase}`);
-  }
-  return ui("首次启动可能需要更久，请不要重复点击开始。", "The first launch can take longer. Please do not start again.");
-}
-
 function updateStartProgressForEngineNotReady(msg) {
   showStartProgress(
-    ui("模型加载中", "Loading model"),
-    msg?.message || ui("KataGo 正在随游戏启动…", "KataGo is starting with the game..."),
-    engineProgressDetail(msg)
+    ui("正在加载 AI…", "Loading the AI…"),
+    ui("首次启动会稍慢一些", "The first start takes a bit longer."),
+    msg?.last_error ? String(msg.last_error) : ""
   );
 }
 
-function showDraftReadyProgress(mode) {
-  const isUltimate = mode === "ultimate";
-  showStartProgress(
-    ui("模型已就绪", "Model ready"),
-    isUltimate
-      ? ui("大招卡选择已打开。", "Ultimate card draft is open.")
-      : ui("Rogue 卡牌选择已打开。", "Rogue card draft is open."),
-    ui("请选择卡牌后继续对局。", "Choose a card to continue.")
-  );
+function showDraftReadyProgress() {
+  showStartProgress(ui("准备好了！", "Ready!"), ui("选一张卡牌开始吧", "Pick a card to begin."), "");
   hideStartProgressSoon();
 }
 
