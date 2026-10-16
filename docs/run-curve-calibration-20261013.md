@@ -45,7 +45,22 @@ stopped charging after the second card.
 
 Slope +3.7 points per stage: the snowball is gone. Overall mean -10.6, a bit
 tough mid-run, so the final table moves stages 2 to 5 back toward the player
-by 10 to 15 points (a linear correction from these games, not re-verified).
+by 10 to 15 points (a linear correction from these games).
+
+## Final table verified (25 more games)
+
+| Stage | Target | Mean lead | Median | Wins |
+|---|---|---|---|---|
+| 1 | 15 | -3 | -9 | 2/5 |
+| 2 | 28 | -13 | -13 | 0/5 |
+| 3 | 77 | -3 | -29 | 2/5 |
+| 4 | 90 | 0 | -23 | 2/5 |
+| 5 | 133 | +5 | -9 | 2/5 |
+
+Slope +3.0 points per stage (flat). Overall mean -2.6, median -11.7, 8 of 25
+wins: a few decks blow out, most games end narrowly against the player. For
+an AI-strength player the typical run is slightly tough; real players are
+weaker, so the difficulty setting needs human playtesting.
 
 ## Final values
 
