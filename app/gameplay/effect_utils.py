@@ -305,6 +305,13 @@ def apply_magic_points(
     *,
     overwrite_enemy: bool,
 ) -> list[tuple[int, int]]:
+    """Place card stones one at a time, each resolved like a real move.
+
+    Enemy groups left without liberties are captured; a stone that would leave
+    its own group without liberties is taken back instead. Card effects
+    therefore never wipe out the owner's existing stones, e.g. when a burst
+    fills the last empty points of a small board.
+    """
     cv = 1 if color == "B" else 2
     ov = 3 - cv
     touched = []
@@ -323,17 +330,19 @@ def apply_magic_points(
         if cell not in (0, ov):
             continue
         game.board[y][x] = cv
+        neighbours = list(game.neighbors(x, y))
+        captured = _remove_dead_groups(game, neighbours, ov)
+        own_group = game.get_group(x, y)
+        if not game.has_liberty(own_group):
+            game.board[y][x] = cell
+            for gx, gy in captured:
+                game.board[gy][gx] = ov
+            continue
         touched.append((x, y))
 
     if not touched:
         return []
 
-    frontier = set(touched)
-    for x, y in touched:
-        frontier.update(game.neighbors(x, y))
-    frontier_list = list(frontier)
-    _remove_dead_groups(game, frontier_list, ov)
-    _remove_dead_groups(game, frontier_list, cv)
     game.ko_point = None
     return [(x, y) for x, y in touched if game.board[y][x] == cv]
 
