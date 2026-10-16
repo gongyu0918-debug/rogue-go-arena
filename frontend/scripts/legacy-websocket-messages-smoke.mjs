@@ -325,10 +325,13 @@ try {
   assert(state.reconnectMoveNumber === 0, `reconnected message did not restore state: ${state.reconnectMoveNumber}`);
   assert(state.levelAfterSet === "8k", `level_set message did not update level: ${state.levelAfterSet}`);
   assert(state.startProgressVisibleAfterEngineWait, "engine_not_ready did not show start progress");
+  // The loading overlay keeps to one short line; raw engine messages and log
+  // lines stay out of it (they still reach the game log).
   assert(
-    state.startProgressTextAfterEngineWait.includes("KataGo smoke loading") &&
-      state.startProgressTextAfterEngineWait.includes("warming policy"),
-    `engine_not_ready did not render progress text: ${state.startProgressTextAfterEngineWait}`
+    /正在加载 AI|Loading the AI/.test(state.startProgressTextAfterEngineWait) &&
+      !state.startProgressTextAfterEngineWait.includes("warming policy") &&
+      !state.startProgressTextAfterEngineWait.includes("loading model"),
+    `engine_not_ready did not render the short progress text: ${state.startProgressTextAfterEngineWait}`
   );
   assert(state.methodicalInputProbe.first.isMyTurn, "methodical first optimistic move should keep player turn");
   assert(
@@ -351,7 +354,7 @@ try {
   assert(state.rogueOfferCardCount === 1, `rogue_offer did not render a card: ${state.rogueOfferCardCount}`);
   assert(state.startProgressVisibleAfterRogueOffer, "rogue_offer hid the start progress immediately");
   assert(
-    state.startProgressTextAfterRogueOffer.includes("Rogue"),
+    /选一张卡牌开始吧|Pick a card to begin/.test(state.startProgressTextAfterRogueOffer),
     `rogue_offer did not hand off through start progress: ${state.startProgressTextAfterRogueOffer}`
   );
   assert(state.activeRogueCard === "quickthink", `rogue card did not sync: ${state.activeRogueCard}`);
