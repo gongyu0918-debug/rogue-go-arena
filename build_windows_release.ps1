@@ -120,6 +120,15 @@ function Test-ReleaseKataGoAssets {
         )
     }
 
+    # The CPU engine is the fallback for players without a usable GPU; a release
+    # without it leaves a clean install with no engine on those machines.
+    if (-not (Test-Path (Join-Path $katagoDir "katago_cpu.exe"))) {
+        throw (
+            "KataGo CPU fallback engine 'katago_cpu.exe' is missing from '$katagoDir'. " +
+            "Run 'python setup.py' (it downloads the OpenCL and CPU engines) before building."
+        )
+    }
+
     Write-Host "==> KataGo assets: engines=$($engines -join ', ') models=$($models -join ', ')"
 }
 

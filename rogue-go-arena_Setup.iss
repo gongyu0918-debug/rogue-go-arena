@@ -236,7 +236,9 @@ Source: "{#DistDir}\rogue-go-arena.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#DistDir}\rogue-go-arena-server\*"; DestDir: "{app}\rogue-go-arena-server"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#RepoRoot}\app\*"; DestDir: "{app}\app"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
 Source: "{#RepoRoot}\static\*"; DestDir: "{app}\static"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "assets\icons\cards-tech-featured\*,assets\icons\cards-tech\*-sheet.png,assets\icons\cards-tech\featured-card-sheet-tech-v1.png,assets\icons\toolbar-tech\toolbar-sheet-tech-*.png,assets\textures\board-tech-classic-v1.png,assets\textures\stone-materials-tech-v2.png"
-Source: "{#RepoRoot}\katago\*"; DestDir: "{app}\katago"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "katago.exe.new,kata_log.txt,\_test\*,\_downloads\*,\gtp_logs\*"
+; No createallsubdirs here: it would create the excluded folders below as
+; empty directories. KataGo creates its own data folders at runtime.
+Source: "{#RepoRoot}\katago\*"; DestDir: "{app}\katago"; Flags: ignoreversion recursesubdirs; Excludes: "katago.exe.new,kata_log.txt,\_test\*,\_downloads\*,\gtp_logs\*"
 Source: "{#RepoRoot}\server.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\rogue-go-arena.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#RepoRoot}\rogue-go-arena.png"; DestDir: "{app}"; Flags: ignoreversion
@@ -250,6 +252,22 @@ Type: files; Name: "{app}\katago\katago.exe.new"
 Type: files; Name: "{app}\katago\is-*.tmp"
 Type: files; Name: "{app}\katago\model.bin.gz"
 Type: files; Name: "{app}\katago\kata_log.txt"
+; Empty folders left by the 0.1.41 installer.
+Type: dirifempty; Name: "{app}\katago\_test"
+Type: dirifempty; Name: "{app}\katago\_downloads"
+; Leftover KataGo files that would silently override what this build ships:
+; the engine picks model_large before the shipped model.bin.gz (and the game
+; balance is calibrated on the shipped model), so drop models this build does
+; not ship. The optional hand-installed CUDA upgrade pack (katago_cuda.exe and
+; its DLLs) and the CPU fallback are kept on purpose; the legacy-named CUDA
+; build katago.exe is removed in [Code] when katago_cuda.exe replaces it.
+#define KatagoSrc AddBackslash(RepoRoot) + "katago\\"
+#if !FileExists(KatagoSrc + "model_large.bin.gz")
+Type: files; Name: "{app}\katago\model_large.bin.gz"
+#endif
+#if !FileExists(KatagoSrc + "model_b18.bin.gz")
+Type: files; Name: "{app}\katago\model_b18.bin.gz"
+#endif
 Type: filesandordirs; Name: "{app}\static\assets\icons\cards-tech-featured"
 Type: files; Name: "{app}\static\assets\icons\cards-tech\featured-card-sheet-tech-v1.png"
 Type: files; Name: "{app}\static\assets\icons\cards-tech\ig_06e57272b1184deb0169e8dcf2f0f8819885f9a1cae557b618-sheet.png"
@@ -519,8 +537,23 @@ begin
   end;
 end;
 
+procedure DeleteLegacyCudaEngine();
+var
+  KatagoDir: String;
+begin
+  // katago.exe is the old name of the CUDA build; once the CUDA upgrade pack's
+  // katago_cuda.exe is there it is an unused duplicate.
+  KatagoDir := ExpandConstant('{app}\katago');
+#if !FileExists(KatagoSrc + "katago.exe")
+  if FileExists(KatagoDir + '\katago_cuda.exe') then
+    DeleteFile(KatagoDir + '\katago.exe');
+#endif
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
+  if CurStep = ssInstall then
+    DeleteLegacyCudaEngine();
   if (CurStep = ssPostInstall) or (CurStep = ssDone) then
     DeleteKatagoInstallTemps();
 end;
