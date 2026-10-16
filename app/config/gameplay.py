@@ -213,8 +213,8 @@ CHALLENGE_ACTIVE_USE_BONUS = 1
 # Difficulty (see app/gameplay/difficulty.py). Card games hand the AI these
 # points as komi (negative helps the player); plain games, which have no
 # cards, give the player this many handicap stones against the standard AI.
-DIFFICULTY_BEGINNER_POINTS = -20.0
-DIFFICULTY_EASY_POINTS = -10.0
+DIFFICULTY_BEGINNER_POINTS = -40.0
+DIFFICULTY_EASY_POINTS = -25.0
 DIFFICULTY_NORMAL_POINTS = 0.0
 DIFFICULTY_HARD_POINTS = 10.0
 DIFFICULTY_BEGINNER_STONES = 9

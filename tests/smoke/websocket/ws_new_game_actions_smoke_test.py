@@ -12,6 +12,7 @@ import app.runtime.ws_actions as ws_actions
 from app.domain.coordinates import gtp_to_coord
 from app.domain.game_state import GoGame
 from app.runtime.ws_action_context import WebSocketActionContext
+from app.gameplay.difficulty import difficulty_points
 from app.gameplay.run_curve import run_stage_setup
 from app.runtime.ws_new_game_actions import handle_new_game
 
@@ -250,11 +251,11 @@ async def smoke_difficulty_sets_handicap_or_komi() -> None:
     assert (ctx.game.handicap, ctx.game.komi, ctx.game.player_color) == (6, 0.5, "B")
     assert ctx.game.difficulty == "easy"
 
-    # Quick Game: komi only; Beginner hands the player 20 points.
+    # Quick Game: komi only; Beginner hands the player its points.
     ctx = FakeContext()
     await handle_new_game(ctx, {"size": 19, "rogue": True, "player_color": "B", "komi": 7.5, "difficulty": "beginner"})
     await asyncio.sleep(0)
-    assert (ctx.game.handicap, ctx.game.komi) == (0, -12.5)
+    assert (ctx.game.handicap, ctx.game.komi) == (0, 7.5 + difficulty_points("beginner"))
 
     # No difficulty (Advanced setup): the player's own values stand.
     ctx = FakeContext()
@@ -274,11 +275,11 @@ async def smoke_run_stages_follow_the_curve() -> None:
     assert (ctx.game.handicap, ctx.game.komi, ctx.game.player_color) == (expected.handicap, expected.komi, "W")
     assert ctx.game.level == gameplay_config.STANDARD_AI_LEVEL
 
-    # Stage 1 on Beginner: no stones, the player gets 20 points of komi back.
+    # Stage 1 on Beginner: no stones, the player gets the Beginner points as komi.
     ctx = FakeContext()
     await handle_new_game(ctx, {"size": 19, "challenge_beta": True, "challenge_stage": 1, "difficulty": "beginner"})
     await asyncio.sleep(0)
-    assert (ctx.game.handicap, ctx.game.komi) == (0, run_stage_setup(1).komi + 20)
+    assert (ctx.game.handicap, ctx.game.komi) == (0, run_stage_setup(1).komi - difficulty_points("beginner"))
 
     # Out-of-range stages are clamped to the run.
     ctx = FakeContext()
@@ -297,12 +298,13 @@ async def smoke_card_games_report_their_target() -> None:
     assert target["points"] == expected.ai_points and target["stones"] == expected.handicap, target
     assert target["stage"] == expected.stage_points, target
 
-    # Quick Game on Beginner: the AI starts 20 behind.
+    # Quick Game on Beginner: the AI starts behind by the Beginner points.
     ctx = FakeContext()
     await handle_new_game(ctx, {"size": 19, "rogue": True, "difficulty": "beginner"})
     await asyncio.sleep(0)
     target = ctx.game.to_state()["target"]
-    assert target["points"] == -20 and target["difficulty"] == -20 and target["stones"] == 0, target
+    beginner = difficulty_points("beginner")
+    assert target["points"] == beginner and target["difficulty"] == beginner and target["stones"] == 0, target
 
     # Plain games show their handicap instead of a target.
     ctx = FakeContext()
