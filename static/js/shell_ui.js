@@ -176,7 +176,10 @@ function clientShellElements() {
 
 function currentCardLabel() {
   if (ultimateMode) return `${getUltimateCardName(ultimatePlayerCard) || ui("待选大招", "Pick Ultimate")}`;
-  return activeRogueCard ? getRogueCardName(activeRogueCard) : ui("无卡牌", "No Card");
+  if (!activeRogueCard) return ui("无卡牌", "No Card");
+  const evolution = gameState?.rogue_evolution;
+  const name = getRogueCardName(activeRogueCard);
+  return evolution && typeof evolutionLabel === "function" ? `${name} · ${evolutionLabel(evolution)}` : name;
 }
 
 function setEngineShellValue(engineValue, net, connected) {

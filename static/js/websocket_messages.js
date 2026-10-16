@@ -458,6 +458,8 @@ const LEGACY_WEBSOCKET_MESSAGE_HANDLERS = {
   rogue_seal_done: handleRogueSealDoneMessage,
   rogue_event: handleRogueEventMessage,
   rogue_uses_update: handleRogueUsesUpdateMessage,
+  card_impact: msg => showCardImpact(msg),
+  card_evolved: msg => showCardEvolved(msg),
   ultimate_offer: msg => { showUltimateCards(msg.cards); showDraftReadyProgress("ultimate"); },
   ultimate_cards_selected: handleUltimateCardsSelectedMessage,
 };

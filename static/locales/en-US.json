@@ -231,7 +231,19 @@
     "Wiki": "Wiki",
     "繁體中文": "Traditional Chinese",
     "法语": "French",
-    "德语": "German"
+    "德语": "German",
+    "己方棋子": "Your stones",
+    "对方棋子": "Enemy stones",
+    "卡牌": "Card",
+    "局势影响": "Game impact",
+    "触发！": "Triggered!",
+    "胜率": "Win rate",
+    "进化回响": "Evolution echo",
+    "卡牌影响": "Card impact",
+    "之后每次触发额外回响": "Each trigger now echoes",
+    "觉醒！": "Ascended!",
+    "进化！": "Evolved!",
+    "大招之影": "Echo of"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",

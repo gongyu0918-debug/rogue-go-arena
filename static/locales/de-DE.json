@@ -231,7 +231,19 @@
     "Wiki": "Wiki",
     "繁體中文": "Traditionelles Chinesisch",
     "法语": "Französisch",
-    "德语": "Deutsch"
+    "德语": "Deutsch",
+    "己方棋子": "Eigene Steine",
+    "对方棋子": "Gegnerische Steine",
+    "卡牌": "Karte",
+    "局势影响": "Einfluss auf die Partie",
+    "触发！": "Ausgelöst!",
+    "胜率": "Siegchance",
+    "进化回响": "Evolutions-Echo",
+    "卡牌影响": "Karteneinfluss",
+    "之后每次触发额外回响": "Jede Auslösung hallt nach",
+    "觉醒！": "Erwacht!",
+    "进化！": "Entwickelt!",
+    "大招之影": "Schatten von"
   },
   "rankGroups": {
     "kyu": "── Kyu ──",
