@@ -11,6 +11,7 @@ from app.gameplay.turn_modifiers import has_methodical_card
 from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.gtp_safety import normalize_gtp_color
 from app.runtime.ws_session_actions import ensure_engine_ready_for_game
+from app.domain.event_text import event_text
 
 
 async def handle_pass(ctx: WebSocketActionContext, data: dict) -> None:
@@ -18,10 +19,10 @@ async def handle_pass(ctx: WebSocketActionContext, data: dict) -> None:
     if not game or game.game_over:
         return
     if game.ai_observer:
-        await ctx.send_error("AI 学习模式不接受人工操作")
+        await ctx.send_error(event_text("error.study.no_actions", "AI 学习模式不接受人工操作"))
         return
     if not game.two_player and game.rogue_card == "coach_mode" and game.rogue_coach_moves_left > 0:
-        await ctx.send_error("代练上号接管中，请等待强化 AI 完成代打")
+        await ctx.send_error(event_text("card.coach_mode.busy", "代练上号接管中，请等待强化 AI 完成代打", card="coach_mode"))
         return
 
     if game.two_player:
@@ -35,7 +36,7 @@ async def handle_pass(ctx: WebSocketActionContext, data: dict) -> None:
 
     color = normalize_gtp_color(color)
     if color is None:
-        await ctx.send_error("执棋颜色无效")
+        await ctx.send_error(event_text("error.setup.invalid_color", "执棋颜色无效"))
         return
 
     if game.ultimate and not game.two_player:
@@ -93,15 +94,21 @@ async def handle_pass(ctx: WebSocketActionContext, data: dict) -> None:
             await ctx.send(
                 {
                     "type": "rogue_event",
-                    "msg": "🏋️ 让子棋任务完成！"
-                    f"现在每 {ROGUE_HANDICAP_BONUS_INTERVAL} 手可多下一手",
+                    "msg": event_text(
+                        "card.handicap_quest.complete",
+                        f"🏋️ 让子棋任务完成！现在每 {ROGUE_HANDICAP_BONUS_INTERVAL} 手可多下一手",
+                        card="handicap_quest",
+                        interval=ROGUE_HANDICAP_BONUS_INTERVAL,
+                    ),
                 }
             )
         else:
             await ctx.send(
                 {
                     "type": "rogue_event",
-                    "msg": f"🏋️ 虚手 {game.rogue_handicap_passes}/{ROGUE_HANDICAP_REQUIRED_PASSES}",
+                    "msg": event_text("card.handicap_quest.passes", f"🏋️ 虚手 {game.rogue_handicap_passes}/{ROGUE_HANDICAP_REQUIRED_PASSES}",
+                                      card="handicap_quest", done=game.rogue_handicap_passes,
+                                      required=ROGUE_HANDICAP_REQUIRED_PASSES),
                 }
             )
 
@@ -119,15 +126,15 @@ async def handle_undo(ctx: WebSocketActionContext, data: dict) -> None:
     if not game or not game.moves:
         return
     if game.ai_observer:
-        await ctx.send_error("AI 学习模式不接受人工操作")
+        await ctx.send_error(event_text("error.study.no_actions", "AI 学习模式不接受人工操作"))
         return
     if ctx.rogue_has(game, "no_regret") or ctx.rogue_has(game, "quickthink"):
-        await ctx.send_error("这张卡会禁用悔棋")
+        await ctx.send_error(event_text("error.undo.card_disabled", "这张卡会禁用悔棋"))
         return
 
     if game.challenge_beta:
         if ctx.challenge_remaining(game, "undo") <= 0:
-            await ctx.send_error("测试版闯关：悔棋次数已用完")
+            await ctx.send_error(event_text("error.challenge.no_undos", "测试版闯关：悔棋次数已用完"))
             return
         game.challenge_usage["undo"] += 1
 
@@ -155,7 +162,7 @@ async def handle_score(ctx: WebSocketActionContext, data: dict) -> None:
     if not game:
         return
     if game.ai_observer:
-        await ctx.send_error("AI 学习模式不接受人工操作")
+        await ctx.send_error(event_text("error.study.no_actions", "AI 学习模式不接受人工操作"))
         return
     if not game.two_player:
         if not await ensure_engine_ready_for_game(ctx, game, "score"):
@@ -167,7 +174,7 @@ async def handle_score(ctx: WebSocketActionContext, data: dict) -> None:
     else:
         score_str = "?"
     if is_engine_error_response(score_str) or score_str[:1] not in {"B", "W", "0"}:
-        await ctx.send_error(f"AI 引擎数目失败：{score_str}")
+        await ctx.send_error(event_text("error.engine.score_failed", f"AI 引擎数目失败：{score_str}", detail=score_str))
         return
     winner = "B" if score_str.startswith("B") else "W" if score_str.startswith("W") else "draw"
     game.game_over = True

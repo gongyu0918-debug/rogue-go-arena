@@ -25,7 +25,7 @@ async def handle_ultimate_play(
 ) -> None:
     point = board_point_from_data(data, game.size)
     if point is None:
-        await ctx.send_error("落点超出棋盘范围")
+        await ctx.send_error(event_text("error.move.off_board", "落点超出棋盘范围"))
         return
     x, y = point
 
@@ -37,21 +37,21 @@ async def handle_ultimate_play(
             return
 
     if game.board[y][x] != 0:
-        await ctx.send_error("该位置已有棋子")
+        await ctx.send_error(event_text("error.move.occupied", "该位置已有棋子"))
         return
     if game.is_ko(x, y, color):
-        await ctx.send_error("打劫禁着：不能立即提回")
+        await ctx.send_error(event_text("error.move.ko", "打劫禁着：不能立即提回"))
         return
     gtp = ctx.coord_to_gtp(x, y, game.size)
     if gtp is None:
-        await ctx.send_error("落点超出棋盘范围")
+        await ctx.send_error(event_text("error.move.off_board", "落点超出棋盘范围"))
         return
     captured = game.place_stone(x, y, color)
     if captured == -1:
-        await ctx.send_error("打劫禁着：不能立即提回")
+        await ctx.send_error(event_text("error.move.ko", "打劫禁着：不能立即提回"))
         return
     if captured == -2:
-        await ctx.send_error("这手属于自杀禁着，不能这样下")
+        await ctx.send_error(event_text("error.move.suicide", "这手属于自杀禁着，不能这样下"))
         return
     was_double_pending = game.ultimate_double_pending
     ctx.record_ultimate_player_action(game)
@@ -118,7 +118,7 @@ async def handle_ultimate_select_card(ctx: WebSocketActionContext, data: dict) -
     if card_id not in ULTIMATE_CARDS:
         return
     if game.ultimate_player_card is not None or card_id not in game.ultimate_offer_cards:
-        await ctx.send_error("卡牌选择已失效，请使用当前卡牌报价")
+        await ctx.send_error(event_text("error.card.offer_expired", "卡牌选择已失效，请使用当前卡牌报价"))
         return
     game.ultimate_player_card = card_id
     game.ultimate_offer_cards = []

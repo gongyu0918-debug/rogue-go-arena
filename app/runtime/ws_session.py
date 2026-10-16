@@ -9,7 +9,7 @@ from typing import Any
 from fastapi import WebSocket, WebSocketDisconnect
 
 from app.callback_types import SendFn
-from app.domain.event_text import with_event_keys
+from app.domain.event_text import event_text, with_event_keys
 
 SendErrorFn = Callable[[str], Awaitable[None]]
 AnalysisFn = Callable[[Any], Awaitable[dict[str, Any]]]
@@ -100,10 +100,10 @@ async def run_websocket_game_session(
                 data = json_loads(raw_message)
             except json.JSONDecodeError as exc:
                 log_fn(f"[WS {game_id}] Invalid JSON message: {exc}")
-                await send_error("消息格式错误：不是有效的 JSON")
+                await send_error(event_text("error.protocol.bad_json", "消息格式错误：不是有效的 JSON"))
                 continue
             if not isinstance(data, dict):
-                await send_error("消息格式错误：JSON 必须是对象")
+                await send_error(event_text("error.protocol.not_object", "消息格式错误：JSON 必须是对象"))
                 continue
             action = data.get("action")
             try:
@@ -114,7 +114,7 @@ async def run_websocket_game_session(
                     game = context.game
                     continue
 
-                await send_error(f"未知操作: {action}")
+                await send_error(event_text("error.protocol.unknown_action", f"未知操作: {action}", action=str(action)))
                 continue
 
             except WebSocketDisconnect:
@@ -123,7 +123,7 @@ async def run_websocket_game_session(
                 log_fn(f"[WS {game_id}] Action error ({action}): {e}")
                 traceback_fn()
                 try:
-                    await send_error("处理出错，请重试")
+                    await send_error(event_text("error.server.retry", "处理出错，请重试"))
                 except Exception:
                     pass
 
@@ -132,7 +132,7 @@ async def run_websocket_game_session(
     except Exception as e:
         log_fn(f"[WS {game_id}] Fatal error: {e}")
         try:
-            await send({"type": "error", "message": "服务器错误，请重启游戏后再试"})
+            await send({"type": "error", "message": event_text("error.server.restart", "服务器错误，请重启游戏后再试")})
         except Exception:
             pass
     finally:

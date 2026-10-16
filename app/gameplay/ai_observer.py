@@ -7,6 +7,7 @@ from typing import Any
 from app.gameplay.engine_errors import engine_error_message, is_engine_error_response
 
 from app.callback_types import EngineCommandFn as RunEngineCommandFn, SendFn
+from app.domain.event_text import event_text
 
 SyncBoardFn = Callable[[Any], Awaitable[None]]
 GameVisitsFn = Callable[[str, int], int]
@@ -47,7 +48,8 @@ async def finish_observer_double_pass(
     resp_score = await run_engine_command("final_score")
     score_str = resp_score.replace("=", "").strip()
     if is_engine_error_response(resp_score) or not score_str or score_str[0] not in {"B", "W", "0"}:
-        await send_fn({"type": "error", "message": f"AI 引擎数目失败：{resp_score}"})
+        await send_fn({"type": "error", "message": event_text(
+            "error.engine.score_failed", f"AI 引擎数目失败：{resp_score}", detail=str(resp_score).strip())})
         return False
     winner = "B" if score_str.startswith("B") else "W"
     game.game_over = True

@@ -19,6 +19,7 @@ from app.runtime.game_input_validation import (
     normalize_rules,
     payload_int,
 )
+from app.domain.event_text import event_text
 from app.runtime.gtp_safety import normalize_gtp_color
 from app.runtime.ws_session_actions import (
     claim_engine_session,
@@ -30,7 +31,9 @@ from app.runtime.ws_session_actions import (
 async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
     config_errors = ctx.reload_live_card_config()
     if config_errors:
-        await ctx.send_error("卡牌配置加载失败：" + "；".join(config_errors[:6]))
+        await ctx.send_error(event_text(
+            "error.config.load_failed", "卡牌配置加载失败：" + "；".join(config_errors[:6]),
+            detail="; ".join(config_errors[:6])))
         return
 
     size = payload_int(data.get("size", 19), 19)
@@ -48,7 +51,7 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
     challenge_stage = payload_int(data.get("challenge_stage", 0) or 0, 0)
     raw_challenge_cards = data.get("challenge_cards", [])
     if not isinstance(raw_challenge_cards, (list, tuple)):
-        await ctx.send_error("闯关卡牌设置无效")
+        await ctx.send_error(event_text("error.challenge.invalid_cards", "闯关卡牌设置无效"))
         return
     challenge_cards = [
         card_id for card_id in raw_challenge_cards
@@ -56,7 +59,7 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
     ]
     challenge_limits = data.get("challenge_limits", {}) or {}
     if not isinstance(challenge_limits, Mapping):
-        await ctx.send_error("闯关次数设置无效")
+        await ctx.send_error(event_text("error.challenge.invalid_limits", "闯关次数设置无效"))
         return
     challenge_refreshes = payload_int(data.get("challenge_refreshes", 0) or 0, 0)
     rules = normalize_rules(data.get("rules"))
@@ -68,16 +71,16 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
         ai_rogue_enabled = False
         handicap = CHALLENGE_BETA_HANDICAPS.get(challenge_stage, handicap)
     if size not in VALID_BOARD_SIZES:
-        await ctx.send_error("棋盘尺寸无效")
+        await ctx.send_error(event_text("error.setup.invalid_board", "棋盘尺寸无效"))
         return
     if komi is None:
-        await ctx.send_error("贴目设置无效")
+        await ctx.send_error(event_text("error.setup.invalid_komi", "贴目设置无效"))
         return
     if player_color is None:
-        await ctx.send_error("执棋颜色无效")
+        await ctx.send_error(event_text("error.setup.invalid_color", "执棋颜色无效"))
         return
     if handicap not in VALID_HANDICAPS:
-        await ctx.send_error("让子设置无效")
+        await ctx.send_error(event_text("error.setup.invalid_handicap", "让子设置无效"))
         return
     ctx.active_games.prune()
     if not ctx.engine.ready and not two_player:

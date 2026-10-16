@@ -7,6 +7,7 @@ from app.data.cards import CHALLENGE_BETA_POOL, ROGUE_CARDS, get_rogue_card
 from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_action_utils import board_point_from_data
 from app.runtime.ws_session_actions import ensure_engine_ready_for_game
+from app.domain.event_text import event_text
 
 
 async def handle_rogue_select_card(ctx: WebSocketActionContext, data: dict) -> None:
@@ -35,7 +36,7 @@ async def handle_rogue_select_card(ctx: WebSocketActionContext, data: dict) -> N
         )
     else:
         if game.rogue_card is not None or card_id not in game.rogue_offer_cards:
-            await ctx.send_error("卡牌选择已失效，请使用当前卡牌报价")
+            await ctx.send_error(event_text("error.card.offer_expired", "卡牌选择已失效，请使用当前卡牌报价"))
             return
         await ctx.activate_rogue_card(game, ctx.send, card_id)
         game.rogue_offer_cards = []
@@ -58,11 +59,11 @@ async def handle_challenge_refresh_offer(ctx: WebSocketActionContext, data: dict
     if not game or not game.challenge_beta:
         return
     if game.challenge_refreshes <= 0:
-        await ctx.send_error("当前测试版闯关没有剩余刷新次数")
+        await ctx.send_error(event_text("error.challenge.no_rerolls", "当前测试版闯关没有剩余刷新次数"))
         return
     pool = [card_id for card_id in CHALLENGE_BETA_POOL if card_id not in game.challenge_cards]
     if len(pool) < 3:
-        await ctx.send_error("当前可刷新卡牌不足 3 张")
+        await ctx.send_error(event_text("error.challenge.reroll_pool", "当前可刷新卡牌不足 3 张", count=3))
         return
     game.challenge_refreshes -= 1
     choices = ctx.pick_challenge_beta_choices(game.challenge_cards, 3, pool=pool)
@@ -95,7 +96,7 @@ async def handle_rogue_seal_point(ctx: WebSocketActionContext, data: dict) -> No
         return
     point = board_point_from_data(data, game.size)
     if point is None:
-        await ctx.send_error("目标点超出棋盘范围")
+        await ctx.send_error(event_text("error.move.target_off_board", "目标点超出棋盘范围"))
         return
     x, y = point
     if (x, y) not in game.rogue_seal_points:
@@ -129,29 +130,30 @@ async def handle_rogue_use_puppet(ctx: WebSocketActionContext, data: dict) -> No
     if not game or game.game_over or not ctx.engine.ready:
         return
     if game.rogue_card == "coach_mode" and game.rogue_coach_moves_left > 0:
-        await ctx.send_error("代练上号接管中，请等待强化 AI 完成代打")
+        await ctx.send_error(event_text("card.coach_mode.busy", "代练上号接管中，请等待强化 AI 完成代打", card="coach_mode"))
         return
     if game.rogue_card != "puppet" or game.rogue_uses.get("puppet", 0) <= 0:
-        await ctx.send_error("傀儡术已用完")
+        await ctx.send_error(event_text("card.puppet.used_up", "傀儡术已用完", card="puppet"))
         return
     if game.current_player != game.player_color:
-        await ctx.send_error("还没轮到你")
+        await ctx.send_error(event_text("error.game.not_your_turn", "还没轮到你"))
         return
     point = board_point_from_data(data, game.size)
     if point is None:
-        await ctx.send_error("目标点超出棋盘范围")
+        await ctx.send_error(event_text("error.move.target_off_board", "目标点超出棋盘范围"))
         return
     x, y = point
     gtp = ctx.coord_to_gtp(x, y, game.size)
     if gtp is None:
-        await ctx.send_error("目标点超出棋盘范围")
+        await ctx.send_error(event_text("error.move.target_off_board", "目标点超出棋盘范围"))
         return
     if game.board[y][x] != 0:
-        await ctx.send_error(f"该位置已有棋子: {gtp}")
+        await ctx.send_error(event_text("error.move.occupied_at", f"该位置已有棋子: {gtp}", point=gtp))
         return
     game.rogue_puppet_target = (x, y)
     await ctx.send({"type": "game_state", **game.to_state()})
-    await ctx.send({"type": "rogue_event", "msg": f"🎭 傀儡术待命：你先正常落子，随后 AI 会被迫下在 {gtp}"})
+    await ctx.send({"type": "rogue_event", "msg": event_text(
+        "card.puppet.armed", f"🎭 傀儡术待命：你先正常落子，随后 AI 会被迫下在 {gtp}", card="puppet", point=gtp)})
     if not game.game_over and ctx.engine.ready:
         asyncio.create_task(ctx.do_analysis_bg(game))
 
@@ -161,17 +163,22 @@ async def handle_rogue_use_twin(ctx: WebSocketActionContext, data: dict) -> None
     if not game or game.game_over:
         return
     if game.rogue_card == "coach_mode" and game.rogue_coach_moves_left > 0:
-        await ctx.send_error("代练上号接管中，请等待强化 AI 完成代打")
+        await ctx.send_error(event_text("card.coach_mode.busy", "代练上号接管中，请等待强化 AI 完成代打", card="coach_mode"))
         return
     if game.rogue_card != "twin" or game.rogue_uses.get("twin", 0) <= 0:
-        await ctx.send_error("双子星辰已用完")
+        await ctx.send_error(event_text("card.twin.used_up", "双子星辰已用完", card="twin"))
         return
     game.rogue_uses["twin"] -= 1
     game.rogue_skip_ai = True
     await ctx.send(
         {
             "type": "rogue_event",
-            "msg": f"⚡ 双子星辰激活！下一手后可连续落子（剩余 {game.rogue_uses.get('twin', 0)} 次）",
+            "msg": event_text(
+                "card.twin.armed",
+                f"⚡ 双子星辰激活！下一手后可连续落子（剩余 {game.rogue_uses.get('twin', 0)} 次）",
+                card="twin",
+                left=game.rogue_uses.get("twin", 0),
+            ),
         }
     )
     await ctx.send({"type": "rogue_uses_update", "uses": game.rogue_uses})
@@ -182,13 +189,13 @@ async def handle_rogue_use_exchange(ctx: WebSocketActionContext, data: dict) -> 
     if not game or game.game_over:
         return
     if game.rogue_card == "coach_mode" and game.rogue_coach_moves_left > 0:
-        await ctx.send_error("代练上号接管中，请等待强化 AI 完成代打")
+        await ctx.send_error(event_text("card.coach_mode.busy", "代练上号接管中，请等待强化 AI 完成代打", card="coach_mode"))
         return
     if game.rogue_card != "exchange" or game.rogue_uses.get("exchange", 0) <= 0:
-        await ctx.send_error("乾坤挪移已用完")
+        await ctx.send_error(event_text("card.exchange.used_up", "乾坤挪移已用完", card="exchange"))
         return
     if game.current_player != game.player_color:
-        await ctx.send_error("还没轮到你")
+        await ctx.send_error(event_text("error.game.not_your_turn", "还没轮到你"))
         return
 
     from_point = board_point_from_data(
@@ -200,16 +207,16 @@ async def handle_rogue_use_exchange(ctx: WebSocketActionContext, data: dict) -> 
         game.size,
     )
     if from_point is None or to_point is None:
-        await ctx.send_error("请选择对方棋子和目标空点")
+        await ctx.send_error(event_text("card.exchange.pick", "请选择对方棋子和目标空点", card="exchange"))
         return
     fx, fy = from_point
     tx, ty = to_point
     opp_val = 2 if game.player_color == "B" else 1
     if game.board[fy][fx] != opp_val:
-        await ctx.send_error("乾坤挪移只能移动对方棋子")
+        await ctx.send_error(event_text("card.exchange.enemy_only", "乾坤挪移只能移动对方棋子", card="exchange"))
         return
     if game.board[ty][tx] != 0:
-        await ctx.send_error("目标位置必须是空点")
+        await ctx.send_error(event_text("card.exchange.empty_target", "目标位置必须是空点", card="exchange"))
         return
 
     game.board[fy][fx] = 0
@@ -222,7 +229,9 @@ async def handle_rogue_use_exchange(ctx: WebSocketActionContext, data: dict) -> 
     from_gtp = ctx.coord_to_gtp(fx, fy, game.size)
     to_gtp = ctx.coord_to_gtp(tx, ty, game.size)
     await ctx.send({"type": "game_state", **game.to_state()})
-    await ctx.send({"type": "rogue_event", "msg": f"🔄 乾坤挪移：已将对方 {from_gtp} 的棋子摆动到 {to_gtp}"})
+    await ctx.send({"type": "rogue_event", "msg": event_text(
+        "card.exchange.moved", f"🔄 乾坤挪移：已将对方 {from_gtp} 的棋子摆动到 {to_gtp}",
+        card="exchange", from_point=from_gtp, to_point=to_gtp)})
     await ctx.send({"type": "rogue_uses_update", "uses": game.rogue_uses})
     if not game.game_over and ctx.engine.ready:
         asyncio.create_task(ctx.do_analysis_bg(game))
@@ -235,18 +244,18 @@ async def handle_rogue_use_coach(ctx: WebSocketActionContext, data: dict) -> Non
     if not await ensure_engine_ready_for_game(ctx, game, "coach_mode"):
         return
     if game.rogue_card == "coach_mode" and game.rogue_coach_moves_left > 0:
-        await ctx.send_error("代练上号已经在接管中")
+        await ctx.send_error(event_text("card.coach_mode.already", "代练上号已经在接管中", card="coach_mode"))
         return
     if game.challenge_beta:
         if ctx.challenge_remaining(game, "coach") <= 0:
-            await ctx.send_error("测试版闯关：代下次数已用完")
+            await ctx.send_error(event_text("error.challenge.no_coach", "测试版闯关：代下次数已用完"))
             return
         game.challenge_usage["coach"] += 1
     if game.rogue_card != "coach_mode" or game.rogue_uses.get("coach_mode", 0) <= 0:
-        await ctx.send_error("代练上号已经用完了")
+        await ctx.send_error(event_text("card.coach_mode.used_up", "代练上号已经用完了", card="coach_mode"))
         return
     if game.current_player != game.player_color:
-        await ctx.send_error("还没轮到你")
+        await ctx.send_error(event_text("error.game.not_your_turn", "还没轮到你"))
         return
     game.rogue_uses["coach_mode"] -= 1
     game.rogue_coach_moves_left = ROGUE_COACH_BASE_TURNS
@@ -254,7 +263,8 @@ async def handle_rogue_use_coach(ctx: WebSocketActionContext, data: dict) -> Non
     await ctx.send(
         {
             "type": "rogue_event",
-            "msg": f"🎓 代练上号启动：接下来 {ROGUE_COACH_BASE_TURNS} 手将由更强 AI 代打",
+            "msg": event_text("card.coach_mode.start", f"🎓 代练上号启动：接下来 {ROGUE_COACH_BASE_TURNS} 手将由更强 AI 代打",
+                              card="coach_mode", count=ROGUE_COACH_BASE_TURNS),
         }
     )
     await ctx.send({"type": "rogue_uses_update", "uses": game.rogue_uses})

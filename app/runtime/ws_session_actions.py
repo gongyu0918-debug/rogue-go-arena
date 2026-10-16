@@ -10,6 +10,7 @@ from app.runtime.game_input_validation import (
     payload_int,
 )
 from app.runtime.ws_action_context import WebSocketActionContext
+from app.domain.event_text import event_text
 
 
 async def claim_engine_session(ctx: WebSocketActionContext) -> bool:
@@ -64,7 +65,7 @@ async def claim_engine_session(ctx: WebSocketActionContext) -> bool:
     ):
         assign_owner()
         return True
-    await ctx.send_error("另一个窗口正在使用 AI 引擎，请先结束该对局")
+    await ctx.send_error(event_text("error.engine.in_use", "另一个窗口正在使用 AI 引擎，请先结束该对局"))
     return False
 
 
@@ -131,13 +132,13 @@ async def handle_request_hint(ctx: WebSocketActionContext, data: dict) -> None:
     if not game or game.game_over:
         return
     if ctx.rogue_has(game, "quickthink"):
-        await ctx.send_error("快速思考已禁用推荐点位，请自行判断局面")
+        await ctx.send_error(event_text("card.quickthink.no_hints", "快速思考已禁用推荐点位，请自行判断局面", card="quickthink"))
         return
     if not await ensure_engine_ready_for_game(ctx, game, "request_hint"):
         return
     if game.challenge_beta:
         if ctx.challenge_remaining(game, "hint") <= 0:
-            await ctx.send_error("测试版闯关：推荐点次数已用完")
+            await ctx.send_error(event_text("error.challenge.no_hints", "测试版闯关：推荐点次数已用完"))
             return
         game.challenge_usage["hint"] += 1
         await ctx.send({"type": "game_state", **game.to_state()})
@@ -162,20 +163,20 @@ async def handle_load_position(ctx: WebSocketActionContext, data: dict) -> None:
     size = payload_int(data.get("size", 19), 19)
     komi = normalize_komi(data.get("komi", 7.5))
     if size not in VALID_BOARD_SIZES:
-        await ctx.send_error("复盘棋盘尺寸无效")
+        await ctx.send_error(event_text("error.review.invalid_board", "复盘棋盘尺寸无效"))
         return
     if komi is None:
-        await ctx.send_error("复盘贴目设置无效")
+        await ctx.send_error(event_text("error.review.invalid_komi", "复盘贴目设置无效"))
         return
     moves_list = data.get("moves", [])
     if not isinstance(moves_list, (list, tuple)):
-        await ctx.send_error("复盘棋谱格式无效")
+        await ctx.send_error(event_text("error.review.invalid_record", "复盘棋谱格式无效"))
         return
     validated_moves = []
     for move in moves_list:
         normalized = _normalize_load_position_move(ctx, move, size)
         if normalized is None:
-            await ctx.send_error("复盘棋谱包含无效着手")
+            await ctx.send_error(event_text("error.review.invalid_move", "复盘棋谱包含无效着手"))
             return
         validated_moves.append(normalized)
 
@@ -186,7 +187,7 @@ async def handle_load_position(ctx: WebSocketActionContext, data: dict) -> None:
     try:
         temp.rebuild_board(strict=True)
     except ValueError:
-        await ctx.send_error("复盘棋谱包含非法着手")
+        await ctx.send_error(event_text("error.review.illegal_move", "复盘棋谱包含非法着手"))
         return
 
     original_game = ctx.restore_game()
@@ -262,7 +263,7 @@ async def wait_for_engine_ready(ctx: WebSocketActionContext, reason: str) -> boo
     if snapshot.get("phase") not in {"initializing", "ready"}:
         ctx.start_engine_background(reason)
         snapshot = ctx.engine_state_snapshot()
-    await send_engine_not_ready(ctx, snapshot, "KataGo 正在随游戏启动")
+    await send_engine_not_ready(ctx, snapshot, event_text("engine.starting", "KataGo 正在随游戏启动"))
     deadline = time.time() + 120
     while not fully_ready() and time.time() < deadline:
         await asyncio.sleep(0.5)
@@ -275,7 +276,7 @@ async def wait_for_engine_ready(ctx: WebSocketActionContext, reason: str) -> boo
     await send_engine_not_ready(ctx, snapshot, "")
     await ctx.send_error(
         snapshot.get("message")
-        or "KataGo未就绪，请稍候重试，或先使用两人对局模式"
+        or event_text("engine.not_ready", "KataGo未就绪，请稍候重试，或先使用两人对局模式")
     )
     return False
 

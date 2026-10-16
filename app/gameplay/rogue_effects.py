@@ -724,17 +724,24 @@ def _apply_streak_cards(
         remaining = gameplay_config.ROGUE_STREAK_MAX_TRIGGERS - triggers[key]
         modified = True
         where = coord_to_gtp(changed[0][0], changed[0][1], game.size)
-        params = {"card": card_id, "streak": streak, "remaining": remaining}
         if card_id == "momentum":
-            zh = f"🔥 乘胜追击 {streak} 连击：在 {where} 追加 1 颗己棋，本局剩余 {remaining} 次"
-            params["point"] = where
+            messages.append(event_text(
+                "card.momentum.streak",
+                f"🔥 乘胜追击 {streak} 连击：在 {where} 追加 1 颗己棋，本局剩余 {remaining} 次",
+                card="momentum", streak=streak, point=where, remaining=remaining,
+            ))
         elif card_id == "iron_wall":
-            zh = f"🧱 铁壁 {streak} 连守：在 {where} 加固最弱棋块，本局剩余 {remaining} 次"
-            params["point"] = where
+            messages.append(event_text(
+                "card.iron_wall.streak",
+                f"🧱 铁壁 {streak} 连守：在 {where} 加固最弱棋块，本局剩余 {remaining} 次",
+                card="iron_wall", streak=streak, point=where, remaining=remaining,
+            ))
         else:
-            zh = f"⛓ 连提 {streak} 连：额外落下 {len(changed)} 颗己棋，本局剩余 {remaining} 次"
-            params["count"] = len(changed)
-        messages.append(event_text(f"card.{card_id}.streak", zh, **params))
+            messages.append(event_text(
+                "card.capture_chain.streak",
+                f"⛓ 连提 {streak} 连：额外落下 {len(changed)} 颗己棋，本局剩余 {remaining} 次",
+                card="capture_chain", streak=streak, count=len(changed), remaining=remaining,
+            ))
     return RogueBoardEffectResult(modified, messages, [])
 
 

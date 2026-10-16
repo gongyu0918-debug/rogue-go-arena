@@ -143,7 +143,7 @@ async def smoke_invalid_json_reports_error_and_keeps_session_open():
     )
 
     assert websocket.sent == [
-        {"type": "error", "message": "消息格式错误：不是有效的 JSON"},
+        {"type": "error", "message": "消息格式错误：不是有效的 JSON", "key": "error.protocol.bad_json", "params": {}},
         {"type": "pong"},
     ]
     assert active_games.touches == ["session-1", "session-1"]
@@ -174,7 +174,7 @@ async def smoke_json_array_reports_error_and_keeps_session_open():
     )
 
     assert websocket.sent == [
-        {"type": "error", "message": "消息格式错误：JSON 必须是对象"},
+        {"type": "error", "message": "消息格式错误：JSON 必须是对象", "key": "error.protocol.not_object", "params": {}},
         {"type": "pong"},
     ]
     assert active_games.touches == ["session-1", "session-1"]
@@ -201,7 +201,8 @@ async def smoke_unknown_action_reports_error():
         traceback_fn=lambda: None,
     )
 
-    assert websocket.sent == [{"type": "error", "message": "未知操作: missing_action"}]
+    assert websocket.sent == [{"type": "error", "message": "未知操作: missing_action",
+                               "key": "error.protocol.unknown_action", "params": {"action": "missing_action"}}]
     assert active_games.touches == ["session-1"]
 
 
@@ -230,7 +231,7 @@ async def smoke_action_exception_reports_sanitized_error():
         traceback_fn=lambda: None,
     )
 
-    assert websocket.sent == [{"type": "error", "message": "处理出错，请重试"}]
+    assert websocket.sent == [{"type": "error", "message": "处理出错，请重试", "key": "error.server.retry", "params": {}}]
     assert "secret filesystem path" not in websocket.sent[0]["message"]
     assert logs and "secret filesystem path" in logs[0]
 
