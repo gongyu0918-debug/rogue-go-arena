@@ -21,6 +21,12 @@ from app.runtime.game_input_validation import (
     payload_int,
 )
 from app.domain.event_text import event_text
+from app.gameplay.difficulty import (
+    difficulty_points,
+    komi_for_ai_points,
+    normalize_difficulty,
+    plain_game_setup,
+)
 from app.runtime.gtp_safety import normalize_gtp_color
 from app.runtime.ws_session_actions import (
     claim_engine_session,
@@ -100,6 +106,19 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
     if rogue_enabled or challenge_beta:
         # Card games always face the standard AI; difficulty comes from komi and stones.
         level = gameplay_config.STANDARD_AI_LEVEL
+    # A difficulty replaces the manual komi/handicap; without one (Advanced setup)
+    # the player's own values stand.
+    difficulty = normalize_difficulty(data.get("difficulty"))
+    if two_player or ai_observer:
+        difficulty = None
+    if difficulty and player_color is not None and not challenge_beta:
+        if rogue_enabled:
+            ai_color = "W" if player_color == "B" else "B"
+            komi = komi_for_ai_points(difficulty_points(difficulty), ai_color)
+            handicap = 0
+        else:
+            plain = plain_game_setup(difficulty, player_color)
+            handicap, komi, player_color = plain.handicap, plain.komi, plain.player_color
     ai_level_black = str(data.get("ai_level_black", level))
     if ai_level_black not in RANK_VISITS and ai_level_black != gameplay_config.STANDARD_AI_LEVEL:
         ai_level_black = level
@@ -115,6 +134,7 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
 
     game = ctx.GoGame(size, komi, handicap, player_color, level, two_player)
     game.ai_observer = ai_observer
+    game.difficulty = difficulty
     game.rules = rules
     game.ai_style = ai_style
     game.ai_level_black = ai_level_black

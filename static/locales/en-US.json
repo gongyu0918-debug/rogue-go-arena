@@ -330,7 +330,14 @@
     "选这张": "Pick this card",
     "这里汇总 Rogue AI 的玩法、闯关路线，以及所有 Rogue 卡牌的效果说明。": "This index covers Rogue AI game variants, challenge runs, and the full effect list for every Rogue card.",
     "标准 AI": "Standard AI",
-    "高级：自选 AI 等级": "Advanced: choose the AI's rank"
+    "难度": "Difficulty",
+    "入门": "Beginner",
+    "简单": "Easy",
+    "普通": "Normal",
+    "困难": "Hard",
+    "高级：手动设置等级、让子和贴目": "Advanced: set rank, handicap and komi by hand",
+    "对局：选择难度即可。AI 强度固定，难度决定你得到几颗让子。想自己设置等级、让子和贴目，请勾选“高级”。": "Game: just pick a difficulty. The AI's strength is fixed; difficulty sets how many handicap stones you get. Tick Advanced to set rank, handicap and komi yourself.",
+    "当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡；难度决定贴目。": "Current variant: Solo Draft. Fixed at 19x19. Only you use a Rogue card; difficulty sets the komi."
   },
   "rankGroups": {
     "kyu": "── Kyu ──",

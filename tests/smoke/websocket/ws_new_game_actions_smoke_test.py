@@ -241,6 +241,27 @@ async def smoke_card_games_always_use_the_standard_ai() -> None:
         assert ctx.game.level == expected, (payload, ctx.game.level)
 
 
+async def smoke_difficulty_sets_handicap_or_komi() -> None:
+    # Plain game: handicap stones, the player takes Black.
+    ctx = FakeContext()
+    await handle_new_game(ctx, {"size": 19, "player_color": "W", "komi": 7.5, "handicap": 0, "difficulty": "easy"})
+    await asyncio.sleep(0)
+    assert (ctx.game.handicap, ctx.game.komi, ctx.game.player_color) == (6, 0.5, "B")
+    assert ctx.game.difficulty == "easy"
+
+    # Quick Game: komi only; Beginner hands the player 20 points.
+    ctx = FakeContext()
+    await handle_new_game(ctx, {"size": 19, "rogue": True, "player_color": "B", "komi": 7.5, "difficulty": "beginner"})
+    await asyncio.sleep(0)
+    assert (ctx.game.handicap, ctx.game.komi) == (0, -12.5)
+
+    # No difficulty (Advanced setup): the player's own values stand.
+    ctx = FakeContext()
+    await handle_new_game(ctx, {"size": 19, "player_color": "W", "komi": 6.5, "handicap": 0, "level": "5k"})
+    await asyncio.sleep(0)
+    assert (ctx.game.handicap, ctx.game.komi, ctx.game.player_color, ctx.game.difficulty) == (0, 6.5, "W", None)
+
+
 async def smoke_archived_ultimate_is_refused() -> None:
     assert gameplay_config.ULTIMATE_ENABLED is False
     ctx = FakeContext()
@@ -353,6 +374,7 @@ async def main() -> None:
     await smoke_rejects_a_second_game_using_the_shared_engine()
     await smoke_releases_engine_claim_when_game_commit_fails()
     await smoke_card_games_always_use_the_standard_ai()
+    await smoke_difficulty_sets_handicap_or_komi()
     await smoke_archived_ultimate_is_refused()
     await smoke_ultimate_new_game_sends_offer()
     await smoke_two_player_rogue_new_game_uses_two_player_pool_without_engine()

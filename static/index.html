@@ -371,8 +371,17 @@
           <option value="japanese">日本规则（数目）</option>
         </select>
       </div>
+      <div class="form-row setup-field" id="row-difficulty">
+        <label id="label-difficulty">难度</label>
+        <select id="sel-difficulty">
+          <option value="beginner">入门</option>
+          <option value="easy">简单</option>
+          <option value="normal" selected>普通</option>
+          <option value="hard">困难</option>
+        </select>
+      </div>
       <div class="form-row setup-field setup-advanced-row" id="row-advanced-rank">
-        <label class="setup-check"><input type="checkbox" id="chk-advanced-rank"> <span id="label-advanced-rank">高级：自选 AI 等级</span></label>
+        <label class="setup-check"><input type="checkbox" id="chk-advanced-rank"> <span id="label-advanced-rank">高级：手动设置等级、让子和贴目</span></label>
       </div>
       <div class="form-row setup-field" id="row-level">
         <label id="label-level">等级</label>
@@ -589,10 +598,10 @@
 <script src="/static/js/board_assets.js?v=20261012a"></script>
 <script src="/static/js/board_renderer.js?v=20260918a"></script>
 <script src="/static/js/review_controls.js?v=20260530a"></script>
-<script src="/static/js/localization_ui.js?v=20261012c"></script>
+<script src="/static/js/localization_ui.js?v=20261012d"></script>
 <script src="/static/js/websocket_messages.js?v=20261012a"></script>
 <script src="/static/js/app_bootstrap.js?v=20260629a"></script>
-<script src="/static/js/setup_controls.js?v=20261012c"></script>
+<script src="/static/js/setup_controls.js?v=20261012d"></script>
 <script src="/static/js/desktop_exit.js?v=20260628a"></script>
 <script src="/static/js/toolbar_actions.js?v=20260603a"></script>
 <script src="/static/js/inline_actions.js?v=20260907a"></script>

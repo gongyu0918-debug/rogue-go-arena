@@ -3563,6 +3563,142 @@
       "max": 10,
       "step": 1,
       "value": 1
+    },
+    "DIFFICULTY_BEGINNER_POINTS": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "入门难度：给 AI 的目数",
+        "zh-TW": "入門難度：給 AI 的目數",
+        "en-US": "Beginner: points for the AI",
+        "ja-JP": "入門：AIへの目数",
+        "ko-KR": "입문: AI에게 주는 집",
+        "fr-FR": "Débutant : points pour l'IA",
+        "de-DE": "Einsteiger: Punkte für die KI"
+      },
+      "min": -100,
+      "max": 100,
+      "step": 0.5,
+      "value": -20.0
+    },
+    "DIFFICULTY_EASY_POINTS": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "简单难度：给 AI 的目数",
+        "zh-TW": "簡單難度：給 AI 的目數",
+        "en-US": "Easy: points for the AI",
+        "ja-JP": "かんたん：AIへの目数",
+        "ko-KR": "쉬움: AI에게 주는 집",
+        "fr-FR": "Facile : points pour l'IA",
+        "de-DE": "Leicht: Punkte für die KI"
+      },
+      "min": -100,
+      "max": 100,
+      "step": 0.5,
+      "value": -10.0
+    },
+    "DIFFICULTY_NORMAL_POINTS": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "普通难度：给 AI 的目数",
+        "zh-TW": "普通難度：給 AI 的目數",
+        "en-US": "Normal: points for the AI",
+        "ja-JP": "ふつう：AIへの目数",
+        "ko-KR": "보통: AI에게 주는 집",
+        "fr-FR": "Normal : points pour l'IA",
+        "de-DE": "Normal: Punkte für die KI"
+      },
+      "min": -100,
+      "max": 100,
+      "step": 0.5,
+      "value": 0.0
+    },
+    "DIFFICULTY_HARD_POINTS": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "困难难度：给 AI 的目数",
+        "zh-TW": "困難難度：給 AI 的目數",
+        "en-US": "Hard: points for the AI",
+        "ja-JP": "むずかしい：AIへの目数",
+        "ko-KR": "어려움: AI에게 주는 집",
+        "fr-FR": "Difficile : points pour l'IA",
+        "de-DE": "Schwer: Punkte für die KI"
+      },
+      "min": -100,
+      "max": 100,
+      "step": 0.5,
+      "value": 10.0
+    },
+    "DIFFICULTY_BEGINNER_STONES": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "入门难度：普通对局让子数",
+        "zh-TW": "入門難度：一般對局讓子數",
+        "en-US": "Beginner: handicap stones in plain games",
+        "ja-JP": "入門：通常対局の置き石",
+        "ko-KR": "입문: 일반 대국 접바둑 돌",
+        "fr-FR": "Débutant : pierres de handicap (partie simple)",
+        "de-DE": "Einsteiger: Vorgabesteine (normale Partie)"
+      },
+      "min": 0,
+      "max": 9,
+      "step": 1,
+      "value": 9
+    },
+    "DIFFICULTY_EASY_STONES": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "简单难度：普通对局让子数",
+        "zh-TW": "簡單難度：一般對局讓子數",
+        "en-US": "Easy: handicap stones in plain games",
+        "ja-JP": "かんたん：通常対局の置き石",
+        "ko-KR": "쉬움: 일반 대국 접바둑 돌",
+        "fr-FR": "Facile : pierres de handicap (partie simple)",
+        "de-DE": "Leicht: Vorgabesteine (normale Partie)"
+      },
+      "min": 0,
+      "max": 9,
+      "step": 1,
+      "value": 6
+    },
+    "DIFFICULTY_NORMAL_STONES": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "普通难度：普通对局让子数",
+        "zh-TW": "普通難度：一般對局讓子數",
+        "en-US": "Normal: handicap stones in plain games",
+        "ja-JP": "ふつう：通常対局の置き石",
+        "ko-KR": "보통: 일반 대국 접바둑 돌",
+        "fr-FR": "Normal : pierres de handicap (partie simple)",
+        "de-DE": "Normal: Vorgabesteine (normale Partie)"
+      },
+      "min": 0,
+      "max": 9,
+      "step": 1,
+      "value": 4
+    },
+    "DIFFICULTY_HARD_STONES": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "困难难度：普通对局让子数",
+        "zh-TW": "困難難度：一般對局讓子數",
+        "en-US": "Hard: handicap stones in plain games",
+        "ja-JP": "むずかしい：通常対局の置き石",
+        "ko-KR": "어려움: 일반 대국 접바둑 돌",
+        "fr-FR": "Difficile : pierres de handicap (partie simple)",
+        "de-DE": "Schwer: Vorgabesteine (normale Partie)"
+      },
+      "min": 0,
+      "max": 9,
+      "step": 1,
+      "value": 2
     }
   }
 }

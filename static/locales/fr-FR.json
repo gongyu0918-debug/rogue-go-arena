@@ -330,7 +330,14 @@
     "选这张": "Choisir cette carte",
     "这里汇总 Rogue AI 的玩法、闯关路线，以及所有 Rogue 卡牌的效果说明。": "Cet index présente les variantes Rogue AI, les parcours de défi et l'effet de chaque carte Rogue.",
     "标准 AI": "IA standard",
-    "高级：自选 AI 等级": "Avancé : choisir le niveau de l'IA"
+    "难度": "Difficulté",
+    "入门": "Débutant",
+    "简单": "Facile",
+    "普通": "Normal",
+    "困难": "Difficile",
+    "高级：手动设置等级、让子和贴目": "Avancé : régler à la main niveau, handicap et komi",
+    "对局：选择难度即可。AI 强度固定，难度决定你得到几颗让子。想自己设置等级、让子和贴目，请勾选“高级”。": "Partie : choisissez simplement une difficulté. La force de l'IA est fixe ; la difficulté fixe vos pierres de handicap. Cochez Avancé pour régler vous-même niveau, handicap et komi.",
+    "当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡；难度决定贴目。": "Variante actuelle : tirage solo. Goban 19x19 fixe. Vous seul avez une carte Rogue ; la difficulté fixe le komi."
   },
   "rankGroups": {
     "kyu": "── Kyu ──",

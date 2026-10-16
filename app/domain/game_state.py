@@ -130,6 +130,7 @@ class GoGame:
         self.ultimate_shadow_clone_links: list[dict] = []
         self.ai_observer: bool = False
         self.ai_rally_count: int = 0
+        self.difficulty: Optional[str] = None
         self.ai_rally_last_move: Optional[int] = None
         self.ai_style: str = "balanced"
         self.ai_level_black: str = level
@@ -358,6 +359,7 @@ class GoGame:
             "rogue_handicap_passes": self.rogue_handicap_passes,
             "challenge_beta": self.challenge_beta,
             "challenge_stage": self.challenge_stage,
+            "difficulty": self.difficulty,
             "challenge_cards": list(self.challenge_cards),
             "challenge_refreshes": self.challenge_refreshes,
             "challenge_limits": dict(self.challenge_limits),

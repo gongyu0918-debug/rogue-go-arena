@@ -187,7 +187,14 @@ function localizeOverlays() {
   setText("#label-komi", ui("贴目", "Komi", "コミ", "덤"));
   setText("#label-rules", ui("规则", "Rules", "ルール", "규칙"));
   setText("#label-level", ui("等级", "Rank", "棋力", "기력"));
-  setText("#label-advanced-rank", ui("高级：自选 AI 等级", "Advanced: choose the AI's rank", "上級者向け：AIの棋力を選ぶ", "고급: AI 기력 직접 선택"));
+  setText("#label-difficulty", ui("难度", "Difficulty", "難易度", "난이도"));
+  setOptionText("sel-difficulty", [
+    ["beginner", "入门", "Beginner", "入門", "입문"],
+    ["easy", "简单", "Easy", "かんたん", "쉬움"],
+    ["normal", "普通", "Normal", "ふつう", "보통"],
+    ["hard", "困难", "Hard", "むずかしい", "어려움"],
+  ]);
+  setText("#label-advanced-rank", ui("高级：手动设置等级、让子和贴目", "Advanced: set rank, handicap and komi by hand", "上級者向け：棋力・置き石・コミを手動設定", "고급: 기력·접바둑·덤 직접 설정"));
   setText("#label-level-black", ui("黑棋等级", "Black Rank", "黒の棋力", "흑 기력"));
   setText("#label-level-white", ui("白棋等级", "White Rank", "白の棋力", "백 기력"));
   setText("#label-style", ui("AI行为", "AI Behavior", "AIの棋風", "AI 행마"));

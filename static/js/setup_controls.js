@@ -4,7 +4,9 @@ const SETUP_ROW_DISPLAY_RULES = [
   { id: "row-color", display: ({ isNormal, isRogue }) => (isNormal || isRogue) ? "flex" : "none" },
   { id: "row-rogue-variant", display: ({ isRogue }) => isRogue ? "flex" : "none" },
   { id: "row-size", display: ({ isRogue }) => isRogue ? "none" : "flex" },
-  { id: "row-handicap", display: ({ isWatch, isChallenge, isRogue }) => (isWatch || isChallenge || isRogue) ? "none" : "flex" },
+  { id: "row-difficulty", display: ({ isNormal, isRogue, isChallenge }) => ((isNormal && !advancedRankChosen()) || isRogue || isChallenge) ? "flex" : "none" },
+  { id: "row-komi", display: ({ isNormal, isTwo, isWatch }) => ((isNormal && advancedRankChosen()) || isTwo || isWatch) ? "flex" : "none" },
+  { id: "row-handicap", display: ({ isNormal, isTwo }) => ((isNormal && advancedRankChosen()) || isTwo) ? "flex" : "none" },
   { id: "row-rules", display: ({ isChallenge }) => isChallenge ? "none" : "flex" },
   { id: "row-time", display: () => "flex" },
   { id: "row-advanced-rank", display: ({ isNormal }) => isNormal ? "flex" : "none" },
@@ -19,7 +21,7 @@ const SETUP_ROW_DISPLAY_RULES = [
 const SETUP_ROGUE_VARIANT_HINTS = {
   ultimate: () => ui("当前玩法：大招对战。固定 19×19，用普通规则开局，你与 AI 各自带一张大招卡，20 手决胜。", "Current variant: Ultimate Duel. Fixed at 19x19 with standard rules, one ultimate card per side, and a 20-move showdown."),
   dual: () => ui("当前玩法：双人抽卡。固定 19×19，你先选 1 张 Rogue 卡，AI 也会从受限卡池获得 1 张。", "Current variant: Dual Draft. Fixed at 19x19. You pick 1 Rogue card, and the AI also receives 1 card from the restricted pool."),
-  solo: () => ui("当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡，保留颜色、贴目、等级、棋风与用时设置。", "Current variant: Solo Draft. Fixed at 19x19. Only you use a Rogue card, while color, komi, rank, style, and time settings stay available."),
+  solo: () => ui("当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡；难度决定贴目。", "Current variant: Solo Draft. Fixed at 19x19. Only you use a Rogue card; difficulty sets the komi."),
 };
 
 const SETUP_MODE_HINTS = {
@@ -37,8 +39,8 @@ const SETUP_MODE_HINTS = {
     "Challenge: beta mode defaults you to White and applies stage handicap and loadout rules automatically."
   ),
   normal: () => ui(
-    "对局：可手选黑白或随机猜先；选择让子时会自动把贴目设为 0，仍可手动改回 6.5 或 7.5。",
-    "Game: choose Black, White, or random color; handicap auto-sets komi to 0, but you can still change it back to 6.5 or 7.5."
+    "对局：选择难度即可。AI 强度固定，难度决定你得到几颗让子。想自己设置等级、让子和贴目，请勾选“高级”。",
+    "Game: just pick a difficulty. The AI's strength is fixed; difficulty sets how many handicap stones you get. Tick Advanced to set rank, handicap and komi yourself."
   ),
 };
 
@@ -52,6 +54,15 @@ const ADVANCED_RANK_KEY = "rogue_go_arena_advanced_rank";
 
 function advancedRankChosen() {
   return !!document.getElementById("chk-advanced-rank")?.checked;
+}
+
+const DIFFICULTY_KEY = "rogue_go_arena_difficulty";
+
+// The difficulty sent with new_game, or null when the player set things up by hand.
+function selectedDifficulty(mode = startMode) {
+  if (mode === "two" || mode === "watch") return null;
+  if (mode === "normal" && advancedRankChosen()) return null;
+  return document.getElementById("sel-difficulty")?.value || "normal";
 }
 
 function selectedAiLevel(mode = startMode) {
@@ -279,6 +290,7 @@ function startGameFromSetup() {
         handicap: gameHandicap,
         player_color: playerColor,
         level: isAiWatch ? aiLevelBlack : aiLevelDefault,
+        difficulty: selectedDifficulty(),
         ai_level_black: aiLevelBlack,
         ai_level_white: aiLevelWhite,
         two_player: isTwoPlayer,
@@ -300,6 +312,16 @@ function startGameFromSetup() {
 }
 
 function bindSetupControls() {
+  const difficulty = document.getElementById("sel-difficulty");
+  if (difficulty) {
+    try {
+      const saved = localStorage.getItem(DIFFICULTY_KEY);
+      if (saved && [...difficulty.options].some(opt => opt.value === saved)) difficulty.value = saved;
+    } catch (_) {}
+    difficulty.addEventListener("change", () => {
+      try { localStorage.setItem(DIFFICULTY_KEY, difficulty.value); } catch (_) {}
+    });
+  }
   const advanced = document.getElementById("chk-advanced-rank");
   if (advanced) {
     try { advanced.checked = localStorage.getItem(ADVANCED_RANK_KEY) === "1"; } catch (_) {}

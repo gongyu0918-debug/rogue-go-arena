@@ -206,6 +206,18 @@ CHALLENGE_ZONE_EXPAND_RADIUS = 1
 CHALLENGE_RESTRICTION_DECAY_CHANCE = 0.05
 CHALLENGE_ACTIVE_USE_BONUS = 1
 
+# Difficulty (see app/gameplay/difficulty.py). Card games hand the AI these
+# points as komi (negative helps the player); plain games, which have no
+# cards, give the player this many handicap stones against the standard AI.
+DIFFICULTY_BEGINNER_POINTS = -20.0
+DIFFICULTY_EASY_POINTS = -10.0
+DIFFICULTY_NORMAL_POINTS = 0.0
+DIFFICULTY_HARD_POINTS = 10.0
+DIFFICULTY_BEGINNER_STONES = 9
+DIFFICULTY_EASY_STONES = 6
+DIFFICULTY_NORMAL_STONES = 4
+DIFFICULTY_HARD_STONES = 2
+
 # AI rally: in Rogue games, when the player leads by a lot, the AI plays one
 # extra stone on its best point so big leads stay contested. The lead needed
 # drops (and the cap rises) in later challenge stages. A cap of 0 turns it off.
@@ -299,6 +311,14 @@ BALANCE_TUNABLES = {
     "CHALLENGE_ZONE_EXPAND_RADIUS": {"group": "Challenge", "card": "", "label": "闯关区域扩张半径", "min": 0, "max": 5, "step": 1},
     "CHALLENGE_RESTRICTION_DECAY_CHANCE": {"group": "Challenge", "card": "", "label": "闯关限制衰减概率", "min": 0, "max": 1, "step": 0.01},
     "CHALLENGE_ACTIVE_USE_BONUS": {"group": "Challenge", "card": "", "label": "闯关主动次数奖励", "min": 0, "max": 10, "step": 1},
+    "DIFFICULTY_BEGINNER_POINTS": {"group": "Difficulty", "card": "", "label": "入门难度：给 AI 的目数", "min": -100, "max": 100, "step": 0.5},
+    "DIFFICULTY_EASY_POINTS": {"group": "Difficulty", "card": "", "label": "简单难度：给 AI 的目数", "min": -100, "max": 100, "step": 0.5},
+    "DIFFICULTY_NORMAL_POINTS": {"group": "Difficulty", "card": "", "label": "普通难度：给 AI 的目数", "min": -100, "max": 100, "step": 0.5},
+    "DIFFICULTY_HARD_POINTS": {"group": "Difficulty", "card": "", "label": "困难难度：给 AI 的目数", "min": -100, "max": 100, "step": 0.5},
+    "DIFFICULTY_BEGINNER_STONES": {"group": "Difficulty", "card": "", "label": "入门难度：普通对局让子数", "min": 0, "max": 9, "step": 1},
+    "DIFFICULTY_EASY_STONES": {"group": "Difficulty", "card": "", "label": "简单难度：普通对局让子数", "min": 0, "max": 9, "step": 1},
+    "DIFFICULTY_NORMAL_STONES": {"group": "Difficulty", "card": "", "label": "普通难度：普通对局让子数", "min": 0, "max": 9, "step": 1},
+    "DIFFICULTY_HARD_STONES": {"group": "Difficulty", "card": "", "label": "困难难度：普通对局让子数", "min": 0, "max": 9, "step": 1},
     "AI_RALLY_LEAD": {"group": "Rally", "card": "", "label": "AI 反扑领先阈值", "min": 0, "max": 100, "step": 0.5},
     "AI_RALLY_STAGE_STEP": {"group": "Rally", "card": "", "label": "AI 反扑每关阈值降幅", "min": 0, "max": 50, "step": 0.5},
     "AI_RALLY_MIN_LEAD": {"group": "Rally", "card": "", "label": "AI 反扑最低阈值", "min": 0, "max": 100, "step": 0.5},

@@ -330,7 +330,14 @@
     "选这张": "Diese Karte wählen",
     "这里汇总 Rogue AI 的玩法、闯关路线，以及所有 Rogue 卡牌的效果说明。": "Diese Übersicht zeigt die Rogue-AI-Varianten, die Herausforderungs-Läufe und die Wirkung jeder Rogue-Karte.",
     "标准 AI": "Standard-KI",
-    "高级：自选 AI 等级": "Erweitert: KI-Rang selbst wählen"
+    "难度": "Schwierigkeit",
+    "入门": "Einsteiger",
+    "简单": "Leicht",
+    "普通": "Normal",
+    "困难": "Schwer",
+    "高级：手动设置等级、让子和贴目": "Erweitert: Rang, Vorgabe und Komi selbst einstellen",
+    "对局：选择难度即可。AI 强度固定，难度决定你得到几颗让子。想自己设置等级、让子和贴目，请勾选“高级”。": "Partie: Wähle einfach eine Schwierigkeit. Die Stärke der KI ist fest; die Schwierigkeit bestimmt deine Vorgabesteine. Mit „Erweitert“ stellst du Rang, Vorgabe und Komi selbst ein.",
+    "当前玩法：单人抽卡。固定 19×19，只有你带 Rogue 卡；难度决定贴目。": "Aktuelle Variante: Solo-Draft. Fest 19x19. Nur du hast eine Rogue-Karte; die Schwierigkeit bestimmt das Komi."
   },
   "rankGroups": {
     "kyu": "── Kyu ──",
