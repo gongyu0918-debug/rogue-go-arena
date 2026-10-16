@@ -1179,7 +1179,11 @@ async def smoke_bonus_turn_does_not_grant_extra_ai_move():
         old_sync = s._sync_board_to_katago
         old_shuffle = s.random.shuffle
         try:
-            s.engine = DummyEngine(["F6"])
+            # B8 lies outside every bonus-stone zone around E5. The fake engine
+            # is not synced to the board, so a reply onto a stone that
+            # proliferate happened to place there tripped the occupied-point
+            # guard in about 1 run in 4.
+            s.engine = DummyEngine(["B8"])
 
             async def fake_sync(_game):
                 return None
