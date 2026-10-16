@@ -8,6 +8,7 @@ from app.runtime.ws_action_context import WebSocketActionContext
 from app.runtime.ws_action_utils import board_point_from_data
 from app.runtime.ws_session_actions import ensure_engine_ready_for_game
 from app.domain.event_text import event_text
+from app.gameplay.card_komi import settle_card_komi
 
 
 async def handle_rogue_select_card(ctx: WebSocketActionContext, data: dict) -> None:
@@ -24,6 +25,8 @@ async def handle_rogue_select_card(ctx: WebSocketActionContext, data: dict) -> N
         game.challenge_offer_cards = []
         card_def = get_rogue_card(card_id)
         await ctx.apply_challenge_rogue_loadout(game, ctx.send)
+        if settle_card_komi(game) and ctx.engine.ready:
+            await ctx.run_in_executor(ctx.engine.send_command, f"komi {game.komi}")
         await ctx.send(
             {
                 "type": "rogue_card_selected",

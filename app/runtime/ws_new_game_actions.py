@@ -20,6 +20,7 @@ from app.runtime.game_input_validation import (
     payload_int,
 )
 from app.domain.event_text import event_text
+from app.gameplay.card_komi import settle_card_komi
 from app.gameplay.run_curve import clamp_stage, run_stage_setup
 from app.gameplay.difficulty import (
     difficulty_points,
@@ -157,6 +158,10 @@ async def handle_new_game(ctx: WebSocketActionContext, data: dict) -> None:
         "coach": payload_int(challenge_limits.get("coach", 0) or 0, 0),
     }
     game.challenge_usage = {"undo": 0, "hint": 0, "coach": 0}
+    if challenge_beta and challenge_cards:
+        # Cards carried over from earlier stages are charged before the first move.
+        settle_card_komi(game)
+        komi = game.komi
     if not await claim_engine_session(ctx):
         return
     try:

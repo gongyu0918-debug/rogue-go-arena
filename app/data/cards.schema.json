@@ -90,6 +90,11 @@
         "uses": {
           "type": "integer",
           "minimum": 0
+        },
+        "value_points": {
+          "type": "number",
+          "minimum": -1000,
+          "maximum": 1000
         }
       }
     },

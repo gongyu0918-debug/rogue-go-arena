@@ -131,6 +131,7 @@ class GoGame:
         self.ai_observer: bool = False
         self.ai_rally_count: int = 0
         self.difficulty: Optional[str] = None
+        self.card_komi_points: float = 0.0
         self.ai_rally_last_move: Optional[int] = None
         self.ai_style: str = "balanced"
         self.ai_level_black: str = level
@@ -360,6 +361,7 @@ class GoGame:
             "challenge_beta": self.challenge_beta,
             "challenge_stage": self.challenge_stage,
             "difficulty": self.difficulty,
+            "card_komi_points": self.card_komi_points,
             "challenge_cards": list(self.challenge_cards),
             "challenge_refreshes": self.challenge_refreshes,
             "challenge_limits": dict(self.challenge_limits),

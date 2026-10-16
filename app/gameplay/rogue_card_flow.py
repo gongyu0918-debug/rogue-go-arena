@@ -6,6 +6,7 @@ from typing import Any
 
 from app.config import gameplay as gameplay_config
 from app.callback_types import SendFn
+from app.gameplay.card_komi import settle_card_komi
 
 GetCardFn = Callable[[str], dict[str, Any]]
 PlayerActivationFn = Callable[..., Any]
@@ -61,7 +62,12 @@ async def activate_rogue_card_event(
     )
     for message in result.messages:
         await send_fn({"type": "rogue_event", "msg": message})
-    if result.sync_komi:
+    card_komi_changed = (
+        not getattr(game, "two_player", False)
+        and hasattr(game, "ai_color")
+        and bool(settle_card_komi(game))
+    )
+    if result.sync_komi or card_komi_changed:
         await deps.sync_engine_komi(game)
 
     await send_fn({

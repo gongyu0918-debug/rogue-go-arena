@@ -9,6 +9,7 @@ import copy
 
 import app.config.gameplay as gameplay_config
 import server as s
+from app.gameplay.card_komi import card_komi_points
 from app.data.cards import get_rogue_card
 from app.domain.coordinates import coord_to_gtp
 from app.domain.game_state import GoGame
@@ -205,6 +206,10 @@ async def _server_activate_rogue_card_wrapper_sends_events_and_syncs_komi() -> N
         s.run_in_executor = original_run_executor
         s.apply_rogue_card_activation = original_activation
 
+    # The card's strength is charged to the AI as komi on top of the activation's own change.
+    charge = card_komi_points(["blackhole"])
+    expected_komi = 3.5 + charge if game.ai_color == "W" else 3.5 - charge
+    assert game.komi == expected_komi and game.card_komi_points == charge
     assert calls == [
         (
             "activation",
@@ -220,8 +225,8 @@ async def _server_activate_rogue_card_wrapper_sends_events_and_syncs_komi() -> N
             True,
             True,
         ),
-        ("executor", True, ("komi 3.5",)),
-        ("engine", "komi 3.5"),
+        ("executor", True, (f"komi {expected_komi}",)),
+        ("engine", f"komi {expected_komi}"),
     ]
     assert sent[0] == {"type": "rogue_event", "msg": "activation event"}
     assert sent[1]["type"] == "rogue_card_selected"
@@ -230,7 +235,7 @@ async def _server_activate_rogue_card_wrapper_sends_events_and_syncs_komi() -> N
     assert sent[1]["name"] == get_rogue_card("blackhole")["name"]
     assert sent[1]["icon"] == get_rogue_card("blackhole")["icon"]
     assert sent[1]["rogue_card"] == "blackhole"
-    assert sent[1]["komi"] == 3.5
+    assert sent[1]["komi"] == expected_komi
 
 
 def test_server_activate_rogue_card_wrapper_sends_events_and_syncs_komi() -> None:
@@ -260,15 +265,17 @@ async def _server_activate_rogue_card_wrapper_skips_komi_sync_when_not_needed_or
     s.run_in_executor = run_executor
     s.apply_rogue_card_activation = fake_activation
     try:
-        await s._activate_rogue_card(game, send, "seal")
+        # God's Hand measures below 0, so it carries no card komi and needs no sync.
+        await s._activate_rogue_card(game, send, "god_hand")
     finally:
         s.engine.ready = original_ready
         s.run_in_executor = original_run_executor
         s.apply_rogue_card_activation = original_activation
 
+    assert card_komi_points(["god_hand"]) == 0
     assert calls == []
     assert sent[0]["type"] == "rogue_card_selected"
-    assert sent[0]["card_id"] == "seal"
+    assert sent[0]["card_id"] == "god_hand"
 
     game = _game()
     sent = []
@@ -295,7 +302,7 @@ async def _server_activate_rogue_card_wrapper_skips_komi_sync_when_not_needed_or
     assert calls == []
     assert sent[0]["type"] == "rogue_card_selected"
     assert sent[0]["card_id"] == "komi_relief"
-    assert sent[0]["komi"] == 0.5
+    assert sent[0]["komi"] == 0.5 + card_komi_points(["komi_relief"])  # the AI (White) gets the card charge
 
 
 def test_server_activate_rogue_card_wrapper_skips_komi_sync_when_not_needed_or_not_ready() -> None:

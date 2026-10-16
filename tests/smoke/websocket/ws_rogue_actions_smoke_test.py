@@ -28,6 +28,13 @@ from app.runtime.ws_rogue_actions import (
 class FakeEngine:
     ready = True
 
+    def __init__(self) -> None:
+        self.commands = []
+
+    def send_command(self, command: str) -> str:
+        self.commands.append(command)
+        return "="
+
 
 class FakeContext:
     def __init__(self, game: GoGame) -> None:
@@ -47,6 +54,9 @@ class FakeContext:
 
     def restore_game(self):
         return self.game
+
+    async def run_in_executor(self, func, *args):
+        return func(*args)
 
     async def send(self, payload: dict) -> None:
         self.sent.append(payload)

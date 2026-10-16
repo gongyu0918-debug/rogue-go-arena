@@ -218,6 +218,12 @@ DIFFICULTY_EASY_STONES = 6
 DIFFICULTY_NORMAL_STONES = 4
 DIFFICULTY_HARD_STONES = 2
 
+# Card-strength komi (see app/gameplay/card_komi.py): the AI gets this share
+# of the measured value_points of the cards you hold, up to the maximum.
+CARD_KOMI_SHARE = 0.5
+CARD_KOMI_MAX = 15.0
+CARD_DEFAULT_POINTS = 12.0
+
 # Run curve (see app/gameplay/run_curve.py): five stages; each gives the AI
 # handicap stones (0 or 2+) and komi points. About 0, 5, 10, 17, 28 points.
 RUN_STAGE1_AI_STONES = 0
@@ -332,6 +338,9 @@ BALANCE_TUNABLES = {
     "DIFFICULTY_EASY_STONES": {"group": "Difficulty", "card": "", "label": "简单难度：普通对局让子数", "min": 0, "max": 9, "step": 1},
     "DIFFICULTY_NORMAL_STONES": {"group": "Difficulty", "card": "", "label": "普通难度：普通对局让子数", "min": 0, "max": 9, "step": 1},
     "DIFFICULTY_HARD_STONES": {"group": "Difficulty", "card": "", "label": "困难难度：普通对局让子数", "min": 0, "max": 9, "step": 1},
+    "CARD_KOMI_SHARE": {"group": "Difficulty", "card": "", "label": "卡牌贴目：按卡牌价值给 AI 的比例", "min": 0, "max": 2, "step": 0.05},
+    "CARD_KOMI_MAX": {"group": "Difficulty", "card": "", "label": "卡牌贴目：每局上限", "min": 0, "max": 100, "step": 0.5},
+    "CARD_DEFAULT_POINTS": {"group": "Difficulty", "card": "", "label": "卡牌贴目：未测卡牌的默认价值", "min": 0, "max": 100, "step": 0.5},
     "RUN_STAGE1_AI_STONES": {"group": "Run", "card": "", "label": "第 1 关：AI 让子数", "min": 0, "max": 9, "step": 1},
     "RUN_STAGE1_KOMI_POINTS": {"group": "Run", "card": "", "label": "第 1 关：给 AI 的贴目", "min": -100, "max": 100, "step": 0.5},
     "RUN_STAGE2_AI_STONES": {"group": "Run", "card": "", "label": "第 2 关：AI 让子数", "min": 0, "max": 9, "step": 1},

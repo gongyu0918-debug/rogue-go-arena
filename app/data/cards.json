@@ -71,7 +71,8 @@
           "fr-FR": "Chaque coup de l'IA a 6 % de chances de devenir une passe.",
           "de-DE": "Jeder KI-Zug wird mit 6 % Wahrscheinlichkeit zum Passen."
         },
-        "icon": "🎉"
+        "icon": "🎉",
+        "value_points": 80.0
       },
       "erosion": {
         "name": {
@@ -132,7 +133,8 @@
           "de-DE": "Einmal: Wähle einen Punkt, dort muss die KI als Nächstes spielen."
         },
         "icon": "🎁",
-        "uses": 1
+        "uses": 1,
+        "value_points": -2.5
       },
       "seal": {
         "name": {
@@ -193,7 +195,8 @@
           "de-DE": "Einmal: Spiele zwei Züge hintereinander."
         },
         "icon": "✦",
-        "uses": 1
+        "uses": 1,
+        "value_points": 11.5
       },
       "nerf": {
         "name": {
@@ -223,7 +226,8 @@
           "fr-FR": "L'IA joue environ 8 rangs plus faible, surtout au début.",
           "de-DE": "Die KI spielt etwa 8 Ränge schwächer, besonders am Anfang."
         },
-        "icon": "📲"
+        "icon": "📲",
+        "value_points": 12.5
       },
       "komi_relief": {
         "name": {
@@ -283,7 +287,8 @@
           "fr-FR": "L'IA joue environ 5 rangs plus faible et se précipite à chaque coup.",
           "de-DE": "Die KI spielt etwa 5 Ränge schwächer und hetzt jeden Zug."
         },
-        "icon": "⏱️"
+        "icon": "⏱️",
+        "value_points": 9.5
       },
       "lowline": {
         "name": {
@@ -343,7 +348,8 @@
           "fr-FR": "Les 8 premiers coups de l'IA choisissent souvent une option plus faible.",
           "de-DE": "Die ersten 8 KI-Züge wählen oft eine schwächere Option."
         },
-        "icon": "🚍"
+        "icon": "🚍",
+        "value_points": 4.5
       },
       "mirror": {
         "name": {
@@ -403,7 +409,8 @@
           "fr-FR": "Chaque coup de l'IA a 12 % de chances de glisser sur un point voisin.",
           "de-DE": "Jeder KI-Zug rutscht mit 12 % Wahrscheinlichkeit auf einen Nachbarpunkt."
         },
-        "icon": "😾"
+        "icon": "😾",
+        "value_points": 30.5
       },
       "blackhole": {
         "name": {
@@ -464,7 +471,8 @@
           "de-DE": "Einmal: Versetze einen gegnerischen Stein auf einen freien Punkt, gratis."
         },
         "icon": "🔄",
-        "uses": 1
+        "uses": 1,
+        "value_points": 13.0
       },
       "fog": {
         "name": {
@@ -644,7 +652,8 @@
           "fr-FR": "Chaque capture fait pousser 1 pierre gratuite juste à côté.",
           "de-DE": "Jeder Fang lässt daneben 1 Gratisstein wachsen."
         },
-        "icon": "🌱"
+        "icon": "🌱",
+        "value_points": 8.0
       },
       "joseki_ocd": {
         "name": {
@@ -674,7 +683,8 @@
           "fr-FR": "Jouez 4 des 7 points marqués et les 3 autres se remplissent pour vous.",
           "de-DE": "Triff 4 von 7 markierten Punkten, die übrigen 3 füllen sich für dich."
         },
-        "icon": "📻"
+        "icon": "📻",
+        "value_points": 13.5
       },
       "handicap_quest": {
         "name": {
@@ -704,7 +714,8 @@
           "fr-FR": "Passez une fois, puis tous les 8 coups l'IA doit passer (3 fois max).",
           "de-DE": "Passe einmal, dann muss die KI alle 8 Züge passen (bis zu 3-mal)."
         },
-        "icon": "🎵"
+        "icon": "🎵",
+        "value_points": 26.5
       },
       "god_hand": {
         "name": {
@@ -734,7 +745,8 @@
           "fr-FR": "Trouvez le point caché pour gagner 3 pierres gratuites autour.",
           "de-DE": "Finde den versteckten Punkt und erhalte 3 Gratissteine drumherum."
         },
-        "icon": "✨"
+        "icon": "✨",
+        "value_points": -0.5
       },
       "sansan_trap": {
         "name": {
@@ -764,7 +776,8 @@
           "fr-FR": "Chaque fois que l'IA joue un san-san, vous gagnez une pierre à côté.",
           "de-DE": "Spielt die KI auf einen San-San-Punkt, bekommst du daneben einen Gratisstein."
         },
-        "icon": "🪤"
+        "icon": "🪤",
+        "value_points": 13.5
       },
       "corner_helper": {
         "name": {
@@ -794,7 +807,8 @@
           "fr-FR": "4 de vos pierres dans un coin vous y rapportent 1 pierre gratuite.",
           "de-DE": "4 deiner Steine in einer Ecke bringen dort 1 Gratisstein."
         },
-        "icon": "🏯"
+        "icon": "🏯",
+        "value_points": 3.5
       },
       "sanrensei": {
         "name": {
@@ -824,7 +838,8 @@
           "fr-FR": "Ouvrez sur 3 hoshi pour 2 pierres gratuites ; 3 pierres à égale distance en rapportent d'autres.",
           "de-DE": "Eröffne auf 3 Sternpunkten für 2 Gratissteine; gleichmäßige Dreierlinien bringen mehr."
         },
-        "icon": "⭐"
+        "icon": "⭐",
+        "value_points": 22.0
       },
       "no_regret": {
         "name": {
@@ -854,7 +869,8 @@
           "fr-FR": "Pas d'annulation, mais après chaque coup de l'IA, 8 % de chances d'une pierre gratuite.",
           "de-DE": "Kein Zurücknehmen, dafür nach jedem KI-Zug 8 % Chance auf einen Gratisstein."
         },
-        "icon": "🚫"
+        "icon": "🚫",
+        "value_points": 81.0
       },
       "quickthink": {
         "name": {
@@ -884,7 +900,8 @@
           "fr-FR": "Jouez en moins de 2 secondes pour un coup bonus ; trop lent, vous passez. Ni indices ni annulation.",
           "de-DE": "Zieh innerhalb von 2 Sekunden für einen Bonuszug; zu langsam heißt Passen. Keine Tipps, kein Zurück."
         },
-        "icon": "⚡"
+        "icon": "⚡",
+        "value_points": 363.5
       },
       "foolish_wisdom": {
         "name": {
@@ -914,7 +931,8 @@
           "fr-FR": "Faites une mauvaise forme et une pierre gratuite pousse à côté.",
           "de-DE": "Bau eine hässliche Form und in der Nähe wächst ein Gratisstein."
         },
-        "icon": "🧠"
+        "icon": "🧠",
+        "value_points": 19.5
       },
       "five_in_row": {
         "name": {
@@ -944,7 +962,8 @@
           "fr-FR": "Alignez exactement 5 pierres pour en gagner 1 à chaque bout.",
           "de-DE": "Bilde genau 5 in einer Reihe für je 1 Gratisstein an beiden Enden."
         },
-        "icon": "🎯"
+        "icon": "🎯",
+        "value_points": -2.0
       },
       "coach_mode": {
         "name": {
@@ -975,7 +994,8 @@
           "de-DE": "Aktiv: Eine stärkere KI spielt deine nächsten 30 Züge."
         },
         "icon": "🎗",
-        "uses": 1
+        "uses": 1,
+        "value_points": -3.5
       },
       "capture_foul": {
         "name": {
@@ -1005,7 +1025,8 @@
           "fr-FR": "Toutes les 4 pierres capturées par l'IA, vous gagnez une pierre sur un bon point.",
           "de-DE": "Für je 4 Steine, die die KI fängt, bekommst du einen Gratisstein auf einem guten Punkt."
         },
-        "icon": "🧺"
+        "icon": "🧺",
+        "value_points": 12.0
       },
       "last_stand": {
         "name": {
@@ -1035,7 +1056,8 @@
           "fr-FR": "Une fois, si vos chances tombent sous 26 % : retire 1 pierre ennemie près du dernier coup et ajoute 1 des vôtres.",
           "de-DE": "Einmal, wenn deine Gewinnchance unter 26 % fällt: Entfernt 1 gegnerischen Stein nahe dem letzten Zug und setzt 1 von dir."
         },
-        "icon": "🫀"
+        "icon": "🫀",
+        "value_points": -0.5
       },
       "defense_first": {
         "name": {
@@ -1065,7 +1087,8 @@
           "fr-FR": "3 coups calmes d'affilée loin de l'ennemi : 1 pierre gratuite (2 fois par partie).",
           "de-DE": "3 ruhige Züge in Folge fern vom Gegner bringen einen Gratisstein (2-mal pro Partie)."
         },
-        "icon": "🛡️"
+        "icon": "🛡️",
+        "value_points": -2.0
       },
       "attack_first": {
         "name": {
@@ -1095,7 +1118,8 @@
           "fr-FR": "3 coups d'affilée collés aux pierres ennemies : 1 pierre gratuite (2 fois par partie).",
           "de-DE": "3 Züge in Folge direkt an gegnerischen Steinen bringen einen Gratisstein (2-mal pro Partie)."
         },
-        "icon": "⚔️"
+        "icon": "⚔️",
+        "value_points": 14.0
       },
       "methodical": {
         "name": {
@@ -1125,7 +1149,8 @@
           "fr-FR": "Jouez 2 pierres à chaque tour, et 3 tous les 10 tours.",
           "de-DE": "Setze jede Runde 2 Steine, jede 10. Runde 3."
         },
-        "icon": "📏"
+        "icon": "📏",
+        "value_points": -2.0
       },
       "momentum": {
         "name": {
@@ -1155,7 +1180,8 @@
           "fr-FR": "Attaquez sans relâche : chaque 3e coup au contact d'affilée ajoute une pierre.",
           "de-DE": "Bleib dran: Jeder 3. Kontaktzug in Folge bringt einen Gratisstein."
         },
-        "icon": "🔥"
+        "icon": "🔥",
+        "value_points": 47.5
       },
       "iron_wall": {
         "name": {
@@ -1185,7 +1211,8 @@
           "fr-FR": "Connectez solidement : chaque 3e coup d'affilée renforce votre groupe le plus faible.",
           "de-DE": "Verbinde solide: Jeder 3. Zug in Folge stärkt deine schwächste Gruppe."
         },
-        "icon": "🧱"
+        "icon": "🧱",
+        "value_points": -0.5
       },
       "capture_chain": {
         "name": {
@@ -1215,7 +1242,8 @@
           "fr-FR": "Capturez à des tours consécutifs pour des pierres bonus : 1, puis 2.",
           "de-DE": "Fange in aufeinanderfolgenden Runden für Bonussteine: 1, dann 2."
         },
-        "icon": "⛓"
+        "icon": "⛓",
+        "value_points": -3.0
       }
     },
     "ultimate": {
@@ -3865,6 +3893,57 @@
       "max": 100,
       "step": 0.5,
       "value": 7.0
+    },
+    "CARD_KOMI_SHARE": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "卡牌贴目：按卡牌价值给 AI 的比例",
+        "zh-TW": "卡牌貼目：按卡牌價值給 AI 的比例",
+        "en-US": "Card komi: share of card value given to the AI",
+        "ja-JP": "カードコミ：カード価値のうちAIに渡す割合",
+        "ko-KR": "카드 덤: 카드 가치 중 AI에게 주는 비율",
+        "fr-FR": "Komi des cartes : part de la valeur donnée à l'IA",
+        "de-DE": "Karten-Komi: Anteil des Kartenwerts für die KI"
+      },
+      "min": 0,
+      "max": 2,
+      "step": 0.05,
+      "value": 0.5
+    },
+    "CARD_KOMI_MAX": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "卡牌贴目：每局上限",
+        "zh-TW": "卡牌貼目：每局上限",
+        "en-US": "Card komi: maximum per game",
+        "ja-JP": "カードコミ：1局の上限",
+        "ko-KR": "카드 덤: 판당 최대",
+        "fr-FR": "Komi des cartes : maximum par partie",
+        "de-DE": "Karten-Komi: Maximum pro Partie"
+      },
+      "min": 0,
+      "max": 100,
+      "step": 0.5,
+      "value": 15.0
+    },
+    "CARD_DEFAULT_POINTS": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "卡牌贴目：未测卡牌的默认价值",
+        "zh-TW": "卡牌貼目：未測卡牌的預設價值",
+        "en-US": "Card komi: default value of an unmeasured card",
+        "ja-JP": "カードコミ：未計測カードの既定値",
+        "ko-KR": "카드 덤: 측정 안 된 카드의 기본 가치",
+        "fr-FR": "Komi des cartes : valeur par défaut d'une carte non mesurée",
+        "de-DE": "Karten-Komi: Standardwert einer ungemessenen Karte"
+      },
+      "min": 0,
+      "max": 100,
+      "step": 0.5,
+      "value": 12.0
     }
   }
 }
