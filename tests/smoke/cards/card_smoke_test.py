@@ -703,6 +703,9 @@ async def smoke_featured_pools():
         def choice(self, items):
             return items[0]
 
+        def random(self):
+            return 0.0
+
     old_random_cls = s.random.Random
     try:
         s.random.Random = FakeRng

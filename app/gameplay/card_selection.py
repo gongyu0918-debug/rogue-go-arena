@@ -15,16 +15,17 @@ from app.data.cards import (
     challenge_category_counts,
     featured_rogue_cards,
     featured_ultimate_cards,
-    rogue_card_ids,
+    offerable_rogue_card_ids,
+    rogue_offer_weight,
     ultimate_card_ids,
 )
 
 
 def pick_rogue_choices(n: int = 3, pool: Optional[list[str]] = None) -> list[str]:
     rng = random.Random(time.time_ns())
-    keys = rogue_card_ids(pool)
+    keys = offerable_rogue_card_ids(pool)
     rng.shuffle(keys)
-    choices = keys[:n]
+    choices = _weighted_unique_sample(keys, n, {card_id: rogue_offer_weight(card_id) for card_id in keys}, rng)
     if choices and not any(card in ROGUE_FEATURED_CARDS for card in choices):
         featured_pool = featured_rogue_cards(keys)
         if featured_pool:
@@ -38,11 +39,11 @@ def pick_challenge_beta_choices(
     pool: Optional[list[str]] = None,
 ) -> list[str]:
     rng = random.Random(time.time_ns())
-    base_pool = rogue_card_ids(pool or CHALLENGE_BETA_POOL, exclude=selected_cards)
+    base_pool = offerable_rogue_card_ids(pool or CHALLENGE_BETA_POOL, exclude=selected_cards)
     if len(base_pool) <= n:
         return base_pool[:n]
 
-    weights = {card_id: 1.0 for card_id in base_pool}
+    weights = {card_id: rogue_offer_weight(card_id) for card_id in base_pool}
     counts = challenge_category_counts(selected_cards)
     for card_id in base_pool:
         category = challenge_card_category(card_id)

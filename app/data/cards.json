@@ -1534,6 +1534,37 @@
       "plague"
     ]
   },
+  "offers": {
+    "rogue_disabled": [
+      "lowline",
+      "komi_relief",
+      "erosion",
+      "mirror",
+      "tengen",
+      "gravity",
+      "sansan",
+      "seal",
+      "blackhole",
+      "golden_corner",
+      "fog",
+      "shadow"
+    ],
+    "rogue_weights": {
+      "sprout": 3,
+      "god_hand": 3,
+      "sansan_trap": 3,
+      "corner_helper": 3,
+      "sanrensei": 3,
+      "five_in_row": 3,
+      "foolish_wisdom": 3,
+      "defense_first": 3,
+      "attack_first": 3,
+      "last_stand": 3,
+      "capture_foul": 3,
+      "joseki_ocd": 3,
+      "no_regret": 3
+    }
+  },
   "challenge": {
     "handicaps": {
       "1": 0,

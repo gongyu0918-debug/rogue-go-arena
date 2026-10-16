@@ -44,6 +44,10 @@ TWO_PLAYER_ROGUE_POOL: list[str] = []
 AI_ROGUE_POOL: list[str] = []
 AI_ULTIMATE_POOL: list[str] = []
 ROGUE_CARD_META: dict[str, dict[str, str]] = {}
+# Player-facing offer tuning: disabled cards are never offered to the player
+# (they stay in the catalog, wiki and AI pools); weights bias the draft.
+ROGUE_DISABLED_CARDS: set[str] = set()
+ROGUE_OFFER_WEIGHTS: dict[str, float] = {}
 ULTIMATE_CARD_META: dict[str, dict[str, str]] = {}
 DEFAULT_ROGUE_META = {"tier": "B", "category": "规则改写", "complexity": "中"}
 DEFAULT_ULTIMATE_META = {"tier": "S", "category": "大招", "complexity": "中"}
@@ -271,8 +275,25 @@ def validate_card_config(config: dict[str, Any]) -> list[str]:
             if not isinstance(handicap, int) or handicap < 0:
                 errors.append(f"challenge.handicaps.{stage}: handicap must be a non-negative integer")
 
+    _validate_offers(config.get("offers", {}), rogue_cards, errors)
     _validate_tuning(config, errors)
     return errors
+
+
+def _validate_offers(offers: Any, rogue_cards: dict[str, Any], errors: list[str]) -> None:
+    if not isinstance(offers, dict):
+        errors.append("offers must be an object")
+        return
+    _validate_pool("rogue_disabled", offers.get("rogue_disabled", []), rogue_cards, errors)
+    weights = offers.get("rogue_weights", {})
+    if not isinstance(weights, dict):
+        errors.append("offers.rogue_weights must be an object")
+        return
+    for card_id, weight in weights.items():
+        if card_id not in rogue_cards:
+            errors.append(f"offers.rogue_weights: unknown card {card_id}")
+        if not isinstance(weight, (int, float)) or isinstance(weight, bool) or weight <= 0:
+            errors.append(f"offers.rogue_weights.{card_id} must be a positive number")
 
 
 def _apply_config(config: dict[str, Any], source_path: Path) -> None:
@@ -302,6 +323,12 @@ def _apply_config(config: dict[str, Any], source_path: Path) -> None:
     AI_ULTIMATE_POOL.clear()
     AI_ULTIMATE_POOL.extend(pools.get("ai_ultimate", []))
 
+    offers = config.get("offers", {})
+    ROGUE_DISABLED_CARDS.clear()
+    ROGUE_DISABLED_CARDS.update(offers.get("rogue_disabled", []))
+    ROGUE_OFFER_WEIGHTS.clear()
+    ROGUE_OFFER_WEIGHTS.update({card_id: float(w) for card_id, w in offers.get("rogue_weights", {}).items()})
+
     CHALLENGE_BETA_HANDICAPS.clear()
     CHALLENGE_BETA_HANDICAPS.update({int(stage): int(value) for stage, value in challenge.get("handicaps", {}).items()})
     CHALLENGE_CATEGORY_MAP.clear()
@@ -319,10 +346,34 @@ def _apply_config(config: dict[str, Any], source_path: Path) -> None:
     CARD_CONFIG_SOURCE_PATH = source_path
 
 
+def _merge_base_defaults(config: dict[str, Any]) -> dict[str, Any]:
+    """Fill gaps in a card-editor override from the shipped base config.
+
+    Overrides saved by older builds would otherwise hide cards and config
+    sections added later. Cards and sections already present are kept as-is.
+    """
+    try:
+        base = _load_json(CARD_CONFIG_BASE_PATH)
+    except Exception:
+        return config
+    merged = copy.deepcopy(config)
+    for mode in ("rogue", "ultimate"):
+        base_cards = base.get("cards", {}).get(mode, {})
+        user_cards = merged.get("cards", {}).get(mode)
+        if isinstance(user_cards, dict):
+            for card_id, card in base_cards.items():
+                user_cards.setdefault(card_id, copy.deepcopy(card))
+    if "offers" not in merged and "offers" in base:
+        merged["offers"] = copy.deepcopy(base["offers"])
+    return merged
+
+
 def reload_card_catalog() -> list[str]:
     path = _active_config_path()
     try:
         config = _load_json(path)
+        if path != CARD_CONFIG_BASE_PATH:
+            config = _merge_base_defaults(config)
         errors = validate_card_config(config)
     except Exception as exc:
         errors = [f"{path}: {exc}"]
@@ -485,6 +536,15 @@ def rogue_card_ids(pool: Iterable[str] | None = None, exclude: Iterable[str] | N
     excluded = set(exclude or [])
     source = list(pool) if pool is not None else list(ROGUE_CARDS.keys())
     return [card_id for card_id in source if card_id in ROGUE_CARDS and card_id not in excluded]
+
+
+def offerable_rogue_card_ids(pool: Iterable[str] | None = None, exclude: Iterable[str] | None = None) -> list[str]:
+    """Rogue cards that may be offered to the player (disabled cards removed)."""
+    return [card_id for card_id in rogue_card_ids(pool, exclude) if card_id not in ROGUE_DISABLED_CARDS]
+
+
+def rogue_offer_weight(card_id: str) -> float:
+    return ROGUE_OFFER_WEIGHTS.get(card_id, 1.0)
 
 
 def ultimate_card_ids(exclude: Iterable[str] | None = None) -> list[str]:
