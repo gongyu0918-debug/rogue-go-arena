@@ -87,11 +87,13 @@ class RetryEngine:
             if self.undo_error:
                 return "? cannot undo"
             self.history.pop()
-        elif command.startswith("genmove "):
+        elif command.startswith(("genmove ", "kata-genmove_analyze ")):
             response = self.responses.pop(0) if self.responses else "= B8"
             move = response.removeprefix("=").strip()
             if not response.startswith("?") and move.upper() != "RESIGN":
                 self.history.append(f"{command.split()[1]} {move}")
+            if command.startswith("kata-genmove_analyze ") and not response.startswith("?"):
+                return f"=\nplay {move}"
             return response
         elif command.startswith("play "):
             self.history.append(command.removeprefix("play "))
@@ -249,12 +251,15 @@ class KoRegression(unittest.TestCase):
         self.assertEqual([call.args[0]["type"] for call in send.call_args_list], ["error"])
         self.assertFalse(any(cmd.startswith("play ") or cmd == "undo" for cmd in engine.commands))
 
-    def test_rejected_pass_is_undone_before_restricted_retry(self):
+    def test_rejected_pass_is_undone_before_legal_fallback(self):
         engine = RetryEngine(responses=["= pass", "= D4"])
         engine.history = ["previous player move"]
         move = asyncio.run(service_for(engine).avoid_points(make_ko_game(), "W", 800, 3.0, {(1, 1)}))
         self.assertEqual(move, "D4")
         self.assertEqual(engine.history, ["previous player move", "W D4"])
+        searches = [cmd for cmd in engine.commands if cmd.startswith(("genmove", "kata-genmove_analyze"))]
+        self.assertEqual(searches, ["kata-genmove_analyze W avoid W B8 1"])
+        self.assertIn("undo", engine.commands)
 
     def test_all_ai_pass_paths_clear_ko(self):
         for kind in ("normal", "auxiliary", "ultimate", "forced"):

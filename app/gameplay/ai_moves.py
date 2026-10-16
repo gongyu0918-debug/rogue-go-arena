@@ -97,6 +97,15 @@ def snapshot_ai_turn(
     )
 
 
+def parse_genmove_analyze_move(response: str) -> Optional[str]:
+    """Return the move from a ``kata-genmove_analyze`` response ("play D4")."""
+    for line in reversed(response.splitlines()):
+        line = line.strip().lstrip("=").strip()
+        if line.startswith("play "):
+            return line.split()[1]
+    return None
+
+
 def weaken_rank(level: str, steps: int = 1) -> str:
     try:
         idx = RANK_ORDER.index(level)
@@ -497,42 +506,36 @@ class AiMoveService:
         forbidden_coords = set(forbidden)
 
         def _analyze_and_pick():
+            # KataGo excludes the forbidden points from its own search, so the
+            # AI keeps its full strength instead of retrying with fewer visits.
+            avoid_arg = f" avoid {color} {','.join(sorted(forbidden_gtp))} 1" if forbidden_gtp else ""
             with self._engine.command_lock:
                 mv = 10000000 if visits == 0 else visits
                 self._engine._send_command_locked(f"kata-set-param maxVisits {mv}")
                 self._engine.current_visits = visits
                 self._engine._send_command_locked(f"kata-set-param maxTime {time_limit}")
                 resp = self._engine._send_command_locked(
-                    f"genmove {color}",
+                    f"kata-genmove_analyze {color}{avoid_arg}",
                     timeout=max(60, time_limit + 15),
                 )
                 self._clear_max_time_locked()
+                if resp.lstrip().startswith("?"):
+                    return None
 
-                gtp_move = resp.replace("=", "").strip()
+                gtp_move = parse_genmove_analyze_move(resp)
                 if (
-                    gtp_move.upper() not in ("PASS", "RESIGN")
+                    gtp_move
+                    and gtp_move.upper() not in ("PASS", "RESIGN")
                     and gtp_move.upper() not in forbidden_gtp_upper
                 ):
                     return gtp_move
 
-                if gtp_move.upper() != "RESIGN":
+                # Pass (or an unexpected forbidden move) was played on the
+                # engine board; take it back before the legal-move fallbacks.
+                if gtp_move and gtp_move.upper() != "RESIGN":
                     undo_resp = self._engine._send_command_locked("undo")
                     if undo_resp.lstrip().startswith("?"):
                         return undo_resp
-                for attempt in range(5):
-                    v = max(50, visits // (2 + attempt))
-                    self._engine._send_command_locked(f"kata-set-param maxVisits {v}")
-                    resp2 = self._engine._send_command_locked(f"genmove {color}", timeout=20)
-                    m = resp2.replace("=", "").strip()
-                    if (
-                        m.upper() not in ("PASS", "RESIGN")
-                        and m.upper() not in forbidden_gtp_upper
-                    ):
-                        return m
-                    if m.upper() != "RESIGN":
-                        undo_resp = self._engine._send_command_locked("undo")
-                        if undo_resp.lstrip().startswith("?"):
-                            return undo_resp
                 return None
 
         picked = await self._run_in_executor(_analyze_and_pick)

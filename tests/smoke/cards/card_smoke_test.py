@@ -46,6 +46,9 @@ class DummyEngine:
             if self._queued_moves:
                 return "= " + self._queued_moves.pop(0)
             return "= pass"
+        if cmd.startswith("kata-genmove_analyze "):
+            move = self._queued_moves.pop(0) if self._queued_moves else "pass"
+            return f"=\nplay {move}"
         if cmd.startswith("play "):
             parts = cmd.split()
             if len(parts) >= 3:
