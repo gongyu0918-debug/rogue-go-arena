@@ -288,7 +288,8 @@
           "de-DE": "Die KI spielt etwa 5 Ränge schwächer und hetzt jeden Zug."
         },
         "icon": "⏱️",
-        "value_points": 9.5
+        "value_points": 9.5,
+        "rogue_points": 32.5
       },
       "lowline": {
         "name": {
@@ -410,7 +411,8 @@
           "de-DE": "Jeder KI-Zug rutscht mit 12 % Wahrscheinlichkeit auf einen Nachbarpunkt."
         },
         "icon": "😾",
-        "value_points": 30.5
+        "value_points": 30.5,
+        "rogue_points": 57.5
       },
       "blackhole": {
         "name": {
@@ -746,7 +748,8 @@
           "de-DE": "Finde den versteckten Punkt und erhalte 3 Gratissteine drumherum."
         },
         "icon": "✨",
-        "value_points": -0.5
+        "value_points": -0.5,
+        "rogue_points": 32.5
       },
       "sansan_trap": {
         "name": {
@@ -808,7 +811,8 @@
           "de-DE": "4 deiner Steine in einer Ecke bringen dort 1 Gratisstein."
         },
         "icon": "🏯",
-        "value_points": 3.5
+        "value_points": 3.5,
+        "rogue_points": 26.0
       },
       "sanrensei": {
         "name": {
@@ -870,7 +874,8 @@
           "de-DE": "Kein Zurücknehmen, dafür nach jedem KI-Zug 8 % Chance auf einen Gratisstein."
         },
         "icon": "🚫",
-        "value_points": 81.0
+        "value_points": 81.0,
+        "rogue_points": 135.5
       },
       "quickthink": {
         "name": {
@@ -901,7 +906,8 @@
           "de-DE": "Jeden 5. Zug: Zieh in 2 Sekunden für einen Bonuszug (4 pro Partie); zu langsam heißt Passen. Keine Tipps, kein Zurück."
         },
         "icon": "⚡",
-        "value_points": 67.0
+        "value_points": 67.0,
+        "rogue_points": 54.5
       },
       "foolish_wisdom": {
         "name": {
@@ -932,7 +938,8 @@
           "de-DE": "Bau eine hässliche Form und in der Nähe wächst ein Gratisstein."
         },
         "icon": "🧠",
-        "value_points": 19.5
+        "value_points": 19.5,
+        "rogue_points": 50.5
       },
       "five_in_row": {
         "name": {
@@ -963,7 +970,8 @@
           "de-DE": "Bilde genau 5 in einer Reihe für je 1 Gratisstein an beiden Enden."
         },
         "icon": "🎯",
-        "value_points": -2.0
+        "value_points": -2.0,
+        "rogue_points": 36.0
       },
       "coach_mode": {
         "name": {
@@ -1057,7 +1065,8 @@
           "de-DE": "Einmal, wenn deine Gewinnchance unter 26 % fällt: Entfernt 1 gegnerischen Stein nahe dem letzten Zug und setzt 1 von dir."
         },
         "icon": "🫀",
-        "value_points": -0.5
+        "value_points": -0.5,
+        "rogue_points": 13.5
       },
       "defense_first": {
         "name": {
@@ -1119,7 +1128,8 @@
           "de-DE": "3 Züge in Folge direkt an gegnerischen Steinen bringen einen Gratisstein (2-mal pro Partie)."
         },
         "icon": "⚔️",
-        "value_points": 14.0
+        "value_points": 14.0,
+        "rogue_points": 31.0
       },
       "methodical": {
         "name": {
@@ -1181,7 +1191,8 @@
           "de-DE": "Bleib dran: Jeder 3. Kontaktzug in Folge bringt einen Gratisstein."
         },
         "icon": "🔥",
-        "value_points": 47.5
+        "value_points": 47.5,
+        "rogue_points": 82.5
       },
       "iron_wall": {
         "name": {
@@ -3824,7 +3835,7 @@
       "min": -100,
       "max": 100,
       "step": 0.5,
-      "value": 10.0
+      "value": 30.0
     },
     "RUN_STAGE4_AI_STONES": {
       "group": "Run",
@@ -3841,7 +3852,7 @@
       "min": 0,
       "max": 9,
       "step": 1,
-      "value": 3
+      "value": 4
     },
     "RUN_STAGE4_KOMI_POINTS": {
       "group": "Run",
@@ -3858,7 +3869,7 @@
       "min": -100,
       "max": 100,
       "step": 0.5,
-      "value": 15.0
+      "value": 27.0
     },
     "RUN_STAGE5_AI_STONES": {
       "group": "Run",
@@ -3875,7 +3886,7 @@
       "min": 0,
       "max": 9,
       "step": 1,
-      "value": 5
+      "value": 7
     },
     "RUN_STAGE5_KOMI_POINTS": {
       "group": "Run",
@@ -3892,7 +3903,7 @@
       "min": -100,
       "max": 100,
       "step": 0.5,
-      "value": 15.0
+      "value": 30.0
     },
     "CARD_KOMI_SHARE": {
       "group": "Difficulty",
@@ -4012,6 +4023,40 @@
       "max": 100,
       "step": 0.5,
       "value": 60.0
+    },
+    "ROGUE_CARD_KOMI_SHARE": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "Rogue 模式卡牌贴目：按卡牌价值给 AI 的比例",
+        "zh-TW": "Rogue 模式卡牌貼目：按卡牌價值給 AI 的比例",
+        "en-US": "Rogue mode card komi: share of the card's value given to the AI",
+        "ja-JP": "ローグモードのカードコミ：カード価値のうちAIに渡す割合",
+        "ko-KR": "로그 모드 카드 덤: 카드 가치 중 AI에게 주는 비율",
+        "fr-FR": "Komi des cartes en mode Rogue : part de la valeur de la carte donnée à l'IA",
+        "de-DE": "Karten-Komi im Rogue-Modus: Anteil des Kartenwerts für die KI"
+      },
+      "min": 0,
+      "max": 2,
+      "step": 0.05,
+      "value": 0.9
+    },
+    "ROGUE_CARD_KOMI_MAX": {
+      "group": "Difficulty",
+      "card": "",
+      "label": {
+        "zh-CN": "Rogue 模式卡牌贴目：上限",
+        "zh-TW": "Rogue 模式卡牌貼目：上限",
+        "en-US": "Rogue mode card komi: cap",
+        "ja-JP": "ローグモードのカードコミ：上限",
+        "ko-KR": "로그 모드 카드 덤: 상한",
+        "fr-FR": "Komi des cartes en mode Rogue : plafond",
+        "de-DE": "Karten-Komi im Rogue-Modus: Obergrenze"
+      },
+      "min": 0,
+      "max": 200,
+      "step": 0.5,
+      "value": 150.0
     },
     "CARD_DEFAULT_POINTS": {
       "group": "Difficulty",

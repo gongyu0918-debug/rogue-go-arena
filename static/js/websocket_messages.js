@@ -233,13 +233,7 @@ function handleAnalysisMessage(msg) {
   if (!reviewMode) pushWinratePoint(msg.winrate, msg.score);
   const sc = msg.score;
   updateTargetDisplay(sc);
-  const unit = (gameState && gameState.komi === 7.5) ? "子" : "目";
-  document.getElementById("info-score").textContent =
-    sc > 0.5
-      ? ui(`黑领先 ${sc.toFixed(1)}${unit}`, `Black +${sc.toFixed(1)} ${unit === "子" ? "stones" : "points"}`)
-      : sc < -0.5
-        ? ui(`白领先 ${Math.abs(sc).toFixed(1)}${unit}`, `White +${Math.abs(sc).toFixed(1)} ${unit === "子" ? "stones" : "points"}`)
-        : ui("持平", "Even");
+  document.getElementById("info-score").textContent = formatLeadText(sc);
 
   if (msg.ownership && msg.ownership.length > 0) {
     const own = msg.ownership;
@@ -248,11 +242,7 @@ function handleAnalysisMessage(msg) {
     own.forEach(v => { if (v > 0.5) bTerr++; else if (v < -0.5) wTerr++; });
     const diff = bTerr - wTerr;
     document.getElementById("info-territory").textContent =
-      diff > 0
-        ? ui(`黑多 ${diff} ${unit}`, `Black +${diff} ${unit === "子" ? "stones" : "points"}`)
-        : diff < 0
-          ? ui(`白多 ${Math.abs(diff)} ${unit}`, `White +${Math.abs(diff)} ${unit === "子" ? "stones" : "points"}`)
-          : ui("均势", "Balanced");
+      formatTerritoryText(diff);
   } else {
     document.getElementById("info-territory").textContent = "--";
   }
@@ -274,21 +264,21 @@ function handleGameOverMessage(msg) {
     ? `${winnerName}${ui("胜！", " wins!")}`
     : (youWin ? ui("你赢了！", "You win!") : msg.winner ? ui("AI 胜利", "AI wins") : ui("平局", "Draw"));
   const scoreRaw = msg.score || "";
-  const scoreKomi = gameState?.komi;
+  const scoreRules = msg.rules || gameState?.rules;
   const targetText = targetResultText(scoreRaw);
-  const scoreDisplay = [formatScoreDisplay(scoreRaw, scoreKomi), targetText].filter(Boolean).join(" · ");
+  const scoreDisplay = [formatScoreDisplay(scoreRaw, scoreRules), targetText].filter(Boolean).join(" · ");
   showOverlay(titleText, reasonText(msg.reason), winnerName, scoreDisplay);
   if (targetText) log(targetText);
-  logGameOverMessage(msg, scoreRaw, scoreKomi);
+  logGameOverMessage(msg, scoreRaw, scoreRules);
   handleChallengeGameOver(msg, youWin);
 }
 
-function logGameOverMessage(msg, scoreRaw, scoreKomi) {
+function logGameOverMessage(msg, scoreRaw, scoreRules) {
   const winnerCode = msg.winner;
   const reasonCode = msg.reason;
   logRender(() => {
     const winner = winnerCode === "B" ? ui("黑棋", "Black", "黒", "흑") : winnerCode === "W" ? ui("白棋", "White", "白", "백") : ui("平局", "Draw", "持碁", "무승부");
-    const score = formatScoreDisplay(scoreRaw, scoreKomi);
+    const score = formatScoreDisplay(scoreRaw, scoreRules);
     const reason = reasonText(reasonCode);
     return ui(
       `${winner}胜 ${score} (${reason})`,

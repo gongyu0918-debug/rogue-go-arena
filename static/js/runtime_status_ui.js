@@ -200,23 +200,78 @@ function scoreWinnerLabel(color) {
   return color === "B" ? ui("黑", "Black", "黒", "흑") : ui("白", "White", "白", "백");
 }
 
+// The unit follows the rules the game is played under (area scoring counts
+// stones, territory scoring counts points). It used to be guessed from komi
+// 7.5, which broke as soon as handicap, difficulty or card komi moved it.
+function isChineseRulesGame(rules = gameState?.rules) {
+  return (rules || "chinese") === "chinese";
+}
+
 function scoreUnitText(isChineseRules) {
   if (currentLang === "en") return isChineseRules ? "stones" : "points";
-  if (currentLang === "ko") return "집";
+  if (currentLang === "fr") return isChineseRules ? "pierres" : "points";
+  if (currentLang === "de") return isChineseRules ? "Steine" : "Punkte";
+  if (currentLang === "ko") return isChineseRules ? "자" : "집";
   return isChineseRules ? "子" : "目";
 }
 
-function formatScoreDisplay(score, komi) {
+// Chinese counting states a result in stones: half the point difference
+// (each stone counted for one side is one fewer for the other), so a
+// 7.5-point win is 3.75 stones. Other rules keep points.
+function scoreAmount(points, isChineseRules, decimals = 2) {
+  const value = Math.abs(Number(points)) / (isChineseRules ? 2 : 1);
+  return String(Number(value.toFixed(decimals)));
+}
+
+// Live estimate from the analysis: blackLead > 0 means Black is ahead.
+function formatLeadText(blackLead, rules = gameState?.rules) {
+  if (!(Math.abs(blackLead) > 0.5)) return ui("持平", "Even");
+  const who = scoreWinnerLabel(blackLead > 0 ? "B" : "W");
+  const isChineseRules = isChineseRulesGame(rules);
+  const n = Math.abs(blackLead / (isChineseRules ? 2 : 1)).toFixed(1);
+  const unit = scoreUnitText(isChineseRules);
+  if (currentLang === "zh") return `${who}领先 ${n}${unit}`;
+  if (currentLang === "zht") return `${who}領先 ${n}${unit}`;
+  if (currentLang === "ja") return `${who}${n}${unit}リード`;
+  if (currentLang === "ko") return `${who} ${n}${unit} 우세`;
+  return `${who} +${n} ${unit}`;
+}
+
+// Estimated territory difference from ownership: diff > 0 means Black has more.
+function formatTerritoryText(diff, rules = gameState?.rules) {
+  if (!diff) return ui("均势", "Balanced");
+  const who = scoreWinnerLabel(diff > 0 ? "B" : "W");
+  const isChineseRules = isChineseRulesGame(rules);
+  const n = scoreAmount(diff, isChineseRules);
+  const unit = scoreUnitText(isChineseRules);
+  if (currentLang === "zh" || currentLang === "zht") return `${who}多 ${n}${unit}`;
+  if (currentLang === "ja") return `${who}が${n}${unit}多い`;
+  if (currentLang === "ko") return `${who} ${n}${unit} 많음`;
+  return `${who} +${n} ${unit}`;
+}
+
+function formatScoreDisplay(score, rules = gameState?.rules) {
   const rawScore = score || "—";
   const m = String(rawScore).match(/^([BW])\+(.+)$/);
   if (!m) return rawScore;
   const who = scoreWinnerLabel(m[1]);
-  const isChineseRules = komi === 7.5;
+  const isChineseRules = isChineseRulesGame(rules);
   const unit = scoreUnitText(isChineseRules);
-  if (currentLang === "en") return `${who} +${m[2]} ${unit}`;
-  if (currentLang === "ja") return `${who}${m[2]}${unit}勝ち`;
-  if (currentLang === "ko") return `${who} ${m[2]}${unit} 승`;
-  return `${who}胜${m[2]}${unit}`;
+  const how = m[2].trim().toUpperCase();
+  if (how === "T" || how === "TIME") {
+    return { zh: `${who}超时胜`, zht: `${who}超時勝`, ja: `${who}時間切れ勝ち`, ko: `${who} 시간승`,
+      fr: `${who} gagne au temps`, de: `${who} gewinnt nach Zeit` }[currentLang] || `${who} wins on time`;
+  }
+  if (how === "R" || how === "RESIGN") {
+    return { zh: `${who}中盘胜`, zht: `${who}中盤勝`, ja: `${who}中押し勝ち`, ko: `${who} 불계승`,
+      fr: `${who} gagne par abandon`, de: `${who} gewinnt durch Aufgabe` }[currentLang] || `${who} wins by resignation`;
+  }
+  const n = Number.isFinite(Number(m[2])) ? scoreAmount(m[2], isChineseRules) : m[2];
+  if (currentLang === "en" || currentLang === "fr" || currentLang === "de") return `${who} +${n} ${unit}`;
+  if (currentLang === "ja") return `${who}${n}${unit}勝ち`;
+  if (currentLang === "ko") return `${who} ${n}${unit} 승`;
+  if (currentLang === "zht") return `${who}勝${n}${unit}`;
+  return `${who}胜${n}${unit}`;
 }
 
 function updateUI() {
@@ -311,6 +366,9 @@ window.showOverlay = showOverlay;
 window.closeOverlay = closeOverlay;
 window.reasonText = reasonText;
 window.formatScoreDisplay = formatScoreDisplay;
+window.formatLeadText = formatLeadText;
+window.formatTerritoryText = formatTerritoryText;
+window.isChineseRulesGame = isChineseRulesGame;
 window.updateUI = updateUI;
 window.updateWinRate = updateWinRate;
 })();

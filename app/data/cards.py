@@ -146,11 +146,12 @@ def _validate_card_map(config: dict[str, Any], mode: str, errors: list[str]) -> 
         uses = card.get("uses")
         if uses is not None and (not isinstance(uses, int) or isinstance(uses, bool) or uses < 0):
             errors.append(f"{ref}: uses must be a non-negative integer")
-        value_points = card.get("value_points")
-        if value_points is not None and (
-            not isinstance(value_points, (int, float)) or isinstance(value_points, bool) or not -1000 <= value_points <= 1000
-        ):
-            errors.append(f"{ref}: value_points must be a number from -1000 to 1000")
+        for key in ("value_points", "rogue_points"):
+            points = card.get(key)
+            if points is not None and (
+                not isinstance(points, (int, float)) or isinstance(points, bool) or not -1000 <= points <= 1000
+            ):
+                errors.append(f"{ref}: {key} must be a number from -1000 to 1000")
 
 
 def _validate_pool(name: str, pool: Any, catalog: dict[str, Any], errors: list[str]) -> None:

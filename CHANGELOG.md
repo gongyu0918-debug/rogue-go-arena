@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.1.43 (2026-10-22)
+
+Balance (details and self-play numbers in docs/balance-update-20261020.md):
+- Late run stages stay close: stage 3 komi 30 (was 10), stage 4 has 4 stones
+  and 27 komi (was 3 and 15), stage 5 has 7 stones and 30 komi (was 5 and
+  15). A same-strength player now wins about half of stages 3 to 5, with mean
+  leads of +2, +5 and -5 (was +26, +31 and +56).
+- Rogue mode charges the AI 90% of the card's measured Rogue-mode value, up
+  to 150 (was at most 15). The new per-card `rogue_points` covers the 11
+  cards whose Rogue-mode worth differed from `value_points` (No Regrets 135.5,
+  Momentum 82.5, ...). Average lead per card fell from +18.9 to +2.1, and
+  games won by 30+ from 38% to 8%.
+
+Display:
+- Chinese-rules scores show stones (子), strictly half the point difference
+  (7.5 points = 3.75子). The rules come from the game, no longer guessed from
+  komi 7.5.
+- Resignation and timeout results read "wins by resignation" / "wins on time"
+  (中盘胜 / 超时胜) instead of "R子" / "T子".
+- Card picker: three separate, same-size cards (no outer frame); "How it
+  works" opens over the card, so the card keeps its size.
+
+Tools:
+- `tools/run_curve_eval.py --quick-card none` plays Rogue-mode games without
+  a card, as a baseline.
+
 ## 0.1.42 (2026-10-16)
 
 Balance (details and self-play numbers in docs/balance-update-20261016.md):

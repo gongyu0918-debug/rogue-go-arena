@@ -95,6 +95,11 @@
           "type": "number",
           "minimum": -1000,
           "maximum": 1000
+        },
+        "rogue_points": {
+          "type": "number",
+          "minimum": -1000,
+          "maximum": 1000
         }
       }
     },

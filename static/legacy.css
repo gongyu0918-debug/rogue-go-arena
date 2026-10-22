@@ -2830,36 +2830,95 @@ header::before { display: none; }
   accent-color: #d4af37;
 }
 
-/* Card pick screen: art, name, one plain type, a one-line summary in full,
-   and the full rules behind "How it works". Nothing is truncated. */
+/* Card pick screen: three separate, same-size cards on the dimmed board (no
+   outer panel). Each card shows art, name, one plain type and a one-line
+   summary; "How it works" lays the full rules over the card face, so a card
+   never changes size. */
 .card-draft-modal {
-  width: min(980px, 94vw);
+  width: min(980px, 96vw);
   max-width: 980px !important;
-  max-height: 94vh;
+  max-height: 96vh;
   overflow-y: auto;
-}
-.card-draft-modal {
+  padding: 8px 12px 18px !important;
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
   scrollbar-color: rgba(212,175,55,.45) rgba(0,0,0,.25);
+}
+.card-draft-modal > h2 {
+  text-shadow: 0 2px 12px rgba(0,0,0,.85);
+}
+.card-draft-modal > p {
+  color: #d9d2c0 !important;
+  text-shadow: 0 1px 8px rgba(0,0,0,.9);
+  margin-bottom: 18px !important;
 }
 .card-draft-modal #rogue-cards,
 .card-draft-modal #ultimate-cards {
-  gap: 16px !important;
-  align-items: start !important;
+  grid-template-columns: repeat(3, 268px) !important;
+  justify-content: center;
+  gap: 26px !important;
+  align-items: stretch !important;
 }
 .draft-card {
+  --card-gold: rgba(222,184,92,.78);
+  position: relative;
+  box-sizing: border-box;
+  width: 268px;
+  /* 5:7 is the minimum shape; long text may grow a card, and the grid row
+     stretches all three to the same height, so nothing is ever clipped. */
+  aspect-ratio: 5 / 7;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  min-height: 0;
-  padding: 22px 18px 16px;
+  padding: 26px 20px 16px;
   text-align: center;
   cursor: pointer;
   outline: none;
+  border-radius: 18px;
+  border: 2px solid var(--card-gold) !important;
+  background:
+    radial-gradient(ellipse at 50% 22%, rgba(70,230,215,.14), transparent 46%),
+    radial-gradient(ellipse at 50% 108%, rgba(212,175,55,.18), transparent 48%),
+    linear-gradient(180deg, rgba(12,10,8,.35), rgba(5,6,8,.72)),
+    url('assets/textures/ui-dark-wood-v1.png?v=20260425a'),
+    linear-gradient(180deg, #2c1d11, #0b0b0d) !important;
+  background-size: auto, auto, auto, cover, auto !important;
+  box-shadow:
+    0 22px 38px rgba(0,0,0,.62),
+    0 3px 0 rgba(255,232,170,.08) inset,
+    0 0 0 1px rgba(0,0,0,.65);
+}
+/* The inner frame line that makes it read as a printed card. */
+.draft-card::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border-radius: 12px;
+  border: 1px solid rgba(222,184,92,.34);
+  pointer-events: none;
+}
+.draft-card:hover {
+  border-color: #f0c860 !important;
+  transform: translateY(-6px);
+  box-shadow: 0 30px 44px rgba(0,0,0,.66), 0 0 26px rgba(212,175,55,.22);
+}
+.draft-card.selected {
+  border-color: #fbe3a0 !important;
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 0 34px rgba(245,221,147,.4), 0 26px 40px rgba(0,0,0,.6);
 }
 .draft-card:focus-visible {
-  border-color: #f5dd93;
-  box-shadow: 0 0 0 3px rgba(245,221,147,.7), 0 18px 32px rgba(0,0,0,.38);
+  border-color: #f5dd93 !important;
+  box-shadow: 0 0 0 3px rgba(245,221,147,.7), 0 22px 38px rgba(0,0,0,.6);
+}
+@media (max-width: 980px) {
+  .card-draft-modal #rogue-cards,
+  .card-draft-modal #ultimate-cards {
+    grid-template-columns: 268px !important;
+  }
 }
 .draft-card .rc-icon {
   width: 124px;
@@ -2912,6 +2971,8 @@ header::before { display: none; }
   overflow-wrap: anywhere;
 }
 .overlay-modal .modal-content .draft-card .rc-more {
+  position: relative;
+  z-index: 3;
   margin-top: auto;
   padding: 6px 10px;
   width: auto;
@@ -2935,17 +2996,25 @@ header::before { display: none; }
   outline: 2px solid rgba(111,227,212,.5);
   outline-offset: 1px;
 }
+/* Full rules: laid over the card face (above the button), scrolling if long. */
 .draft-card .rc-rules {
-  width: 100%;
+  position: absolute;
+  z-index: 2;
+  inset: 12px 12px 50px 12px;
   margin: 0;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(0,0,0,.32);
-  color: #d0d7de;
-  font-size: .88rem;
+  padding: 14px 14px;
+  overflow-y: auto;
+  border-radius: 12px;
+  background: rgba(8,9,11,.95);
+  border: 1px solid rgba(222,184,92,.3);
+  color: #dfe5ea;
+  font-size: .9rem;
   line-height: 1.55;
   text-align: left;
   overflow-wrap: anywhere;
+}
+.draft-card .rc-rules[hidden] {
+  display: none;
 }
 
 /* Card games: the target (the AI's head start) beside the score bar. */

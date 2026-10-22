@@ -224,8 +224,8 @@ DIFFICULTY_HARD_STONES = 2
 
 # Card-strength komi (see app/gameplay/card_komi.py): the AI gets this share
 # of the measured value_points of the cards you hold, up to the cap for the
-# stage (Quick Game uses stage 1). The caps start low so the opening komi is
-# friendly and grow as decks grow; CARD_KOMI_MAX is the overall ceiling.
+# stage. The caps start low so the opening komi is friendly and grow as decks
+# grow; CARD_KOMI_MAX is the overall ceiling.
 CARD_KOMI_SHARE = 1.0
 CARD_KOMI_MAX = 60.0
 CARD_KOMI_MAX_STAGE1 = 15.0
@@ -233,21 +233,27 @@ CARD_KOMI_MAX_STAGE2 = 25.0
 CARD_KOMI_MAX_STAGE3 = 35.0
 CARD_KOMI_MAX_STAGE4 = 50.0
 CARD_KOMI_MAX_STAGE5 = 60.0
+# Rogue mode (one card, one game) charges most of the card's value, measured
+# in Rogue-mode games (rogue_points, else value_points), so a strong card still
+# wins but by a few points, not by thirty or more.
+ROGUE_CARD_KOMI_SHARE = 0.9
+ROGUE_CARD_KOMI_MAX = 150.0
 CARD_DEFAULT_POINTS = 12.0
 
 # Run curve (see app/gameplay/run_curve.py): five stages; each gives the AI
-# handicap stones (0 or 2+) and komi points. About 0, 5, 31, 50, 78 points before
-# cards (calibrated by self-play, see docs/run-curve-calibration-20261013.md).
+# handicap stones (0 or 2+) and komi points. About 0, 5, 51, 76, 121 points before
+# cards: friendly first two stages, close games from stage 3 on (calibrated by
+# self-play, see docs/balance-update-20261020.md).
 RUN_STAGE1_AI_STONES = 0
 RUN_STAGE1_KOMI_POINTS = 0.0
 RUN_STAGE2_AI_STONES = 0
 RUN_STAGE2_KOMI_POINTS = 5.0
 RUN_STAGE3_AI_STONES = 2
-RUN_STAGE3_KOMI_POINTS = 10.0
-RUN_STAGE4_AI_STONES = 3
-RUN_STAGE4_KOMI_POINTS = 15.0
-RUN_STAGE5_AI_STONES = 5
-RUN_STAGE5_KOMI_POINTS = 15.0
+RUN_STAGE3_KOMI_POINTS = 30.0
+RUN_STAGE4_AI_STONES = 4
+RUN_STAGE4_KOMI_POINTS = 27.0
+RUN_STAGE5_AI_STONES = 7
+RUN_STAGE5_KOMI_POINTS = 30.0
 
 # AI rally: in Rogue games, when the player leads by a lot, the AI plays one
 # extra stone on its best point so big leads stay contested. The lead needed
@@ -359,6 +365,8 @@ BALANCE_TUNABLES = {
     "CARD_KOMI_MAX_STAGE3": {"group": "Difficulty", "card": "", "label": "卡牌贴目：第 3 关上限", "min": 0, "max": 100, "step": 0.5},
     "CARD_KOMI_MAX_STAGE4": {"group": "Difficulty", "card": "", "label": "卡牌贴目：第 4 关上限", "min": 0, "max": 100, "step": 0.5},
     "CARD_KOMI_MAX_STAGE5": {"group": "Difficulty", "card": "", "label": "卡牌贴目：第 5 关上限", "min": 0, "max": 100, "step": 0.5},
+    "ROGUE_CARD_KOMI_SHARE": {"group": "Difficulty", "card": "", "label": "Rogue 模式卡牌贴目：按卡牌价值给 AI 的比例", "min": 0, "max": 2, "step": 0.05},
+    "ROGUE_CARD_KOMI_MAX": {"group": "Difficulty", "card": "", "label": "Rogue 模式卡牌贴目：上限", "min": 0, "max": 200, "step": 0.5},
     "CARD_DEFAULT_POINTS": {"group": "Difficulty", "card": "", "label": "卡牌贴目：未测卡牌的默认价值", "min": 0, "max": 100, "step": 0.5},
     "RUN_STAGE1_AI_STONES": {"group": "Run", "card": "", "label": "第 1 关：AI 让子数", "min": 0, "max": 9, "step": 1},
     "RUN_STAGE1_KOMI_POINTS": {"group": "Run", "card": "", "label": "第 1 关：给 AI 的贴目", "min": -100, "max": 100, "step": 0.5},

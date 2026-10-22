@@ -100,7 +100,8 @@ and `runtime_smoke_test.py` needs `--base-url http://127.0.0.1:8000`
 - `tools/card_balance_eval.py`: measures one card at a time in self-play.
 - `tools/run_curve_eval.py`: plays whole runs or Quick Games against the
   standard AI. `--player-level` gives your side a weaker engine, `--set KEY=VALUE`
-  overrides a tuning value, `--quick-card` plays Quick Games.
+  overrides a tuning value, `--quick-card CARD` plays Rogue-mode games
+  (`--quick-card none` without a card, as a baseline).
 - `tools/card_art/`: regenerates the round card art (see [tools/README.md](../tools/README.md)).
 
 Results and the reasoning behind the current numbers:

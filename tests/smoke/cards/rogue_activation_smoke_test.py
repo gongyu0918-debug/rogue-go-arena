@@ -207,7 +207,7 @@ async def _server_activate_rogue_card_wrapper_sends_events_and_syncs_komi() -> N
         s.apply_rogue_card_activation = original_activation
 
     # The card's strength is charged to the AI as komi on top of the activation's own change.
-    charge = card_komi_points(["blackhole"], 1, game.size)
+    charge = card_komi_points(["blackhole"], 1, game.size, rogue_mode=True)
     expected_komi = 3.5 + charge if game.ai_color == "W" else 3.5 - charge
     assert game.komi == expected_komi and game.card_komi_points == charge
     assert calls == [
@@ -265,17 +265,17 @@ async def _server_activate_rogue_card_wrapper_skips_komi_sync_when_not_needed_or
     s.run_in_executor = run_executor
     s.apply_rogue_card_activation = fake_activation
     try:
-        # God's Hand measures below 0, so it carries no card komi and needs no sync.
-        await s._activate_rogue_card(game, send, "god_hand")
+        # Coach Mode measures below 0, so it carries no card komi and needs no sync.
+        await s._activate_rogue_card(game, send, "coach_mode")
     finally:
         s.engine.ready = original_ready
         s.run_in_executor = original_run_executor
         s.apply_rogue_card_activation = original_activation
 
-    assert card_komi_points(["god_hand"]) == 0
+    assert card_komi_points(["coach_mode"], rogue_mode=True) == 0
     assert calls == []
     assert sent[0]["type"] == "rogue_card_selected"
-    assert sent[0]["card_id"] == "god_hand"
+    assert sent[0]["card_id"] == "coach_mode"
 
     game = _game()
     sent = []
@@ -302,7 +302,7 @@ async def _server_activate_rogue_card_wrapper_skips_komi_sync_when_not_needed_or
     assert calls == []
     assert sent[0]["type"] == "rogue_card_selected"
     assert sent[0]["card_id"] == "komi_relief"
-    assert sent[0]["komi"] == 0.5 + card_komi_points(["komi_relief"], 1, game.size)  # the AI (White) gets the card charge
+    assert sent[0]["komi"] == 0.5 + card_komi_points(["komi_relief"], 1, game.size, rogue_mode=True)  # the AI (White) gets the card charge
 
 
 def test_server_activate_rogue_card_wrapper_skips_komi_sync_when_not_needed_or_not_ready() -> None:
